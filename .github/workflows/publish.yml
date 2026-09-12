@@ -1,7 +1,6 @@
 name: Publish
 
 on:
-  workflow_dispatch:
   release:
     types: [published]
 
@@ -28,8 +27,5 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run check
       - name: Verify release version
-        if: github.event_name == 'release'
         run: node --eval 'const version = require("./package.json").version; if (process.env.GITHUB_REF_NAME !== `v${version}`) throw new Error(`Release tag ${process.env.GITHUB_REF_NAME} does not match v${version}`)'
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.NPM_TOKEN || '' }}
