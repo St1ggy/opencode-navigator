@@ -28,4 +28,15 @@ jobs:
       - run: bun run check
       - name: Verify release version
         run: node --eval 'const version = require("./package.json").version; if (process.env.GITHUB_REF_NAME !== `v${version}`) throw new Error(`Release tag ${process.env.GITHUB_REF_NAME} does not match v${version}`)'
-      - run: npm publish --provenance --access public
+      - name: Check npm version
+        id: npm
+        run: |
+          package=$(node --print 'require("./package.json").name')
+          version=$(node --print 'require("./package.json").version')
+          if npm view "$package@$version" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.npm.outputs.published != 'true'
+        run: npm publish --provenance --access public
