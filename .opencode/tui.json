@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "plugin": [
+    [
+      "../src/tui.tsx",
+      {
+        "persist_mcp": true,
+        "toggle_key": "ctrl+shift+b"
+      }
+    ]
+  ],
+  "plugin_enabled": {
+    "internal:sidebar-context": false,
+    "internal:sidebar-mcp": false,
+    "internal:sidebar-lsp": false,
+    "internal:sidebar-todo": false,
+    "internal:sidebar-files": false
+  }
+}
