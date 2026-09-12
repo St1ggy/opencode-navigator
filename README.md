@@ -8,6 +8,7 @@ clickable directly in the sidebar.
 
 - Theme-aware session title and activity indicator
 - Collapsible Todo section with progress and priority indicators
+- Active subagent list with live statuses and click-to-open navigation
 - Collapsible MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
 - Persist disabled MCP servers per worktree

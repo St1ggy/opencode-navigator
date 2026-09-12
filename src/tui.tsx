@@ -6,8 +6,9 @@ import type {
   TuiSidebarMcpItem,
   TuiSidebarTodoItem,
 } from "@opencode-ai/plugin/tui"
+import type { Session, SessionStatus } from "@opencode-ai/sdk/v2"
 import { TextAttributes } from "@opentui/core"
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
+import { batch, createEffect, createMemo, createSignal, For, Show } from "solid-js"
 import {
   MCP_PREFERENCES_KEY,
   disabledMcpNames,
@@ -19,6 +20,7 @@ import {
 const PLUGIN_ID = "opencode-pretty-sidebar"
 const TOGGLE_COMMAND = `${PLUGIN_ID}.toggle`
 const TODO_OPEN_KEY = `${PLUGIN_ID}.todo-open`
+const SUBAGENTS_OPEN_KEY = `${PLUGIN_ID}.subagents-open`
 const MCP_OPEN_KEY = `${PLUGIN_ID}.mcp-open`
 
 type PluginConfig = {
@@ -28,7 +30,10 @@ type PluginConfig = {
 
 type McpController = ReturnType<typeof createMcpController>
 type TodoController = ReturnType<typeof createTodoController>
+type SubagentController = ReturnType<typeof createSubagentController>
 type SidebarTodo = TuiSidebarTodoItem & { priority?: string }
+type SessionMutation = { type: "upsert"; info: Session } | { type: "remove"; sessionID: string }
+type StatusMutation = { sessionID: string; status: SessionStatus }
 
 function pluginConfig(options: Record<string, unknown> | undefined): PluginConfig {
   return {
@@ -168,6 +173,113 @@ export function createTodoController(api: TuiPluginApi) {
   return { list, refresh }
 }
 
+function activeStatus(status: SessionStatus | undefined): status is Extract<SessionStatus, { type: "busy" | "retry" }> {
+  return status?.type === "busy" || status?.type === "retry"
+}
+
+export function createSubagentController(api: TuiPluginApi) {
+  const [children, setChildren] = createSignal<Record<string, ReadonlyArray<Session>>>({})
+  const [statuses, setStatuses] = createSignal<Record<string, SessionStatus>>({})
+  const refreshing = new Map<string, Promise<void>>()
+  const journals = new Set<{ sessions: SessionMutation[]; statuses: StatusMutation[] }>()
+
+  function applySession(items: ReadonlyArray<Session>, parentID: string, mutation: SessionMutation) {
+    const next = items.filter((item) => item.id !== (mutation.type === "upsert" ? mutation.info.id : mutation.sessionID))
+    if (mutation.type === "upsert" && mutation.info.parentID === parentID) next.push(mutation.info)
+    return next.sort((a, b) => a.time.created - b.time.created || a.id.localeCompare(b.id))
+  }
+
+  function applyStatus(current: Record<string, SessionStatus>, mutation: StatusMutation) {
+    const next = { ...current }
+    if (mutation.status.type === "idle") delete next[mutation.sessionID]
+    else next[mutation.sessionID] = mutation.status
+    return next
+  }
+
+  function recordSession(mutation: SessionMutation) {
+    for (const journal of journals) journal.sessions.push(mutation)
+    setChildren((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([parentID, items]) => [parentID, applySession(items, parentID, mutation)]),
+      ),
+    )
+  }
+
+  function recordStatus(mutation: StatusMutation) {
+    for (const journal of journals) journal.statuses.push(mutation)
+    setStatuses((current) => applyStatus(current, mutation))
+  }
+
+  async function refresh(parentID: string) {
+    const pending = refreshing.get(parentID)
+    if (pending) return pending
+
+    const journal = { sessions: [] as SessionMutation[], statuses: [] as StatusMutation[] }
+    journals.add(journal)
+    const parent = api.state.session.get(parentID)
+    const routing = {
+      directory: parent?.directory ?? api.state.path.directory,
+      ...(parent?.workspaceID ? { workspace: parent.workspaceID } : {}),
+    }
+    const request = Promise.all([
+      api.client.session.children({ sessionID: parentID, ...routing }, { throwOnError: true }),
+      api.client.session.status(routing, { throwOnError: true }),
+    ])
+      .then(([childResult, statusResult]) => {
+        let nextChildren: ReadonlyArray<Session> = childResult.data ?? []
+        for (const mutation of journal.sessions) nextChildren = applySession(nextChildren, parentID, mutation)
+
+        let nextStatuses = { ...(statusResult.data ?? {}) }
+        for (const mutation of journal.statuses) nextStatuses = applyStatus(nextStatuses, mutation)
+
+        batch(() => {
+          setChildren((current) => ({ ...current, [parentID]: nextChildren }))
+          setStatuses(nextStatuses)
+        })
+      })
+      .finally(() => {
+        journals.delete(journal)
+        refreshing.delete(parentID)
+      })
+    refreshing.set(parentID, request)
+    return request
+  }
+
+  function list(parentID: string) {
+    const currentStatuses = statuses()
+    return (children()[parentID] ?? [])
+      .map((session) => ({ session, status: currentStatuses[session.id] ?? api.state.session.status(session.id) }))
+      .filter((item): item is { session: Session; status: Extract<SessionStatus, { type: "busy" | "retry" }> } =>
+        activeStatus(item.status),
+      )
+  }
+
+  const unsubscribe = [
+    api.event.on("session.created", (event) => recordSession({ type: "upsert", info: event.properties.info })),
+    api.event.on("session.updated", (event) => recordSession({ type: "upsert", info: event.properties.info })),
+    api.event.on("session.deleted", (event) => {
+      recordSession({ type: "remove", sessionID: event.properties.sessionID })
+      recordStatus({ sessionID: event.properties.sessionID, status: { type: "idle" } })
+    }),
+    api.event.on("session.status", (event) => recordStatus(event.properties)),
+    api.event.on("session.idle", (event) =>
+      recordStatus({ sessionID: event.properties.sessionID, status: { type: "idle" } }),
+    ),
+    api.event.on("server.connected", () => {
+      for (const parentID of Object.keys(children())) void refresh(parentID).catch(() => {})
+    }),
+  ]
+  api.lifecycle.onDispose(() => unsubscribe.forEach((dispose) => dispose()))
+
+  return {
+    list,
+    refresh,
+    open(sessionID: string) {
+      api.route.navigate("session", { sessionID })
+    },
+  }
+}
+
 function SidebarTitle(props: { api: TuiPluginApi; sessionID: string; title: string }) {
   const theme = () => props.api.theme.current
   const status = createMemo(() => props.api.state.session.status(props.sessionID)?.type)
@@ -287,6 +399,74 @@ function TodoSection(props: { api: TuiPluginApi; controller: TodoController; ses
   )
 }
 
+function SubagentRow(props: {
+  api: TuiPluginApi
+  item: ReturnType<SubagentController["list"]>[number]
+  onOpen: () => void
+}) {
+  const [hover, setHover] = createSignal(false)
+  const theme = () => props.api.theme.current
+  const retrying = () => props.item.status.type === "retry"
+
+  return (
+    <box
+      flexDirection="row"
+      gap={1}
+      paddingLeft={1}
+      paddingRight={1}
+      backgroundColor={hover() ? theme().backgroundElement : theme().backgroundPanel}
+      onMouseOver={() => setHover(true)}
+      onMouseOut={() => setHover(false)}
+      onMouseUp={props.onOpen}
+    >
+      <text flexShrink={0} fg={retrying() ? theme().warning : theme().primary}>
+        {retrying() ? "↻" : "●"}
+      </text>
+      <text flexGrow={1} fg={theme().text} wrapMode="word">
+        {props.item.session.title}
+      </text>
+      <text flexShrink={0} fg={retrying() ? theme().warning : theme().textMuted}>
+        {retrying() ? "retry" : "running"}
+      </text>
+    </box>
+  )
+}
+
+function SubagentSection(props: { api: TuiPluginApi; controller: SubagentController; sessionID: string }) {
+  const initial = props.api.kv.get(SUBAGENTS_OPEN_KEY, true)
+  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : true)
+  const list = createMemo(() => props.controller.list(props.sessionID))
+
+  createEffect(() => {
+    void props.controller.refresh(props.sessionID).catch(() => {})
+  })
+
+  function toggle() {
+    setOpen((value) => {
+      props.api.kv.set(SUBAGENTS_OPEN_KEY, !value)
+      return !value
+    })
+  }
+
+  return (
+    <Show when={list().length > 0}>
+      <Section api={props.api} title="SUBAGENTS" summary={`${list().length}`} open={open()} onToggle={toggle}>
+        <box gap={1}>
+          <For each={list()}>
+            {(item) => (
+              <SubagentRow
+                api={props.api}
+                item={item}
+                onOpen={() => props.controller.open(item.session.id)}
+              />
+            )}
+          </For>
+        </box>
+      </Section>
+    </Show>
+  )
+}
+
 function mcpColor(api: TuiPluginApi, status: string) {
   const theme = api.theme.current
   if (status === "connected") return theme.success
@@ -401,11 +581,13 @@ function SidebarContent(props: {
   api: TuiPluginApi
   mcp: McpController
   todo: TodoController
+  subagents: SubagentController
   sessionID: string
 }) {
   return (
     <box gap={1}>
       <TodoSection api={props.api} controller={props.todo} sessionID={props.sessionID} />
+      <SubagentSection api={props.api} controller={props.subagents} sessionID={props.sessionID} />
       <McpSection api={props.api} controller={props.mcp} />
     </box>
   )
@@ -425,6 +607,7 @@ const tui: TuiPlugin = async (api, options) => {
   const config = pluginConfig(options)
   const mcp = createMcpController(api, config.persistMcp)
   const todo = createTodoController(api)
+  const subagents = createSubagentController(api)
 
   api.keymap.registerLayer({
     mode: "base",
@@ -457,7 +640,7 @@ const tui: TuiPlugin = async (api, options) => {
         return <SidebarTitle api={api} sessionID={props.session_id} title={props.title} />
       },
       sidebar_content(_ctx, props) {
-        return <SidebarContent api={api} mcp={mcp} todo={todo} sessionID={props.session_id} />
+        return <SidebarContent api={api} mcp={mcp} todo={todo} subagents={subagents} sessionID={props.session_id} />
       },
     },
   })
