@@ -15,6 +15,7 @@ describe("section visibility", () => {
       subagents: true,
       skills: true,
       quick_actions: true,
+      lsp: true,
       mcp: true,
     })
   })
@@ -25,6 +26,7 @@ describe("section visibility", () => {
       subagents: true,
       skills: true,
       quick_actions: true,
+      lsp: true,
       mcp: false,
     })
   })

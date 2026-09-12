@@ -3,19 +3,22 @@ import type {
   TuiPlugin,
   TuiPluginApi,
   TuiPluginModule,
+  TuiSidebarLspItem,
   TuiSidebarMcpItem,
   TuiSidebarTodoItem,
 } from "@opencode-ai/plugin/tui"
 import type { Session, SessionStatus } from "@opencode-ai/sdk/v2"
 import { TextAttributes } from "@opentui/core"
-import { batch, createEffect, createMemo, createSignal, For, Show } from "solid-js"
+import { batch, createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import {
   MCP_PREFERENCES_KEY,
   disabledMcpNames,
   mcpScope,
   mcpToggleAction,
   parseSectionVisibility,
+  resolveSectionVisibility,
   setMcpDisabled,
+  type SidebarSection,
   type SectionVisibility,
 } from "./state"
 
@@ -25,7 +28,19 @@ const TODO_OPEN_KEY = `${PLUGIN_ID}.todo-open`
 const SUBAGENTS_OPEN_KEY = `${PLUGIN_ID}.subagents-open`
 const SKILLS_OPEN_KEY = `${PLUGIN_ID}.skills-open`
 const ACTIONS_OPEN_KEY = `${PLUGIN_ID}.actions-open`
+const LSP_OPEN_KEY = `${PLUGIN_ID}.lsp-open`
 const MCP_OPEN_KEY = `${PLUGIN_ID}.mcp-open`
+const SECTION_VISIBILITY_KEY = `${PLUGIN_ID}.section-visibility`
+const SKILL_CONFIRMATIONS_KEY = `${PLUGIN_ID}.skill-confirmations`
+
+const SECTION_DEFINITIONS: ReadonlyArray<{ name: SidebarSection; label: string }> = [
+  { name: "todo", label: "Todo" },
+  { name: "subagents", label: "Subagents" },
+  { name: "skills", label: "Skills" },
+  { name: "quick_actions", label: "Quick actions" },
+  { name: "lsp", label: "LSP" },
+  { name: "mcp", label: "MCP" },
+]
 
 export const QUICK_ACTIONS = [
   { icon: "✎", label: "Rename", command: "session.rename" },
@@ -45,6 +60,7 @@ type McpController = ReturnType<typeof createMcpController>
 type TodoController = ReturnType<typeof createTodoController>
 type SubagentController = ReturnType<typeof createSubagentController>
 type SkillController = ReturnType<typeof createSkillController>
+type PreferencesController = ReturnType<typeof createPreferencesController>
 type SidebarTodo = TuiSidebarTodoItem & { priority?: string }
 type SkillInfo = { name: string; description?: string; location: string; content: string }
 type McpTarget = {
@@ -76,6 +92,107 @@ function pluginConfig(options: Record<string, unknown> | undefined): PluginConfi
         : "ctrl+shift+b",
     persistMcp: options?.persist_mcp !== false,
     sections: parseSectionVisibility(options?.sections),
+  }
+}
+
+export function createPreferencesController(api: TuiPluginApi, defaults: SectionVisibility) {
+  const [sections, setSections] = createSignal(defaults)
+  const [skippedSkills, setSkippedSkills] = createSignal(new Set<string>())
+  const pendingSectionValues = new Map<SidebarSection, boolean>()
+  const pendingSkippedSkills = new Set<string>()
+  let resetSectionsPending = false
+  let resetSkillsPending = false
+  let hydrated = false
+
+  function skillKey(skill: SkillInfo) {
+    return skill.location || skill.name
+  }
+
+  function sectionOverrides(value: SectionVisibility) {
+    return Object.fromEntries(
+      SECTION_DEFINITIONS.flatMap((section) =>
+        value[section.name] === defaults[section.name] ? [] : [[section.name, value[section.name]]],
+      ),
+    )
+  }
+
+  function persistSections(next: SectionVisibility) {
+    setSections(next)
+    api.kv.set(SECTION_VISIBILITY_KEY, sectionOverrides(next))
+  }
+
+  function load() {
+    if (hydrated || !api.kv.ready) return
+
+    let nextSections = resetSectionsPending
+      ? defaults
+      : resolveSectionVisibility(defaults, api.kv.get(SECTION_VISIBILITY_KEY))
+    for (const [name, visible] of pendingSectionValues) nextSections = { ...nextSections, [name]: visible }
+
+    const saved = api.kv.get(SKILL_CONFIRMATIONS_KEY)
+    const names = Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : []
+    const nextSkipped = resetSkillsPending ? new Set<string>() : new Set<string>(names)
+    for (const name of pendingSkippedSkills) nextSkipped.add(name)
+
+    hydrated = true
+    setSections(nextSections)
+    setSkippedSkills(nextSkipped)
+    if (resetSectionsPending || pendingSectionValues.size > 0) {
+      api.kv.set(SECTION_VISIBILITY_KEY, sectionOverrides(nextSections))
+    }
+    if (resetSkillsPending || pendingSkippedSkills.size > 0) {
+      api.kv.set(SKILL_CONFIRMATIONS_KEY, [...nextSkipped].sort())
+    }
+    pendingSectionValues.clear()
+    pendingSkippedSkills.clear()
+    resetSectionsPending = false
+    resetSkillsPending = false
+  }
+
+  return {
+    sections,
+    skippedSkillCount: () => skippedSkills().size,
+    load,
+    toggleSection(name: SidebarSection) {
+      load()
+      const next = { ...sections(), [name]: !sections()[name] }
+      if (hydrated) persistSections(next)
+      else {
+        setSections(next)
+        pendingSectionValues.set(name, next[name])
+      }
+    },
+    resetSections() {
+      load()
+      if (hydrated) persistSections(defaults)
+      else {
+        resetSectionsPending = true
+        pendingSectionValues.clear()
+        setSections(defaults)
+      }
+    },
+    shouldConfirmSkill(skill: SkillInfo) {
+      load()
+      return !skippedSkills().has(skillKey(skill))
+    },
+    skipSkillConfirmation(skill: SkillInfo) {
+      load()
+      const key = skillKey(skill)
+      const next = new Set(skippedSkills())
+      next.add(key)
+      setSkippedSkills(next)
+      if (hydrated) api.kv.set(SKILL_CONFIRMATIONS_KEY, [...next].sort())
+      else pendingSkippedSkills.add(key)
+    },
+    resetSkillConfirmations() {
+      load()
+      setSkippedSkills(new Set<string>())
+      if (hydrated) api.kv.set(SKILL_CONFIRMATIONS_KEY, [])
+      else {
+        resetSkillsPending = true
+        pendingSkippedSkills.clear()
+      }
+    },
   }
 }
 
@@ -398,19 +515,186 @@ export function createSkillController(api: TuiPluginApi) {
   }
 }
 
-function SidebarTitle(props: { api: TuiPluginApi; sessionID: string; title: string }) {
+function SettingsDialog(props: { api: TuiPluginApi; preferences: PreferencesController }) {
+  const options = createMemo(() => [
+    ...SECTION_DEFINITIONS.map((section) => ({
+      title: `${props.preferences.sections()[section.name] ? "☑" : "☐"} ${section.label}`,
+      value: section.name,
+      description: props.preferences.sections()[section.name] ? "visible" : "hidden",
+    })),
+    {
+      title: "↺ Restore configured defaults",
+      value: "reset_sections",
+      description: "reset section visibility",
+    },
+    {
+      title: "↺ Show skill confirmations again",
+      value: "reset_skills",
+      description: `${props.preferences.skippedSkillCount()} skipped`,
+    },
+  ])
+
+  return (
+    <props.api.ui.DialogSelect
+      title="Sidebar settings"
+      skipFilter={true}
+      options={options()}
+      onSelect={(option) => {
+        if (option.value === "reset_sections") {
+          props.preferences.resetSections()
+          return
+        }
+        if (option.value === "reset_skills") {
+          props.preferences.resetSkillConfirmations()
+          return
+        }
+        props.preferences.toggleSection(option.value as SidebarSection)
+      }}
+    />
+  )
+}
+
+function openSettings(api: TuiPluginApi, preferences: PreferencesController) {
+  api.ui.dialog.replace(() => <SettingsDialog api={api} preferences={preferences} />)
+}
+
+function SkillDialog(props: {
+  api: TuiPluginApi
+  skill: SkillInfo
+  onAccept: (skipConfirmation: boolean) => void
+}) {
+  const [skipConfirmation, setSkipConfirmation] = createSignal(false)
+  const [active, setActive] = createSignal<"accept" | "cancel">("accept")
+  const theme = () => props.api.theme.current
+
+  function accept() {
+    const skip = skipConfirmation()
+    props.api.ui.dialog.clear()
+    props.onAccept(skip)
+  }
+
+  function cancel() {
+    props.api.ui.dialog.clear()
+  }
+
+  const unregister = props.api.keymap.registerLayer({
+    mode: "modal",
+    priority: 1000,
+    commands: [
+      {
+        name: `${PLUGIN_ID}.skill-dialog.move`,
+        run() {
+          setActive((value) => (value === "accept" ? "cancel" : "accept"))
+        },
+      },
+      {
+        name: `${PLUGIN_ID}.skill-dialog.toggle-skip`,
+        run() {
+          setSkipConfirmation((value) => !value)
+        },
+      },
+      {
+        name: `${PLUGIN_ID}.skill-dialog.submit`,
+        run() {
+          if (active() === "accept") accept()
+          else cancel()
+        },
+      },
+    ],
+    bindings: [
+      { key: "left", cmd: `${PLUGIN_ID}.skill-dialog.move` },
+      { key: "right", cmd: `${PLUGIN_ID}.skill-dialog.move` },
+      { key: "tab", cmd: `${PLUGIN_ID}.skill-dialog.move` },
+      { key: "space", cmd: `${PLUGIN_ID}.skill-dialog.toggle-skip` },
+      { key: "return", cmd: `${PLUGIN_ID}.skill-dialog.submit` },
+    ],
+  })
+  onCleanup(unregister)
+
+  return (
+    <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
+      <box flexDirection="row" justifyContent="space-between">
+        <text attributes={TextAttributes.BOLD} fg={theme().text}>
+          {props.skill.name}
+        </text>
+        <text fg={theme().textMuted} onMouseUp={cancel}>
+          esc
+        </text>
+      </box>
+      <scrollbox maxHeight={12} scrollbarOptions={{ visible: false }}>
+        <text fg={theme().textMuted} wrapMode="word">
+          {props.skill.description?.trim() || "No description available."}
+        </text>
+      </scrollbox>
+      <box
+        flexDirection="row"
+        gap={1}
+        onMouseUp={() => setSkipConfirmation((value) => !value)}
+      >
+        <text fg={skipConfirmation() ? theme().accent : theme().textMuted}>
+          {skipConfirmation() ? "☑" : "☐"}
+        </text>
+        <text fg={theme().text}>Don't show again for this skill</text>
+        <text fg={theme().textMuted}>(space)</text>
+      </box>
+      <box flexDirection="row" justifyContent="flex-end">
+        <box
+          paddingLeft={1}
+          paddingRight={1}
+          backgroundColor={active() === "cancel" ? theme().primary : undefined}
+          onMouseOver={() => setActive("cancel")}
+          onMouseUp={cancel}
+        >
+          <text fg={active() === "cancel" ? theme().selectedListItemText : theme().textMuted}>Cancel</text>
+        </box>
+        <box
+          paddingLeft={1}
+          paddingRight={1}
+          backgroundColor={active() === "accept" ? theme().primary : undefined}
+          onMouseOver={() => setActive("accept")}
+          onMouseUp={accept}
+        >
+          <text fg={active() === "accept" ? theme().selectedListItemText : theme().textMuted}>Accept</text>
+        </box>
+      </box>
+    </box>
+  )
+}
+
+function SidebarTitle(props: {
+  api: TuiPluginApi
+  preferences: PreferencesController
+  sessionID: string
+  title: string
+}) {
   const theme = () => props.api.theme.current
   const status = createMemo(() => props.api.state.session.status(props.sessionID)?.type)
+  const [settingsHover, setSettingsHover] = createSignal(false)
 
   return (
     <box border={["bottom"]} borderColor={theme().borderSubtle} paddingBottom={1} paddingRight={1}>
-      <box flexDirection="row" gap={1}>
-        <text flexShrink={0} fg={status() === "busy" ? theme().primary : theme().accent}>
-          {status() === "busy" ? "●" : "◆"}
-        </text>
-        <text fg={theme().text} wrapMode="word">
-          <b>{props.title}</b>
-        </text>
+      <box flexDirection="row" justifyContent="space-between" gap={1}>
+        <box flexDirection="row" gap={1} flexGrow={1}>
+          <text flexShrink={0} fg={status() === "busy" ? theme().primary : theme().accent}>
+            {status() === "busy" ? "●" : "◆"}
+          </text>
+          <text fg={theme().text} wrapMode="word">
+            <b>{props.title}</b>
+          </text>
+        </box>
+        <box
+          flexShrink={0}
+          alignSelf="flex-start"
+          height={1}
+          paddingLeft={1}
+          paddingRight={1}
+          backgroundColor={settingsHover() ? theme().backgroundElement : theme().backgroundPanel}
+          onMouseOver={() => setSettingsHover(true)}
+          onMouseOut={() => setSettingsHover(false)}
+          onMouseUp={() => openSettings(props.api, props.preferences)}
+        >
+          <text fg={settingsHover() ? theme().accent : theme().textMuted}>⚙</text>
+        </box>
       </box>
     </box>
   )
@@ -428,8 +712,6 @@ function Section(props: {
 
   return (
     <box
-      paddingTop={1}
-      paddingBottom={1}
       paddingLeft={1}
       paddingRight={1}
       gap={1}
@@ -589,7 +871,6 @@ function SkillRow(props: {
 }) {
   const [hover, setHover] = createSignal(false)
   const theme = () => props.api.theme.current
-  const description = () => props.item.description?.replace(/\s+/g, " ").trim()
 
   return (
     <box
@@ -605,23 +886,18 @@ function SkillRow(props: {
       <text flexShrink={0} fg={theme().accent}>
         ◆
       </text>
-      <box flexGrow={1}>
-        <text fg={theme().text} wrapMode="word">
-          {props.item.name}
-        </text>
-        <Show when={description()}>
-          {(value) => (
-            <text fg={theme().textMuted} wrapMode="word">
-              {value()}
-            </text>
-          )}
-        </Show>
-      </box>
+      <text flexGrow={1} fg={theme().text} wrapMode="word">
+        {props.item.name}
+      </text>
     </box>
   )
 }
 
-function SkillsSection(props: { api: TuiPluginApi; controller: SkillController }) {
+function SkillsSection(props: {
+  api: TuiPluginApi
+  controller: SkillController
+  preferences: PreferencesController
+}) {
   const initial = props.api.kv.get(SKILLS_OPEN_KEY, false)
   const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
   const target = createMemo(() => props.controller.target())
@@ -639,17 +915,34 @@ function SkillsSection(props: { api: TuiPluginApi; controller: SkillController }
     })
   }
 
-  async function useSkill(name: string) {
+  async function useSkill(item: SkillInfo) {
     try {
-      await props.controller.use(target(), name)
+      await props.controller.use(target(), item.name)
     } catch (cause) {
       props.api.ui.toast({
         variant: "error",
         title: "Skills",
-        message: cause instanceof Error ? cause.message : `Failed to insert /${name}`,
+        message: cause instanceof Error ? cause.message : `Failed to insert /${item.name}`,
         duration: 5000,
       })
     }
+  }
+
+  function selectSkill(item: SkillInfo) {
+    if (!props.preferences.shouldConfirmSkill(item)) {
+      void useSkill(item)
+      return
+    }
+    props.api.ui.dialog.replace(() => (
+      <SkillDialog
+        api={props.api}
+        skill={item}
+        onAccept={(skipConfirmation) => {
+          if (skipConfirmation) props.preferences.skipSkillConfirmation(item)
+          void useSkill(item)
+        }}
+      />
+    ))
   }
 
   return (
@@ -659,9 +952,9 @@ function SkillsSection(props: { api: TuiPluginApi; controller: SkillController }
         fallback={<text fg={props.api.theme.current.error}>{error()}</text>}
       >
         <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No skills</text>}>
-          <box gap={1}>
+          <box>
             <For each={list()}>
-              {(item) => <SkillRow api={props.api} item={item} onUse={() => void useSkill(item.name)} />}
+              {(item) => <SkillRow api={props.api} item={item} onUse={() => selectSkill(item)} />}
             </For>
           </box>
         </Show>
@@ -736,9 +1029,94 @@ function QuickActionsSection(props: { api: TuiPluginApi }) {
 
   return (
     <Section api={props.api} title="QUICK ACTIONS" summary={`${QUICK_ACTIONS.length}`} open={open()} onToggle={toggle}>
-      <box gap={1}>
+      <box>
         <For each={QUICK_ACTIONS}>{(action) => <QuickActionRow api={props.api} action={action} />}</For>
       </box>
+    </Section>
+  )
+}
+
+export function lspIcon(id: string) {
+  const name = id.toLowerCase()
+  if (name.includes("typescript") || name.includes("tsserver")) return "TS"
+  if (name.includes("eslint")) return "ES"
+  if (name.includes("biome")) return "B"
+  if (name.includes("deno")) return "D"
+  if (name.includes("pyright") || name.includes("pylsp") || name.includes("ruff") || name === "ty") return "Py"
+  if (name.includes("gopls") || name === "go") return "Go"
+  if (name.includes("rust")) return "Rs"
+  if (name.includes("clang") || name.includes("ccls")) return "C"
+  if (name.includes("lua")) return "Lua"
+  if (name.includes("ruby")) return "Rb"
+  if (name.includes("java") || name.includes("jdt")) return "Jv"
+  if (name.includes("kotlin")) return "Kt"
+  if (name.includes("csharp") || name.includes("omnisharp")) return "C#"
+  if (name.includes("fsharp")) return "F#"
+  if (name.includes("elixir")) return "Ex"
+  if (name.includes("terraform")) return "Tf"
+  if (name.includes("yaml")) return "Y"
+  if (name.includes("json")) return "{}"
+  if (name.includes("tailwind")) return "TW"
+  if (name.includes("css")) return "CSS"
+  if (name.includes("html")) return "HTM"
+  if (name.includes("bash")) return "Sh"
+  if (name.includes("docker")) return "Dk"
+  if (name.includes("php")) return "PHP"
+  if (name.includes("dart")) return "Dt"
+  if (name.includes("zig") || name.includes("zls")) return "Zg"
+  if (name.includes("ocaml")) return "Ml"
+  if (name.includes("swift") || name.includes("sourcekit")) return "Sw"
+  if (name.includes("prisma")) return "Pr"
+  return "◇"
+}
+
+function LspSection(props: { api: TuiPluginApi }) {
+  const initial = props.api.kv.get(LSP_OPEN_KEY, false)
+  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
+  const list = createMemo(() => props.api.state.lsp())
+  const connected = createMemo(() => list().filter((item) => item.status === "connected").length)
+  const disabled = createMemo(() => !props.api.state.config.lsp)
+
+  function toggle() {
+    setOpen((value) => {
+      props.api.kv.set(LSP_OPEN_KEY, !value)
+      return !value
+    })
+  }
+
+  return (
+    <Section api={props.api} title="LSP" summary={`${connected()}/${list().length}`} open={open()} onToggle={toggle}>
+      <Show
+        when={list().length > 0}
+        fallback={
+          <text fg={props.api.theme.current.textMuted}>
+            {disabled() ? "LSP is disabled" : "Activates as files are read"}
+          </text>
+        }
+      >
+        <box>
+          <For each={list()}>
+            {(item: TuiSidebarLspItem) => (
+              <box flexDirection="row" justifyContent="space-between" gap={1} paddingLeft={1} paddingRight={1}>
+                <box flexDirection="row" gap={1} flexGrow={1}>
+                  <text width={3} flexShrink={0} fg={props.api.theme.current.accent}>
+                    <b>{lspIcon(item.id)}</b>
+                  </text>
+                  <text fg={props.api.theme.current.text} wrapMode="word">
+                    {item.id}
+                  </text>
+                </box>
+                <text
+                  flexShrink={0}
+                  fg={item.status === "connected" ? props.api.theme.current.success : props.api.theme.current.error}
+                >
+                  <b>{item.status === "connected" ? "●" : "×"}</b>
+                </text>
+              </box>
+            )}
+          </For>
+        </box>
+      </Show>
     </Section>
   )
 }
@@ -859,24 +1237,29 @@ function SidebarContent(props: {
   todo: TodoController
   subagents: SubagentController
   skills: SkillController
-  sections: SectionVisibility
+  preferences: PreferencesController
   sessionID: string
 }) {
+  const sections = props.preferences.sections
+
   return (
     <box gap={1}>
-      <Show when={props.sections.todo}>
+      <Show when={sections().todo}>
         <TodoSection api={props.api} controller={props.todo} sessionID={props.sessionID} />
       </Show>
-      <Show when={props.sections.subagents}>
+      <Show when={sections().subagents}>
         <SubagentSection api={props.api} controller={props.subagents} sessionID={props.sessionID} />
       </Show>
-      <Show when={props.sections.skills}>
-        <SkillsSection api={props.api} controller={props.skills} />
+      <Show when={sections().skills}>
+        <SkillsSection api={props.api} controller={props.skills} preferences={props.preferences} />
       </Show>
-      <Show when={props.sections.quick_actions}>
+      <Show when={sections().quick_actions}>
         <QuickActionsSection api={props.api} />
       </Show>
-      <Show when={props.sections.mcp}>
+      <Show when={sections().lsp}>
+        <LspSection api={props.api} />
+      </Show>
+      <Show when={sections().mcp}>
         <McpSection api={props.api} controller={props.mcp} />
       </Show>
     </box>
@@ -895,12 +1278,21 @@ function McpPersistence(props: { api: TuiPluginApi; controller: McpController })
   return <></>
 }
 
+function PreferencesPersistence(props: { api: TuiPluginApi; controller: PreferencesController }) {
+  createEffect(() => {
+    if (!props.api.kv.ready) return
+    props.controller.load()
+  })
+  return <></>
+}
+
 const tui: TuiPlugin = async (api, options) => {
   const config = pluginConfig(options)
   const mcp = createMcpController(api, config.persistMcp)
   const todo = createTodoController(api)
   const subagents = createSubagentController(api)
   const skills = createSkillController(api)
+  const preferences = createPreferencesController(api, config.sections)
 
   api.keymap.registerLayer({
     mode: "base",
@@ -933,10 +1325,22 @@ const tui: TuiPlugin = async (api, options) => {
     order: 100,
     slots: {
       app() {
-        return <McpPersistence api={api} controller={mcp} />
+        return (
+          <>
+            <PreferencesPersistence api={api} controller={preferences} />
+            <McpPersistence api={api} controller={mcp} />
+          </>
+        )
       },
       sidebar_title(_ctx, props) {
-        return <SidebarTitle api={api} sessionID={props.session_id} title={props.title} />
+        return (
+          <SidebarTitle
+            api={api}
+            preferences={preferences}
+            sessionID={props.session_id}
+            title={props.title}
+          />
+        )
       },
       sidebar_content(_ctx, props) {
         return (
@@ -946,7 +1350,7 @@ const tui: TuiPlugin = async (api, options) => {
             todo={todo}
             subagents={subagents}
             skills={skills}
-            sections={config.sections}
+            preferences={preferences}
             sessionID={props.session_id}
           />
         )

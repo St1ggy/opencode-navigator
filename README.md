@@ -9,17 +9,19 @@ actions, and makes every MCP server clickable directly in the sidebar.
 - Theme-aware session title and activity indicator
 - Collapsible Todo section with progress and priority indicators
 - Active subagent list with live statuses and click-to-open navigation
-- Workspace skills with descriptions and click-to-insert slash commands
+- Compact workspace skill list with click-to-confirm slash commands
 - Quick actions for rename, timeline, transcript copy, export, and compaction
+- Live LSP connection status with recognizable server badges
 - Collapsible MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
 - Persist disabled MCP servers per worktree and reapply them between sessions
 - Show or hide each sidebar section independently
+- Configure visible sections from the sidebar settings button
 - Toggle the sidebar with `Ctrl+Shift+B`
 - Keep OpenCode's compact project path and branch footer
 
-Todo starts expanded. Subagents, skills, quick actions, and MCP start collapsed.
-Each section remembers its own expanded state.
+Todo starts expanded. Subagents, skills, quick actions, LSP, and MCP start
+collapsed. Each section remembers its own expanded state.
 
 Requires OpenCode 1.18.30 or newer.
 
@@ -92,6 +94,7 @@ Pass options with a tuple entry:
           "subagents": true,
           "skills": true,
           "quick_actions": true,
+          "lsp": true,
           "mcp": true
         }
       }
@@ -105,8 +108,9 @@ Pass options with a tuple entry:
 - `toggle_key`: sidebar shortcut. Defaults to `ctrl+shift+b`. Try `alt+s` if
   your terminal does not distinguish `Ctrl+Shift+B` from `Ctrl+B`.
 - `sections`: controls whether each section is rendered. Every section defaults
-  to `true`; set any of `todo`, `subagents`, `skills`, `quick_actions`, or `mcp`
-  to `false` to hide it.
+  to `true`; set any of `todo`, `subagents`, `skills`, `quick_actions`, `lsp`, or
+  `mcp` to `false` to hide it. Runtime choices made from the settings button are
+  persisted and take precedence until configured defaults are restored there.
 
 OpenCode initializes enabled MCP servers before TUI plugins. A remembered
 server can therefore connect briefly during startup before this plugin
@@ -115,9 +119,11 @@ disconnects it.
 Todo priorities are read-only because OpenCode does not expose a Todo mutation
 API to TUI plugins.
 
-Selecting a skill appends its `/<name>` command to the current prompt. Quick
-actions invoke OpenCode's built-in commands and display the active keybindings
-from your configuration.
+Selecting a skill opens its description with Accept and Cancel controls before
+appending its `/<name>` command to the current prompt. Select "Don't show again
+for this skill" to skip that confirmation later. The sidebar settings dialog
+can restore skipped confirmations. Quick actions invoke OpenCode's built-in
+commands and display the active keybindings from your configuration.
 
 ## Scripts
 
