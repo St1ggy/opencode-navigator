@@ -6,6 +6,7 @@ import type {
   TuiSidebarMcpItem,
   TuiSidebarTodoItem,
 } from "@opencode-ai/plugin/tui"
+import { TextAttributes } from "@opentui/core"
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
 import {
   MCP_PREFERENCES_KEY,
@@ -241,7 +242,12 @@ function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
       >
         {done() ? "✓" : active() ? "●" : cancelled() ? "×" : "○"}
       </text>
-      <text flexGrow={1} fg={active() ? theme().text : theme().textMuted} wrapMode="word">
+      <text
+        flexGrow={1}
+        fg={active() ? theme().primary : theme().textMuted}
+        attributes={done() ? TextAttributes.STRIKETHROUGH : active() ? TextAttributes.BOLD : undefined}
+        wrapMode="word"
+      >
         {props.item.content}
       </text>
       <Show when={props.item.priority === "high" || props.item.priority === "medium" || props.item.priority === "low"}>
