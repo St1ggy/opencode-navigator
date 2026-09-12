@@ -223,15 +223,15 @@ function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
   const active = () => props.item.status === "in_progress"
   const cancelled = () => props.item.status === "cancelled"
   const priorityLabel = () => {
-    if (props.item.priority === "high") return "H"
-    if (props.item.priority === "medium") return "M"
-    if (props.item.priority === "low") return "L"
+    if (props.item.priority === "high") return "↑"
+    if (props.item.priority === "medium") return "•"
+    if (props.item.priority === "low") return "↓"
     return "?"
   }
   const priorityColor = () => {
     if (props.item.priority === "high") return theme().error
     if (props.item.priority === "medium") return theme().warning
-    return theme().textMuted
+    return theme().info
   }
 
   return (
