@@ -241,7 +241,7 @@ function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
       >
         {done() ? "✓" : active() ? "●" : cancelled() ? "×" : "○"}
       </text>
-      <text fg={active() ? theme().text : theme().textMuted} wrapMode="word">
+      <text flexGrow={1} fg={active() ? theme().text : theme().textMuted} wrapMode="word">
         {props.item.content}
       </text>
       <Show when={props.item.priority === "high" || props.item.priority === "medium" || props.item.priority === "low"}>
@@ -290,7 +290,7 @@ function mcpColor(api: TuiPluginApi, status: string) {
 }
 
 function mcpToggle(status: string, busy: boolean) {
-  if (busy || status === "pending") return "◌"
+  if (busy || status === "pending") return "◍"
   return status === "connected" ? "◉" : "○"
 }
 

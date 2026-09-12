@@ -111,7 +111,7 @@ bun run check
 
 Publishing is handled by `.github/workflows/publish.yml` when a GitHub Release
 is published. The release tag must match the package version, for example
-`v0.1.0` for version `0.1.0`.
+`v1.2.3` for version `1.2.3`.
 
 The workflow uses npm Trusted Publishing with provenance. Configure
 `St1ggy/opencode-pretty-sidebar` and `publish.yml` as the trusted GitHub Actions

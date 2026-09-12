@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "opencode-sidebar",
+      "name": "opencode-pretty-sidebar",
       "devDependencies": {
         "@opencode-ai/plugin": "1.18.30",
         "@opentui/core": "0.4.5",
