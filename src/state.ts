@@ -1,5 +1,24 @@
 export const MCP_PREFERENCES_KEY = "opencode-pretty-sidebar.mcp-preferences"
 
+export type SidebarSection = "todo" | "subagents" | "skills" | "quick_actions" | "mcp"
+export type SectionVisibility = Record<SidebarSection, boolean>
+
+export function parseSectionVisibility(value: unknown): SectionVisibility {
+  const defaults: SectionVisibility = {
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    mcp: true,
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return defaults
+
+  const input = value as Record<string, unknown>
+  return Object.fromEntries(
+    Object.entries(defaults).map(([name, visible]) => [name, typeof input[name] === "boolean" ? input[name] : visible]),
+  ) as SectionVisibility
+}
+
 export type McpPreferences = {
   version: 1
   disabledByScope: Record<string, string[]>

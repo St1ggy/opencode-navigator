@@ -4,8 +4,31 @@ import {
   mcpScope,
   mcpToggleAction,
   parseMcpPreferences,
+  parseSectionVisibility,
   setMcpDisabled,
 } from "../src/state"
+
+describe("section visibility", () => {
+  test("shows every section by default", () => {
+    expect(parseSectionVisibility(undefined)).toEqual({
+      todo: true,
+      subagents: true,
+      skills: true,
+      quick_actions: true,
+      mcp: true,
+    })
+  })
+
+  test("accepts boolean overrides and ignores invalid values", () => {
+    expect(parseSectionVisibility({ todo: false, skills: "no", mcp: false })).toEqual({
+      todo: false,
+      subagents: true,
+      skills: true,
+      quick_actions: true,
+      mcp: false,
+    })
+  })
+})
 
 describe("MCP preferences", () => {
   test("uses the worktree as the persistence scope", () => {

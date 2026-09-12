@@ -14,26 +14,59 @@ import {
   disabledMcpNames,
   mcpScope,
   mcpToggleAction,
+  parseSectionVisibility,
   setMcpDisabled,
+  type SectionVisibility,
 } from "./state"
 
 const PLUGIN_ID = "opencode-pretty-sidebar"
 const TOGGLE_COMMAND = `${PLUGIN_ID}.toggle`
 const TODO_OPEN_KEY = `${PLUGIN_ID}.todo-open`
 const SUBAGENTS_OPEN_KEY = `${PLUGIN_ID}.subagents-open`
+const SKILLS_OPEN_KEY = `${PLUGIN_ID}.skills-open`
+const ACTIONS_OPEN_KEY = `${PLUGIN_ID}.actions-open`
 const MCP_OPEN_KEY = `${PLUGIN_ID}.mcp-open`
+
+export const QUICK_ACTIONS = [
+  { icon: "✎", label: "Rename", command: "session.rename" },
+  { icon: "≡", label: "Timeline", command: "session.timeline" },
+  { icon: "⧉", label: "Copy transcript", command: "session.copy" },
+  { icon: "⇧", label: "Export", command: "session.export" },
+  { icon: "◫", label: "Compact", command: "session.compact" },
+] as const
 
 type PluginConfig = {
   toggleKey: string
   persistMcp: boolean
+  sections: SectionVisibility
 }
 
 type McpController = ReturnType<typeof createMcpController>
 type TodoController = ReturnType<typeof createTodoController>
 type SubagentController = ReturnType<typeof createSubagentController>
+type SkillController = ReturnType<typeof createSkillController>
 type SidebarTodo = TuiSidebarTodoItem & { priority?: string }
+type SkillInfo = { name: string; description?: string; location: string; content: string }
+type McpTarget = {
+  key: string
+  scope: string
+  routing: { directory: string; workspace?: string }
+}
 type SessionMutation = { type: "upsert"; info: Session } | { type: "remove"; sessionID: string }
 type StatusMutation = { sessionID: string; status: SessionStatus }
+
+function currentLocation(api: TuiPluginApi) {
+  const route = api.route.current
+  const params = "params" in route ? route.params : undefined
+  const sessionID = typeof params?.sessionID === "string" ? params.sessionID : undefined
+  const session = sessionID ? api.state.session.get(sessionID) : undefined
+  const directory = session?.directory ?? api.state.path.directory
+  const workspace = session?.workspaceID
+  return {
+    key: JSON.stringify([directory, workspace ?? null]),
+    routing: { directory, ...(workspace ? { workspace } : {}) },
+  }
+}
 
 function pluginConfig(options: Record<string, unknown> | undefined): PluginConfig {
   return {
@@ -42,6 +75,7 @@ function pluginConfig(options: Record<string, unknown> | undefined): PluginConfi
         ? options.toggle_key.trim()
         : "ctrl+shift+b",
     persistMcp: options?.persist_mcp !== false,
+    sections: parseSectionVisibility(options?.sections),
   }
 }
 
@@ -51,86 +85,111 @@ function statusError(status: unknown) {
   return typeof error === "string" ? error : undefined
 }
 
-function createMcpController(api: TuiPluginApi, persist: boolean) {
-  const [snapshot, setSnapshot] = createSignal<ReadonlyArray<TuiSidebarMcpItem>>()
-  let refreshing: Promise<ReadonlyArray<TuiSidebarMcpItem>> | undefined
-  let restoring = false
+export function createMcpController(api: TuiPluginApi, persist: boolean) {
+  const [snapshot, setSnapshot] = createSignal<{ target: string; items: ReadonlyArray<TuiSidebarMcpItem> }>()
+  const refreshing = new Map<string, Promise<ReadonlyArray<TuiSidebarMcpItem>>>()
+  const mutations = new Map<string, Promise<void>>()
+  let activation = 0
 
-  const list = createMemo(() => snapshot() ?? api.state.mcp())
+  function target(): McpTarget {
+    const location = currentLocation(api)
+    return {
+      key: location.key,
+      scope: mcpScope(api.state.path),
+      routing: location.routing,
+    }
+  }
 
-  async function refresh() {
-    if (refreshing) return refreshing
-    refreshing = api.client.mcp
-      .status(undefined, { throwOnError: true })
+  function list(current = target()) {
+    const value = snapshot()
+    return value?.target === current.key ? value.items : api.state.mcp()
+  }
+
+  async function refresh(current = target(), force = false): Promise<ReadonlyArray<TuiSidebarMcpItem>> {
+    const pending = refreshing.get(current.key)
+    if (pending) {
+      if (!force) return pending
+      await pending.catch(() => {})
+    }
+
+    const request = api.client.mcp
+      .status(current.routing, { throwOnError: true })
       .then((result) => {
         const items = Object.entries(result.data ?? {})
-          .map(([name, status]) => ({
-            name,
-            status: status.status,
-            error: statusError(status),
-          }))
+          .map(([name, status]) => ({ name, status: status.status, error: statusError(status) }))
           .sort((a, b) => a.name.localeCompare(b.name))
-        setSnapshot(items)
+        if (target().key === current.key) setSnapshot({ target: current.key, items })
         return items
       })
       .finally(() => {
-        refreshing = undefined
+        if (refreshing.get(current.key) === request) refreshing.delete(current.key)
       })
-    return refreshing
+    refreshing.set(current.key, request)
+    return request
   }
 
-  function save(name: string, disabled: boolean) {
+  async function mutate(current: McpTarget, name: string, operation: () => Promise<unknown>) {
+    const key = JSON.stringify([current.key, name])
+    const previous = mutations.get(key) ?? Promise.resolve()
+    const request = previous.catch(() => {}).then(operation).then(() => undefined)
+    mutations.set(key, request)
+    try {
+      await request
+    } finally {
+      if (mutations.get(key) === request) mutations.delete(key)
+    }
+  }
+
+  function save(current: McpTarget, name: string, disabled: boolean) {
     if (!persist) return
-    const scope = mcpScope(api.state.path)
-    const value = setMcpDisabled(api.kv.get(MCP_PREFERENCES_KEY), scope, name, disabled)
+    const value = setMcpDisabled(api.kv.get(MCP_PREFERENCES_KEY), current.scope, name, disabled)
     api.kv.set(MCP_PREFERENCES_KEY, value)
   }
 
   async function toggle(name: string) {
-    const item = list().find((candidate) => candidate.name === name)
+    const current = target()
+    const item = list(current).find((candidate) => candidate.name === name)
     const action = item && mcpToggleAction(item.status)
     if (!action) return
 
-    if (action === "disconnect") {
-      await api.client.mcp.disconnect({ name }, { throwOnError: true })
-      save(name, true)
-    } else {
-      await api.client.mcp.connect({ name }, { throwOnError: true })
-      save(name, false)
-    }
-    await refresh()
+    activation += 1
+    save(current, name, action === "disconnect")
+    await mutate(current, name, () =>
+      action === "disconnect"
+        ? api.client.mcp.disconnect({ name, ...current.routing }, { throwOnError: true })
+        : api.client.mcp.connect({ name, ...current.routing }, { throwOnError: true }),
+    )
+    await refresh(current, true)
   }
 
-  async function restore() {
-    if (!persist || restoring || !api.state.ready || !api.kv.ready) return
-    restoring = true
-    try {
-      const scope = mcpScope(api.state.path)
-      const disabled = disabledMcpNames(api.kv.get(MCP_PREFERENCES_KEY), scope)
-      if (disabled.size === 0) return
+  async function activate(current = target()) {
+    const generation = ++activation
+    const items = await refresh(current, true)
+    if (!persist || generation !== activation || target().key !== current.key) return
 
-      const items = await refresh()
-      const connected = items.filter((item) => item.status === "connected" && disabled.has(item.name))
-      if (connected.length === 0) return
-
-      const results = await Promise.allSettled(
-        connected.map((item) => api.client.mcp.disconnect({ name: item.name }, { throwOnError: true })),
-      )
-      if (results.some((result) => result.status === "rejected")) {
-        api.ui.toast({
-          variant: "warning",
-          title: "MCP preferences",
-          message: "Some saved MCP preferences could not be restored",
-          duration: 4000,
-        })
-      }
-      await refresh()
-    } finally {
-      restoring = false
+    const connected = items.filter((item) => item.status === "connected")
+    const results = await Promise.allSettled(
+      connected.map((item) =>
+        mutate(current, item.name, async () => {
+          if (generation !== activation || target().key !== current.key) return
+          const disabled = disabledMcpNames(api.kv.get(MCP_PREFERENCES_KEY), current.scope)
+          if (!disabled.has(item.name)) return
+          await api.client.mcp.disconnect({ name: item.name, ...current.routing }, { throwOnError: true })
+        }),
+      ),
+    )
+    if (results.some((result) => result.status === "rejected")) {
+      api.ui.toast({
+        variant: "warning",
+        title: "MCP preferences",
+        message: "Some saved MCP preferences could not be restored",
+        duration: 4000,
+      })
     }
+    if (generation === activation && target().key === current.key) await refresh(current, true)
   }
 
-  return { list, refresh, restore, toggle }
+  return { list, refresh, activate, target, toggle }
 }
 
 export function createTodoController(api: TuiPluginApi) {
@@ -280,6 +339,65 @@ export function createSubagentController(api: TuiPluginApi) {
   }
 }
 
+export function createSkillController(api: TuiPluginApi) {
+  const [skills, setSkills] = createSignal<Record<string, ReadonlyArray<SkillInfo>>>({})
+  const [errors, setErrors] = createSignal<Record<string, string | undefined>>({})
+  const refreshing = new Map<string, Promise<ReadonlyArray<SkillInfo>>>()
+  const targets = new Map<string, ReturnType<typeof currentLocation>>()
+
+  function target() {
+    return currentLocation(api)
+  }
+
+  function list(current = target()) {
+    return skills()[current.key] ?? []
+  }
+
+  function error(current = target()) {
+    return errors()[current.key]
+  }
+
+  async function refresh(current = target()) {
+    const pending = refreshing.get(current.key)
+    if (pending) return pending
+    targets.set(current.key, current)
+
+    const request = api.client.app
+      .skills(current.routing, { throwOnError: true })
+      .then((result) => {
+        const items = [...(result.data ?? [])].sort((a, b) => a.name.localeCompare(b.name))
+        setSkills((value) => ({ ...value, [current.key]: items }))
+        setErrors((value) => ({ ...value, [current.key]: undefined }))
+        return items
+      })
+      .catch((cause) => {
+        setErrors((value) => ({
+          ...value,
+          [current.key]: cause instanceof Error ? cause.message : "Failed to load skills",
+        }))
+        throw cause
+      })
+      .finally(() => refreshing.delete(current.key))
+    refreshing.set(current.key, request)
+    return request
+  }
+
+  const unsubscribe = api.event.on("server.connected", () => {
+    for (const current of targets.values()) void refresh(current).catch(() => {})
+  })
+  api.lifecycle.onDispose(unsubscribe)
+
+  return {
+    list,
+    error,
+    refresh,
+    target,
+    use(current: ReturnType<typeof currentLocation>, name: string) {
+      return api.client.tui.appendPrompt({ ...current.routing, text: `/${name} ` }, { throwOnError: true })
+    },
+  }
+}
+
 function SidebarTitle(props: { api: TuiPluginApi; sessionID: string; title: string }) {
   const theme = () => props.api.theme.current
   const status = createMemo(() => props.api.state.session.status(props.sessionID)?.type)
@@ -425,16 +543,13 @@ function SubagentRow(props: {
       <text flexGrow={1} fg={theme().text} wrapMode="word">
         {props.item.session.title}
       </text>
-      <text flexShrink={0} fg={retrying() ? theme().warning : theme().textMuted}>
-        {retrying() ? "retry" : "running"}
-      </text>
     </box>
   )
 }
 
 function SubagentSection(props: { api: TuiPluginApi; controller: SubagentController; sessionID: string }) {
-  const initial = props.api.kv.get(SUBAGENTS_OPEN_KEY, true)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : true)
+  const initial = props.api.kv.get(SUBAGENTS_OPEN_KEY, false)
+  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
   const list = createMemo(() => props.controller.list(props.sessionID))
 
   createEffect(() => {
@@ -464,6 +579,167 @@ function SubagentSection(props: { api: TuiPluginApi; controller: SubagentControl
         </box>
       </Section>
     </Show>
+  )
+}
+
+function SkillRow(props: {
+  api: TuiPluginApi
+  item: SkillInfo
+  onUse: () => void
+}) {
+  const [hover, setHover] = createSignal(false)
+  const theme = () => props.api.theme.current
+  const description = () => props.item.description?.replace(/\s+/g, " ").trim()
+
+  return (
+    <box
+      flexDirection="row"
+      gap={1}
+      paddingLeft={1}
+      paddingRight={1}
+      backgroundColor={hover() ? theme().backgroundElement : theme().backgroundPanel}
+      onMouseOver={() => setHover(true)}
+      onMouseOut={() => setHover(false)}
+      onMouseUp={props.onUse}
+    >
+      <text flexShrink={0} fg={theme().accent}>
+        ◆
+      </text>
+      <box flexGrow={1}>
+        <text fg={theme().text} wrapMode="word">
+          {props.item.name}
+        </text>
+        <Show when={description()}>
+          {(value) => (
+            <text fg={theme().textMuted} wrapMode="word">
+              {value()}
+            </text>
+          )}
+        </Show>
+      </box>
+    </box>
+  )
+}
+
+function SkillsSection(props: { api: TuiPluginApi; controller: SkillController }) {
+  const initial = props.api.kv.get(SKILLS_OPEN_KEY, false)
+  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
+  const target = createMemo(() => props.controller.target())
+  const list = createMemo(() => props.controller.list(target()))
+  const error = createMemo(() => props.controller.error(target()))
+
+  createEffect(() => {
+    void props.controller.refresh(target()).catch(() => {})
+  })
+
+  function toggle() {
+    setOpen((value) => {
+      props.api.kv.set(SKILLS_OPEN_KEY, !value)
+      return !value
+    })
+  }
+
+  async function useSkill(name: string) {
+    try {
+      await props.controller.use(target(), name)
+    } catch (cause) {
+      props.api.ui.toast({
+        variant: "error",
+        title: "Skills",
+        message: cause instanceof Error ? cause.message : `Failed to insert /${name}`,
+        duration: 5000,
+      })
+    }
+  }
+
+  return (
+    <Section api={props.api} title="SKILLS" summary={`${list().length}`} open={open()} onToggle={toggle}>
+      <Show
+        when={!error()}
+        fallback={<text fg={props.api.theme.current.error}>{error()}</text>}
+      >
+        <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No skills</text>}>
+          <box gap={1}>
+            <For each={list()}>
+              {(item) => <SkillRow api={props.api} item={item} onUse={() => void useSkill(item.name)} />}
+            </For>
+          </box>
+        </Show>
+      </Show>
+    </Section>
+  )
+}
+
+function QuickActionRow(props: {
+  api: TuiPluginApi
+  action: (typeof QUICK_ACTIONS)[number]
+}) {
+  const [hover, setHover] = createSignal(false)
+  const theme = () => props.api.theme.current
+  const shortcut = createMemo(() => {
+    const bindings = props.api.keymap.getCommandBindings({
+      visibility: "registered",
+      commands: [props.action.command],
+    })
+    return props.api.keys.formatBindings(bindings.get(props.action.command))
+  })
+
+  function run() {
+    const result = props.api.keymap.dispatchCommand(props.action.command)
+    if (result.ok) return
+    props.api.ui.toast({
+      variant: "warning",
+      title: props.action.label,
+      message: `Command is ${result.reason}`,
+      duration: 3000,
+    })
+  }
+
+  return (
+    <box
+      flexDirection="row"
+      gap={1}
+      paddingLeft={1}
+      paddingRight={1}
+      backgroundColor={hover() ? theme().backgroundElement : theme().backgroundPanel}
+      onMouseOver={() => setHover(true)}
+      onMouseOut={() => setHover(false)}
+      onMouseUp={run}
+    >
+      <text flexShrink={0} fg={theme().accent}>
+        {props.action.icon}
+      </text>
+      <text flexGrow={1} fg={theme().text}>
+        {props.action.label}
+      </text>
+      <Show when={shortcut()}>
+        {(value) => (
+          <text flexShrink={0} fg={theme().textMuted} wrapMode="none">
+            {value()}
+          </text>
+        )}
+      </Show>
+    </box>
+  )
+}
+
+function QuickActionsSection(props: { api: TuiPluginApi }) {
+  const initial = props.api.kv.get(ACTIONS_OPEN_KEY, false)
+  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
+
+  function toggle() {
+    setOpen((value) => {
+      props.api.kv.set(ACTIONS_OPEN_KEY, !value)
+      return !value
+    })
+  }
+
+  return (
+    <Section api={props.api} title="QUICK ACTIONS" summary={`${QUICK_ACTIONS.length}`} open={open()} onToggle={toggle}>
+      <box gap={1}>
+        <For each={QUICK_ACTIONS}>{(action) => <QuickActionRow api={props.api} action={action} />}</For>
+      </box>
+    </Section>
   )
 }
 
@@ -519,8 +795,8 @@ function McpRow(props: {
 }
 
 function McpSection(props: { api: TuiPluginApi; controller: McpController }) {
-  const initial = props.api.kv.get(MCP_OPEN_KEY, true)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : true)
+  const initial = props.api.kv.get(MCP_OPEN_KEY, false)
+  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
   const [loading, setLoading] = createSignal<string>()
   const list = props.controller.list
   const active = createMemo(() => list().filter((item) => item.status === "connected").length)
@@ -582,13 +858,27 @@ function SidebarContent(props: {
   mcp: McpController
   todo: TodoController
   subagents: SubagentController
+  skills: SkillController
+  sections: SectionVisibility
   sessionID: string
 }) {
   return (
     <box gap={1}>
-      <TodoSection api={props.api} controller={props.todo} sessionID={props.sessionID} />
-      <SubagentSection api={props.api} controller={props.subagents} sessionID={props.sessionID} />
-      <McpSection api={props.api} controller={props.mcp} />
+      <Show when={props.sections.todo}>
+        <TodoSection api={props.api} controller={props.todo} sessionID={props.sessionID} />
+      </Show>
+      <Show when={props.sections.subagents}>
+        <SubagentSection api={props.api} controller={props.subagents} sessionID={props.sessionID} />
+      </Show>
+      <Show when={props.sections.skills}>
+        <SkillsSection api={props.api} controller={props.skills} />
+      </Show>
+      <Show when={props.sections.quick_actions}>
+        <QuickActionsSection api={props.api} />
+      </Show>
+      <Show when={props.sections.mcp}>
+        <McpSection api={props.api} controller={props.mcp} />
+      </Show>
     </box>
   )
 }
@@ -596,9 +886,11 @@ function SidebarContent(props: {
 function McpPersistence(props: { api: TuiPluginApi; controller: McpController }) {
   createEffect(() => {
     if (!props.api.state.ready || !props.api.kv.ready) return
-    mcpScope(props.api.state.path)
-    props.controller.list()
-    void props.controller.restore()
+    const route = props.api.route.current
+    const params = "params" in route ? route.params : undefined
+    if (typeof params?.sessionID !== "string") return
+    const current = props.controller.target()
+    void props.controller.activate(current).catch(() => {})
   })
   return <></>
 }
@@ -608,6 +900,7 @@ const tui: TuiPlugin = async (api, options) => {
   const mcp = createMcpController(api, config.persistMcp)
   const todo = createTodoController(api)
   const subagents = createSubagentController(api)
+  const skills = createSkillController(api)
 
   api.keymap.registerLayer({
     mode: "base",
@@ -626,9 +919,15 @@ const tui: TuiPlugin = async (api, options) => {
     bindings: [{ key: config.toggleKey, cmd: TOGGLE_COMMAND, desc: "Toggle sidebar" }],
   })
 
-  api.event.on("mcp.tools.changed", () => {
+  const unsubscribeMcp = api.event.on("mcp.tools.changed", () => {
     void mcp.refresh().catch(() => {})
   })
+  const unsubscribeConnected = api.event.on("server.connected", () => {
+    if (!api.state.ready || !api.kv.ready) return
+    void mcp.activate().catch(() => {})
+  })
+  api.lifecycle.onDispose(unsubscribeMcp)
+  api.lifecycle.onDispose(unsubscribeConnected)
 
   api.slots.register({
     order: 100,
@@ -640,7 +939,17 @@ const tui: TuiPlugin = async (api, options) => {
         return <SidebarTitle api={api} sessionID={props.session_id} title={props.title} />
       },
       sidebar_content(_ctx, props) {
-        return <SidebarContent api={api} mcp={mcp} todo={todo} subagents={subagents} sessionID={props.session_id} />
+        return (
+          <SidebarContent
+            api={api}
+            mcp={mcp}
+            todo={todo}
+            subagents={subagents}
+            skills={skills}
+            sections={config.sections}
+            sessionID={props.session_id}
+          />
+        )
       },
     },
   })

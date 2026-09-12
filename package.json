@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "opencode-pretty-sidebar",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A focused, interactive sidebar for the OpenCode TUI",
   "type": "module",
   "license": "MIT",
@@ -19,6 +19,7 @@
     "opencode-plugin",
     "tui",
     "sidebar",
+    "skills",
     "mcp"
   ],
   "files": [
