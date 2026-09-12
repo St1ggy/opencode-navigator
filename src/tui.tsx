@@ -24,12 +24,13 @@ import {
 
 const PLUGIN_ID = "opencode-pretty-sidebar"
 const TOGGLE_COMMAND = `${PLUGIN_ID}.toggle`
-const TODO_OPEN_KEY = `${PLUGIN_ID}.todo-open`
-const SUBAGENTS_OPEN_KEY = `${PLUGIN_ID}.subagents-open`
-const SKILLS_OPEN_KEY = `${PLUGIN_ID}.skills-open`
-const ACTIONS_OPEN_KEY = `${PLUGIN_ID}.actions-open`
-const LSP_OPEN_KEY = `${PLUGIN_ID}.lsp-open`
-const MCP_OPEN_KEY = `${PLUGIN_ID}.mcp-open`
+// v0.4.0 persisted clicks even though its non-reactive bundle did not show them.
+const TODO_OPEN_KEY = `${PLUGIN_ID}.todo-open.v2`
+const SUBAGENTS_OPEN_KEY = `${PLUGIN_ID}.subagents-open.v2`
+const SKILLS_OPEN_KEY = `${PLUGIN_ID}.skills-open.v2`
+const ACTIONS_OPEN_KEY = `${PLUGIN_ID}.actions-open.v2`
+const LSP_OPEN_KEY = `${PLUGIN_ID}.lsp-open.v2`
+const MCP_OPEN_KEY = `${PLUGIN_ID}.mcp-open.v2`
 const SECTION_VISIBILITY_KEY = `${PLUGIN_ID}.section-visibility`
 const SKILL_CONFIRMATIONS_KEY = `${PLUGIN_ID}.skill-confirmations`
 
@@ -617,7 +618,7 @@ function SkillDialog(props: {
         <text attributes={TextAttributes.BOLD} fg={theme().text}>
           {props.skill.name}
         </text>
-        <text fg={theme().textMuted} onMouseUp={cancel}>
+        <text fg={theme().textMuted} onMouseDown={cancel}>
           esc
         </text>
       </box>
@@ -629,7 +630,7 @@ function SkillDialog(props: {
       <box
         flexDirection="row"
         gap={1}
-        onMouseUp={() => setSkipConfirmation((value) => !value)}
+        onMouseDown={() => setSkipConfirmation((value) => !value)}
       >
         <text fg={skipConfirmation() ? theme().accent : theme().textMuted}>
           {skipConfirmation() ? "☑" : "☐"}
@@ -643,7 +644,7 @@ function SkillDialog(props: {
           paddingRight={1}
           backgroundColor={active() === "cancel" ? theme().primary : undefined}
           onMouseOver={() => setActive("cancel")}
-          onMouseUp={cancel}
+          onMouseDown={cancel}
         >
           <text fg={active() === "cancel" ? theme().selectedListItemText : theme().textMuted}>Cancel</text>
         </box>
@@ -652,7 +653,7 @@ function SkillDialog(props: {
           paddingRight={1}
           backgroundColor={active() === "accept" ? theme().primary : undefined}
           onMouseOver={() => setActive("accept")}
-          onMouseUp={accept}
+          onMouseDown={accept}
         >
           <text fg={active() === "accept" ? theme().selectedListItemText : theme().textMuted}>Accept</text>
         </box>
@@ -700,7 +701,7 @@ function SidebarTitle(props: {
   )
 }
 
-function Section(props: {
+export function Section(props: {
   api: TuiPluginApi
   title: string
   summary: string
@@ -716,7 +717,7 @@ function Section(props: {
       paddingRight={1}
       gap={1}
     >
-      <box flexDirection="row" justifyContent="space-between" gap={1} onMouseUp={props.onToggle}>
+      <box flexDirection="row" justifyContent="space-between" gap={1} onMouseDown={props.onToggle}>
         <text fg={theme().text}>
           <span style={{ fg: theme().accent }}>{props.open ? "▾" : "▸"}</span> <b>{props.title}</b>
         </text>
@@ -817,7 +818,7 @@ function SubagentRow(props: {
       backgroundColor={hover() ? theme().backgroundElement : theme().backgroundPanel}
       onMouseOver={() => setHover(true)}
       onMouseOut={() => setHover(false)}
-      onMouseUp={props.onOpen}
+      onMouseDown={props.onOpen}
     >
       <text flexShrink={0} fg={retrying() ? theme().warning : theme().primary}>
         {retrying() ? "↻" : "●"}
@@ -997,7 +998,7 @@ function QuickActionRow(props: {
       backgroundColor={hover() ? theme().backgroundElement : theme().backgroundPanel}
       onMouseOver={() => setHover(true)}
       onMouseOut={() => setHover(false)}
-      onMouseUp={run}
+      onMouseDown={run}
     >
       <text flexShrink={0} fg={theme().accent}>
         {props.action.icon}
@@ -1153,7 +1154,7 @@ function McpRow(props: {
       paddingBottom={props.item.error ? 1 : 0}
       onMouseOver={() => setHover(true)}
       onMouseOut={() => setHover(false)}
-      onMouseUp={() => !props.disabled && props.onToggle()}
+      onMouseDown={() => !props.disabled && props.onToggle()}
     >
       <box flexDirection="row" justifyContent="space-between" gap={1}>
         <text fg={props.item.status === "connected" ? theme().text : theme().textMuted} wrapMode="none">
