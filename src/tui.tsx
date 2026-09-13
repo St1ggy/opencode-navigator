@@ -763,6 +763,8 @@ export function SettingsDialog(props: {
   toggleKey: string
   lspIconStyle: LspIconStyle
 }) {
+  const [active, setActive] = createSignal(0)
+  const theme = () => props.api.theme.current
   const options = createMemo(() => [
     ...SECTION_DEFINITIONS.map((section) => ({
       title: `${props.preferences.sections()[section.name] ? "☑" : "☐"} ${section.label}`,
@@ -793,52 +795,106 @@ export function SettingsDialog(props: {
     },
   ])
 
+  function move(offset: number) {
+    setActive((value) => (value + offset + options().length) % options().length)
+  }
+
+  function select(value = options()[active()]?.value) {
+    if (!value) return
+    if (value === "save_layout") {
+      void props.preferences
+        .saveLayoutAsDefault()
+        .then(() => {
+          props.api.ui.toast({
+            variant: "success",
+            title: "Sidebar settings",
+            message: "Current layout saved as default",
+            duration: 3000,
+          })
+        })
+        .catch((error) => {
+          props.api.ui.toast({
+            variant: "error",
+            title: "Sidebar settings",
+            message: error instanceof Error ? error.message : "Failed to save the default layout",
+            duration: 5000,
+          })
+        })
+      return
+    }
+    if (value === "reset_sections") {
+      props.preferences.resetSections()
+      return
+    }
+    if (value === "reset_skills") {
+      props.preferences.resetSkillConfirmations()
+      return
+    }
+    if (value === "wizard") {
+      openFirstRunWizard(props.api, props.preferences, props.toggleKey, props.lspIconStyle)
+      return
+    }
+    props.preferences.toggleSection(value as SidebarSection)
+  }
+
+  const unregister = props.api.keymap.registerLayer({
+    mode: "modal",
+    priority: 1000,
+    commands: [
+      { name: `${PLUGIN_ID}.settings.previous`, run: () => move(-1) },
+      { name: `${PLUGIN_ID}.settings.next`, run: () => move(1) },
+      { name: `${PLUGIN_ID}.settings.select`, run: () => select() },
+    ],
+    bindings: [
+      { key: "up", cmd: `${PLUGIN_ID}.settings.previous` },
+      { key: "down", cmd: `${PLUGIN_ID}.settings.next` },
+      { key: "tab", cmd: `${PLUGIN_ID}.settings.next` },
+      { key: "space", cmd: `${PLUGIN_ID}.settings.select` },
+      { key: "return", cmd: `${PLUGIN_ID}.settings.select` },
+    ],
+  })
+  onCleanup(unregister)
+
   return (
-    <props.api.ui.DialogSelect
-      title="Sidebar settings"
-      skipFilter={true}
-      options={options()}
-      onSelect={(option) => {
-        if (option.value === "save_layout") {
-          void props.preferences
-            .saveLayoutAsDefault()
-            .then(() => {
-              props.api.ui.toast({
-                variant: "success",
-                title: "Sidebar settings",
-                message: "Current layout saved as default",
-                duration: 3000,
-              })
-            })
-            .catch((error) => {
-              props.api.ui.toast({
-                variant: "error",
-                title: "Sidebar settings",
-                message: error instanceof Error ? error.message : "Failed to save the default layout",
-                duration: 5000,
-              })
-            })
-          return
-        }
-        if (option.value === "reset_sections") {
-          props.preferences.resetSections()
-          return
-        }
-        if (option.value === "reset_skills") {
-          props.preferences.resetSkillConfirmations()
-          return
-        }
-        if (option.value === "wizard") {
-          openFirstRunWizard(props.api, props.preferences, props.toggleKey, props.lspIconStyle)
-          return
-        }
-        props.preferences.toggleSection(option.value as SidebarSection)
-      }}
-    />
+    <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
+      <box flexDirection="row" justifyContent="space-between">
+        <text attributes={TextAttributes.BOLD} fg={theme().text}>
+          Sidebar settings
+        </text>
+        <text fg={theme().textMuted} onMouseDown={() => props.api.ui.dialog.clear()}>
+          esc
+        </text>
+      </box>
+      <text fg={theme().textMuted}>Choose sections for this session, then save the layout you want next time.</text>
+      <box gap={1}>
+        <For each={options()}>
+          {(option, index) => {
+            const selected = () => active() === index()
+            return (
+              <box
+                flexDirection="row"
+                gap={2}
+                paddingLeft={1}
+                paddingRight={1}
+                backgroundColor={selected() ? theme().backgroundElement : undefined}
+                onMouseOver={() => setActive(index())}
+                onMouseDown={() => select(option.value)}
+              >
+                <text flexShrink={0} attributes={selected() ? TextAttributes.BOLD : undefined} fg={theme().text}>
+                  {option.title}
+                </text>
+                <text fg={theme().borderSubtle}>{option.description}</text>
+              </box>
+            )
+          }}
+        </For>
+      </box>
+      <text fg={theme().textMuted}>↑/↓ navigate · enter select</text>
+    </box>
   )
 }
 
-function openSettings(
+export function openSettings(
   api: TuiPluginApi,
   preferences: PreferencesController,
   toggleKey: string,
@@ -852,6 +908,7 @@ function openSettings(
       lspIconStyle={lspIconStyle}
     />
   ))
+  api.ui.dialog.setSize("large")
 }
 
 function SkillDialog(props: {

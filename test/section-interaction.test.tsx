@@ -4,7 +4,7 @@ import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
 import { createSignal } from "solid-js"
 // @ts-expect-error The package intentionally publishes JavaScript without declarations.
-import { FirstRunWizard, LspBadge, McpSection, Section, SettingsDialog, SkillsSection } from "../dist/tui.js"
+import { FirstRunWizard, LspBadge, McpSection, openSettings, Section, SettingsDialog, SkillsSection } from "../dist/tui.js"
 
 const sidebarTheme = {
   accent: "#ff9e64",
@@ -12,6 +12,7 @@ const sidebarTheme = {
   textMuted: "#a9b1d6",
   backgroundPanel: "#16161e",
   backgroundElement: "#292e42",
+  borderSubtle: "#3b4261",
   success: "#9ece6a",
   error: "#f7768e",
   warning: "#e0af68",
@@ -235,17 +236,18 @@ test("the built settings dialog saves the current layout as default", async () =
     lsp: false,
     mcp: true,
   })
-  let selected: ((option: { value: string }) => void) | undefined
-  let optionTitles: string[] = []
+  let layer: { commands: Array<{ name: string; run: () => void }> } | undefined
   let saved = 0
   const api = {
     theme: { current: sidebarTheme },
-    ui: {
-      DialogSelect: (props: { options: Array<{ title: string }>; onSelect: typeof selected }) => {
-        optionTitles = props.options.map((option) => option.title)
-        selected = props.onSelect
-        return <text>settings</text>
+    keymap: {
+      registerLayer: (value: typeof layer) => {
+        layer = value
+        return () => {}
       },
+    },
+    ui: {
+      dialog: { clear: () => {} },
       toast: () => {},
     },
   } as unknown as TuiPluginApi
@@ -262,16 +264,44 @@ test("the built settings dialog saves the current layout as default", async () =
   }
   const setup = await testRender(
     () => <SettingsDialog api={api} preferences={preferences} toggleKey="ctrl+shift+b" lspIconStyle="nerd" />,
-    { width: 60, height: 16 },
+    { width: 100, height: 30 },
   )
 
   try {
     await setup.renderOnce()
-    expect(optionTitles).toContain("↓ Save current layout as default")
-    selected?.({ value: "save_layout" })
+    const lines = setup.captureCharFrame().split("\n")
+    const saveLine = lines.findIndex((line) => line.includes("Save current layout as default"))
+    expect(saveLine).toBeGreaterThan(-1)
+    expect(lines[saveLine]).toContain("4 visible · 2 expanded")
+
+    const next = layer?.commands.find((command) => command.name.endsWith(".settings.next"))
+    for (let index = 0; index < 6; index++) next?.run()
+    layer?.commands.find((command) => command.name.endsWith(".settings.select"))?.run()
     await Promise.resolve()
     expect(saved).toBe(1)
   } finally {
     setup.renderer.destroy()
   }
+})
+
+test("the built settings dialog opens at a spacious width", () => {
+  let size: string | undefined
+  let render: (() => unknown) | undefined
+  const api = {
+    ui: {
+      dialog: {
+        replace: (value: () => unknown) => {
+          render = value
+        },
+        setSize: (value: string) => {
+          size = value
+        },
+      },
+    },
+  } as unknown as TuiPluginApi
+
+  openSettings(api, {}, "ctrl+shift+b", "nerd")
+
+  expect(render).toBeDefined()
+  expect(size).toBe("large")
 })
