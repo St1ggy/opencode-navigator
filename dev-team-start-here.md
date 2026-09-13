@@ -7,8 +7,8 @@ change in response to user feedback and public OpenCode TUI API capabilities.
 ## Current Release
 
 - Package: `opencode-pretty-sidebar`
-- Released version: `0.4.7`
-- Release commit: `afb5c5c`
+- Released version: `0.4.8`
+- Release tag: `v0.4.8`
 - GitHub: <https://github.com/St1ggy/opencode-pretty-sidebar>
 - npm: <https://www.npmjs.com/package/opencode-pretty-sidebar>
 - Supported OpenCode version: `1.18.30` or newer
@@ -44,33 +44,32 @@ must remove those overrides so future configuration changes are visible again.
 - [x] Add a keymap test that verifies the old shortcut is unregistered when the
   shortcut changes.
 - [x] Add MCP tests for turning remembered state off and back on at runtime.
-- [ ] Verify the grouped dialog fits at the target Ghostty dimensions without
+- [x] Verify the grouped dialog fits at the target Ghostty dimensions without
   clipping and that keyboard navigation skips group headings.
 - [x] Update `README.md` with in-app settings behavior and configuration precedence.
 - [x] Update `ARTICLE.md` so `persist_mcp`, LSP style, and shortcut are described as
   in-app settings rather than configuration-only options.
-- [ ] Recapture the article screenshots in Ghostty, including settings and setup.
-- [ ] Run `bun run check`, `git diff --check`, and `npm pack --dry-run --json`.
+- [x] Recapture the article screenshots in Ghostty, including settings and setup.
+- [x] Run `bun run check`, `git diff --check`, and `npm pack --dry-run --json`.
 
-The built-artifact suite currently passes 36 tests, and the latest
-`bun run typecheck` completed successfully. A final `bun run check` still needs
-to run after visual verification and documentation edits.
+The final built-artifact suite passes 36 tests with 152 assertions, type checking
+passes, and the npm dry-run archive contains only `LICENSE`, `README.md`,
+`dist/tui.js`, and `package.json`.
 
-## Files In Progress
+## Relevant Files
 
 - `src/tui.tsx`: preferences controller, grouped settings dialog, runtime keymap,
   reactive MCP persistence, and reactive LSP icon style.
 - `src/preferences-store.ts`: durable plugin setting overrides and reset behavior.
-- `test/preferences-controller.test.ts`: partially updated controller fixtures.
-- `test/mcp-controller.test.ts`: partially updated MCP persistence fixture.
-- `test/section-interaction.test.tsx`: still needs grouped settings and runtime
-  behavior coverage.
-- `test/preferences-store.test.ts`: still needs setting persistence coverage.
+- `test/preferences-controller.test.ts`: controller persistence and reset coverage.
+- `test/mcp-controller.test.ts`: runtime MCP persistence coverage.
+- `test/section-interaction.test.tsx`: grouped settings and runtime interaction
+  coverage.
+- `test/preferences-store.test.ts`: durable setting persistence coverage.
 - `ARTICLE.md`: article draft for Atushka.
 - `screenshots/`: article screenshots and roadmap artwork.
 
-Do not discard `ARTICLE.md`, `ROADMAP.md`, or `screenshots/`; they are intentional
-untracked work unless they have since been committed.
+`ARTICLE.md`, `ROADMAP.md`, and `screenshots/` are committed project artifacts.
 
 ## Behavioral Requirements
 
@@ -174,10 +173,10 @@ screenshot dimensions.
 - Article draft: `ARTICLE.md`
 - Main sidebar: `screenshots/01-hero-sidebar.png`
 - Built-in sidebar comparison: `screenshots/02-default-sidebar-before.png`
-- Grouped settings: `screenshots/03-layout-settings.png` (must be recaptured)
+- Grouped settings: `screenshots/03-layout-settings.png`
 - Skills search: `screenshots/04-skills-search.png`
 - MCP search: `screenshots/05-mcp-search.png`
-- Setup guide: `screenshots/06-setup-guide.png` (recapture if its copy changes)
+- Setup guide: `screenshots/06-setup-guide.png`
 - Live subagent: `screenshots/07-live-subagent.png`
 - Roadmap artwork: `screenshots/roadmap/opencode-pretty-sidebar-roadmap.png`
 

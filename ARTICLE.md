@@ -160,7 +160,7 @@ opencode plugin --global opencode-pretty-sidebar
 
 Пакет: [npm](https://www.npmjs.com/package/opencode-pretty-sidebar).
 
-Текущая версия на момент публикации — `0.4.7`.
+Текущая версия на момент публикации — `0.4.8`.
 
 ## Нужен фидбек
 
