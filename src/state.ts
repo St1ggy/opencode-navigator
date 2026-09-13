@@ -1,6 +1,8 @@
 export const MCP_PREFERENCES_KEY = "opencode-pretty-sidebar.mcp-preferences"
 
-export type SidebarSection = "todo" | "subagents" | "skills" | "quick_actions" | "lsp" | "mcp"
+export const SIDEBAR_SECTIONS = ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"] as const
+
+export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number]
 export type SectionVisibility = Record<SidebarSection, boolean>
 
 export function resolveSectionVisibility(defaults: SectionVisibility, value: unknown): SectionVisibility {

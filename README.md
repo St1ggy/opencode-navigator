@@ -10,10 +10,10 @@ actions, and makes every MCP server clickable directly in the sidebar.
 - First-run setup guide with interactive section settings
 - Collapsible Todo section with progress and priority indicators
 - Active subagent list with live statuses and click-to-open navigation
-- Compact workspace skill list with click-to-confirm slash commands
+- Compact, searchable workspace skill list with click-to-confirm slash commands
 - Quick actions for rename, timeline, transcript copy, export, and compaction
 - Live LSP connection status with compact inline server icons and click-to-reveal names
-- Collapsible MCP section with live radio-style connection controls
+- Searchable MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
 - Persist disabled MCP servers per worktree and reapply them between sessions
 - Show or hide each sidebar section independently

@@ -4,7 +4,18 @@ import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
 import { createSignal } from "solid-js"
 // @ts-expect-error The package intentionally publishes JavaScript without declarations.
-import { FirstRunWizard, LspBadge, Section } from "../dist/tui.js"
+import { FirstRunWizard, LspBadge, McpSection, Section, SkillsSection } from "../dist/tui.js"
+
+const sidebarTheme = {
+  accent: "#ff9e64",
+  text: "#c0caf5",
+  textMuted: "#a9b1d6",
+  backgroundPanel: "#16161e",
+  backgroundElement: "#292e42",
+  success: "#9ece6a",
+  error: "#f7768e",
+  warning: "#e0af68",
+}
 
 test("the built sidebar remains reactive and toggles on mouse down", async () => {
   const api = {
@@ -123,6 +134,78 @@ test("the built first-run wizard explains controls and changes section settings"
     await setup.renderOnce()
     expect(sections().todo).toBe(false)
     expect(setup.captureCharFrame()).toContain("☐ Todo")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("the built Skills section filters by name and description", async () => {
+  const items = [
+    { name: "review-code", description: "Review pending changes", location: "/skills/review", content: "" },
+    { name: "commit", description: "Create commits", location: "/skills/commit", content: "" },
+  ]
+  const api = {
+    theme: { current: sidebarTheme },
+    kv: { get: () => true, set: () => {} },
+    ui: { dialog: { replace: () => {} }, toast: () => {} },
+  } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: "test", routing: { directory: "/test" } }),
+    list: () => items,
+    error: () => undefined,
+    refresh: async () => items,
+    use: async () => {},
+  }
+  const preferences = { shouldConfirmSkill: () => false, skipSkillConfirmation: () => {} }
+  const setup = await testRender(
+    () => <SkillsSection api={api} controller={controller} preferences={preferences} />,
+    { width: 44, height: 8 },
+  )
+
+  try {
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain("review-code")
+    expect(setup.captureCharFrame()).toContain("commit")
+
+    await setup.mockMouse.pressDown(8, 2)
+    await setup.mockInput.typeText("pending")
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain("review-code")
+    expect(setup.captureCharFrame()).not.toContain("commit")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("the built MCP section filters servers by name", async () => {
+  const items = [
+    { name: "context7", status: "connected" },
+    { name: "tracker", status: "connected" },
+  ]
+  const api = {
+    theme: { current: sidebarTheme },
+    kv: { get: () => true, set: () => {} },
+    ui: { toast: () => {} },
+  } as unknown as TuiPluginApi
+  const controller = {
+    list: () => items,
+    toggle: async () => {},
+  }
+  const setup = await testRender(
+    () => <McpSection api={api} controller={controller} />,
+    { width: 44, height: 8 },
+  )
+
+  try {
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain("context7")
+    expect(setup.captureCharFrame()).toContain("tracker")
+
+    await setup.mockMouse.pressDown(8, 2)
+    await setup.mockInput.typeText("track")
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).not.toContain("context7")
+    expect(setup.captureCharFrame()).toContain("tracker")
   } finally {
     setup.renderer.destroy()
   }

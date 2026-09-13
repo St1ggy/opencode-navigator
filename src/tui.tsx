@@ -10,6 +10,7 @@ import type {
 import type { Session, SessionStatus } from "@opencode-ai/sdk/v2"
 import { TextAttributes } from "@opentui/core"
 import { batch, createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
+import { createSectionPreferencesStore, type SectionPreferencesStore } from "./preferences-store"
 import {
   MCP_PREFERENCES_KEY,
   disabledMcpNames,
@@ -101,7 +102,11 @@ function pluginConfig(options: Record<string, unknown> | undefined): PluginConfi
   }
 }
 
-export function createPreferencesController(api: TuiPluginApi, defaults: SectionVisibility) {
+export function createPreferencesController(
+  api: TuiPluginApi,
+  defaults: SectionVisibility,
+  store: SectionPreferencesStore,
+) {
   const [sections, setSections] = createSignal(defaults)
   const [skippedSkills, setSkippedSkills] = createSignal(new Set<string>())
   const pendingSectionValues = new Map<SidebarSection, boolean>()
@@ -109,68 +114,114 @@ export function createPreferencesController(api: TuiPluginApi, defaults: Section
   let resetSectionsPending = false
   let resetSkillsPending = false
   let hydrated = false
+  let hydration: Promise<void> | undefined
+  let persistenceWarningShown = false
 
   function skillKey(skill: SkillInfo) {
     return skill.location || skill.name
   }
 
-  function sectionOverrides(value: SectionVisibility) {
-    return Object.fromEntries(
-      SECTION_DEFINITIONS.flatMap((section) =>
-        value[section.name] === defaults[section.name] ? [] : [[section.name, value[section.name]]],
-      ),
-    )
+  function showPersistenceWarning() {
+    if (persistenceWarningShown) return
+    persistenceWarningShown = true
+    api.ui.toast({
+      variant: "warning",
+      title: "Sidebar settings",
+      message: "Section visibility could not be saved",
+      duration: 4000,
+    })
   }
 
-  function persistSections(next: SectionVisibility) {
+  function persist(request: Promise<void>) {
+    void request.catch(showPersistenceWarning)
+  }
+
+  function persistSections(next: SectionVisibility, values: Partial<SectionVisibility>) {
     setSections(next)
-    api.kv.set(SECTION_VISIBILITY_KEY, sectionOverrides(next))
+    persist(store.update({ values }, defaults))
   }
 
   function load() {
-    if (hydrated || !api.kv.ready) return
+    if (hydrated) return Promise.resolve()
+    if (!api.kv.ready) return
+    if (hydration) return hydration
 
-    let nextSections = resetSectionsPending
-      ? defaults
-      : resolveSectionVisibility(defaults, api.kv.get(SECTION_VISIBILITY_KEY))
-    for (const [name, visible] of pendingSectionValues) nextSections = { ...nextSections, [name]: visible }
+    const legacySections = api.kv.get(SECTION_VISIBILITY_KEY)
+    hydration = store
+      .load(legacySections)
+      .catch(() => {
+        showPersistenceWarning()
+        return legacySections
+      })
+      .then((savedSections) => {
+        let nextSections = resetSectionsPending ? defaults : resolveSectionVisibility(defaults, savedSections)
+        for (const [name, visible] of pendingSectionValues) nextSections = { ...nextSections, [name]: visible }
 
-    const saved = api.kv.get(SKILL_CONFIRMATIONS_KEY)
-    const names = Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : []
-    const nextSkipped = resetSkillsPending ? new Set<string>() : new Set<string>(names)
-    for (const name of pendingSkippedSkills) nextSkipped.add(name)
+        const saved = api.kv.get(SKILL_CONFIRMATIONS_KEY)
+        const names = Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : []
+        const nextSkipped = resetSkillsPending ? new Set<string>() : new Set<string>(names)
+        for (const name of pendingSkippedSkills) nextSkipped.add(name)
 
-    hydrated = true
-    setSections(nextSections)
-    setSkippedSkills(nextSkipped)
-    if (resetSectionsPending || pendingSectionValues.size > 0) {
-      api.kv.set(SECTION_VISIBILITY_KEY, sectionOverrides(nextSections))
-    }
-    if (resetSkillsPending || pendingSkippedSkills.size > 0) {
-      api.kv.set(SKILL_CONFIRMATIONS_KEY, [...nextSkipped].sort())
-    }
-    pendingSectionValues.clear()
-    pendingSkippedSkills.clear()
-    resetSectionsPending = false
-    resetSkillsPending = false
+        hydrated = true
+        batch(() => {
+          setSections(nextSections)
+          setSkippedSkills(nextSkipped)
+        })
+        if (resetSectionsPending || pendingSectionValues.size > 0) {
+          persist(
+            store.update(
+              { reset: resetSectionsPending, values: Object.fromEntries(pendingSectionValues) },
+              defaults,
+            ),
+          )
+        }
+        if (resetSkillsPending || pendingSkippedSkills.size > 0) {
+          api.kv.set(SKILL_CONFIRMATIONS_KEY, [...nextSkipped].sort())
+        }
+        pendingSectionValues.clear()
+        pendingSkippedSkills.clear()
+        resetSectionsPending = false
+        resetSkillsPending = false
+      })
+    return hydration
   }
 
   return {
     sections,
     skippedSkillCount: () => skippedSkills().size,
     load,
+    async flush() {
+      if (!hydrated && !hydration && (resetSectionsPending || pendingSectionValues.size > 0)) {
+        const deadline = Date.now() + 4_000
+        while (!api.kv.ready && Date.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, 10))
+        }
+        if (api.kv.ready) await load()
+        else {
+          await store.update(
+            { reset: resetSectionsPending, values: Object.fromEntries(pendingSectionValues) },
+            defaults,
+          )
+        }
+      }
+      await hydration
+      await store.flush()
+    },
     toggleSection(name: SidebarSection) {
-      load()
+      void load()
       const next = { ...sections(), [name]: !sections()[name] }
-      if (hydrated) persistSections(next)
+      if (hydrated) persistSections(next, { [name]: next[name] })
       else {
         setSections(next)
         pendingSectionValues.set(name, next[name])
       }
     },
     resetSections() {
-      load()
-      if (hydrated) persistSections(defaults)
+      void load()
+      if (hydrated) {
+        setSections(defaults)
+        persist(store.update({ reset: true }, defaults))
+      }
       else {
         resetSectionsPending = true
         pendingSectionValues.clear()
@@ -178,11 +229,11 @@ export function createPreferencesController(api: TuiPluginApi, defaults: Section
       }
     },
     shouldConfirmSkill(skill: SkillInfo) {
-      load()
+      void load()
       return !skippedSkills().has(skillKey(skill))
     },
     skipSkillConfirmation(skill: SkillInfo) {
-      load()
+      void load()
       const key = skillKey(skill)
       const next = new Set(skippedSkills())
       next.add(key)
@@ -191,7 +242,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: Section
       else pendingSkippedSkills.add(key)
     },
     resetSkillConfirmations() {
-      load()
+      void load()
       setSkippedSkills(new Set<string>())
       if (hydrated) api.kv.set(SKILL_CONFIRMATIONS_KEY, [])
       else {
@@ -899,6 +950,57 @@ export function Section(props: {
   )
 }
 
+export function matchesFilter(query: string, ...values: Array<string | undefined>) {
+  const needle = query.trim().toLocaleLowerCase()
+  return !needle || values.some((value) => value?.toLocaleLowerCase().includes(needle))
+}
+
+export function SectionFilter(props: {
+  api: TuiPluginApi
+  query: string
+  placeholder: string
+  onInput: (value: string) => void
+}) {
+  const [focused, setFocused] = createSignal(false)
+  const theme = () => props.api.theme.current
+
+  return (
+    <box
+      flexDirection="row"
+      gap={1}
+      paddingLeft={1}
+      paddingRight={1}
+      backgroundColor={focused() ? theme().backgroundElement : theme().backgroundPanel}
+      onMouseDown={() => setFocused(true)}
+    >
+      <text flexShrink={0} fg={focused() ? theme().accent : theme().textMuted}>⌕</text>
+      <input
+        flexGrow={1}
+        value={props.query}
+        placeholder={props.placeholder}
+        placeholderColor={theme().textMuted}
+        textColor={theme().text}
+        focusedTextColor={theme().text}
+        backgroundColor="transparent"
+        focusedBackgroundColor="transparent"
+        cursorColor={theme().accent}
+        focused={focused()}
+        onInput={props.onInput}
+        onSubmit={() => setFocused(false)}
+        onKeyDown={(event) => {
+          if (event.name !== "escape") return
+          event.preventDefault()
+          event.stopPropagation()
+          setFocused(false)
+        }}
+      />
+      <Show when={props.query}>
+        <text flexShrink={0} fg={theme().textMuted} onMouseDown={() => props.onInput("")}>×</text>
+      </Show>
+    </box>
+  )
+}
+
 function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
   const theme = () => props.api.theme.current
   const done = () => props.item.status === "completed"
@@ -1063,15 +1165,17 @@ function SkillRow(props: {
   )
 }
 
-function SkillsSection(props: {
+export function SkillsSection(props: {
   api: TuiPluginApi
   controller: SkillController
   preferences: PreferencesController
 }) {
   const initial = props.api.kv.get(SKILLS_OPEN_KEY, false)
   const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
+  const [query, setQuery] = createSignal("")
   const target = createMemo(() => props.controller.target())
   const list = createMemo(() => props.controller.list(target()))
+  const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name, item.description)))
   const error = createMemo(() => props.controller.error(target()))
 
   createEffect(() => {
@@ -1123,9 +1227,17 @@ function SkillsSection(props: {
       >
         <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No skills</text>}>
           <box>
-            <For each={list()}>
-              {(item) => <SkillRow api={props.api} item={item} onUse={() => selectSkill(item)} />}
-            </For>
+            <SectionFilter api={props.api} query={query()} placeholder="Filter skills..." onInput={setQuery} />
+            <Show
+              when={filtered().length > 0}
+              fallback={<text fg={props.api.theme.current.textMuted}>No matching skills</text>}
+            >
+              <box>
+                <For each={filtered()}>
+                  {(item) => <SkillRow api={props.api} item={item} onUse={() => selectSkill(item)} />}
+                </For>
+              </box>
+            </Show>
           </box>
         </Show>
       </Show>
@@ -1409,11 +1521,13 @@ function McpRow(props: {
   )
 }
 
-function McpSection(props: { api: TuiPluginApi; controller: McpController }) {
+export function McpSection(props: { api: TuiPluginApi; controller: McpController }) {
   const initial = props.api.kv.get(MCP_OPEN_KEY, false)
   const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
   const [loading, setLoading] = createSignal<string>()
+  const [query, setQuery] = createSignal("")
   const list = props.controller.list
+  const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name)))
   const active = createMemo(() => list().filter((item) => item.status === "connected").length)
   const errors = createMemo(
     () =>
@@ -1451,17 +1565,25 @@ function McpSection(props: { api: TuiPluginApi; controller: McpController }) {
     <Section api={props.api} title="MCP" summary={summary()} open={open()} onToggle={toggleOpen}>
       <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No MCP servers</text>}>
         <box>
-          <For each={list()}>
-            {(item) => (
-              <McpRow
-                api={props.api}
-                item={item}
-                busy={loading() === item.name}
-                disabled={loading() !== undefined}
-                onToggle={() => void toggle(item.name)}
-              />
-            )}
-          </For>
+          <SectionFilter api={props.api} query={query()} placeholder="Filter MCP..." onInput={setQuery} />
+          <Show
+            when={filtered().length > 0}
+            fallback={<text fg={props.api.theme.current.textMuted}>No matching MCP servers</text>}
+          >
+            <box>
+              <For each={filtered()}>
+                {(item) => (
+                  <McpRow
+                    api={props.api}
+                    item={item}
+                    busy={loading() === item.name}
+                    disabled={loading() !== undefined}
+                    onToggle={() => void toggle(item.name)}
+                  />
+                )}
+              </For>
+            </box>
+          </Show>
         </box>
       </Show>
     </Section>
@@ -1519,7 +1641,7 @@ function McpPersistence(props: { api: TuiPluginApi; controller: McpController })
 function PreferencesPersistence(props: { api: TuiPluginApi; controller: PreferencesController }) {
   createEffect(() => {
     if (!props.api.kv.ready) return
-    props.controller.load()
+    void props.controller.load()
   })
   return <></>
 }
@@ -1545,7 +1667,12 @@ const tui: TuiPlugin = async (api, options) => {
   const todo = createTodoController(api)
   const subagents = createSubagentController(api)
   const skills = createSkillController(api)
-  const preferences = createPreferencesController(api, config.sections)
+  const preferences = createPreferencesController(
+    api,
+    config.sections,
+    createSectionPreferencesStore(api.state.path.state),
+  )
+  api.lifecycle.onDispose(() => preferences.flush())
 
   api.keymap.registerLayer({
     mode: "base",
