@@ -11,7 +11,7 @@ actions, and makes every MCP server clickable directly in the sidebar.
 - Active subagent list with live statuses and click-to-open navigation
 - Compact workspace skill list with click-to-confirm slash commands
 - Quick actions for rename, timeline, transcript copy, export, and compaction
-- Live LSP connection status with recognizable server badges
+- Live LSP connection status with compact inline server icons
 - Collapsible MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
 - Persist disabled MCP servers per worktree and reapply them between sessions
@@ -89,6 +89,7 @@ Pass options with a tuple entry:
       "opencode-pretty-sidebar",
       {
         "persist_mcp": true,
+        "lsp_icon_style": "nerd",
         "toggle_key": "ctrl+shift+b",
         "sections": {
           "todo": true,
@@ -108,6 +109,10 @@ Pass options with a tuple entry:
   `true`.
 - `toggle_key`: sidebar shortcut. Defaults to `ctrl+shift+b`. Try `alt+s` if
   your terminal does not distinguish `Ctrl+Shift+B` from `Ctrl+B`.
+- `lsp_icon_style`: uses Nerd Font icons when set to `nerd` (the default). Set
+  it to `text` for compact letter badges when your terminal font does not
+  support Nerd Fonts. Known servers use icons or badges; unknown servers keep
+  their full ID.
 - `sections`: controls whether each section is rendered. Every section defaults
   to `true`; set any of `todo`, `subagents`, `skills`, `quick_actions`, `lsp`, or
   `mcp` to `false` to hide it. Runtime choices made from the settings button are

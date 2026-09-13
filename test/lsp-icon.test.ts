@@ -45,9 +45,17 @@ test("maps every built-in LSP server ID to a Nerd Font icon", () => {
   for (const [id, icon] of Object.entries(icons)) expect(lspIcon(id)).toBe(icon)
 })
 
-test("maps common custom server IDs and falls back to a generic LSP icon", () => {
+test("maps common custom server IDs and shows the ID for unknown servers", () => {
   expect(lspIcon("rust-analyzer")).toBe("󱘗")
   expect(lspIcon("lua-language-server")).toBe("󰢱")
   expect(lspIcon("tailwindcss-language-server")).toBe("")
-  expect(lspIcon("custom-server")).toBe("󰞋")
+  expect(lspIcon("custom-server")).toBe("custom-server")
+})
+
+test("uses compact text badges when Nerd Fonts are unavailable", () => {
+  expect(lspIcon("typescript", "text")).toBe("TS")
+  expect(lspIcon("pyright", "text")).toBe("Py")
+  expect(lspIcon("rust-analyzer", "text")).toBe("Rs")
+  expect(lspIcon("lua-language-server", "text")).toBe("Lua")
+  expect(lspIcon("custom-server", "text")).toBe("custom-server")
 })

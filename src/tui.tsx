@@ -55,7 +55,10 @@ type PluginConfig = {
   toggleKey: string
   persistMcp: boolean
   sections: SectionVisibility
+  lspIconStyle: LspIconStyle
 }
+
+type LspIconStyle = "nerd" | "text"
 
 type McpController = ReturnType<typeof createMcpController>
 type TodoController = ReturnType<typeof createTodoController>
@@ -93,6 +96,7 @@ function pluginConfig(options: Record<string, unknown> | undefined): PluginConfi
         : "ctrl+shift+b",
     persistMcp: options?.persist_mcp !== false,
     sections: parseSectionVisibility(options?.sections),
+    lspIconStyle: options?.lsp_icon_style === "text" ? "text" : "nerd",
   }
 }
 
@@ -1037,83 +1041,90 @@ function QuickActionsSection(props: { api: TuiPluginApi }) {
   )
 }
 
-const LSP_ICONS: Readonly<Record<string, string>> = {
-  zls: "",
-  "yaml-ls": "",
-  vue: "󰡄",
-  typescript: "󰛦",
-  tinymist: "",
-  texlab: "",
-  terraform: "󱁢",
-  svelte: "",
-  "sourcekit-lsp": "󰛥",
-  rust: "󱘗",
-  "ruby-lsp": "󰴭",
-  razor: "",
-  pyright: "󰌠",
-  prisma: "",
-  "php intelephense": "󰌟",
-  oxlint: "",
-  "ocaml-lsp": "",
-  nixd: "󱄅",
-  "lua-ls": "󰢱",
-  "kotlin-ls": "󱈙",
-  julials: "",
-  jdtls: "󰬷",
-  "haskell-language-server": "󰲒",
-  gopls: "󰟓",
-  gleam: "",
-  fsharp: "",
-  "elixir-ls": "",
-  eslint: "",
-  dockerfile: "󰡨",
-  deno: "",
-  dart: "",
-  "clojure-lsp": "",
-  clangd: "󰙲",
-  csharp: "󰌛",
-  biome: "",
-  bash: "",
-  astro: "",
+const LSP_ICONS: Readonly<Record<string, Record<LspIconStyle, string>>> = {
+  zls: { nerd: "", text: "Zg" },
+  "yaml-ls": { nerd: "", text: "Yml" },
+  vue: { nerd: "󰡄", text: "Vue" },
+  typescript: { nerd: "󰛦", text: "TS" },
+  tinymist: { nerd: "", text: "Typ" },
+  texlab: { nerd: "", text: "TeX" },
+  terraform: { nerd: "󱁢", text: "Tf" },
+  svelte: { nerd: "", text: "Sv" },
+  "sourcekit-lsp": { nerd: "󰛥", text: "Sw" },
+  rust: { nerd: "󱘗", text: "Rs" },
+  "ruby-lsp": { nerd: "󰴭", text: "Rb" },
+  razor: { nerd: "", text: "Rz" },
+  pyright: { nerd: "󰌠", text: "Py" },
+  prisma: { nerd: "", text: "Pr" },
+  "php intelephense": { nerd: "󰌟", text: "PHP" },
+  oxlint: { nerd: "", text: "Ox" },
+  "ocaml-lsp": { nerd: "", text: "Ml" },
+  nixd: { nerd: "󱄅", text: "Nix" },
+  "lua-ls": { nerd: "󰢱", text: "Lua" },
+  "kotlin-ls": { nerd: "󱈙", text: "Kt" },
+  julials: { nerd: "", text: "Jl" },
+  jdtls: { nerd: "󰬷", text: "Jv" },
+  "haskell-language-server": { nerd: "󰲒", text: "Hs" },
+  gopls: { nerd: "󰟓", text: "Go" },
+  gleam: { nerd: "", text: "Gl" },
+  fsharp: { nerd: "", text: "F#" },
+  "elixir-ls": { nerd: "", text: "Ex" },
+  eslint: { nerd: "", text: "ES" },
+  dockerfile: { nerd: "󰡨", text: "Dk" },
+  deno: { nerd: "", text: "Dn" },
+  dart: { nerd: "", text: "Dt" },
+  "clojure-lsp": { nerd: "", text: "Clj" },
+  clangd: { nerd: "󰙲", text: "C++" },
+  csharp: { nerd: "󰌛", text: "C#" },
+  biome: { nerd: "", text: "Bm" },
+  bash: { nerd: "", text: "Sh" },
+  astro: { nerd: "", text: "Ast" },
+  json: { nerd: "󰘦", text: "{}" },
+  tailwind: { nerd: "", text: "TW" },
+  css: { nerd: "󰌜", text: "CSS" },
+  html: { nerd: "󰌝", text: "HTM" },
 }
 
-export function lspIcon(id: string) {
+function lspIconName(id: string) {
   const name = id.toLowerCase()
-  const icon = LSP_ICONS[name]
-  if (icon) return icon
-  if (name.includes("typescript") || name.includes("tsserver") || name.includes("javascript")) return "󰛦"
-  if (name.includes("eslint")) return ""
-  if (name.includes("biome")) return ""
-  if (name.includes("deno")) return ""
-  if (name.includes("pyright") || name.includes("pylsp") || name.includes("ruff") || name === "ty") return "󰌠"
-  if (name.includes("gopls") || name === "go") return "󰟓"
-  if (name.includes("rust")) return "󱘗"
-  if (name.includes("clang") || name.includes("ccls") || name.includes("c++")) return "󰙲"
-  if (name.includes("lua")) return "󰢱"
-  if (name.includes("ruby")) return "󰴭"
-  if (name.includes("java") || name.includes("jdt")) return "󰬷"
-  if (name.includes("kotlin")) return "󱈙"
-  if (name.includes("csharp") || name.includes("omnisharp")) return "󰌛"
-  if (name.includes("fsharp")) return ""
-  if (name.includes("elixir")) return ""
-  if (name.includes("terraform")) return "󱁢"
-  if (name.includes("yaml")) return ""
-  if (name.includes("json")) return "󰘦"
-  if (name.includes("tailwind")) return ""
-  if (name.includes("css")) return "󰌜"
-  if (name.includes("html")) return "󰌝"
-  if (name.includes("bash") || name.includes("shell")) return ""
-  if (name.includes("docker")) return "󰡨"
-  if (name.includes("php")) return "󰌟"
-  if (name.includes("dart")) return ""
-  if (name.includes("zig") || name.includes("zls")) return ""
-  if (name.includes("ocaml")) return ""
-  if (name.includes("swift") || name.includes("sourcekit")) return "󰛥"
-  if (name.includes("prisma")) return ""
-  return "󰞋"
+  if (Object.hasOwn(LSP_ICONS, name)) return name
+  if (name.includes("typescript") || name.includes("tsserver") || name.includes("javascript")) return "typescript"
+  if (name.includes("eslint")) return "eslint"
+  if (name.includes("biome")) return "biome"
+  if (name.includes("deno")) return "deno"
+  if (name.includes("pyright") || name.includes("pylsp") || name.includes("ruff") || name === "ty") return "pyright"
+  if (name.includes("gopls") || name === "go") return "gopls"
+  if (name.includes("rust")) return "rust"
+  if (name.includes("clang") || name.includes("ccls") || name.includes("c++")) return "clangd"
+  if (name.includes("lua")) return "lua-ls"
+  if (name.includes("ruby")) return "ruby-lsp"
+  if (name.includes("java") || name.includes("jdt")) return "jdtls"
+  if (name.includes("kotlin")) return "kotlin-ls"
+  if (name.includes("csharp") || name.includes("omnisharp")) return "csharp"
+  if (name.includes("fsharp")) return "fsharp"
+  if (name.includes("elixir")) return "elixir-ls"
+  if (name.includes("terraform")) return "terraform"
+  if (name.includes("yaml")) return "yaml-ls"
+  if (name.includes("json")) return "json"
+  if (name.includes("tailwind")) return "tailwind"
+  if (name.includes("css")) return "css"
+  if (name.includes("html")) return "html"
+  if (name.includes("bash") || name.includes("shell")) return "bash"
+  if (name.includes("docker")) return "dockerfile"
+  if (name.includes("php")) return "php intelephense"
+  if (name.includes("dart")) return "dart"
+  if (name.includes("zig") || name.includes("zls")) return "zls"
+  if (name.includes("ocaml")) return "ocaml-lsp"
+  if (name.includes("swift") || name.includes("sourcekit")) return "sourcekit-lsp"
+  if (name.includes("prisma")) return "prisma"
 }
 
-function LspSection(props: { api: TuiPluginApi }) {
+export function lspIcon(id: string, style: LspIconStyle = "nerd") {
+  const name = lspIconName(id)
+  return name ? LSP_ICONS[name][style] : id
+}
+
+function LspSection(props: { api: TuiPluginApi; iconStyle: LspIconStyle }) {
   const initial = props.api.kv.get(LSP_OPEN_KEY, false)
   const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
   const list = createMemo(() => props.api.state.lsp())
@@ -1137,25 +1148,16 @@ function LspSection(props: { api: TuiPluginApi }) {
           </text>
         }
       >
-        <box>
+        <box flexDirection="row" flexWrap="wrap" gap={1} paddingLeft={1} paddingRight={1}>
           <For each={list()}>
             {(item: TuiSidebarLspItem) => (
-              <box flexDirection="row" justifyContent="space-between" gap={1} paddingLeft={1} paddingRight={1}>
-                <box flexDirection="row" gap={1} flexGrow={1}>
-                  <text width={1} flexShrink={0} fg={props.api.theme.current.accent}>
-                    {lspIcon(item.id)}
-                  </text>
-                  <text fg={props.api.theme.current.text} wrapMode="word">
-                    {item.id}
-                  </text>
-                </box>
-                <text
-                  flexShrink={0}
-                  fg={item.status === "connected" ? props.api.theme.current.success : props.api.theme.current.error}
-                >
-                  <b>{item.status === "connected" ? "●" : "×"}</b>
-                </text>
-              </box>
+              <text
+                flexShrink={lspIconName(item.id) ? 0 : 1}
+                fg={item.status === "connected" ? props.api.theme.current.success : props.api.theme.current.error}
+                wrapMode="none"
+              >
+                {lspIcon(item.id, props.iconStyle)}
+              </text>
             )}
           </For>
         </box>
@@ -1281,6 +1283,7 @@ function SidebarContent(props: {
   subagents: SubagentController
   skills: SkillController
   preferences: PreferencesController
+  lspIconStyle: LspIconStyle
   sessionID: string
 }) {
   const sections = props.preferences.sections
@@ -1300,7 +1303,7 @@ function SidebarContent(props: {
         <QuickActionsSection api={props.api} />
       </Show>
       <Show when={sections().lsp}>
-        <LspSection api={props.api} />
+        <LspSection api={props.api} iconStyle={props.lspIconStyle} />
       </Show>
       <Show when={sections().mcp}>
         <McpSection api={props.api} controller={props.mcp} />
@@ -1394,6 +1397,7 @@ const tui: TuiPlugin = async (api, options) => {
             subagents={subagents}
             skills={skills}
             preferences={preferences}
+            lspIconStyle={config.lspIconStyle}
             sessionID={props.session_id}
           />
         )
