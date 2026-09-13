@@ -23,7 +23,8 @@ actions, and makes every MCP server clickable directly in the sidebar.
 Todo starts expanded. Subagents, skills, quick actions, LSP, and MCP start
 collapsed. Each section remembers its own expanded state.
 
-Requires OpenCode 1.18.30 or newer.
+Requires OpenCode 1.18.30 or newer. LSP icons require a Nerd Fonts 3 compatible
+terminal font.
 
 ## Installation
 

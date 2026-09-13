@@ -1037,38 +1037,80 @@ function QuickActionsSection(props: { api: TuiPluginApi }) {
   )
 }
 
+const LSP_ICONS: Readonly<Record<string, string>> = {
+  zls: "",
+  "yaml-ls": "",
+  vue: "󰡄",
+  typescript: "󰛦",
+  tinymist: "",
+  texlab: "",
+  terraform: "󱁢",
+  svelte: "",
+  "sourcekit-lsp": "󰛥",
+  rust: "󱘗",
+  "ruby-lsp": "󰴭",
+  razor: "",
+  pyright: "󰌠",
+  prisma: "",
+  "php intelephense": "󰌟",
+  oxlint: "",
+  "ocaml-lsp": "",
+  nixd: "󱄅",
+  "lua-ls": "󰢱",
+  "kotlin-ls": "󱈙",
+  julials: "",
+  jdtls: "󰬷",
+  "haskell-language-server": "󰲒",
+  gopls: "󰟓",
+  gleam: "",
+  fsharp: "",
+  "elixir-ls": "",
+  eslint: "",
+  dockerfile: "󰡨",
+  deno: "",
+  dart: "",
+  "clojure-lsp": "",
+  clangd: "󰙲",
+  csharp: "󰌛",
+  biome: "",
+  bash: "",
+  astro: "",
+}
+
 export function lspIcon(id: string) {
   const name = id.toLowerCase()
-  if (name.includes("typescript") || name.includes("tsserver")) return "TS"
-  if (name.includes("eslint")) return "ES"
-  if (name.includes("biome")) return "B"
-  if (name.includes("deno")) return "D"
-  if (name.includes("pyright") || name.includes("pylsp") || name.includes("ruff") || name === "ty") return "Py"
-  if (name.includes("gopls") || name === "go") return "Go"
-  if (name.includes("rust")) return "Rs"
-  if (name.includes("clang") || name.includes("ccls")) return "C"
-  if (name.includes("lua")) return "Lua"
-  if (name.includes("ruby")) return "Rb"
-  if (name.includes("java") || name.includes("jdt")) return "Jv"
-  if (name.includes("kotlin")) return "Kt"
-  if (name.includes("csharp") || name.includes("omnisharp")) return "C#"
-  if (name.includes("fsharp")) return "F#"
-  if (name.includes("elixir")) return "Ex"
-  if (name.includes("terraform")) return "Tf"
-  if (name.includes("yaml")) return "Y"
-  if (name.includes("json")) return "{}"
-  if (name.includes("tailwind")) return "TW"
-  if (name.includes("css")) return "CSS"
-  if (name.includes("html")) return "HTM"
-  if (name.includes("bash")) return "Sh"
-  if (name.includes("docker")) return "Dk"
-  if (name.includes("php")) return "PHP"
-  if (name.includes("dart")) return "Dt"
-  if (name.includes("zig") || name.includes("zls")) return "Zg"
-  if (name.includes("ocaml")) return "Ml"
-  if (name.includes("swift") || name.includes("sourcekit")) return "Sw"
-  if (name.includes("prisma")) return "Pr"
-  return "◇"
+  const icon = LSP_ICONS[name]
+  if (icon) return icon
+  if (name.includes("typescript") || name.includes("tsserver") || name.includes("javascript")) return "󰛦"
+  if (name.includes("eslint")) return ""
+  if (name.includes("biome")) return ""
+  if (name.includes("deno")) return ""
+  if (name.includes("pyright") || name.includes("pylsp") || name.includes("ruff") || name === "ty") return "󰌠"
+  if (name.includes("gopls") || name === "go") return "󰟓"
+  if (name.includes("rust")) return "󱘗"
+  if (name.includes("clang") || name.includes("ccls") || name.includes("c++")) return "󰙲"
+  if (name.includes("lua")) return "󰢱"
+  if (name.includes("ruby")) return "󰴭"
+  if (name.includes("java") || name.includes("jdt")) return "󰬷"
+  if (name.includes("kotlin")) return "󱈙"
+  if (name.includes("csharp") || name.includes("omnisharp")) return "󰌛"
+  if (name.includes("fsharp")) return ""
+  if (name.includes("elixir")) return ""
+  if (name.includes("terraform")) return "󱁢"
+  if (name.includes("yaml")) return ""
+  if (name.includes("json")) return "󰘦"
+  if (name.includes("tailwind")) return ""
+  if (name.includes("css")) return "󰌜"
+  if (name.includes("html")) return "󰌝"
+  if (name.includes("bash") || name.includes("shell")) return ""
+  if (name.includes("docker")) return "󰡨"
+  if (name.includes("php")) return "󰌟"
+  if (name.includes("dart")) return ""
+  if (name.includes("zig") || name.includes("zls")) return ""
+  if (name.includes("ocaml")) return ""
+  if (name.includes("swift") || name.includes("sourcekit")) return "󰛥"
+  if (name.includes("prisma")) return ""
+  return "󰞋"
 }
 
 function LspSection(props: { api: TuiPluginApi }) {
@@ -1100,8 +1142,8 @@ function LspSection(props: { api: TuiPluginApi }) {
             {(item: TuiSidebarLspItem) => (
               <box flexDirection="row" justifyContent="space-between" gap={1} paddingLeft={1} paddingRight={1}>
                 <box flexDirection="row" gap={1} flexGrow={1}>
-                  <text width={3} flexShrink={0} fg={props.api.theme.current.accent}>
-                    <b>{lspIcon(item.id)}</b>
+                  <text width={1} flexShrink={0} fg={props.api.theme.current.accent}>
+                    {lspIcon(item.id)}
                   </text>
                   <text fg={props.api.theme.current.text} wrapMode="word">
                     {item.id}
