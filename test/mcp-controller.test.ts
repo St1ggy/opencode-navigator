@@ -5,6 +5,7 @@ import { createMcpController } from "../src/tui"
 
 test("reapplies MCP preferences after a session change and lets a manual connect win", async () => {
   let status = "connected"
+  let persist = true
   let stored: unknown = { version: 1, disabledByScope: { "/repo": ["wiki"] } }
   const disconnects: Array<Record<string, unknown>> = []
   const connects: Array<Record<string, unknown>> = []
@@ -39,7 +40,7 @@ test("reapplies MCP preferences after a session change and lets a manual connect
     ui: { toast: () => {} },
   } as unknown as TuiPluginApi
 
-  const controller = createMcpController(api, true)
+  const controller = createMcpController(api, () => persist)
   await controller.activate()
   expect(disconnects).toEqual([{ name: "wiki", directory: "/repo", workspace: "workspace-1" }])
 
@@ -54,4 +55,14 @@ test("reapplies MCP preferences after a session change and lets a manual connect
 
   await controller.activate()
   expect(disconnects).toHaveLength(2)
+
+  stored = { version: 1, disabledByScope: { "/repo": ["wiki"] } }
+  status = "connected"
+  persist = false
+  await controller.activate()
+  expect(disconnects).toHaveLength(2)
+
+  persist = true
+  await controller.activate()
+  expect(disconnects).toHaveLength(3)
 })

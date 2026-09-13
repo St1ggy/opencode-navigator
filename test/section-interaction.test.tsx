@@ -4,7 +4,7 @@ import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
 import { createSignal } from "solid-js"
 // @ts-expect-error The package intentionally publishes JavaScript without declarations.
-import { FirstRunWizard, LspBadge, McpSection, openSettings, Section, SettingsDialog, SkillsSection } from "../dist/tui.js"
+import { FirstRunWizard, LspBadge, McpSection, openSettings, Section, SettingsDialog, SidebarToggleBinding, SkillsSection } from "../dist/tui.js"
 
 const sidebarTheme = {
   accent: "#ff9e64",
@@ -119,6 +119,8 @@ test("the built first-run wizard explains controls and changes section settings"
   } as unknown as TuiPluginApi
   const preferences = {
     sections,
+    toggleKey: () => "ctrl+shift+b",
+    lspIconStyle: () => "nerd",
     toggleSection(name: keyof ReturnType<typeof sections>) {
       setSections((value) => ({ ...value, [name]: !value[name] }))
     },
@@ -128,8 +130,6 @@ test("the built first-run wizard explains controls and changes section settings"
       <FirstRunWizard
         api={api}
         preferences={preferences}
-        toggleKey="ctrl+shift+b"
-        lspIconStyle="nerd"
       />
     ),
     { width: 80, height: 18 },
@@ -238,6 +238,8 @@ test("the built settings dialog saves the current layout as default", async () =
   })
   let layer: { commands: Array<{ name: string; run: () => void }> } | undefined
   let saved = 0
+  let mcpToggles = 0
+  let iconToggles = 0
   const api = {
     theme: { current: sidebarTheme },
     keymap: {
@@ -254,17 +256,24 @@ test("the built settings dialog saves the current layout as default", async () =
   const preferences = {
     sections,
     expanded: () => expandedLayout,
+    persistMcp: () => true,
+    lspIconStyle: () => "nerd",
+    toggleKey: () => "ctrl+shift+b",
     skippedSkillCount: () => 0,
     toggleSection: () => {},
+    toggleMcpPersistence: () => mcpToggles++,
+    toggleLspIconStyle: () => iconToggles++,
+    setToggleKey: () => {},
     resetSections: () => {},
+    resetPluginSettings: () => {},
     resetSkillConfirmations: () => {},
     saveLayoutAsDefault: async () => {
       saved++
     },
   }
   const setup = await testRender(
-    () => <SettingsDialog api={api} preferences={preferences} toggleKey="ctrl+shift+b" lspIconStyle="nerd" />,
-    { width: 100, height: 30 },
+    () => <SettingsDialog api={api} preferences={preferences} />,
+    { width: 100, height: 40 },
   )
 
   try {
@@ -273,10 +282,23 @@ test("the built settings dialog saves the current layout as default", async () =
     const saveLine = lines.findIndex((line) => line.includes("Save current layout as default"))
     expect(saveLine).toBeGreaterThan(-1)
     expect(lines[saveLine]).toContain("4 visible · 2 expanded")
+    expect(setup.captureCharFrame()).toContain("Sections")
+    expect(setup.captureCharFrame()).toContain("Behavior")
+    expect(setup.captureCharFrame()).toContain("Defaults & help")
+    expect(setup.captureCharFrame()).toContain("Remember disabled MCP")
+    expect(setup.captureCharFrame()).toContain("ctrl+shift+b")
 
     const next = layer?.commands.find((command) => command.name.endsWith(".settings.next"))
+    const select = layer?.commands.find((command) => command.name.endsWith(".settings.select"))
     for (let index = 0; index < 6; index++) next?.run()
-    layer?.commands.find((command) => command.name.endsWith(".settings.select"))?.run()
+    select?.run()
+    expect(mcpToggles).toBe(1)
+    next?.run()
+    select?.run()
+    expect(iconToggles).toBe(1)
+    next?.run()
+    next?.run()
+    select?.run()
     await Promise.resolve()
     expect(saved).toBe(1)
   } finally {
@@ -300,8 +322,42 @@ test("the built settings dialog opens at a spacious width", () => {
     },
   } as unknown as TuiPluginApi
 
-  openSettings(api, {}, "ctrl+shift+b", "nerd")
+  openSettings(api, {})
 
   expect(render).toBeDefined()
-  expect(size).toBe("large")
+  expect(size).toBe("xlarge")
+})
+
+test("the sidebar shortcut binding follows runtime settings", async () => {
+  const [shortcut, setShortcut] = createSignal("ctrl+shift+b")
+  const registered: string[] = []
+  const disposed: string[] = []
+  const api = {
+    route: { current: { name: "session" } },
+    keymap: {
+      registerLayer: (layer: { bindings: Array<{ key: string }> }) => {
+        const key = layer.bindings[0].key
+        registered.push(key)
+        return () => disposed.push(key)
+      },
+      dispatchCommand: () => ({ ok: true }),
+    },
+  } as unknown as TuiPluginApi
+  const setup = await testRender(
+    () => <SidebarToggleBinding api={api} preferences={{ toggleKey: shortcut }} />,
+    { width: 1, height: 1 },
+  )
+
+  try {
+    await setup.renderOnce()
+    expect(registered).toEqual(["ctrl+shift+b"])
+
+    setShortcut("alt+s")
+    await setup.renderOnce()
+    expect(registered).toEqual(["ctrl+shift+b", "alt+s"])
+    expect(disposed).toEqual(["ctrl+shift+b"])
+  } finally {
+    setup.renderer.destroy()
+  }
+  expect(disposed).toEqual(["ctrl+shift+b", "alt+s"])
 })

@@ -10,7 +10,11 @@ import type {
 import type { Session, SessionStatus } from "@opencode-ai/sdk/v2"
 import { TextAttributes } from "@opentui/core"
 import { batch, createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
-import { createSectionPreferencesStore, type SectionPreferencesStore } from "./preferences-store"
+import {
+  createSectionPreferencesStore,
+  type PluginSettings,
+  type SectionPreferencesStore,
+} from "./preferences-store"
 import {
   MCP_PREFERENCES_KEY,
   disabledMcpNames,
@@ -72,14 +76,11 @@ export const QUICK_ACTIONS = [
   { icon: "◫", label: "Compact", command: "session.compact" },
 ] as const
 
-type PluginConfig = {
-  toggleKey: string
-  persistMcp: boolean
+type PluginConfig = PluginSettings & {
   sections: SectionVisibility
-  lspIconStyle: LspIconStyle
 }
 
-type LspIconStyle = "nerd" | "text"
+type LspIconStyle = PluginSettings["lspIconStyle"]
 
 type McpController = ReturnType<typeof createMcpController>
 type TodoController = ReturnType<typeof createTodoController>
@@ -123,16 +124,21 @@ function pluginConfig(options: Record<string, unknown> | undefined): PluginConfi
 
 export function createPreferencesController(
   api: TuiPluginApi,
-  defaults: SectionVisibility,
+  defaults: PluginConfig,
   store: SectionPreferencesStore,
 ) {
-  const [sections, setSections] = createSignal(defaults)
+  const [sections, setSections] = createSignal(defaults.sections)
   const [expanded, setExpanded] = createSignal(DEFAULT_SECTION_EXPANSION)
   const [skippedSkills, setSkippedSkills] = createSignal(new Set<string>())
+  const [toggleKey, setToggleKey] = createSignal(defaults.toggleKey)
+  const [persistMcp, setPersistMcp] = createSignal(defaults.persistMcp)
+  const [lspIconStyle, setLspIconStyle] = createSignal(defaults.lspIconStyle)
   const pendingSectionValues = new Map<SidebarSection, boolean>()
   const pendingExpandedValues = new Map<SidebarSection, boolean>()
+  const pendingSettings: Partial<PluginSettings> = {}
   const pendingSkippedSkills = new Set<string>()
   let resetLayoutPending = false
+  let resetSettingsPending = false
   let resetSkillsPending = false
   let hydrated = false
   let hydration: Promise<void> | undefined
@@ -148,7 +154,7 @@ export function createPreferencesController(
     api.ui.toast({
       variant: "warning",
       title: "Sidebar settings",
-      message: "Section visibility could not be saved",
+      message: "Sidebar settings could not be saved",
       duration: 4000,
     })
   }
@@ -166,6 +172,22 @@ export function createPreferencesController(
     )
   }
 
+  function validToggleKey(value: string) {
+    try {
+      return api.keymap?.parseKeySequence ? api.keymap.parseKeySequence(value).length > 0 : Boolean(value.trim())
+    } catch {
+      return false
+    }
+  }
+
+  function persistSettings(settings: Partial<PluginSettings>) {
+    if (!hydrated) {
+      Object.assign(pendingSettings, settings)
+      return
+    }
+    persist(store.update({ settings }, defaults.sections))
+  }
+
   function load() {
     if (hydrated) return Promise.resolve()
     if (!api.kv.ready) return
@@ -176,18 +198,30 @@ export function createPreferencesController(
       .load(legacySections)
       .catch(() => {
         showPersistenceWarning()
-        return { sections: legacySections, layout: undefined }
+        return { sections: legacySections, layout: undefined, settings: undefined }
       })
       .then((loaded) => {
         const shouldRestoreDefaults = resetLayoutPending
+        const shouldRestoreSettings = resetSettingsPending
+        const shouldPersistSettings = Object.keys(pendingSettings).length > 0
+        const settingsToPersist = { ...pendingSettings }
         let nextSections = resetLayoutPending
-          ? defaults
-          : resolveSectionVisibility(defaults, loaded.layout?.sections ?? loaded.sections ?? legacySections)
+          ? defaults.sections
+          : resolveSectionVisibility(defaults.sections, loaded.layout?.sections ?? loaded.sections ?? legacySections)
         for (const [name, visible] of pendingSectionValues) nextSections = { ...nextSections, [name]: visible }
         let nextExpanded = resetLayoutPending
           ? DEFAULT_SECTION_EXPANSION
           : resolveSectionVisibility(DEFAULT_SECTION_EXPANSION, loaded.layout?.expanded ?? legacyExpansion())
         for (const [name, open] of pendingExpandedValues) nextExpanded = { ...nextExpanded, [name]: open }
+
+        const savedSettings = shouldRestoreSettings ? {} : loaded.settings ?? {}
+        const savedToggleKey = savedSettings.toggleKey
+        const nextToggleKey = pendingSettings.toggleKey ?? savedToggleKey ?? defaults.toggleKey
+        const nextSettings: PluginSettings = {
+          toggleKey: validToggleKey(nextToggleKey) ? nextToggleKey : defaults.toggleKey,
+          persistMcp: pendingSettings.persistMcp ?? savedSettings.persistMcp ?? defaults.persistMcp,
+          lspIconStyle: pendingSettings.lspIconStyle ?? savedSettings.lspIconStyle ?? defaults.lspIconStyle,
+        }
 
         const savedSkills = api.kv.get(SKILL_CONFIRMATIONS_KEY)
         const names = Array.isArray(savedSkills)
@@ -201,23 +235,31 @@ export function createPreferencesController(
           setSections(nextSections)
           setExpanded(nextExpanded)
           setSkippedSkills(nextSkipped)
+          setToggleKey(nextSettings.toggleKey)
+          setPersistMcp(nextSettings.persistMcp)
+          setLspIconStyle(nextSettings.lspIconStyle)
         })
         if (resetSkillsPending || pendingSkippedSkills.size > 0) {
           api.kv.set(SKILL_CONFIRMATIONS_KEY, [...nextSkipped].sort())
         }
         pendingSectionValues.clear()
         pendingExpandedValues.clear()
+        for (const name of Object.keys(pendingSettings) as Array<keyof PluginSettings>) delete pendingSettings[name]
         pendingSkippedSkills.clear()
         resetLayoutPending = false
+        resetSettingsPending = false
         resetSkillsPending = false
         if (shouldRestoreDefaults) {
+          persist(store.update({ reset: true, clearLayout: true }, defaults.sections))
+        }
+        if (shouldRestoreSettings || shouldPersistSettings) {
           persist(
             store.update(
               {
-                reset: true,
-                layout: { sections: defaults, expanded: DEFAULT_SECTION_EXPANSION },
+                ...(shouldRestoreSettings ? { resetSettings: true } : {}),
+                ...(shouldPersistSettings ? { settings: settingsToPersist } : {}),
               },
-              defaults,
+              defaults.sections,
             ),
           )
         }
@@ -228,6 +270,9 @@ export function createPreferencesController(
   return {
     sections,
     expanded,
+    toggleKey,
+    persistMcp,
+    lspIconStyle,
     skippedSkillCount: () => skippedSkills().size,
     load,
     async flush() {
@@ -253,7 +298,7 @@ export function createPreferencesController(
           reset: true,
           layout: { sections: sections(), expanded: expanded() },
         },
-        defaults,
+        defaults.sections,
       )
     },
     resetSections() {
@@ -262,20 +307,42 @@ export function createPreferencesController(
       pendingSectionValues.clear()
       pendingExpandedValues.clear()
       batch(() => {
-        setSections(defaults)
+        setSections(defaults.sections)
         setExpanded(DEFAULT_SECTION_EXPANSION)
       })
       if (hydrated) {
-        persist(
-          store.update(
-            {
-              reset: true,
-              layout: { sections: defaults, expanded: DEFAULT_SECTION_EXPANSION },
-            },
-            defaults,
-          ),
-        )
+        persist(store.update({ reset: true, clearLayout: true }, defaults.sections))
       }
+    },
+    setToggleKey(value: string) {
+      void load()
+      const next = value.trim()
+      if (!validToggleKey(next)) throw new Error("Enter a valid OpenCode keybinding")
+      setToggleKey(next)
+      persistSettings({ toggleKey: next })
+    },
+    toggleMcpPersistence() {
+      void load()
+      const next = !persistMcp()
+      setPersistMcp(next)
+      persistSettings({ persistMcp: next })
+    },
+    toggleLspIconStyle() {
+      void load()
+      const next = lspIconStyle() === "nerd" ? "text" : "nerd"
+      setLspIconStyle(next)
+      persistSettings({ lspIconStyle: next })
+    },
+    resetPluginSettings() {
+      void load()
+      resetSettingsPending = !hydrated
+      for (const name of Object.keys(pendingSettings) as Array<keyof PluginSettings>) delete pendingSettings[name]
+      batch(() => {
+        setToggleKey(defaults.toggleKey)
+        setPersistMcp(defaults.persistMcp)
+        setLspIconStyle(defaults.lspIconStyle)
+      })
+      if (hydrated) persist(store.update({ resetSettings: true }, defaults.sections))
     },
     shouldConfirmSkill(skill: SkillInfo) {
       void load()
@@ -308,7 +375,7 @@ function statusError(status: unknown) {
   return typeof error === "string" ? error : undefined
 }
 
-export function createMcpController(api: TuiPluginApi, persist: boolean) {
+export function createMcpController(api: TuiPluginApi, persist: () => boolean) {
   const [snapshot, setSnapshot] = createSignal<{ target: string; items: ReadonlyArray<TuiSidebarMcpItem> }>()
   const refreshing = new Map<string, Promise<ReadonlyArray<TuiSidebarMcpItem>>>()
   const mutations = new Map<string, Promise<void>>()
@@ -364,7 +431,7 @@ export function createMcpController(api: TuiPluginApi, persist: boolean) {
   }
 
   function save(current: McpTarget, name: string, disabled: boolean) {
-    if (!persist) return
+    if (!persist()) return
     const value = setMcpDisabled(api.kv.get(MCP_PREFERENCES_KEY), current.scope, name, disabled)
     api.kv.set(MCP_PREFERENCES_KEY, value)
   }
@@ -388,7 +455,7 @@ export function createMcpController(api: TuiPluginApi, persist: boolean) {
   async function activate(current = target()) {
     const generation = ++activation
     const items = await refresh(current, true)
-    if (!persist || generation !== activation || target().key !== current.key) return
+    if (!persist() || generation !== activation || target().key !== current.key) return
 
     const connected = items.filter((item) => item.status === "connected")
     const results = await Promise.allSettled(
@@ -412,7 +479,7 @@ export function createMcpController(api: TuiPluginApi, persist: boolean) {
     if (generation === activation && target().key === current.key) await refresh(current, true)
   }
 
-  return { list, refresh, activate, target, toggle }
+  return { list, refresh, activate, target, toggle, persist }
 }
 
 export function createTodoController(api: TuiPluginApi) {
@@ -624,8 +691,6 @@ export function createSkillController(api: TuiPluginApi) {
 export function FirstRunWizard(props: {
   api: TuiPluginApi
   preferences: PreferencesController
-  toggleKey: string
-  lspIconStyle: LspIconStyle
 }) {
   const [active, setActive] = createSignal(0)
   const theme = () => props.api.theme.current
@@ -690,9 +755,9 @@ export function FirstRunWizard(props: {
         Choose what appears in your sidebar. You can change these settings anytime with the gear button.
       </text>
       <box flexDirection="row" gap={2}>
-        <text fg={theme().textMuted}>Toggle: {props.toggleKey}</text>
+        <text fg={theme().textMuted}>Toggle: {props.preferences.toggleKey()}</text>
         <text fg={theme().textMuted}>
-          LSP icons: {props.lspIconStyle === "text" ? "text badges" : "Nerd Font"}
+          LSP icons: {props.preferences.lspIconStyle() === "text" ? "text badges" : "Nerd Font"}
         </text>
       </box>
       <text fg={theme().textMuted} wrapMode="word">
@@ -737,63 +802,89 @@ export function FirstRunWizard(props: {
 export function openFirstRunWizard(
   api: TuiPluginApi,
   preferences: PreferencesController,
-  toggleKey: string,
-  lspIconStyle: LspIconStyle,
 ) {
-  api.ui.dialog.replace(() => (
-    <FirstRunWizard api={api} preferences={preferences} toggleKey={toggleKey} lspIconStyle={lspIconStyle} />
-  ))
+  api.ui.dialog.replace(() => <FirstRunWizard api={api} preferences={preferences} />)
 }
 
 export function showFirstRunWizard(
   api: TuiPluginApi,
   preferences: PreferencesController,
-  toggleKey: string,
-  lspIconStyle: LspIconStyle,
 ) {
   if (api.kv.get(ONBOARDING_KEY) === true) return false
   api.kv.set(ONBOARDING_KEY, true)
-  openFirstRunWizard(api, preferences, toggleKey, lspIconStyle)
+  openFirstRunWizard(api, preferences)
   return true
 }
 
 export function SettingsDialog(props: {
   api: TuiPluginApi
   preferences: PreferencesController
-  toggleKey: string
-  lspIconStyle: LspIconStyle
 }) {
   const [active, setActive] = createSignal(0)
   const theme = () => props.api.theme.current
-  const options = createMemo(() => [
-    ...SECTION_DEFINITIONS.map((section) => ({
-      title: `${props.preferences.sections()[section.name] ? "☑" : "☐"} ${section.label}`,
-      value: section.name,
-      description: props.preferences.sections()[section.name] ? "visible" : "hidden",
-    })),
+  const groups = createMemo(() => [
     {
-      title: "↓ Save current layout as default",
-      value: "save_layout",
-      description: `${SIDEBAR_SECTIONS.filter((name) => props.preferences.sections()[name]).length} visible · ${
-        SIDEBAR_SECTIONS.filter((name) => props.preferences.expanded()[name]).length
-      } expanded`,
+      title: "Sections",
+      options: SECTION_DEFINITIONS.map((section) => ({
+        title: `${props.preferences.sections()[section.name] ? "☑" : "☐"} ${section.label}`,
+        value: section.name,
+        description: props.preferences.sections()[section.name] ? "visible" : "hidden",
+      })),
     },
     {
-      title: "↺ Restore configured layout",
-      value: "reset_sections",
-      description: "reset visibility and expansion",
+      title: "Behavior",
+      options: [
+        {
+          title: `${props.preferences.persistMcp() ? "☑" : "☐"} Remember disabled MCP`,
+          value: "persist_mcp",
+          description: props.preferences.persistMcp() ? "on · per worktree" : "off",
+        },
+        {
+          title: "LSP icon style",
+          value: "lsp_icon_style",
+          description: props.preferences.lspIconStyle() === "nerd" ? "Nerd Font" : "text badges",
+        },
+        {
+          title: "Sidebar shortcut",
+          value: "toggle_key",
+          description: props.preferences.toggleKey(),
+        },
+      ],
     },
     {
-      title: "↺ Show skill confirmations again",
-      value: "reset_skills",
-      description: `${props.preferences.skippedSkillCount()} skipped`,
-    },
-    {
-      title: "? Open quick setup guide",
-      value: "wizard",
-      description: "tips and section settings",
+      title: "Defaults & help",
+      options: [
+        {
+          title: "↓ Save current layout as default",
+          value: "save_layout",
+          description: `${SIDEBAR_SECTIONS.filter((name) => props.preferences.sections()[name]).length} visible · ${
+            SIDEBAR_SECTIONS.filter((name) => props.preferences.expanded()[name]).length
+          } expanded`,
+        },
+        {
+          title: "↺ Restore configured layout",
+          value: "reset_sections",
+          description: "visibility and expansion",
+        },
+        {
+          title: "↺ Restore configured behavior",
+          value: "reset_settings",
+          description: "MCP memory, icons, shortcut",
+        },
+        {
+          title: "↺ Show skill confirmations again",
+          value: "reset_skills",
+          description: `${props.preferences.skippedSkillCount()} skipped`,
+        },
+        {
+          title: "? Open quick setup guide",
+          value: "wizard",
+          description: "tips and section settings",
+        },
+      ],
     },
   ])
+  const options = createMemo(() => groups().flatMap((group) => group.options))
 
   function move(offset: number) {
     setActive((value) => (value + offset + options().length) % options().length)
@@ -826,12 +917,50 @@ export function SettingsDialog(props: {
       props.preferences.resetSections()
       return
     }
+    if (value === "persist_mcp") {
+      props.preferences.toggleMcpPersistence()
+      return
+    }
+    if (value === "lsp_icon_style") {
+      props.preferences.toggleLspIconStyle()
+      return
+    }
+    if (value === "toggle_key") {
+      props.api.ui.dialog.replace(() => (
+        <props.api.ui.DialogPrompt
+          title="Sidebar shortcut"
+          description={() => <text fg={theme().textMuted}>Use OpenCode key syntax, for example alt+s.</text>}
+          value={props.preferences.toggleKey()}
+          onConfirm={(input) => {
+            try {
+              props.preferences.setToggleKey(input)
+              openSettings(props.api, props.preferences)
+            } catch (error) {
+              props.api.ui.toast({
+                variant: "error",
+                title: "Sidebar shortcut",
+                message: error instanceof Error ? error.message : "Invalid keybinding",
+                duration: 4000,
+              })
+              openSettings(props.api, props.preferences)
+            }
+          }}
+          onCancel={() => openSettings(props.api, props.preferences)}
+        />
+      ))
+      props.api.ui.dialog.setSize("medium")
+      return
+    }
+    if (value === "reset_settings") {
+      props.preferences.resetPluginSettings()
+      return
+    }
     if (value === "reset_skills") {
       props.preferences.resetSkillConfirmations()
       return
     }
     if (value === "wizard") {
-      openFirstRunWizard(props.api, props.preferences, props.toggleKey, props.lspIconStyle)
+      openFirstRunWizard(props.api, props.preferences)
       return
     }
     props.preferences.toggleSection(value as SidebarSection)
@@ -865,28 +994,42 @@ export function SettingsDialog(props: {
           esc
         </text>
       </box>
-      <text fg={theme().textMuted}>Choose sections for this session, then save the layout you want next time.</text>
+      <text fg={theme().textMuted}>Adjust sections and behavior. Changes apply immediately.</text>
       <box gap={1}>
-        <For each={options()}>
-          {(option, index) => {
-            const selected = () => active() === index()
-            return (
-              <box
-                flexDirection="row"
-                gap={2}
-                paddingLeft={1}
-                paddingRight={1}
-                backgroundColor={selected() ? theme().backgroundElement : undefined}
-                onMouseOver={() => setActive(index())}
-                onMouseDown={() => select(option.value)}
-              >
-                <text flexShrink={0} attributes={selected() ? TextAttributes.BOLD : undefined} fg={theme().text}>
-                  {option.title}
-                </text>
-                <text fg={theme().borderSubtle}>{option.description}</text>
+        <For each={groups()}>
+          {(group) => (
+            <box>
+              <text attributes={TextAttributes.BOLD} fg={theme().accent}>{group.title}</text>
+              <box gap={1}>
+                <For each={group.options}>
+                  {(option) => {
+                    const index = () => options().findIndex((candidate) => candidate.value === option.value)
+                    const selected = () => active() === index()
+                    return (
+                      <box
+                        flexDirection="row"
+                        gap={2}
+                        paddingLeft={1}
+                        paddingRight={1}
+                        backgroundColor={selected() ? theme().backgroundElement : undefined}
+                        onMouseOver={() => setActive(index())}
+                        onMouseDown={() => select(option.value)}
+                      >
+                        <text
+                          flexShrink={0}
+                          attributes={selected() ? TextAttributes.BOLD : undefined}
+                          fg={theme().text}
+                        >
+                          {option.title}
+                        </text>
+                        <text fg={theme().borderSubtle}>{option.description}</text>
+                      </box>
+                    )
+                  }}
+                </For>
               </box>
-            )
-          }}
+            </box>
+          )}
         </For>
       </box>
       <text fg={theme().textMuted}>↑/↓ navigate · enter select</text>
@@ -897,18 +1040,9 @@ export function SettingsDialog(props: {
 export function openSettings(
   api: TuiPluginApi,
   preferences: PreferencesController,
-  toggleKey: string,
-  lspIconStyle: LspIconStyle,
 ) {
-  api.ui.dialog.replace(() => (
-    <SettingsDialog
-      api={api}
-      preferences={preferences}
-      toggleKey={toggleKey}
-      lspIconStyle={lspIconStyle}
-    />
-  ))
-  api.ui.dialog.setSize("large")
+  api.ui.dialog.replace(() => <SettingsDialog api={api} preferences={preferences} />)
+  api.ui.dialog.setSize("xlarge")
 }
 
 function SkillDialog(props: {
@@ -1017,8 +1151,6 @@ function SkillDialog(props: {
 function SidebarTitle(props: {
   api: TuiPluginApi
   preferences: PreferencesController
-  toggleKey: string
-  lspIconStyle: LspIconStyle
   sessionID: string
   title: string
 }) {
@@ -1046,7 +1178,7 @@ function SidebarTitle(props: {
           backgroundColor={settingsHover() ? theme().backgroundElement : theme().backgroundPanel}
           onMouseOver={() => setSettingsHover(true)}
           onMouseOut={() => setSettingsHover(false)}
-          onMouseUp={() => openSettings(props.api, props.preferences, props.toggleKey, props.lspIconStyle)}
+          onMouseUp={() => openSettings(props.api, props.preferences)}
         >
           <text fg={settingsHover() ? theme().accent : theme().textMuted}>⚙</text>
         </box>
@@ -1726,7 +1858,6 @@ function SidebarContent(props: {
   subagents: SubagentController
   skills: SkillController
   preferences: PreferencesController
-  lspIconStyle: LspIconStyle
   sessionID: string
 }) {
   const sections = props.preferences.sections
@@ -1756,7 +1887,7 @@ function SidebarContent(props: {
         <QuickActionsSection api={props.api} preferences={props.preferences} />
       </Show>
       <Show when={sections().lsp}>
-        <LspSection api={props.api} iconStyle={props.lspIconStyle} preferences={props.preferences} />
+        <LspSection api={props.api} iconStyle={props.preferences.lspIconStyle()} preferences={props.preferences} />
       </Show>
       <Show when={sections().mcp}>
         <McpSection api={props.api} controller={props.mcp} preferences={props.preferences} />
@@ -1768,6 +1899,7 @@ function SidebarContent(props: {
 function McpPersistence(props: { api: TuiPluginApi; controller: McpController }) {
   createEffect(() => {
     if (!props.api.state.ready || !props.api.kv.ready) return
+    props.controller.persist()
     const route = props.api.route.current
     const params = "params" in route ? route.params : undefined
     if (typeof params?.sessionID !== "string") return
@@ -1785,50 +1917,55 @@ function PreferencesPersistence(props: { api: TuiPluginApi; controller: Preferen
   return <></>
 }
 
+export function SidebarToggleBinding(props: { api: TuiPluginApi; preferences: PreferencesController }) {
+  createEffect(() => {
+    const key = props.preferences.toggleKey()
+    const unregister = props.api.keymap.registerLayer({
+      mode: "base",
+      commands: [
+        {
+          name: TOGGLE_COMMAND,
+          title: "Toggle sidebar",
+          category: "Sidebar",
+          namespace: "palette",
+          enabled: () => props.api.route.current.name === "session",
+          run() {
+            props.api.keymap.dispatchCommand("session.sidebar.toggle")
+          },
+        },
+      ],
+      bindings: [{ key, cmd: TOGGLE_COMMAND, desc: "Toggle sidebar" }],
+    })
+    onCleanup(unregister)
+  })
+  return <></>
+}
+
 function FirstRunWizardPersistence(props: {
   api: TuiPluginApi
   preferences: PreferencesController
-  toggleKey: string
-  lspIconStyle: LspIconStyle
 }) {
   let checked = false
   createEffect(() => {
     if (checked || !props.api.kv.ready) return
     checked = true
-    showFirstRunWizard(props.api, props.preferences, props.toggleKey, props.lspIconStyle)
+    showFirstRunWizard(props.api, props.preferences)
   })
   return <></>
 }
 
 const tui: TuiPlugin = async (api, options) => {
   const config = pluginConfig(options)
-  const mcp = createMcpController(api, config.persistMcp)
   const todo = createTodoController(api)
   const subagents = createSubagentController(api)
   const skills = createSkillController(api)
   const preferences = createPreferencesController(
     api,
-    config.sections,
+    config,
     createSectionPreferencesStore(api.state.path.state),
   )
+  const mcp = createMcpController(api, preferences.persistMcp)
   api.lifecycle.onDispose(() => preferences.flush())
-
-  api.keymap.registerLayer({
-    mode: "base",
-    commands: [
-      {
-        name: TOGGLE_COMMAND,
-        title: "Toggle sidebar",
-        category: "Sidebar",
-        namespace: "palette",
-        enabled: () => api.route.current.name === "session",
-        run() {
-          api.keymap.dispatchCommand("session.sidebar.toggle")
-        },
-      },
-    ],
-    bindings: [{ key: config.toggleKey, cmd: TOGGLE_COMMAND, desc: "Toggle sidebar" }],
-  })
 
   const unsubscribeMcp = api.event.on("mcp.tools.changed", () => {
     void mcp.refresh().catch(() => {})
@@ -1847,12 +1984,8 @@ const tui: TuiPlugin = async (api, options) => {
         return (
           <>
             <PreferencesPersistence api={api} controller={preferences} />
-            <FirstRunWizardPersistence
-              api={api}
-              preferences={preferences}
-              toggleKey={config.toggleKey}
-              lspIconStyle={config.lspIconStyle}
-            />
+            <SidebarToggleBinding api={api} preferences={preferences} />
+            <FirstRunWizardPersistence api={api} preferences={preferences} />
             <McpPersistence api={api} controller={mcp} />
           </>
         )
@@ -1862,8 +1995,6 @@ const tui: TuiPlugin = async (api, options) => {
           <SidebarTitle
             api={api}
             preferences={preferences}
-            toggleKey={config.toggleKey}
-            lspIconStyle={config.lspIconStyle}
             sessionID={props.session_id}
             title={props.title}
           />
@@ -1878,7 +2009,6 @@ const tui: TuiPlugin = async (api, options) => {
             subagents={subagents}
             skills={skills}
             preferences={preferences}
-            lspIconStyle={config.lspIconStyle}
             sessionID={props.session_id}
           />
         )

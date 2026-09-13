@@ -9,6 +9,7 @@ type StoredPreferences = {
   resetLegacy?: true
   sections: Partial<SectionVisibility>
   layout?: SectionLayoutDefault
+  settings?: Partial<PluginSettings>
 }
 
 type LockOwner = {
@@ -20,11 +21,20 @@ export type SectionPreferencesUpdate = {
   reset?: boolean
   values?: Partial<SectionVisibility>
   layout?: SectionLayoutDefault
+  clearLayout?: boolean
+  settings?: Partial<PluginSettings>
+  resetSettings?: boolean
 }
 
 export type SectionLayoutDefault = {
   sections: Partial<SectionVisibility>
   expanded: Partial<SectionVisibility>
+}
+
+export type PluginSettings = {
+  toggleKey: string
+  persistMcp: boolean
+  lspIconStyle: "nerd" | "text"
 }
 
 const LOCK_TIMEOUT_MS = 3_000
@@ -45,6 +55,20 @@ function sectionsFrom(value: unknown): Partial<SectionVisibility> {
   ) as Partial<SectionVisibility>
 }
 
+function settingsFrom(value: unknown): Partial<PluginSettings> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const input = value as Record<string, unknown>
+  return {
+    ...(typeof input.toggleKey === "string" && input.toggleKey.trim()
+      ? { toggleKey: input.toggleKey.trim() }
+      : {}),
+    ...(typeof input.persistMcp === "boolean" ? { persistMcp: input.persistMcp } : {}),
+    ...(input.lspIconStyle === "nerd" || input.lspIconStyle === "text"
+      ? { lspIconStyle: input.lspIconStyle }
+      : {}),
+  }
+}
+
 function preferencesFrom(value: unknown): StoredPreferences | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return
   const input = value as Record<string, unknown>
@@ -53,11 +77,13 @@ function preferencesFrom(value: unknown): StoredPreferences | undefined {
     input.layout && typeof input.layout === "object" && !Array.isArray(input.layout)
       ? (input.layout as Record<string, unknown>)
       : undefined
+  const settings = settingsFrom(input.settings)
   return {
     version: 1,
     migrated: input.migrated === true,
     ...(input.resetLegacy === true ? { resetLegacy: true } : {}),
     sections: sectionsFrom(input.sections),
+    ...(Object.keys(settings).length > 0 ? { settings } : {}),
     ...(layout
       ? { layout: { sections: sectionsFrom(layout.sections), expanded: sectionsFrom(layout.expanded) } }
       : {}),
@@ -201,6 +227,7 @@ export function createSectionPreferencesStore(stateDirectory: string) {
           migrated: true,
           sections,
           ...(current?.layout ? { layout: current.layout } : {}),
+          ...(current?.settings ? { settings: current.settings } : {}),
         }
         await write(next)
         return next
@@ -217,12 +244,19 @@ export function createSectionPreferencesStore(stateDirectory: string) {
             if (current.migrated && visible === defaults[name]) delete sections[name]
             else sections[name] = visible
           }
+          const settings = {
+            ...(update.resetSettings ? {} : current.settings),
+            ...update.settings,
+          }
           await write({
             version: 1,
             migrated: current.migrated,
             ...((update.reset && !current.migrated) || current.resetLegacy ? { resetLegacy: true } : {}),
             sections,
-            ...(update.layout || current.layout ? { layout: update.layout ?? current.layout } : {}),
+            ...(!update.clearLayout && (update.layout || current.layout)
+              ? { layout: update.layout ?? current.layout }
+              : {}),
+            ...(Object.keys(settings).length > 0 ? { settings } : {}),
           })
         }),
       )

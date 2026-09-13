@@ -99,6 +99,37 @@ test("stores visibility and expansion together as the default layout", async () 
   }
 })
 
+test("stores and resets plugin behavior overrides", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  try {
+    const store = createSectionPreferencesStore(directory)
+    await store.load(undefined)
+    await store.update(
+      {
+        settings: {
+          toggleKey: "alt+s",
+          persistMcp: false,
+          lspIconStyle: "text",
+        },
+      },
+      defaults,
+    )
+    await store.flush()
+
+    expect((await createSectionPreferencesStore(directory).load(undefined)).settings).toEqual({
+      toggleKey: "alt+s",
+      persistMcp: false,
+      lspIconStyle: "text",
+    })
+
+    await store.update({ resetSettings: true }, defaults)
+    await store.flush()
+    expect((await createSectionPreferencesStore(directory).load(undefined)).settings).toBeUndefined()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("does not overwrite preferences written by a newer schema", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   const preferencesDirectory = join(directory, "opencode-pretty-sidebar")

@@ -82,11 +82,12 @@ plugin or `tui.json`.
 
 On first launch, a short setup guide explains the sidebar controls and lets you
 choose which sections to show. The guide is shown once and can be opened again
-later from the sidebar settings button.
+later from the sidebar settings button. The settings dialog also controls MCP
+state persistence, LSP icon style, and the sidebar shortcut without a restart.
 
 ## Options
 
-Pass options with a tuple entry:
+Pass configured defaults with a tuple entry:
 
 ```json
 {
@@ -122,9 +123,15 @@ Pass options with a tuple entry:
   their full ID.
 - `sections`: controls whether each section is rendered. Every section defaults
   to `true`; set any of `todo`, `subagents`, `skills`, `quick_actions`, `lsp`, or
-  `mcp` to `false` to hide it. Runtime choices made from the settings button are
-  persisted and take precedence until configured defaults are restored there.
-  The same controls are available in the first-run setup guide.
+  `mcp` to `false` to hide it.
+
+Every option is also available from the sidebar gear button. Settings are split
+into `Sections`, `Behavior`, and `Defaults & help`. Behavior changes apply
+immediately and are stored as overrides of the configured defaults. Use
+`Restore configured behavior` to remove those overrides. Section visibility and
+expansion remain session-local until `Save current layout as default` is
+selected; `Restore configured layout` removes that saved layout. Section
+controls are also available in the first-run setup guide.
 
 OpenCode initializes enabled MCP servers before TUI plugins. A remembered
 server can therefore connect briefly during startup before this plugin
