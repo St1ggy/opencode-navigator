@@ -7,11 +7,12 @@ actions, and makes every MCP server clickable directly in the sidebar.
 ## Features
 
 - Theme-aware session title and activity indicator
+- First-run setup guide with interactive section settings
 - Collapsible Todo section with progress and priority indicators
 - Active subagent list with live statuses and click-to-open navigation
 - Compact workspace skill list with click-to-confirm slash commands
 - Quick actions for rename, timeline, transcript copy, export, and compaction
-- Live LSP connection status with compact inline server icons
+- Live LSP connection status with compact inline server icons and click-to-reveal names
 - Collapsible MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
 - Persist disabled MCP servers per worktree and reapply them between sessions
@@ -77,6 +78,10 @@ opencode
 OpenCode reads TUI configuration at startup. Restart it after changing the
 plugin or `tui.json`.
 
+On first launch, a short setup guide explains the sidebar controls and lets you
+choose which sections to show. The guide is shown once and can be opened again
+later from the sidebar settings button.
+
 ## Options
 
 Pass options with a tuple entry:
@@ -117,6 +122,7 @@ Pass options with a tuple entry:
   to `true`; set any of `todo`, `subagents`, `skills`, `quick_actions`, `lsp`, or
   `mcp` to `false` to hide it. Runtime choices made from the settings button are
   persisted and take precedence until configured defaults are restored there.
+  The same controls are available in the first-run setup guide.
 
 OpenCode initializes enabled MCP servers before TUI plugins. A remembered
 server can therefore connect briefly during startup before this plugin

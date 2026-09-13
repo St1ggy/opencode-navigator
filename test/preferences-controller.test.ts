@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import type { SectionVisibility } from "../src/state"
-import { createPreferencesController } from "../src/tui"
+import { createPreferencesController, showFirstRunWizard } from "../src/tui"
 
 test("persists section visibility and skipped skill confirmations", () => {
   const values = new Map<string, unknown>([
@@ -80,4 +80,36 @@ test("merges interactions made before KV hydration with saved preferences", () =
   expect(controller.shouldConfirmSkill(review)).toBe(false)
   expect(controller.shouldConfirmSkill(commit)).toBe(false)
   expect(values.get("opencode-pretty-sidebar.section-visibility")).toEqual({ skills: false, lsp: false })
+})
+
+test("opens the setup wizard only on the first run", () => {
+  const values = new Map<string, unknown>()
+  let opened = 0
+  const api = {
+    kv: {
+      ready: true,
+      get: (key: string) => values.get(key),
+      set: (key: string, value: unknown) => values.set(key, value),
+    },
+    ui: {
+      dialog: {
+        replace: () => opened++,
+      },
+    },
+  } as unknown as TuiPluginApi
+  const defaults: SectionVisibility = {
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  }
+  const preferences = createPreferencesController(api, defaults)
+
+  expect(showFirstRunWizard(api, preferences, "ctrl+shift+b", "nerd")).toBe(true)
+  expect(opened).toBe(1)
+  expect(values.get("opencode-pretty-sidebar.onboarding.v1")).toBe(true)
+  expect(showFirstRunWizard(api, preferences, "ctrl+shift+b", "nerd")).toBe(false)
+  expect(opened).toBe(1)
 })
