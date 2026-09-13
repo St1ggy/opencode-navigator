@@ -1,0 +1,7 @@
+{
+  "projectId": "project_b5259e99-fd1e-464b-8866-1bc057d7c41c",
+  "workers": 4,
+  "provider": "git",
+  "plugins": [],
+  "baseRef": "main"
+}
