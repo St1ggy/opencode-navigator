@@ -8,7 +8,8 @@ import type {
   TuiSidebarTodoItem,
 } from "@opencode-ai/plugin/tui"
 import type { Session, SessionStatus } from "@opencode-ai/sdk/v2"
-import { TextAttributes } from "@opentui/core"
+import { type ScrollBoxRenderable, TextAttributes } from "@opentui/core"
+import { useTerminalDimensions } from "@opentui/solid"
 import { batch, createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import {
   createSectionPreferencesStore,
@@ -820,8 +821,11 @@ export function SettingsDialog(props: {
   api: TuiPluginApi
   preferences: PreferencesController
 }) {
+  let body: ScrollBoxRenderable | undefined
   const [active, setActive] = createSignal(0)
   const theme = () => props.api.theme.current
+  const dimensions = useTerminalDimensions()
+  const bodyHeight = createMemo(() => Math.max(1, Math.floor(dimensions().height / 2) - 6))
   const groups = createMemo(() => [
     {
       title: "Sections",
@@ -885,9 +889,13 @@ export function SettingsDialog(props: {
     },
   ])
   const options = createMemo(() => groups().flatMap((group) => group.options))
+  const optionId = (value: string) => `${PLUGIN_ID}.settings.${value}`
 
   function move(offset: number) {
-    setActive((value) => (value + offset + options().length) % options().length)
+    const next = (active() + offset + options().length) % options().length
+    setActive(next)
+    const option = options()[next]
+    if (option) body?.scrollChildIntoView(optionId(option.value))
   }
 
   function select(value = options()[active()]?.value) {
@@ -995,43 +1003,52 @@ export function SettingsDialog(props: {
         </text>
       </box>
       <text fg={theme().textMuted}>Adjust sections and behavior. Changes apply immediately.</text>
-      <box gap={1}>
-        <For each={groups()}>
-          {(group) => (
-            <box>
-              <text attributes={TextAttributes.BOLD} fg={theme().accent}>{group.title}</text>
-              <box gap={1}>
-                <For each={group.options}>
-                  {(option) => {
-                    const index = () => options().findIndex((candidate) => candidate.value === option.value)
-                    const selected = () => active() === index()
-                    return (
-                      <box
-                        flexDirection="row"
-                        gap={2}
-                        paddingLeft={1}
-                        paddingRight={1}
-                        backgroundColor={selected() ? theme().backgroundElement : undefined}
-                        onMouseOver={() => setActive(index())}
-                        onMouseDown={() => select(option.value)}
-                      >
-                        <text
-                          flexShrink={0}
-                          attributes={selected() ? TextAttributes.BOLD : undefined}
-                          fg={theme().text}
+      <scrollbox
+        ref={(node) => (body = node)}
+        maxHeight={bodyHeight()}
+        scrollX={false}
+        verticalScrollbarOptions={{ visible: true }}
+        horizontalScrollbarOptions={{ visible: false }}
+      >
+        <box gap={1}>
+          <For each={groups()}>
+            {(group) => (
+              <box>
+                <text attributes={TextAttributes.BOLD} fg={theme().accent}>{group.title}</text>
+                <box gap={1}>
+                  <For each={group.options}>
+                    {(option) => {
+                      const index = () => options().findIndex((candidate) => candidate.value === option.value)
+                      const selected = () => active() === index()
+                      return (
+                        <box
+                          id={optionId(option.value)}
+                          flexDirection="row"
+                          gap={2}
+                          paddingLeft={1}
+                          paddingRight={1}
+                          backgroundColor={selected() ? theme().backgroundElement : undefined}
+                          onMouseOver={() => setActive(index())}
+                          onMouseDown={() => select(option.value)}
                         >
-                          {option.title}
-                        </text>
-                        <text fg={theme().borderSubtle}>{option.description}</text>
-                      </box>
-                    )
-                  }}
-                </For>
+                          <text
+                            flexShrink={0}
+                            attributes={selected() ? TextAttributes.BOLD : undefined}
+                            fg={theme().text}
+                          >
+                            {option.title}
+                          </text>
+                          <text fg={theme().borderSubtle}>{option.description}</text>
+                        </box>
+                      )
+                    }}
+                  </For>
+                </box>
               </box>
-            </box>
-          )}
-        </For>
-      </box>
+            )}
+          </For>
+        </box>
+      </scrollbox>
       <text fg={theme().textMuted}>↑/↓ navigate · enter select</text>
     </box>
   )

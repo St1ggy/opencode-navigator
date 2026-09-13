@@ -7,8 +7,8 @@ change in response to user feedback and public OpenCode TUI API capabilities.
 ## Current Release
 
 - Package: `opencode-pretty-sidebar`
-- Released version: `0.4.8`
-- Release tag: `v0.4.8`
+- Released version: `0.4.9`
+- Release tag: `v0.4.9`
 - GitHub: <https://github.com/St1ggy/opencode-pretty-sidebar>
 - npm: <https://www.npmjs.com/package/opencode-pretty-sidebar>
 - Supported OpenCode version: `1.18.30` or newer
@@ -46,6 +46,8 @@ must remove those overrides so future configuration changes are visible again.
 - [x] Add MCP tests for turning remembered state off and back on at runtime.
 - [x] Verify the grouped dialog fits at the target Ghostty dimensions without
   clipping and that keyboard navigation skips group headings.
+- [x] Bound the settings list to the terminal height, add vertical scrolling,
+  and keep the selected row visible during keyboard navigation.
 - [x] Update `README.md` with in-app settings behavior and configuration precedence.
 - [x] Update `ARTICLE.md` so `persist_mcp`, LSP style, and shortcut are described as
   in-app settings rather than configuration-only options.

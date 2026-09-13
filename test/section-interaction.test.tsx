@@ -273,24 +273,23 @@ test("the built settings dialog saves the current layout as default", async () =
   }
   const setup = await testRender(
     () => <SettingsDialog api={api} preferences={preferences} />,
-    { width: 100, height: 40 },
+    { width: 100, height: 20 },
   )
 
   try {
-    await setup.renderOnce()
-    const lines = setup.captureCharFrame().split("\n")
-    const saveLine = lines.findIndex((line) => line.includes("Save current layout as default"))
-    expect(saveLine).toBeGreaterThan(-1)
-    expect(lines[saveLine]).toContain("4 visible · 2 expanded")
-    expect(setup.captureCharFrame()).toContain("Sections")
-    expect(setup.captureCharFrame()).toContain("Behavior")
-    expect(setup.captureCharFrame()).toContain("Defaults & help")
-    expect(setup.captureCharFrame()).toContain("Remember disabled MCP")
-    expect(setup.captureCharFrame()).toContain("ctrl+shift+b")
+    await setup.flush()
+    const initialFrame = setup.captureCharFrame()
+    expect(initialFrame).toContain("Sidebar settings")
+    expect(initialFrame).toContain("Sections")
+    expect(initialFrame).toContain("Todo")
+    expect(initialFrame).toContain("↑/↓ navigate · enter select")
+    expect(initialFrame).not.toContain("Save current layout as default")
 
     const next = layer?.commands.find((command) => command.name.endsWith(".settings.next"))
     const select = layer?.commands.find((command) => command.name.endsWith(".settings.select"))
     for (let index = 0; index < 6; index++) next?.run()
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("Remember disabled MCP")
     select?.run()
     expect(mcpToggles).toBe(1)
     next?.run()
@@ -298,6 +297,14 @@ test("the built settings dialog saves the current layout as default", async () =
     expect(iconToggles).toBe(1)
     next?.run()
     next?.run()
+    await setup.flush()
+    const defaultFrame = setup.captureCharFrame()
+    const saveLine = defaultFrame.split("\n").find((line) => line.includes("Save current layout as default"))
+    expect(defaultFrame).toContain("Sidebar settings")
+    expect(defaultFrame).toContain("Defaults & help")
+    expect(defaultFrame).toContain("↑/↓ navigate · enter select")
+    expect(defaultFrame).not.toContain("Todo")
+    expect(saveLine).toContain("4 visible · 2 expanded")
     select?.run()
     await Promise.resolve()
     expect(saved).toBe(1)
