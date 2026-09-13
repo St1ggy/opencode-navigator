@@ -83,9 +83,9 @@ passes, and the npm dry-run archive contains only `LICENSE`, `README.md`,
   overrides.
 - Invalid shortcut syntax must not replace the active shortcut.
 - Changing the shortcut must unregister the previous base keymap layer.
-- Enabling remembered MCP state must reapply the saved disabled-server set for the
-  active worktree.
-- Disabling remembered MCP state must stop both writing and reapplying that set.
+- Enabling remembered MCP state must reapply saved enabled and disabled server
+  states for the active worktree.
+- Disabling remembered MCP state must stop both writing and reapplying those states.
 - LSP icon style changes must update the mounted sidebar without restart.
 - Group headings are not keyboard-selectable.
 - Every interactive settings row remains usable with keyboard and mouse.
@@ -153,7 +153,7 @@ Do not simulate these features when OpenCode has no supported public API:
 - Switching agents or models without a public TUI command.
 - Showing session token, context-window, cost, or provider quota data from
   undocumented sources.
-- Preventing remembered-disabled MCP servers from connecting before TUI plugins
+- Preventing MCP servers remembered as disabled from connecting before TUI plugins
   initialize.
 
 ## Verification

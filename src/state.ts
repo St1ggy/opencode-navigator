@@ -29,49 +29,75 @@ export function parseSectionVisibility(value: unknown): SectionVisibility {
 }
 
 export type McpPreferences = {
-  version: 1
+  version: 2
   disabledByScope: Record<string, string[]>
+  enabledByScope: Record<string, string[]>
 }
 
 export function mcpScope(path: { worktree?: string; directory?: string }) {
   return path.worktree || path.directory || "global"
 }
 
+function parseMcpStatesByScope(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+
+  const result: Record<string, string[]> = {}
+  for (const [scope, names] of Object.entries(value)) {
+    if (!Array.isArray(names)) continue
+    const valid = [
+      ...new Set(names.filter((name): name is string => typeof name === "string" && name.length > 0)),
+    ].sort()
+    if (valid.length > 0) result[scope] = valid
+  }
+  return result
+}
+
 export function parseMcpPreferences(value: unknown): McpPreferences {
-  const empty: McpPreferences = { version: 1, disabledByScope: {} }
+  const empty: McpPreferences = { version: 2, disabledByScope: {}, enabledByScope: {} }
   if (!value || typeof value !== "object" || Array.isArray(value)) return empty
 
   const input = value as Record<string, unknown>
-  if (input.version !== 1 || !input.disabledByScope || typeof input.disabledByScope !== "object") return empty
+  if (input.version !== 1 && input.version !== 2) return empty
 
-  const disabledByScope = Object.fromEntries(
-    Object.entries(input.disabledByScope as Record<string, unknown>)
-      .filter((entry): entry is [string, unknown[]] => Array.isArray(entry[1]))
-      .map(([scope, names]) => [
-        scope,
-        [...new Set(names.filter((name): name is string => typeof name === "string" && name.length > 0))].sort(),
-      ]),
-  )
+  const disabledByScope = parseMcpStatesByScope(input.disabledByScope)
+  const enabledByScope = input.version === 2 ? parseMcpStatesByScope(input.enabledByScope) : {}
+  for (const [scope, names] of Object.entries(enabledByScope)) {
+    const disabled = new Set(disabledByScope[scope] ?? [])
+    const enabled = names.filter((name) => !disabled.has(name))
+    if (enabled.length > 0) enabledByScope[scope] = enabled
+    else delete enabledByScope[scope]
+  }
 
-  return { version: 1, disabledByScope }
+  return { version: 2, disabledByScope, enabledByScope }
 }
 
 export function disabledMcpNames(value: unknown, scope: string) {
   return new Set(parseMcpPreferences(value).disabledByScope[scope] ?? [])
 }
 
+export function enabledMcpNames(value: unknown, scope: string) {
+  return new Set(parseMcpPreferences(value).enabledByScope[scope] ?? [])
+}
+
 export function setMcpDisabled(value: unknown, scope: string, name: string, disabled: boolean): McpPreferences {
   const current = parseMcpPreferences(value)
-  const names = new Set(current.disabledByScope[scope] ?? [])
+  const disabledNames = new Set(current.disabledByScope[scope] ?? [])
+  const enabledNames = new Set(current.enabledByScope[scope] ?? [])
 
-  if (disabled) names.add(name)
-  else names.delete(name)
+  const add = disabled ? disabledNames : enabledNames
+  const remove = disabled ? enabledNames : disabledNames
+  add.add(name)
+  remove.delete(name)
 
   const disabledByScope = { ...current.disabledByScope }
-  if (names.size > 0) disabledByScope[scope] = [...names].sort()
+  if (disabledNames.size > 0) disabledByScope[scope] = [...disabledNames].sort()
   else delete disabledByScope[scope]
 
-  return { version: 1, disabledByScope }
+  const enabledByScope = { ...current.enabledByScope }
+  if (enabledNames.size > 0) enabledByScope[scope] = [...enabledNames].sort()
+  else delete enabledByScope[scope]
+
+  return { version: 2, disabledByScope, enabledByScope }
 }
 
 export function mcpToggleAction(status: string): "connect" | "disconnect" | undefined {

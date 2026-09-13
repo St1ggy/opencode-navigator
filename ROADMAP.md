@@ -209,7 +209,7 @@ available in the public OpenCode TUI plugin API.
 - Session and subagent token, context-window, and cost summaries.
 - Provider quota data that is not exposed through a stable authenticated API.
 - Recently changed files and workspace diagnostics.
-- Preventing remembered-disabled MCP servers from connecting during startup.
+- Preventing MCP servers remembered as disabled from connecting during startup.
 
 ## Suggested Delivery Order
 

@@ -15,7 +15,7 @@ actions, and makes every MCP server clickable directly in the sidebar.
 - Live LSP connection status with compact inline server icons and click-to-reveal names
 - Searchable MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
-- Persist disabled MCP servers per worktree and reapply them between sessions
+- Persist enabled and disabled MCP server states per worktree and reapply them between sessions
 - Show or hide each sidebar section independently
 - Configure visible sections from the sidebar settings button
 - Save the current visibility and expansion layout as the default for new sessions
@@ -113,7 +113,7 @@ Pass configured defaults with a tuple entry:
 }
 ```
 
-- `persist_mcp`: remembers disabled MCP servers per worktree. Defaults to
+- `persist_mcp`: remembers enabled and disabled MCP server states per worktree. Defaults to
   `true`.
 - `toggle_key`: sidebar shortcut. Defaults to `ctrl+shift+b`. Try `alt+s` if
   your terminal does not distinguish `Ctrl+Shift+B` from `Ctrl+B`.
@@ -133,9 +133,10 @@ expansion remain session-local until `Save current layout as default` is
 selected; `Restore configured layout` removes that saved layout. Section
 controls are also available in the first-run setup guide.
 
-OpenCode initializes enabled MCP servers before TUI plugins. A remembered
-server can therefore connect briefly during startup before this plugin
-disconnects it.
+OpenCode initializes enabled MCP servers before TUI plugins. A server remembered
+as disabled can therefore connect briefly during startup before this plugin
+disconnects it. Servers remembered as enabled are connected after the plugin
+initializes.
 
 Todo priorities are read-only because OpenCode does not expose a Todo mutation
 API to TUI plugins.

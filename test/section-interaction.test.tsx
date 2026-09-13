@@ -289,7 +289,7 @@ test("the built settings dialog saves the current layout as default", async () =
     const select = layer?.commands.find((command) => command.name.endsWith(".settings.select"))
     for (let index = 0; index < 6; index++) next?.run()
     await setup.flush()
-    expect(setup.captureCharFrame()).toContain("Remember disabled MCP")
+    expect(setup.captureCharFrame()).toContain("Remember MCP states")
     select?.run()
     expect(mcpToggles).toBe(1)
     next?.run()

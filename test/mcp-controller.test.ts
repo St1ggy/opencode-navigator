@@ -3,7 +3,7 @@ import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { MCP_PREFERENCES_KEY } from "../src/state"
 import { createMcpController } from "../src/tui"
 
-test("reapplies MCP preferences after a session change and lets a manual connect win", async () => {
+test("reapplies enabled and disabled MCP preferences after a session change", async () => {
   let status = "connected"
   let persist = true
   let stored: unknown = { version: 1, disabledByScope: { "/repo": ["wiki"] } }
@@ -51,9 +51,11 @@ test("reapplies MCP preferences after a session change and lets a manual connect
 
   await controller.toggle("wiki")
   expect(connects).toEqual([{ name: "wiki", directory: "/repo", workspace: "workspace-1" }])
-  expect(stored).toEqual({ version: 1, disabledByScope: {} })
+  expect(stored).toEqual({ version: 2, disabledByScope: {}, enabledByScope: { "/repo": ["wiki"] } })
 
+  status = "disabled"
   await controller.activate()
+  expect(connects).toHaveLength(2)
   expect(disconnects).toHaveLength(2)
 
   stored = { version: 1, disabledByScope: { "/repo": ["wiki"] } }
@@ -65,4 +67,39 @@ test("reapplies MCP preferences after a session change and lets a manual connect
   persist = true
   await controller.activate()
   expect(disconnects).toHaveLength(3)
+})
+
+test("leaves MCP servers without a saved state unchanged", async () => {
+  const connects: unknown[] = []
+  const disconnects: unknown[] = []
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/repo", directory: "/repo" },
+      mcp: () => [],
+    },
+    kv: {
+      get: () => ({ version: 2, disabledByScope: {}, enabledByScope: {} }),
+      set: () => {},
+    },
+    client: {
+      mcp: {
+        status: () =>
+          Promise.resolve({ data: { context7: { status: "connected" }, wiki: { status: "disabled" } } }),
+        connect: (...args: unknown[]) => {
+          connects.push(args)
+          return Promise.resolve({ data: true })
+        },
+        disconnect: (...args: unknown[]) => {
+          disconnects.push(args)
+          return Promise.resolve({ data: true })
+        },
+      },
+    },
+    ui: { toast: () => {} },
+  } as unknown as TuiPluginApi
+
+  await createMcpController(api, () => true).activate()
+  expect(connects).toHaveLength(0)
+  expect(disconnects).toHaveLength(0)
 })

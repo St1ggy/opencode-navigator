@@ -19,6 +19,7 @@ import {
 import {
   MCP_PREFERENCES_KEY,
   disabledMcpNames,
+  enabledMcpNames,
   mcpScope,
   mcpToggleAction,
   parseSectionVisibility,
@@ -458,14 +459,19 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean) {
     const items = await refresh(current, true)
     if (!persist() || generation !== activation || target().key !== current.key) return
 
-    const connected = items.filter((item) => item.status === "connected")
     const results = await Promise.allSettled(
-      connected.map((item) =>
+      items.map((item) =>
         mutate(current, item.name, async () => {
-          if (generation !== activation || target().key !== current.key) return
+          if (!persist() || generation !== activation || target().key !== current.key) return
+          const enabled = enabledMcpNames(api.kv.get(MCP_PREFERENCES_KEY), current.scope)
           const disabled = disabledMcpNames(api.kv.get(MCP_PREFERENCES_KEY), current.scope)
-          if (!disabled.has(item.name)) return
-          await api.client.mcp.disconnect({ name: item.name, ...current.routing }, { throwOnError: true })
+          const action = mcpToggleAction(item.status)
+          if (disabled.has(item.name) && action === "disconnect") {
+            await api.client.mcp.disconnect({ name: item.name, ...current.routing }, { throwOnError: true })
+          }
+          if (enabled.has(item.name) && action === "connect") {
+            await api.client.mcp.connect({ name: item.name, ...current.routing }, { throwOnError: true })
+          }
         }),
       ),
     )
@@ -839,7 +845,7 @@ export function SettingsDialog(props: {
       title: "Behavior",
       options: [
         {
-          title: `${props.preferences.persistMcp() ? "☑" : "☐"} Remember disabled MCP`,
+          title: `${props.preferences.persistMcp() ? "☑" : "☐"} Remember MCP states`,
           value: "persist_mcp",
           description: props.preferences.persistMcp() ? "on · per worktree" : "off",
         },
