@@ -4,7 +4,7 @@ import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
 import { createSignal } from "solid-js"
 // @ts-expect-error The package intentionally publishes JavaScript without declarations.
-import { FirstRunWizard, LspBadge, McpSection, Section, SkillsSection } from "../dist/tui.js"
+import { FirstRunWizard, LspBadge, McpSection, Section, SettingsDialog, SkillsSection } from "../dist/tui.js"
 
 const sidebarTheme = {
   accent: "#ff9e64",
@@ -15,6 +15,15 @@ const sidebarTheme = {
   success: "#9ece6a",
   error: "#f7768e",
   warning: "#e0af68",
+}
+
+const expandedLayout = {
+  todo: false,
+  subagents: false,
+  skills: true,
+  quick_actions: false,
+  lsp: false,
+  mcp: true,
 }
 
 test("the built sidebar remains reactive and toggles on mouse down", async () => {
@@ -156,7 +165,12 @@ test("the built Skills section filters by name and description", async () => {
     refresh: async () => items,
     use: async () => {},
   }
-  const preferences = { shouldConfirmSkill: () => false, skipSkillConfirmation: () => {} }
+  const preferences = {
+    expanded: () => expandedLayout,
+    toggleSectionExpanded: () => {},
+    shouldConfirmSkill: () => false,
+    skipSkillConfirmation: () => {},
+  }
   const setup = await testRender(
     () => <SkillsSection api={api} controller={controller} preferences={preferences} />,
     { width: 44, height: 8 },
@@ -191,8 +205,9 @@ test("the built MCP section filters servers by name", async () => {
     list: () => items,
     toggle: async () => {},
   }
+  const preferences = { expanded: () => expandedLayout, toggleSectionExpanded: () => {} }
   const setup = await testRender(
-    () => <McpSection api={api} controller={controller} />,
+    () => <McpSection api={api} controller={controller} preferences={preferences} />,
     { width: 44, height: 8 },
   )
 
@@ -206,6 +221,56 @@ test("the built MCP section filters servers by name", async () => {
     await setup.renderOnce()
     expect(setup.captureCharFrame()).not.toContain("context7")
     expect(setup.captureCharFrame()).toContain("tracker")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("the built settings dialog saves the current layout as default", async () => {
+  const [sections] = createSignal({
+    todo: true,
+    subagents: false,
+    skills: true,
+    quick_actions: true,
+    lsp: false,
+    mcp: true,
+  })
+  let selected: ((option: { value: string }) => void) | undefined
+  let optionTitles: string[] = []
+  let saved = 0
+  const api = {
+    theme: { current: sidebarTheme },
+    ui: {
+      DialogSelect: (props: { options: Array<{ title: string }>; onSelect: typeof selected }) => {
+        optionTitles = props.options.map((option) => option.title)
+        selected = props.onSelect
+        return <text>settings</text>
+      },
+      toast: () => {},
+    },
+  } as unknown as TuiPluginApi
+  const preferences = {
+    sections,
+    expanded: () => expandedLayout,
+    skippedSkillCount: () => 0,
+    toggleSection: () => {},
+    resetSections: () => {},
+    resetSkillConfirmations: () => {},
+    saveLayoutAsDefault: async () => {
+      saved++
+    },
+  }
+  const setup = await testRender(
+    () => <SettingsDialog api={api} preferences={preferences} toggleKey="ctrl+shift+b" lspIconStyle="nerd" />,
+    { width: 60, height: 16 },
+  )
+
+  try {
+    await setup.renderOnce()
+    expect(optionTitles).toContain("↓ Save current layout as default")
+    selected?.({ value: "save_layout" })
+    await Promise.resolve()
+    expect(saved).toBe(1)
   } finally {
     setup.renderer.destroy()
   }

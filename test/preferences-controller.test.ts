@@ -5,12 +5,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createSectionPreferencesStore, type SectionPreferencesStore } from "../src/preferences-store"
 import type { SectionVisibility } from "../src/state"
-import { createPreferencesController, showFirstRunWizard } from "../src/tui"
+import { createPreferencesController, DEFAULT_SECTION_EXPANSION, showFirstRunWizard } from "../src/tui"
 
 function memoryStore(): SectionPreferencesStore {
   return {
     async load() {
-      return {}
+      return { version: 1, migrated: true, sections: {} }
     },
     async update() {},
     async flush() {},
@@ -50,24 +50,37 @@ test("persists section visibility and skipped skill confirmations", async () => 
 
     controller.toggleSection("lsp")
     expect(controller.sections().lsp).toBe(true)
+    controller.toggleSectionExpanded("skills")
+    expect(controller.expanded().skills).toBe(true)
     controller.skipSkillConfirmation(commit)
     expect(controller.skippedSkillCount()).toBe(2)
+    await controller.saveLayoutAsDefault()
     await controller.flush()
 
     const restarted = createPreferencesController(api, defaults, createSectionPreferencesStore(directory))
     await restarted.load()
     expect(restarted.sections()).toEqual({ ...defaults, skills: false, lsp: true })
+    expect(restarted.expanded()).toEqual({ ...DEFAULT_SECTION_EXPANSION, skills: true })
+
+    controller.toggleSection("todo")
+    controller.toggleSectionExpanded("skills")
+    const unchanged = createPreferencesController(api, defaults, createSectionPreferencesStore(directory))
+    await unchanged.load()
+    expect(unchanged.sections()).toEqual({ ...defaults, skills: false, lsp: true })
+    expect(unchanged.expanded()).toEqual({ ...DEFAULT_SECTION_EXPANSION, skills: true })
 
     controller.resetSkillConfirmations()
     controller.resetSections()
     await controller.flush()
     expect(controller.skippedSkillCount()).toBe(0)
     expect(controller.sections()).toEqual(defaults)
+    expect(controller.expanded()).toEqual(DEFAULT_SECTION_EXPANSION)
     expect(values.get("opencode-pretty-sidebar.skill-confirmations")).toEqual([])
 
     const reset = createPreferencesController(api, defaults, createSectionPreferencesStore(directory))
     await reset.load()
     expect(reset.sections()).toEqual(defaults)
+    expect(reset.expanded()).toEqual(DEFAULT_SECTION_EXPANSION)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -105,6 +118,7 @@ test("merges interactions made before KV hydration with saved preferences", asyn
     controller.skipSkillConfirmation(commit)
     ready = true
     await controller.load()
+    await controller.saveLayoutAsDefault()
     await controller.flush()
 
     expect(controller.sections()).toEqual({ ...defaults, skills: false, lsp: false })
@@ -119,7 +133,7 @@ test("merges interactions made before KV hydration with saved preferences", asyn
   }
 })
 
-test("flushes section changes when KV becomes ready during shutdown", async () => {
+test("saves a default layout before KV hydration", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
   let ready = false
   const api = {
@@ -141,14 +155,15 @@ test("flushes section changes when KV becomes ready during shutdown", async () =
   try {
     const controller = createPreferencesController(api, defaults, createSectionPreferencesStore(directory))
     controller.toggleSection("lsp")
-    setTimeout(() => {
-      ready = true
-    }, 20)
+    controller.toggleSectionExpanded("skills")
+    await controller.saveLayoutAsDefault()
     await controller.flush()
 
+    ready = true
     const restarted = createPreferencesController(api, defaults, createSectionPreferencesStore(directory))
     await restarted.load()
     expect(restarted.sections().lsp).toBe(false)
+    expect(restarted.expanded().skills).toBe(true)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

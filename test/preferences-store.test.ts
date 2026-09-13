@@ -18,13 +18,13 @@ test("migrates legacy visibility once and ignores stale KV after reset", async (
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {
     const store = createSectionPreferencesStore(directory)
-    expect(await store.load({ lsp: false })).toEqual({ lsp: false })
+    expect((await store.load({ lsp: false })).sections).toEqual({ lsp: false })
 
     await store.update({ reset: true }, defaults)
     await store.flush()
 
     const restarted = createSectionPreferencesStore(directory)
-    expect(await restarted.load({ lsp: false })).toEqual({})
+    expect((await restarted.load({ lsp: false })).sections).toEqual({})
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -44,7 +44,7 @@ test("preserves concurrent updates from independent store instances", async () =
     await Promise.all([first.flush(), second.flush()])
 
     const restarted = createSectionPreferencesStore(directory)
-    expect(await restarted.load({ lsp: false, quick_actions: false })).toEqual({ todo: false })
+    expect((await restarted.load({ lsp: false, quick_actions: false })).sections).toEqual({ todo: false })
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -57,7 +57,7 @@ test("merges an early write with legacy preferences during later migration", asy
     await store.update({ values: { todo: false } }, defaults)
     await store.flush()
 
-    expect(await store.load({ lsp: false })).toEqual({ lsp: false, todo: false })
+    expect((await store.load({ lsp: false })).sections).toEqual({ lsp: false, todo: false })
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -74,7 +74,26 @@ test("recovers a lock left by a terminated process", async () => {
     )
 
     const store = createSectionPreferencesStore(directory)
-    expect(await store.load({ lsp: false })).toEqual({ lsp: false })
+    expect((await store.load({ lsp: false })).sections).toEqual({ lsp: false })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("stores visibility and expansion together as the default layout", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  const layout = {
+    sections: { ...defaults, skills: false },
+    expanded: { ...defaults, todo: false, skills: true },
+  }
+  try {
+    const store = createSectionPreferencesStore(directory)
+    await store.load({ lsp: false })
+    await store.update({ reset: true, layout }, defaults)
+    await store.flush()
+
+    const restarted = createSectionPreferencesStore(directory)
+    expect((await restarted.load({ lsp: false })).layout).toEqual(layout)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

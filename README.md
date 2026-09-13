@@ -18,11 +18,13 @@ actions, and makes every MCP server clickable directly in the sidebar.
 - Persist disabled MCP servers per worktree and reapply them between sessions
 - Show or hide each sidebar section independently
 - Configure visible sections from the sidebar settings button
+- Save the current visibility and expansion layout as the default for new sessions
 - Toggle the sidebar with `Ctrl+Shift+B`
 - Keep OpenCode's compact project path and branch footer
 
 Todo starts expanded. Subagents, skills, quick actions, LSP, and MCP start
-collapsed. Each section remembers its own expanded state.
+collapsed. Use `Save current layout as default` in sidebar settings to reuse the
+current visible/hidden and expanded/collapsed states in new sessions.
 
 Requires OpenCode 1.18.30 or newer. LSP icons require a Nerd Fonts 3 compatible
 terminal font.

@@ -19,6 +19,7 @@ import {
   parseSectionVisibility,
   resolveSectionVisibility,
   setMcpDisabled,
+  SIDEBAR_SECTIONS,
   type SidebarSection,
   type SectionVisibility,
 } from "./state"
@@ -35,6 +36,24 @@ const MCP_OPEN_KEY = `${PLUGIN_ID}.mcp-open.v2`
 const SECTION_VISIBILITY_KEY = `${PLUGIN_ID}.section-visibility`
 const SKILL_CONFIRMATIONS_KEY = `${PLUGIN_ID}.skill-confirmations`
 const ONBOARDING_KEY = `${PLUGIN_ID}.onboarding.v1`
+
+const SECTION_OPEN_KEYS: Record<SidebarSection, string> = {
+  todo: TODO_OPEN_KEY,
+  subagents: SUBAGENTS_OPEN_KEY,
+  skills: SKILLS_OPEN_KEY,
+  quick_actions: ACTIONS_OPEN_KEY,
+  lsp: LSP_OPEN_KEY,
+  mcp: MCP_OPEN_KEY,
+}
+
+export const DEFAULT_SECTION_EXPANSION: SectionVisibility = {
+  todo: true,
+  subagents: false,
+  skills: false,
+  quick_actions: false,
+  lsp: false,
+  mcp: false,
+}
 
 const SECTION_DEFINITIONS: ReadonlyArray<{ name: SidebarSection; label: string }> = [
   { name: "todo", label: "Todo" },
@@ -108,10 +127,12 @@ export function createPreferencesController(
   store: SectionPreferencesStore,
 ) {
   const [sections, setSections] = createSignal(defaults)
+  const [expanded, setExpanded] = createSignal(DEFAULT_SECTION_EXPANSION)
   const [skippedSkills, setSkippedSkills] = createSignal(new Set<string>())
   const pendingSectionValues = new Map<SidebarSection, boolean>()
+  const pendingExpandedValues = new Map<SidebarSection, boolean>()
   const pendingSkippedSkills = new Set<string>()
-  let resetSectionsPending = false
+  let resetLayoutPending = false
   let resetSkillsPending = false
   let hydrated = false
   let hydration: Promise<void> | undefined
@@ -136,9 +157,13 @@ export function createPreferencesController(
     void request.catch(showPersistenceWarning)
   }
 
-  function persistSections(next: SectionVisibility, values: Partial<SectionVisibility>) {
-    setSections(next)
-    persist(store.update({ values }, defaults))
+  function legacyExpansion() {
+    return Object.fromEntries(
+      SIDEBAR_SECTIONS.flatMap((name) => {
+        const value = api.kv.get(SECTION_OPEN_KEYS[name])
+        return typeof value === "boolean" ? [[name, value]] : []
+      }),
+    )
   }
 
   function load() {
@@ -151,81 +176,105 @@ export function createPreferencesController(
       .load(legacySections)
       .catch(() => {
         showPersistenceWarning()
-        return legacySections
+        return { sections: legacySections, layout: undefined }
       })
-      .then((savedSections) => {
-        let nextSections = resetSectionsPending ? defaults : resolveSectionVisibility(defaults, savedSections)
+      .then((loaded) => {
+        const shouldRestoreDefaults = resetLayoutPending
+        let nextSections = resetLayoutPending
+          ? defaults
+          : resolveSectionVisibility(defaults, loaded.layout?.sections ?? loaded.sections ?? legacySections)
         for (const [name, visible] of pendingSectionValues) nextSections = { ...nextSections, [name]: visible }
+        let nextExpanded = resetLayoutPending
+          ? DEFAULT_SECTION_EXPANSION
+          : resolveSectionVisibility(DEFAULT_SECTION_EXPANSION, loaded.layout?.expanded ?? legacyExpansion())
+        for (const [name, open] of pendingExpandedValues) nextExpanded = { ...nextExpanded, [name]: open }
 
-        const saved = api.kv.get(SKILL_CONFIRMATIONS_KEY)
-        const names = Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : []
+        const savedSkills = api.kv.get(SKILL_CONFIRMATIONS_KEY)
+        const names = Array.isArray(savedSkills)
+          ? savedSkills.filter((value): value is string => typeof value === "string")
+          : []
         const nextSkipped = resetSkillsPending ? new Set<string>() : new Set<string>(names)
         for (const name of pendingSkippedSkills) nextSkipped.add(name)
 
         hydrated = true
         batch(() => {
           setSections(nextSections)
+          setExpanded(nextExpanded)
           setSkippedSkills(nextSkipped)
         })
-        if (resetSectionsPending || pendingSectionValues.size > 0) {
-          persist(
-            store.update(
-              { reset: resetSectionsPending, values: Object.fromEntries(pendingSectionValues) },
-              defaults,
-            ),
-          )
-        }
         if (resetSkillsPending || pendingSkippedSkills.size > 0) {
           api.kv.set(SKILL_CONFIRMATIONS_KEY, [...nextSkipped].sort())
         }
         pendingSectionValues.clear()
+        pendingExpandedValues.clear()
         pendingSkippedSkills.clear()
-        resetSectionsPending = false
+        resetLayoutPending = false
         resetSkillsPending = false
+        if (shouldRestoreDefaults) {
+          persist(
+            store.update(
+              {
+                reset: true,
+                layout: { sections: defaults, expanded: DEFAULT_SECTION_EXPANSION },
+              },
+              defaults,
+            ),
+          )
+        }
       })
     return hydration
   }
 
   return {
     sections,
+    expanded,
     skippedSkillCount: () => skippedSkills().size,
     load,
     async flush() {
-      if (!hydrated && !hydration && (resetSectionsPending || pendingSectionValues.size > 0)) {
-        const deadline = Date.now() + 4_000
-        while (!api.kv.ready && Date.now() < deadline) {
-          await new Promise((resolve) => setTimeout(resolve, 10))
-        }
-        if (api.kv.ready) await load()
-        else {
-          await store.update(
-            { reset: resetSectionsPending, values: Object.fromEntries(pendingSectionValues) },
-            defaults,
-          )
-        }
-      }
       await hydration
       await store.flush()
     },
     toggleSection(name: SidebarSection) {
       void load()
       const next = { ...sections(), [name]: !sections()[name] }
-      if (hydrated) persistSections(next, { [name]: next[name] })
-      else {
-        setSections(next)
-        pendingSectionValues.set(name, next[name])
-      }
+      setSections(next)
+      if (!hydrated) pendingSectionValues.set(name, next[name])
+    },
+    toggleSectionExpanded(name: SidebarSection) {
+      void load()
+      const next = { ...expanded(), [name]: !expanded()[name] }
+      setExpanded(next)
+      if (!hydrated) pendingExpandedValues.set(name, next[name])
+    },
+    async saveLayoutAsDefault() {
+      await load()
+      await store.update(
+        {
+          reset: true,
+          layout: { sections: sections(), expanded: expanded() },
+        },
+        defaults,
+      )
     },
     resetSections() {
       void load()
+      resetLayoutPending = !hydrated
+      pendingSectionValues.clear()
+      pendingExpandedValues.clear()
+      batch(() => {
+        setSections(defaults)
+        setExpanded(DEFAULT_SECTION_EXPANSION)
+      })
       if (hydrated) {
-        setSections(defaults)
-        persist(store.update({ reset: true }, defaults))
-      }
-      else {
-        resetSectionsPending = true
-        pendingSectionValues.clear()
-        setSections(defaults)
+        persist(
+          store.update(
+            {
+              reset: true,
+              layout: { sections: defaults, expanded: DEFAULT_SECTION_EXPANSION },
+            },
+            defaults,
+          ),
+        )
       }
     },
     shouldConfirmSkill(skill: SkillInfo) {
@@ -708,7 +757,7 @@ export function showFirstRunWizard(
   return true
 }
 
-function SettingsDialog(props: {
+export function SettingsDialog(props: {
   api: TuiPluginApi
   preferences: PreferencesController
   toggleKey: string
@@ -721,9 +770,16 @@ function SettingsDialog(props: {
       description: props.preferences.sections()[section.name] ? "visible" : "hidden",
     })),
     {
-      title: "↺ Restore configured defaults",
+      title: "↓ Save current layout as default",
+      value: "save_layout",
+      description: `${SIDEBAR_SECTIONS.filter((name) => props.preferences.sections()[name]).length} visible · ${
+        SIDEBAR_SECTIONS.filter((name) => props.preferences.expanded()[name]).length
+      } expanded`,
+    },
+    {
+      title: "↺ Restore configured layout",
       value: "reset_sections",
-      description: "reset section visibility",
+      description: "reset visibility and expansion",
     },
     {
       title: "↺ Show skill confirmations again",
@@ -743,6 +799,27 @@ function SettingsDialog(props: {
       skipFilter={true}
       options={options()}
       onSelect={(option) => {
+        if (option.value === "save_layout") {
+          void props.preferences
+            .saveLayoutAsDefault()
+            .then(() => {
+              props.api.ui.toast({
+                variant: "success",
+                title: "Sidebar settings",
+                message: "Current layout saved as default",
+                duration: 3000,
+              })
+            })
+            .catch((error) => {
+              props.api.ui.toast({
+                variant: "error",
+                title: "Sidebar settings",
+                message: error instanceof Error ? error.message : "Failed to save the default layout",
+                duration: 5000,
+              })
+            })
+          return
+        }
         if (option.value === "reset_sections") {
           props.preferences.resetSections()
           return
@@ -1043,9 +1120,12 @@ function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
   )
 }
 
-function TodoSection(props: { api: TuiPluginApi; controller: TodoController; sessionID: string }) {
-  const initial = props.api.kv.get(TODO_OPEN_KEY, true)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : true)
+function TodoSection(props: {
+  api: TuiPluginApi
+  controller: TodoController
+  preferences: PreferencesController
+  sessionID: string
+}) {
   const list = createMemo(() => props.controller.list(props.sessionID))
   const done = createMemo(() => list().filter((item) => item.status === "completed").length)
 
@@ -1053,15 +1133,14 @@ function TodoSection(props: { api: TuiPluginApi; controller: TodoController; ses
     void props.controller.refresh(props.sessionID).catch(() => {})
   })
 
-  function toggle() {
-    setOpen((value) => {
-      props.api.kv.set(TODO_OPEN_KEY, !value)
-      return !value
-    })
-  }
-
   return (
-    <Section api={props.api} title="TODO" summary={`${done()}/${list().length}`} open={open()} onToggle={toggle}>
+    <Section
+      api={props.api}
+      title="TODO"
+      summary={`${done()}/${list().length}`}
+      open={props.preferences.expanded().todo}
+      onToggle={() => props.preferences.toggleSectionExpanded("todo")}
+    >
       <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No tasks yet</text>}>
         <box gap={1}>
           <For each={list()}>{(item) => <TodoRow api={props.api} item={item} />}</For>
@@ -1101,25 +1180,27 @@ function SubagentRow(props: {
   )
 }
 
-function SubagentSection(props: { api: TuiPluginApi; controller: SubagentController; sessionID: string }) {
-  const initial = props.api.kv.get(SUBAGENTS_OPEN_KEY, false)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
+function SubagentSection(props: {
+  api: TuiPluginApi
+  controller: SubagentController
+  preferences: PreferencesController
+  sessionID: string
+}) {
   const list = createMemo(() => props.controller.list(props.sessionID))
 
   createEffect(() => {
     void props.controller.refresh(props.sessionID).catch(() => {})
   })
 
-  function toggle() {
-    setOpen((value) => {
-      props.api.kv.set(SUBAGENTS_OPEN_KEY, !value)
-      return !value
-    })
-  }
-
   return (
     <Show when={list().length > 0}>
-      <Section api={props.api} title="SUBAGENTS" summary={`${list().length}`} open={open()} onToggle={toggle}>
+      <Section
+        api={props.api}
+        title="SUBAGENTS"
+        summary={`${list().length}`}
+        open={props.preferences.expanded().subagents}
+        onToggle={() => props.preferences.toggleSectionExpanded("subagents")}
+      >
         <box gap={1}>
           <For each={list()}>
             {(item) => (
@@ -1170,8 +1251,6 @@ export function SkillsSection(props: {
   controller: SkillController
   preferences: PreferencesController
 }) {
-  const initial = props.api.kv.get(SKILLS_OPEN_KEY, false)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
   const [query, setQuery] = createSignal("")
   const target = createMemo(() => props.controller.target())
   const list = createMemo(() => props.controller.list(target()))
@@ -1181,13 +1260,6 @@ export function SkillsSection(props: {
   createEffect(() => {
     void props.controller.refresh(target()).catch(() => {})
   })
-
-  function toggle() {
-    setOpen((value) => {
-      props.api.kv.set(SKILLS_OPEN_KEY, !value)
-      return !value
-    })
-  }
 
   async function useSkill(item: SkillInfo) {
     try {
@@ -1220,7 +1292,13 @@ export function SkillsSection(props: {
   }
 
   return (
-    <Section api={props.api} title="SKILLS" summary={`${list().length}`} open={open()} onToggle={toggle}>
+    <Section
+      api={props.api}
+      title="SKILLS"
+      summary={`${list().length}`}
+      open={props.preferences.expanded().skills}
+      onToggle={() => props.preferences.toggleSectionExpanded("skills")}
+    >
       <Show
         when={!error()}
         fallback={<text fg={props.api.theme.current.error}>{error()}</text>}
@@ -1298,19 +1376,15 @@ function QuickActionRow(props: {
   )
 }
 
-function QuickActionsSection(props: { api: TuiPluginApi }) {
-  const initial = props.api.kv.get(ACTIONS_OPEN_KEY, false)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
-
-  function toggle() {
-    setOpen((value) => {
-      props.api.kv.set(ACTIONS_OPEN_KEY, !value)
-      return !value
-    })
-  }
-
+function QuickActionsSection(props: { api: TuiPluginApi; preferences: PreferencesController }) {
   return (
-    <Section api={props.api} title="QUICK ACTIONS" summary={`${QUICK_ACTIONS.length}`} open={open()} onToggle={toggle}>
+    <Section
+      api={props.api}
+      title="QUICK ACTIONS"
+      summary={`${QUICK_ACTIONS.length}`}
+      open={props.preferences.expanded().quick_actions}
+      onToggle={() => props.preferences.toggleSectionExpanded("quick_actions")}
+    >
       <box>
         <For each={QUICK_ACTIONS}>{(action) => <QuickActionRow api={props.api} action={action} />}</For>
       </box>
@@ -1434,22 +1508,19 @@ export function LspBadge(props: {
   )
 }
 
-function LspSection(props: { api: TuiPluginApi; iconStyle: LspIconStyle }) {
-  const initial = props.api.kv.get(LSP_OPEN_KEY, false)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
+function LspSection(props: { api: TuiPluginApi; iconStyle: LspIconStyle; preferences: PreferencesController }) {
   const list = createMemo(() => props.api.state.lsp())
   const connected = createMemo(() => list().filter((item) => item.status === "connected").length)
   const disabled = createMemo(() => !props.api.state.config.lsp)
 
-  function toggle() {
-    setOpen((value) => {
-      props.api.kv.set(LSP_OPEN_KEY, !value)
-      return !value
-    })
-  }
-
   return (
-    <Section api={props.api} title="LSP" summary={`${connected()}/${list().length}`} open={open()} onToggle={toggle}>
+    <Section
+      api={props.api}
+      title="LSP"
+      summary={`${connected()}/${list().length}`}
+      open={props.preferences.expanded().lsp}
+      onToggle={() => props.preferences.toggleSectionExpanded("lsp")}
+    >
       <Show
         when={list().length > 0}
         fallback={
@@ -1521,9 +1592,11 @@ function McpRow(props: {
   )
 }
 
-export function McpSection(props: { api: TuiPluginApi; controller: McpController }) {
-  const initial = props.api.kv.get(MCP_OPEN_KEY, false)
-  const [open, setOpen] = createSignal(typeof initial === "boolean" ? initial : false)
+export function McpSection(props: {
+  api: TuiPluginApi
+  controller: McpController
+  preferences: PreferencesController
+}) {
   const [loading, setLoading] = createSignal<string>()
   const [query, setQuery] = createSignal("")
   const list = props.controller.list
@@ -1536,13 +1609,6 @@ export function McpSection(props: { api: TuiPluginApi; controller: McpController
       ).length,
   )
   const summary = createMemo(() => `${active()}/${list().length}${errors() ? ` · ${errors()}!` : ""}`)
-
-  function toggleOpen() {
-    setOpen((value) => {
-      props.api.kv.set(MCP_OPEN_KEY, !value)
-      return !value
-    })
-  }
 
   async function toggle(name: string) {
     if (loading()) return
@@ -1562,7 +1628,13 @@ export function McpSection(props: { api: TuiPluginApi; controller: McpController
   }
 
   return (
-    <Section api={props.api} title="MCP" summary={summary()} open={open()} onToggle={toggleOpen}>
+    <Section
+      api={props.api}
+      title="MCP"
+      summary={summary()}
+      open={props.preferences.expanded().mcp}
+      onToggle={() => props.preferences.toggleSectionExpanded("mcp")}
+    >
       <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No MCP servers</text>}>
         <box>
           <SectionFilter api={props.api} query={query()} placeholder="Filter MCP..." onInput={setQuery} />
@@ -1605,22 +1677,32 @@ function SidebarContent(props: {
   return (
     <box gap={1}>
       <Show when={sections().todo}>
-        <TodoSection api={props.api} controller={props.todo} sessionID={props.sessionID} />
+        <TodoSection
+          api={props.api}
+          controller={props.todo}
+          preferences={props.preferences}
+          sessionID={props.sessionID}
+        />
       </Show>
       <Show when={sections().subagents}>
-        <SubagentSection api={props.api} controller={props.subagents} sessionID={props.sessionID} />
+        <SubagentSection
+          api={props.api}
+          controller={props.subagents}
+          preferences={props.preferences}
+          sessionID={props.sessionID}
+        />
       </Show>
       <Show when={sections().skills}>
         <SkillsSection api={props.api} controller={props.skills} preferences={props.preferences} />
       </Show>
       <Show when={sections().quick_actions}>
-        <QuickActionsSection api={props.api} />
+        <QuickActionsSection api={props.api} preferences={props.preferences} />
       </Show>
       <Show when={sections().lsp}>
-        <LspSection api={props.api} iconStyle={props.lspIconStyle} />
+        <LspSection api={props.api} iconStyle={props.lspIconStyle} preferences={props.preferences} />
       </Show>
       <Show when={sections().mcp}>
-        <McpSection api={props.api} controller={props.mcp} />
+        <McpSection api={props.api} controller={props.mcp} preferences={props.preferences} />
       </Show>
     </box>
   )

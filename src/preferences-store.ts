@@ -8,6 +8,7 @@ type StoredPreferences = {
   migrated: boolean
   resetLegacy?: true
   sections: Partial<SectionVisibility>
+  layout?: SectionLayoutDefault
 }
 
 type LockOwner = {
@@ -18,6 +19,12 @@ type LockOwner = {
 export type SectionPreferencesUpdate = {
   reset?: boolean
   values?: Partial<SectionVisibility>
+  layout?: SectionLayoutDefault
+}
+
+export type SectionLayoutDefault = {
+  sections: Partial<SectionVisibility>
+  expanded: Partial<SectionVisibility>
 }
 
 const LOCK_TIMEOUT_MS = 3_000
@@ -42,11 +49,18 @@ function preferencesFrom(value: unknown): StoredPreferences | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return
   const input = value as Record<string, unknown>
   if (input.version !== 1) throw new Error(`Unsupported preferences version: ${String(input.version)}`)
+  const layout =
+    input.layout && typeof input.layout === "object" && !Array.isArray(input.layout)
+      ? (input.layout as Record<string, unknown>)
+      : undefined
   return {
     version: 1,
     migrated: input.migrated === true,
     ...(input.resetLegacy === true ? { resetLegacy: true } : {}),
     sections: sectionsFrom(input.sections),
+    ...(layout
+      ? { layout: { sections: sectionsFrom(layout.sections), expanded: sectionsFrom(layout.expanded) } }
+      : {}),
   }
 }
 
@@ -176,14 +190,20 @@ export function createSectionPreferencesStore(stateDirectory: string) {
     async load(legacy: unknown) {
       return withLock(async () => {
         const current = await read()
-        if (current?.migrated) return current.sections
+        if (current?.migrated) return current
 
         const sections = {
           ...(current?.resetLegacy ? {} : sectionsFrom(legacy)),
           ...current?.sections,
         }
-        await write({ version: 1, migrated: true, sections })
-        return sections
+        const next = {
+          version: 1 as const,
+          migrated: true,
+          sections,
+          ...(current?.layout ? { layout: current.layout } : {}),
+        }
+        await write(next)
+        return next
       })
     },
     update(update: SectionPreferencesUpdate, defaults: SectionVisibility) {
@@ -202,6 +222,7 @@ export function createSectionPreferencesStore(stateDirectory: string) {
             migrated: current.migrated,
             ...((update.reset && !current.migrated) || current.resetLegacy ? { resetLegacy: true } : {}),
             sections,
+            ...(update.layout || current.layout ? { layout: update.layout ?? current.layout } : {}),
           })
         }),
       )
