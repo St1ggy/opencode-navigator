@@ -3,23 +3,30 @@ import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createSectionPreferencesStore, type SectionPreferencesStore } from "../src/preferences-store"
+import { DEFAULT_SECTION_EXPANSION } from "../src/constants"
+import { createPreferencesController } from "../src/controllers/preferences"
+import { createPreferencesStore, type PreferencesStore } from "../src/preferences-store"
 import type { SectionVisibility } from "../src/state"
-import { createPreferencesController, DEFAULT_SECTION_EXPANSION, showFirstRunWizard } from "../src/tui"
+import { showFirstRunWizard } from "../src/tui"
 
 function pluginDefaults(sections: SectionVisibility) {
   return {
     sections,
     toggleKey: "ctrl+shift+b",
+    focusKey: "ctrl+shift+f",
     persistMcp: true,
     lspIconStyle: "nerd" as const,
   }
 }
 
-function memoryStore(): SectionPreferencesStore {
+function memoryStore(): PreferencesStore {
   return {
     async load() {
-      return { version: 1, migrated: true, sections: {} }
+      return {
+        global: {},
+        worktrees: {},
+        user: {},
+      }
     },
     async update() {},
     async flush() {},
@@ -28,10 +35,7 @@ function memoryStore(): SectionPreferencesStore {
 
 test("persists section visibility and skipped skill confirmations", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
-  const values = new Map<string, unknown>([
-    ["opencode-pretty-sidebar.section-visibility", { skills: false, lsp: false }],
-    ["opencode-pretty-sidebar.skill-confirmations", ["/skills/review"]],
-  ])
+  const values = new Map<string, unknown>()
   const api = {
     kv: {
       ready: true,
@@ -51,31 +55,32 @@ test("persists section visibility and skipped skill confirmations", async () => 
   const commit = { name: "commit", location: "/skills/commit", content: "", description: "Create commits" }
 
   try {
-    const controller = createPreferencesController(api, pluginDefaults(defaults), createSectionPreferencesStore(directory))
+    const controller = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
     await controller.load()
-    expect(controller.sections()).toEqual({ ...defaults, skills: false, lsp: false })
-    expect(controller.shouldConfirmSkill(review)).toBe(false)
+    expect(controller.sections()).toEqual(defaults)
+    expect(controller.shouldConfirmSkill(review)).toBe(true)
     expect(controller.shouldConfirmSkill(commit)).toBe(true)
 
     controller.toggleSection("lsp")
-    expect(controller.sections().lsp).toBe(true)
+    expect(controller.sections().lsp).toBe(false)
     controller.toggleSectionExpanded("skills")
     expect(controller.expanded().skills).toBe(true)
+    controller.skipSkillConfirmation(review)
     controller.skipSkillConfirmation(commit)
     expect(controller.skippedSkillCount()).toBe(2)
     await controller.saveLayoutAsDefault()
     await controller.flush()
 
-    const restarted = createPreferencesController(api, pluginDefaults(defaults), createSectionPreferencesStore(directory))
+    const restarted = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
     await restarted.load()
-    expect(restarted.sections()).toEqual({ ...defaults, skills: false, lsp: true })
+    expect(restarted.sections()).toEqual({ ...defaults, lsp: false })
     expect(restarted.expanded()).toEqual({ ...DEFAULT_SECTION_EXPANSION, skills: true })
 
     controller.toggleSection("todo")
     controller.toggleSectionExpanded("skills")
-    const unchanged = createPreferencesController(api, pluginDefaults(defaults), createSectionPreferencesStore(directory))
+    const unchanged = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
     await unchanged.load()
-    expect(unchanged.sections()).toEqual({ ...defaults, skills: false, lsp: true })
+    expect(unchanged.sections()).toEqual({ ...defaults, lsp: false })
     expect(unchanged.expanded()).toEqual({ ...DEFAULT_SECTION_EXPANSION, skills: true })
 
     controller.resetSkillConfirmations()
@@ -84,10 +89,10 @@ test("persists section visibility and skipped skill confirmations", async () => 
     expect(controller.skippedSkillCount()).toBe(0)
     expect(controller.sections()).toEqual(defaults)
     expect(controller.expanded()).toEqual(DEFAULT_SECTION_EXPANSION)
-    expect(values.get("opencode-pretty-sidebar.skill-confirmations")).toEqual([])
+    expect(values.size).toBe(0)
 
     const configured = { ...defaults, mcp: true }
-    const reset = createPreferencesController(api, pluginDefaults(configured), createSectionPreferencesStore(directory))
+    const reset = createPreferencesController(api, pluginDefaults(configured), createPreferencesStore(directory))
     await reset.load()
     expect(reset.sections()).toEqual(configured)
     expect(reset.expanded()).toEqual(DEFAULT_SECTION_EXPANSION)
@@ -96,16 +101,15 @@ test("persists section visibility and skipped skill confirmations", async () => 
   }
 })
 
-test("merges interactions made before KV hydration with saved preferences", async () => {
+test("merges interactions made before storage hydration with saved preferences", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
   let ready = false
-  const values = new Map<string, unknown>([
-    ["opencode-pretty-sidebar.section-visibility", { skills: false }],
-    ["opencode-pretty-sidebar.skill-confirmations", ["/skills/review"]],
-  ])
+  const values = new Map<string, unknown>()
   const api = {
     kv: {
-      get ready() { return ready },
+      get ready() {
+        return ready
+      },
       get: (key: string) => values.get(key),
       set: (key: string, value: unknown) => values.set(key, value),
     },
@@ -122,9 +126,11 @@ test("merges interactions made before KV hydration with saved preferences", asyn
   const review = { name: "review", location: "/skills/review", content: "" }
 
   try {
-    const controller = createPreferencesController(api, pluginDefaults(defaults), createSectionPreferencesStore(directory))
+    const controller = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
     controller.toggleSection("skills")
     controller.toggleSection("lsp")
+    controller.setFocusKey("alt+f")
+    controller.skipSkillConfirmation(review)
     controller.skipSkillConfirmation(commit)
     ready = true
     await controller.load()
@@ -134,21 +140,25 @@ test("merges interactions made before KV hydration with saved preferences", asyn
     expect(controller.sections()).toEqual({ ...defaults, skills: false, lsp: false })
     expect(controller.shouldConfirmSkill(review)).toBe(false)
     expect(controller.shouldConfirmSkill(commit)).toBe(false)
+    expect(controller.focusKey()).toBe("alt+f")
 
-    const restarted = createPreferencesController(api, pluginDefaults(defaults), createSectionPreferencesStore(directory))
+    const restarted = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
     await restarted.load()
     expect(restarted.sections()).toEqual({ ...defaults, skills: false, lsp: false })
+    expect(restarted.focusKey()).toBe("alt+f")
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("saves a default layout before KV hydration", async () => {
+test("saves a default layout before storage hydration", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
   let ready = false
   const api = {
     kv: {
-      get ready() { return ready },
+      get ready() {
+        return ready
+      },
       get: () => undefined,
       set: () => {},
     },
@@ -163,17 +173,58 @@ test("saves a default layout before KV hydration", async () => {
   }
 
   try {
-    const controller = createPreferencesController(api, pluginDefaults(defaults), createSectionPreferencesStore(directory))
+    const controller = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
     controller.toggleSection("lsp")
     controller.toggleSectionExpanded("skills")
     await controller.saveLayoutAsDefault()
     await controller.flush()
 
     ready = true
-    const restarted = createPreferencesController(api, pluginDefaults(defaults), createSectionPreferencesStore(directory))
+    const restarted = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
     await restarted.load()
     expect(restarted.sections().lsp).toBe(false)
     expect(restarted.expanded().skills).toBe(true)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("preserves resets made before storage hydration", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+  let ready = false
+  const api = {
+    kv: {
+      get ready() {
+        return ready
+      },
+      get: () => undefined,
+      set: () => {},
+    },
+  } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    controller.setFocusKey("alt+f")
+    controller.resetPluginSettings()
+    controller.resetSections()
+    controller.resetSkillConfirmations()
+    ready = true
+    await controller.load()
+    await controller.flush()
+
+    const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await restarted.load()
+    expect(restarted.sections()).toEqual(defaults.sections)
+    expect(restarted.focusKey()).toBe(defaults.focusKey)
+    expect(restarted.skippedSkillCount()).toBe(0)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -200,9 +251,10 @@ test("persists behavior settings and restores configured defaults", async () => 
   }
 
   try {
-    const controller = createPreferencesController(api, pluginDefaults(sections), createSectionPreferencesStore(directory))
+    const controller = createPreferencesController(api, pluginDefaults(sections), createPreferencesStore(directory))
     await controller.load()
     controller.setToggleKey("alt+s")
+    controller.setFocusKey("alt+f")
     controller.toggleMcpPersistence()
     controller.toggleLspIconStyle()
     expect(() => controller.setToggleKey(" ")).toThrow("Enter a valid OpenCode keybinding")
@@ -212,18 +264,20 @@ test("persists behavior settings and restores configured defaults", async () => 
       ...pluginDefaults(sections),
       toggleKey: "ctrl+b",
     }
-    const restarted = createPreferencesController(api, changedDefaults, createSectionPreferencesStore(directory))
+    const restarted = createPreferencesController(api, changedDefaults, createPreferencesStore(directory))
     await restarted.load()
     expect(restarted.toggleKey()).toBe("alt+s")
+    expect(restarted.focusKey()).toBe("alt+f")
     expect(restarted.persistMcp()).toBe(false)
     expect(restarted.lspIconStyle()).toBe("text")
 
     restarted.resetPluginSettings()
     await restarted.flush()
 
-    const reset = createPreferencesController(api, changedDefaults, createSectionPreferencesStore(directory))
+    const reset = createPreferencesController(api, changedDefaults, createPreferencesStore(directory))
     await reset.load()
     expect(reset.toggleKey()).toBe("ctrl+b")
+    expect(reset.focusKey()).toBe("ctrl+shift+f")
     expect(reset.persistMcp()).toBe(true)
     expect(reset.lspIconStyle()).toBe("nerd")
   } finally {
@@ -231,7 +285,7 @@ test("persists behavior settings and restores configured defaults", async () => 
   }
 })
 
-test("opens the setup wizard only on the first run", () => {
+test("opens the setup wizard only once after preference hydration", async () => {
   const values = new Map<string, unknown>()
   let opened = 0
   const api = {
@@ -256,9 +310,40 @@ test("opens the setup wizard only on the first run", () => {
   }
   const preferences = createPreferencesController(api, pluginDefaults(defaults), memoryStore())
 
-  expect(showFirstRunWizard(api, preferences)).toBe(true)
+  expect(await showFirstRunWizard(api, preferences)).toBe(true)
   expect(opened).toBe(1)
-  expect(values.get("opencode-pretty-sidebar.onboarding.v1")).toBe(true)
-  expect(showFirstRunWizard(api, preferences)).toBe(false)
+  expect(values.size).toBe(0)
+  expect(await showFirstRunWizard(api, preferences)).toBe(false)
   expect(opened).toBe(1)
+})
+
+test("persists onboarding completion across controller restarts without changing KV", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+  const values = new Map<string, unknown>()
+  let opened = 0
+  const api = {
+    state: { path: {} },
+    kv: { ready: true, get: (key: string) => values.get(key), set: () => {} },
+    ui: { dialog: { replace: () => opened++ }, toast: () => {} },
+  } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+
+  try {
+    const first = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    expect(await showFirstRunWizard(api, first)).toBe(true)
+    await first.flush()
+    const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    expect(await showFirstRunWizard(api, restarted)).toBe(false)
+    expect(opened).toBe(1)
+    expect(values.size).toBe(0)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
 })

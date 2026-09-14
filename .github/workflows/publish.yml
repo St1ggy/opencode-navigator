@@ -39,4 +39,4 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.npm.outputs.published != 'true'
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --ignore-scripts

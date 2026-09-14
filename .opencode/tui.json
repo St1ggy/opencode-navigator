@@ -5,6 +5,7 @@
       "../src/tui.tsx",
       {
         "persist_mcp": true,
+        "focus_key": "ctrl+shift+f",
         "toggle_key": "ctrl+shift+b"
       }
     ]
@@ -13,7 +14,6 @@
     "internal:sidebar-context": false,
     "internal:sidebar-mcp": false,
     "internal:sidebar-lsp": false,
-    "internal:sidebar-todo": false,
-    "internal:sidebar-files": false
+    "internal:sidebar-todo": false
   }
 }

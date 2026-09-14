@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import type { Session, SessionStatus } from "@opencode-ai/sdk/v2"
-import { createSubagentController } from "../src/tui"
+import { createSubagentController } from "../src/controllers/subagents"
 
 function session(id: string, parentID: string, created: number): Session {
   return {
@@ -58,7 +58,9 @@ test("keeps active subagent events received during refresh and opens a child ses
   const refreshing = controller.refresh("parent-1")
   const recent = session("recent", "parent-1", 2)
   handlers.get("session.created")?.({ properties: { sessionID: recent.id, info: recent } })
-  handlers.get("session.status")?.({ properties: { sessionID: recent.id, status: { type: "retry", attempt: 1, message: "retrying", next: 0 } } })
+  handlers.get("session.status")?.({
+    properties: { sessionID: recent.id, status: { type: "retry", attempt: 1, message: "retrying", next: 0 } },
+  })
 
   const existing = session("existing", "parent-1", 1)
   resolveChildren({ data: [existing] })
@@ -75,4 +77,41 @@ test("keeps active subagent events received during refresh and opens a child ses
 
   controller.open(existing.id)
   expect(navigations).toEqual([{ name: "session", params: { sessionID: "existing" } }])
+})
+
+test("keeps statuses owned by each parent workspace", async () => {
+  const childA = session("child-a", "parent-a", 1)
+  const childB = session("child-b", "parent-b", 1)
+  const api = {
+    state: {
+      path: { directory: "/repo" },
+      session: {
+        get: (parentID: string) => ({ directory: `/repo/${parentID}`, workspaceID: `workspace-${parentID}` }),
+        status: () => undefined,
+      },
+    },
+    client: {
+      session: {
+        children: ({ sessionID }: { sessionID: string }) =>
+          Promise.resolve({ data: sessionID === "parent-a" ? [childA] : [childB] }),
+        status: ({ workspace }: { workspace?: string }) =>
+          Promise.resolve({
+            data:
+              workspace === "workspace-parent-a"
+                ? { "child-a": { type: "busy" as const } }
+                : { "child-b": { type: "busy" as const } },
+          }),
+      },
+    },
+    event: { on: () => () => {} },
+    lifecycle: { signal: new AbortController().signal, onDispose: () => () => {} },
+    route: { navigate: () => {} },
+  } as unknown as TuiPluginApi
+  const controller = createSubagentController(api)
+
+  await controller.refresh("parent-a")
+  await controller.refresh("parent-b")
+
+  expect(controller.list("parent-a").map((item) => item.session.id)).toEqual(["child-a"])
+  expect(controller.list("parent-b").map((item) => item.session.id)).toEqual(["child-b"])
 })

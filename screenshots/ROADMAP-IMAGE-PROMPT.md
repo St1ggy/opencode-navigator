@@ -8,7 +8,7 @@ Upload this prompt together with the following files from the same directory:
 - `03-layout-settings.png` - reference for settings, selectable rows, and modal composition.
 - `04-skills-search.png` - reference for searchable sidebar sections.
 - `05-mcp-search.png` - reference for MCP rows, search, and connection indicators.
-- `06-setup-guide.png` - reference for onboarding and preset selection dialogs.
+- `06-setup-guide.png` - reference for onboarding and section selection.
 - `07-live-subagent.png` - reference for live agent states and the Subagents section.
 
 Do not use `02-default-sidebar-before.png`: it shows the sidebar before the plugin is applied.

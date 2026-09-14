@@ -1,13 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import {
-  disabledMcpNames,
-  enabledMcpNames,
-  mcpScope,
-  mcpToggleAction,
-  parseMcpPreferences,
-  parseSectionVisibility,
-  setMcpDisabled,
-} from "../src/state"
+import { mcpToggleAction, parseSectionVisibility } from "../src/state"
 
 describe("section visibility", () => {
   test("shows every section by default", () => {
@@ -30,59 +22,6 @@ describe("section visibility", () => {
       lsp: true,
       mcp: false,
     })
-  })
-})
-
-describe("MCP preferences", () => {
-  test("uses the worktree as the persistence scope", () => {
-    expect(mcpScope({ worktree: "/repo", directory: "/repo/packages/app" })).toBe("/repo")
-    expect(mcpScope({ directory: "/tmp/project" })).toBe("/tmp/project")
-    expect(mcpScope({})).toBe("global")
-  })
-
-  test("stores sorted unique enabled and disabled names per scope", () => {
-    let value: unknown
-    value = setMcpDisabled(value, "/repo", "wiki", true)
-    value = setMcpDisabled(value, "/repo", "context7", true)
-    value = setMcpDisabled(value, "/repo", "wiki", true)
-    value = setMcpDisabled(value, "/repo", "github", false)
-
-    expect(parseMcpPreferences(value)).toEqual({
-      version: 2,
-      disabledByScope: { "/repo": ["context7", "wiki"] },
-      enabledByScope: { "/repo": ["github"] },
-    })
-  })
-
-  test("moves names between enabled and disabled states", () => {
-    const enabled = setMcpDisabled(setMcpDisabled(undefined, "/repo", "wiki", true), "/repo", "wiki", false)
-    expect(enabled.disabledByScope).toEqual({})
-    expect(enabled.enabledByScope).toEqual({ "/repo": ["wiki"] })
-
-    const disabled = setMcpDisabled(enabled, "/repo", "wiki", true)
-    expect(disabled.disabledByScope).toEqual({ "/repo": ["wiki"] })
-    expect(disabled.enabledByScope).toEqual({})
-  })
-
-  test("migrates disabled-only preferences", () => {
-    expect(parseMcpPreferences({ version: 1, disabledByScope: { repo: ["wiki"] } })).toEqual({
-      version: 2,
-      disabledByScope: { repo: ["wiki"] },
-      enabledByScope: {},
-    })
-  })
-
-  test("rejects malformed persisted data", () => {
-    expect(disabledMcpNames({ version: 3, disabledByScope: { repo: ["wiki"] } }, "repo")).toEqual(new Set())
-    expect(disabledMcpNames({ version: 1, disabledByScope: { repo: ["wiki", 42, "wiki"] } }, "repo")).toEqual(
-      new Set(["wiki"]),
-    )
-    expect(
-      enabledMcpNames(
-        { version: 2, disabledByScope: { repo: ["wiki"] }, enabledByScope: { repo: ["wiki", "github"] } },
-        "repo",
-      ),
-    ).toEqual(new Set(["github"]))
   })
 })
 

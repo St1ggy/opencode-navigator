@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test"
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createSectionPreferencesStore } from "../src/preferences-store"
+import { createPreferencesStore } from "../src/preferences-store"
 import type { SectionVisibility } from "../src/state"
 
 const defaults: SectionVisibility = {
@@ -14,17 +14,21 @@ const defaults: SectionVisibility = {
   mcp: true,
 }
 
-test("migrates legacy visibility once and ignores stale KV after reset", async () => {
+test("stores and clears the default layout", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  const layout = {
+    sections: { ...defaults, skills: false },
+    expanded: { ...defaults, todo: false, skills: true },
+  }
   try {
-    const store = createSectionPreferencesStore(directory)
-    expect((await store.load({ lsp: false })).sections).toEqual({ lsp: false })
-
-    await store.update({ reset: true }, defaults)
+    const store = createPreferencesStore(directory)
+    await store.update({ layout })
     await store.flush()
+    expect((await createPreferencesStore(directory).load()).global.layout).toEqual(layout)
 
-    const restarted = createSectionPreferencesStore(directory)
-    expect((await restarted.load({ lsp: false })).sections).toEqual({})
+    await store.update({ clearLayout: true })
+    await store.flush()
+    expect((await createPreferencesStore(directory).load()).global.layout).toBeUndefined()
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -33,31 +37,32 @@ test("migrates legacy visibility once and ignores stale KV after reset", async (
 test("preserves concurrent updates from independent store instances", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {
-    const first = createSectionPreferencesStore(directory)
-    const second = createSectionPreferencesStore(directory)
-    await first.load({ lsp: false })
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
 
     await Promise.all([
-      first.update({ values: { lsp: true } }, defaults),
-      second.update({ values: { todo: false } }, defaults),
+      first.update({ mcp: { scope: "/one", name: "wiki", state: "disabled" } }),
+      second.update({ mcp: { scope: "/two", name: "context7", state: "enabled" } }),
     ])
     await Promise.all([first.flush(), second.flush()])
 
-    const restarted = createSectionPreferencesStore(directory)
-    expect((await restarted.load({ lsp: false, quick_actions: false })).sections).toEqual({ todo: false })
+    expect((await createPreferencesStore(directory).load()).worktrees).toEqual({
+      "/one": { mcp: { wiki: "disabled" } },
+      "/two": { mcp: { context7: "enabled" } },
+    })
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("merges an early write with legacy preferences during later migration", async () => {
+test("merges an update queued before the initial load", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {
-    const store = createSectionPreferencesStore(directory)
-    await store.update({ values: { todo: false } }, defaults)
+    const store = createPreferencesStore(directory)
+    await store.update({ behavior: { toggleKey: "alt+s" } })
     await store.flush()
 
-    expect((await store.load({ lsp: false })).sections).toEqual({ lsp: false, todo: false })
+    expect((await store.load()).global.behavior).toEqual({ toggleKey: "alt+s" })
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -73,75 +78,80 @@ test("recovers a lock left by a terminated process", async () => {
       JSON.stringify({ token: "stale", pid: 2_147_483_647 }),
     )
 
-    const store = createSectionPreferencesStore(directory)
-    expect((await store.load({ lsp: false })).sections).toEqual({ lsp: false })
+    const store = createPreferencesStore(directory)
+    expect(await store.load()).toEqual({ global: {}, worktrees: {}, user: {} })
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("stores visibility and expansion together as the default layout", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
-  const layout = {
-    sections: { ...defaults, skills: false },
-    expanded: { ...defaults, todo: false, skills: true },
-  }
-  try {
-    const store = createSectionPreferencesStore(directory)
-    await store.load({ lsp: false })
-    await store.update({ reset: true, layout }, defaults)
-    await store.flush()
-
-    const restarted = createSectionPreferencesStore(directory)
-    expect((await restarted.load({ lsp: false })).layout).toEqual(layout)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
-})
-
-test("stores and resets plugin behavior overrides", async () => {
+test("stores and resets behavior overrides", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {
-    const store = createSectionPreferencesStore(directory)
-    await store.load(undefined)
-    await store.update(
-      {
-        settings: {
-          toggleKey: "alt+s",
-          persistMcp: false,
-          lspIconStyle: "text",
-        },
+    const store = createPreferencesStore(directory)
+    await store.update({
+      behavior: {
+        toggleKey: "alt+s",
+        focusKey: "alt+f",
+        persistMcp: false,
+        lspIconStyle: "text",
       },
-      defaults,
-    )
+    })
     await store.flush()
 
-    expect((await createSectionPreferencesStore(directory).load(undefined)).settings).toEqual({
+    expect((await createPreferencesStore(directory).load()).global.behavior).toEqual({
       toggleKey: "alt+s",
+      focusKey: "alt+f",
       persistMcp: false,
       lspIconStyle: "text",
     })
 
-    await store.update({ resetSettings: true }, defaults)
+    await store.update({ clearBehavior: true })
     await store.flush()
-    expect((await createSectionPreferencesStore(directory).load(undefined)).settings).toBeUndefined()
+    expect((await createPreferencesStore(directory).load()).global.behavior).toBeUndefined()
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("does not overwrite preferences written by a newer schema", async () => {
+test("persists all preference groups in one sanitized document", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   const preferencesDirectory = join(directory, "opencode-pretty-sidebar")
   const preferencesFile = join(preferencesDirectory, "preferences.json")
-  const future = '{"version":2,"sections":{"lsp":true}}\n'
+  try {
+    const store = createPreferencesStore(directory)
+    await store.update({ layout: { sections: { skills: false }, expanded: { todo: false } } })
+    await store.update({ behavior: { toggleKey: " alt+s ", focusKey: "alt+f" } })
+    await store.update({ mcp: { scope: "/repo", name: "wiki", state: "disabled" } })
+    await store.update({ user: { skippedSkillConfirmations: ["/skills/review"], onboardingCompleted: true } })
+    await store.flush()
+
+    expect(JSON.parse(await readFile(preferencesFile, "utf8"))).toEqual({
+      global: {
+        behavior: { toggleKey: "alt+s", focusKey: "alt+f" },
+        layout: { sections: { skills: false }, expanded: { todo: false } },
+      },
+      worktrees: { "/repo": { mcp: { wiki: "disabled" } } },
+      user: { skippedSkillConfirmations: ["/skills/review"], onboardingCompleted: true },
+    })
+    expect((await stat(preferencesFile)).mode & 0o777).toBe(0o600)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("refuses to overwrite malformed preferences JSON", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  const preferencesDirectory = join(directory, "opencode-pretty-sidebar")
+  const preferencesFile = join(preferencesDirectory, "preferences.json")
+  const malformed = '{"global":'
   try {
     await mkdir(preferencesDirectory)
-    await writeFile(preferencesFile, future)
-
-    const store = createSectionPreferencesStore(directory)
-    await expect(store.load({ lsp: false })).rejects.toThrow("Unsupported preferences version: 2")
-    expect(await readFile(preferencesFile, "utf8")).toBe(future)
+    await writeFile(preferencesFile, malformed)
+    const store = createPreferencesStore(directory)
+    await expect(store.load()).rejects.toThrow("Malformed preferences JSON")
+    await expect(store.update({ behavior: { toggleKey: "alt+s" } })).rejects.toThrow("Malformed preferences JSON")
+    expect(await readFile(preferencesFile, "utf8")).toBe(malformed)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

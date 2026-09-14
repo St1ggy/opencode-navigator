@@ -1,223 +1,138 @@
 # Roadmap
 
-This roadmap focuses on making the sidebar configurable, keyboard-friendly, and
-useful as a compact control center for an OpenCode session.
+This roadmap focuses on making the sidebar reliable, configurable, keyboard-friendly,
+and useful as a compact control center for an OpenCode session.
+
+## Status Legend
+
+- `[x]` Completed in the current implementation.
+- `[~]` Partially implemented or covered only for some sections and flows.
+- `[ ]` Planned.
 
 ## Product Principles
 
 - Keep important session state visible without turning the sidebar into a dashboard.
 - Make every interactive feature usable with both keyboard and mouse.
 - Prefer progressive disclosure: compact summaries first, details on demand.
-- Preserve useful defaults while allowing per-project customization.
+- Preserve useful defaults while supporting global and worktree-specific preferences.
 - Treat unavailable OpenCode APIs as explicit constraints rather than simulating unsupported actions.
 
-## 0.5: Presets and Layout
+## P0: Foundation
 
-Make it possible to switch between task-focused layouts without configuring every
-section manually.
+Stabilize the architecture, persistence, request lifecycle, interaction model, and
+verification workflow before expanding the product surface.
 
-### Layout Presets
+### Architecture
 
-- [ ] Add built-in presets:
-  - `Minimal`: Todo only.
-  - `Coding`: Todo, Skills, Quick actions, and LSP.
-  - `Agents`: Todo, Subagents, Skills, and agent limits.
-  - `Full`: every available section.
-- [ ] Add a preset picker to the settings dialog and first-run wizard.
-- [ ] Preview a preset before applying it.
-- [ ] Allow the current layout to be saved as a named custom preset.
-- [ ] Support renaming and deleting custom presets.
-- [ ] Save a default preset globally or for the current worktree.
-- [ ] Add configurable section ordering.
-- [ ] Add `comfortable` and `compact` row density options.
-- [ ] Add per-section limits for visible rows before scrolling.
-- [ ] Preserve preset compatibility when new sidebar sections are introduced.
+- [x] Separate stateful logic from rendering; Todo, Subagents, Skills, MCP, preferences, and sidebar interaction live outside the section components.
+- [x] Keep `src/tui.tsx` as a composition and export facade, with controllers, components, dialogs, and icons in focused modules.
+- [x] Keep Solid and OpenTUI packages external so the plugin shares OpenCode's reactive runtime.
+- [~] Share request-state, error/retry, focus, disabled, and activation primitives; loading, empty, and pending presentation remains section-specific.
 
-### MCP State Presets
+### Unified Persistence
 
-- [ ] Save the current desired enabled and disabled MCP server set as a named preset.
-- [ ] Add quick actions for `Connect all`, `Disconnect all`, and restoring the last saved state.
-- [ ] Preview which servers will be enabled and disabled before applying a preset.
-- [ ] Show per-server progress while a preset is being applied.
-- [ ] Report partial failures and allow failed operations to be retried.
-- [ ] Save a default MCP preset globally or for the current worktree.
-- [ ] Define how a preset handles missing servers and servers added after the preset was created.
-- [ ] Allow an MCP preset to be linked to a layout preset as a workspace profile.
-- [ ] Support renaming, duplicating, and deleting custom MCP presets.
-- [ ] Add an MCP preset switcher directly to the MCP section.
+- [x] Store layout, behavior, MCP, onboarding, and skill-confirmation state in one validated, atomic, concurrency-safe preferences file.
+- [x] Remember desired enabled and disabled MCP state by exact worktree, directory, or global location key.
+- [~] Use one preferences document and shared value types; layout and behavior remain global while MCP state uses an exact location scope.
+- [~] Provide layout, behavior, and skill-confirmation reset controls; explicit scope selection, inherited global/worktree precedence, and MCP-state reset remain planned.
+- [x] Keep commit-safe project-local profiles and project persistence scope deferred to the portability phase.
 
-## 0.6: Keyboard Navigation
+### Request And Error Reliability
 
-Make the sidebar fully usable without switching to the mouse.
+- [x] Prevent stale Todo refreshes and failures from overwriting newer events or current-target state.
+- [x] Preserve Subagent events that arrive during an in-flight refresh.
+- [x] Scope Skills and MCP snapshots by directory/workspace and ignore superseded MCP activation work.
+- [x] Surface Todo, Subagent, Skills, and MCP refresh failures with inline retries, plus mutation and persistence failures.
+- [~] Isolate refresh state and responses by immutable target and abort requests on disposal; context changes do not cancel every in-flight mutation.
+- [x] Add explicit section and MCP mutation retries plus bounded reconnect backoff.
 
-- [ ] Add a sidebar focus command and configurable keybinding.
-- [ ] Navigate sections and rows with arrow keys or `j` and `k`.
-- [ ] Expand sections and activate rows with `Enter`.
-- [ ] Close filters and return focus to the session with `Escape`.
-- [ ] Add shortcuts for opening Todo, Subagents, Skills, LSP, and MCP directly.
-- [ ] Keep focused rows visible while scrolling long sections.
-- [ ] Show a compact keyboard help dialog.
-- [ ] Add consistent focus, hover, disabled, and pending states to interactive rows.
+### Toolchain
 
-## 0.7: Section Improvements
+- [x] Build the distributable before tests and keep Solid/OpenTUI out of the bundle.
+- [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
+- [x] Limit the published package to the license, README, bundle, and package metadata.
+- [x] Run TypeScript, Oxlint, and Prettier checks through `bun run check`.
+- [x] Enforce a 170,000-byte raw bundle budget through `bun run check` and CI.
 
-### Todo
+### Keyboard Navigation
 
-- [ ] Filter tasks by status and priority.
-- [ ] Add `Hide completed` and `Active only` display modes.
-- [ ] Group tasks by status or priority.
-- [ ] Show separate completed, active, pending, and cancelled counts.
-- [ ] Keep Todo read-only until OpenCode exposes a supported mutation API.
+- [x] Provide a configurable sidebar toggle key and unregister the previous binding when it changes.
+- [x] Support keyboard navigation in setup, settings, and filters, including scrolling the selected settings row into view.
+- [x] Add a sidebar focus command and configurable keybinding.
+- [x] Navigate interactive sections and rows with arrow keys or `j` and `k`, activate with `Enter`, and return focus with `Escape`.
+- [x] Add direct section palette commands, visible focus states, focused-row scrolling, and compact keyboard help.
 
-### Subagents
+### Smoke Coverage
 
-- [ ] Show agent runtime and retry countdown.
-- [ ] Show the agent or model when that information is available.
-- [ ] Keep recently completed subagents visible for a configurable short period.
-- [ ] Add status filters for running, retrying, completed, and failed agents.
-- [ ] Add an attention indicator when an agent fails or requires input.
-- [ ] Add a quick action to return from a child session to its parent.
+- [x] Cover controllers and durable preference behavior with automated tests.
+- [x] Render the built bundle with OpenTUI's test renderer and exercise slot mounting plus representative mouse, filter, settings, wizard, retry, and keybinding flows.
+- [x] Add an advisory end-to-end PTY smoke test that loads the packaged plugin in OpenCode 1.18.30.
+- [x] Cover keyboard focus/navigation and text-only LSP icons.
+- [x] Enforce renderer performance budgets for 500-row Todo, Skills, Subagents, and MCP lists.
 
-### Skills
+## Product Direction
 
-- [ ] Add pinned and recently used skills.
-- [ ] Group skills by source or location.
-- [ ] Show the skill description and source path in an inline details view.
-- [ ] Add a setting to run trusted skills without confirmation.
-- [ ] Add keyboard selection and fuzzy matching to the skill filter.
+### Presets And Layout
 
-### Quick Actions
+- [ ] Add built-in `Minimal`, `Coding`, `Agents`, and `Full` layout presets. The early `Agents` preset includes Todo, Subagents, and Skills and does not depend on usage limits.
+- [ ] Preview presets and allow named custom presets to be saved, renamed, and deleted.
+- [ ] Add configurable section ordering, row density, and visible-row limits.
+- [ ] Save layout defaults globally or for the current worktree using the unified persistence model.
+- [ ] Save desired MCP server state as named presets, preview changes, and apply them with per-server progress and partial-failure retry.
+- [ ] Add `Connect all` and `Disconnect all` beside MCP preset restore, using the same bulk-operation flow.
+- [ ] Optionally link one layout preset and one MCP preset as a workspace profile.
 
-- [ ] Allow built-in actions to be reordered or hidden.
-- [ ] Allow registered OpenCode commands to be added as custom quick actions.
-- [ ] Add recently used actions.
-- [ ] Disable actions that are unavailable for the current route and explain why.
+### Section Improvements
 
-### LSP
+- [ ] Todo: filters, grouping, active/completed display modes, and status counts.
+- [ ] Subagents: runtime, retry countdown, recent completions, filters, failure attention, and parent-session navigation.
+- [ ] Skills: pinned and recent items, source details, fuzzy keyboard selection, and trusted-skill confirmation settings.
+- [ ] Quick Actions: ordering, visibility, recent actions, registered commands, and route-aware disabled reasons.
+- [~] LSP: compact Nerd Font glyphs and text badges exist; sorting, expandable details, and actionable errors remain.
+- [~] MCP: filtering, pending rows, error text, individual connect/disconnect, and retry exist; grouping, pinning, and bulk controls remain.
 
-- [ ] Sort servers by connection state and language.
-- [ ] Show full server details in an expandable row.
-- [ ] Add a text-only icon fallback that does not require Nerd Fonts.
-- [ ] Surface connection errors and provide a retry action when supported.
+### Agents And Limits
 
-### MCP
+- [ ] Show the active OpenCode agent, model, provider, capabilities, and parent/child session context.
+- [ ] Define independent adapters for OpenCode, stable provider quota APIs, and machine-readable external agent CLIs.
+- [ ] Preserve provider-native units and reset windows while showing freshness, unsupported, authentication, stale, and rate-limited states.
+- [ ] Never read undocumented credential files or store provider credentials in sidebar preferences or logs.
 
-- [ ] Sort and group servers by connected, pending, disabled, and failed state.
-- [ ] Show connection errors in an expandable details row.
-- [ ] Add retry, connect all, and disconnect all actions.
-- [ ] Allow MCP servers to be pinned above the rest of the list.
-- [ ] Make remembered MCP state configurable globally or per worktree.
-- [ ] Show pending state while a connect or disconnect operation is running.
+### Unified Search
 
-## 0.8: Agents and Usage Limits
+- [ ] Search Skills, Subagents, MCP servers, and Quick Actions from one keyboard-first entry point.
+- [ ] Add fuzzy matching, grouped results, recent selections, and configurable result providers.
 
-Provide one place to see which agent and model are active and how much provider
-capacity remains.
+### Profiles And Portability
 
-### Shared Integration Model
+- [ ] Import and export layout and MCP settings as versioned JSON with validation and unsupported-field previews.
+- [ ] Add commit-safe project-local profiles after global/worktree persistence is stable.
+- [ ] Document precedence across plugin options, global settings, worktree settings, and project-local profiles.
 
-- [ ] Define an adapter contract for OpenCode, provider APIs, and external agent CLIs.
-- [ ] Normalize agent identity, model, provider, availability, limits, reset windows, and data freshness.
-- [ ] Keep source-specific limit windows instead of reducing incompatible quotas to one percentage.
-- [ ] Isolate adapter failures so one unavailable source does not break the section.
-- [ ] Add capability detection for agent listing, model listing, switching, usage, and quota refresh.
-- [ ] Show which adapter and account produced every value.
+### Release Polish
 
-### OpenCode Agents
-
-- [ ] Show the active OpenCode agent, model, and provider in a compact section.
-- [ ] List configured agents and their availability state.
-- [ ] Add quick switching between agents and models when supported by the public TUI API.
-- [ ] Show relevant permissions, capabilities, or mode metadata exposed by OpenCode.
-- [ ] Track the active agent separately for parent and child sessions.
-
-### Provider Quotas
-
-- [ ] Add provider adapters for OpenAI, Anthropic, and Google when stable authenticated quota APIs are available.
-- [ ] Reuse supported OpenCode or provider authentication without copying credentials into plugin storage.
-- [ ] Support multiple accounts for the same provider without merging their limits.
-- [ ] Display request, token, credit, and subscription limits using provider-native units.
-- [ ] Display rolling-window, daily, weekly, and credit-based limits without forcing them into one misleading percentage.
-- [ ] Link authentication and quota errors to provider-specific recovery instructions.
-
-### External Agent CLIs
-
-- [ ] Detect supported installations of Claude Code, Codex CLI, and Gemini CLI.
-- [ ] Show CLI version, authentication state, and last successful status refresh.
-- [ ] Read limits only through stable machine-readable commands or documented local APIs.
-- [ ] Never parse interactive terminal output or undocumented credential files.
-- [ ] Allow each CLI integration to be enabled or disabled independently.
-- [ ] Show an update hint when an installed CLI is too old for the integration.
-
-### Limits UX
-
-- [ ] Introduce a normalized usage model with used, remaining, total, reset time, and data freshness fields.
-- [ ] Show loading, stale, unsupported, authentication-required, and rate-limited states explicitly.
-- [ ] Refresh limits manually and at a configurable background interval.
-- [ ] Add warning thresholds for nearly exhausted limits and upcoming resets.
-- [ ] Show the last successful refresh time and the source of each limit.
-- [ ] Add compact, expanded, and hidden display modes for every limit source.
-- [ ] Never store provider credentials in sidebar preferences or logs.
-- [ ] Add adapters only for providers with a stable authenticated API or data exposed by OpenCode.
-- [ ] Add contract tests with recorded, secret-free provider responses.
-
-## 0.9: Unified Sidebar Search
-
-Provide one fast entry point for everything exposed by the sidebar.
-
-- [ ] Add a global sidebar search command.
-- [ ] Search skills, subagents, MCP servers, and quick actions together.
-- [ ] Group results by type and show the action each result will perform.
-- [ ] Support fuzzy matching and keyboard-only result selection.
-- [ ] Keep a short list of recent selections.
-- [ ] Allow result providers to be enabled or disabled in settings.
-
-## 0.10: Profiles and Portability
-
-Make personalized layouts easy to reuse across projects and machines.
-
-- [ ] Export and import custom presets as JSON.
-- [ ] Add a versioned schema for portable settings.
-- [ ] Validate imported settings and show unsupported fields before applying them.
-- [ ] Support project-local profiles that can be committed with the repository.
-- [ ] Export and import layout and MCP presets together or independently.
-- [ ] Add commands to reset global, worktree, or project-local preferences.
-- [ ] Document precedence between plugin options, global settings, and project settings.
-
-## 1.0: Stability and Polish
-
-- [ ] Split `src/tui.tsx` into controllers, components, dialogs, and icon definitions.
-- [ ] Show actionable notifications when Todo, Subagents, Skills, LSP, or MCP refreshes fail.
-- [ ] Cancel or ignore stale requests after session, workspace, or worktree changes.
-- [ ] Add retry with bounded backoff for transient API failures.
-- [ ] Add end-to-end smoke tests that load the plugin in OpenCode TUI.
-- [ ] Add accessibility tests for keyboard navigation and text-only icons.
-- [ ] Add performance tests for large Todo, Skills, Subagents, and MCP lists.
-- [ ] Add linting and formatting checks to `bun run check`.
-- [ ] Add bundle-size tracking to CI.
-- [ ] Add screenshots or a short demo recording to the README.
-- [ ] Publish a changelog and generate release notes for each version.
+- [ ] Maintain current screenshots or a short demo in the README.
+- [ ] Publish a changelog and generated release notes for each version.
 
 ## API-Dependent Candidates
 
-These features should be scheduled only after the required capabilities are
-available in the public OpenCode TUI plugin API.
+Schedule these only after the required capability is available through a supported
+public OpenCode TUI or stable authenticated provider API:
 
-- Editable Todo status and priority.
-- LSP restart controls and diagnostic counters.
-- Agent or model switching when no public TUI command is available.
-- Session and subagent token, context-window, and cost summaries.
-- Provider quota data that is not exposed through a stable authenticated API.
-- Recently changed files and workspace diagnostics.
-- Preventing MCP servers remembered as disabled from connecting during startup.
+- Editing Todo status or priority.
+- Restarting LSP servers or exposing diagnostic counters.
+- Switching agents or models when no public TUI command is available.
+- Showing session or subagent token, context-window, and cost summaries.
+- Reading provider quota data without a stable authenticated API.
+- Showing recently changed files or workspace diagnostics.
+- Preventing MCP servers remembered as disabled from connecting before TUI plugins initialize.
 
 ## Suggested Delivery Order
 
-1. Ship layout presets, MCP connection presets, section ordering, and density controls.
-2. Add keyboard focus and navigation before introducing more interactive rows.
-3. Improve MCP, Skills, Todo, and Subagents using the shared interaction patterns.
-4. Add the shared limit contract and native OpenCode agent overview.
-5. Add provider quota adapters, followed by external CLI adapters with stable machine-readable interfaces.
-6. Build unified search on top of the stabilized section APIs.
-7. Add portable profiles after the settings schema has settled.
-8. Complete the architectural split, end-to-end coverage, and release polish for 1.0.
+1. Complete the P0 architecture, persistence, reliability, keyboard, and smoke-test foundation.
+2. Add layout and MCP presets on the unified global/worktree preference model.
+3. Improve existing sections using the shared request and interaction contracts.
+4. Add the OpenCode agent overview, then stable provider and CLI adapters.
+5. Build unified search after section keyboard behavior is consistent.
+6. Add portable project-local profiles after the settings schema has settled.
+7. Finish performance, accessibility, bundle, and release polish for 1.0.

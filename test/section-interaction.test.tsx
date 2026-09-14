@@ -3,8 +3,17 @@ import { expect, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
 import { createSignal } from "solid-js"
-// @ts-expect-error The package intentionally publishes JavaScript without declarations.
-import { FirstRunWizard, LspBadge, McpSection, openSettings, Section, SettingsDialog, SidebarToggleBinding, SkillsSection } from "../dist/tui.js"
+import {
+  FirstRunWizard,
+  LspBadge,
+  McpSection,
+  openSettings,
+  Section,
+  SettingsDialog,
+  SidebarToggleBinding,
+  SkillsSection,
+  // @ts-expect-error The package intentionally publishes JavaScript without declarations.
+} from "../dist/tui.js"
 
 const sidebarTheme = {
   accent: "#ff9e64",
@@ -69,10 +78,10 @@ test("the built LSP badge toggles its server name on mouse down", async () => {
       },
     },
   } as unknown as TuiPluginApi
-  const setup = await testRender(
-    () => <LspBadge api={api} id="typescript" status="connected" iconStyle="text" />,
-    { width: 30, height: 1 },
-  )
+  const setup = await testRender(() => <LspBadge api={api} id="typescript" status="connected" iconStyle="text" />, {
+    width: 30,
+    height: 1,
+  })
 
   try {
     await setup.renderOnce()
@@ -120,25 +129,22 @@ test("the built first-run wizard explains controls and changes section settings"
   const preferences = {
     sections,
     toggleKey: () => "ctrl+shift+b",
+    focusKey: () => "ctrl+shift+f",
     lspIconStyle: () => "nerd",
     toggleSection(name: keyof ReturnType<typeof sections>) {
       setSections((value) => ({ ...value, [name]: !value[name] }))
     },
   }
-  const setup = await testRender(
-    () => (
-      <FirstRunWizard
-        api={api}
-        preferences={preferences}
-      />
-    ),
-    { width: 80, height: 18 },
-  )
+  const setup = await testRender(() => <FirstRunWizard api={api} preferences={preferences} />, {
+    width: 80,
+    height: 18,
+  })
 
   try {
     await setup.renderOnce()
     expect(setup.captureCharFrame()).toContain("Welcome to Pretty Sidebar")
     expect(setup.captureCharFrame()).toContain("Toggle: ctrl+shift+b")
+    expect(setup.captureCharFrame()).toContain("Focus: ctrl+shift+f")
     expect(setup.captureCharFrame()).toContain("LSP icons: Nerd Font")
     layer?.commands.find((command) => command.name.endsWith(".wizard.select"))?.run()
     await setup.renderOnce()
@@ -163,7 +169,9 @@ test("the built Skills section filters by name and description", async () => {
     target: () => ({ key: "test", routing: { directory: "/test" } }),
     list: () => items,
     error: () => undefined,
+    state: () => ({ status: "ready" }),
     refresh: async () => items,
+    retry: async () => items,
     use: async () => {},
   }
   const preferences = {
@@ -172,10 +180,10 @@ test("the built Skills section filters by name and description", async () => {
     shouldConfirmSkill: () => false,
     skipSkillConfirmation: () => {},
   }
-  const setup = await testRender(
-    () => <SkillsSection api={api} controller={controller} preferences={preferences} />,
-    { width: 44, height: 8 },
-  )
+  const setup = await testRender(() => <SkillsSection api={api} controller={controller} preferences={preferences} />, {
+    width: 44,
+    height: 8,
+  })
 
   try {
     await setup.renderOnce()
@@ -203,14 +211,20 @@ test("the built MCP section filters servers by name", async () => {
     ui: { toast: () => {} },
   } as unknown as TuiPluginApi
   const controller = {
+    target: () => ({ key: "test", scope: "/test", routing: { directory: "/test" } }),
     list: () => items,
+    state: () => ({ status: "ready" }),
+    retry: async () => items,
+    serverState: () => ({ status: "ready" }),
+    retryServer: async () => {},
+    mutating: () => false,
     toggle: async () => {},
   }
   const preferences = { expanded: () => expandedLayout, toggleSectionExpanded: () => {} }
-  const setup = await testRender(
-    () => <McpSection api={api} controller={controller} preferences={preferences} />,
-    { width: 44, height: 8 },
-  )
+  const setup = await testRender(() => <McpSection api={api} controller={controller} preferences={preferences} />, {
+    width: 44,
+    height: 8,
+  })
 
   try {
     await setup.renderOnce()
@@ -222,6 +236,100 @@ test("the built MCP section filters servers by name", async () => {
     await setup.renderOnce()
     expect(setup.captureCharFrame()).not.toContain("context7")
     expect(setup.captureCharFrame()).toContain("tracker")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("the built Skills section keeps cached rows visible with an inline retry", async () => {
+  let retries = 0
+  const items = [{ name: "cached-skill", description: "Cached", location: "/skills/cached", content: "" }]
+  const api = {
+    theme: { current: sidebarTheme },
+    ui: { dialog: { replace: () => {} }, toast: () => {} },
+  } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: "test", routing: { directory: "/test" } }),
+    list: () => items,
+    error: () => "skills unavailable",
+    state: () => ({
+      status: "error",
+      error: { operation: "refresh skills", target: "test", message: "skills unavailable", retryable: true },
+    }),
+    refresh: async () => items,
+    retry: async () => {
+      retries++
+      return items
+    },
+    use: async () => {},
+  }
+  const preferences = {
+    expanded: () => expandedLayout,
+    toggleSectionExpanded: () => {},
+    shouldConfirmSkill: () => false,
+    skipSkillConfirmation: () => {},
+  }
+  const setup = await testRender(() => <SkillsSection api={api} controller={controller} preferences={preferences} />, {
+    width: 44,
+    height: 8,
+  })
+
+  try {
+    await setup.renderOnce()
+    const frame = setup.captureCharFrame()
+    expect(frame).toContain("skills unavailable")
+    expect(frame).toContain("Retry")
+    expect(frame).toContain("cached-skill")
+
+    const lines = frame.split("\n")
+    const retryRow = lines.findIndex((line) => line.includes("Retry"))
+    await setup.mockMouse.pressDown(lines[retryRow].indexOf("Retry"), retryRow)
+    expect(retries).toBe(1)
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("the built MCP section shows cached servers with an inline refresh retry", async () => {
+  let retries = 0
+  const items = [{ name: "cached-mcp", status: "connected" }]
+  const api = {
+    theme: { current: sidebarTheme },
+    ui: { toast: () => {} },
+  } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: "test", scope: "/test", routing: { directory: "/test" } }),
+    list: () => items,
+    state: () => ({
+      status: "error",
+      error: { operation: "refresh MCP servers", target: "test", message: "MCP unavailable", retryable: true },
+    }),
+    retry: async () => {
+      retries++
+      return items
+    },
+    serverState: () => ({ status: "ready" }),
+    retryServer: async () => {},
+    mutating: () => false,
+    toggle: async () => {},
+  }
+  const preferences = { expanded: () => expandedLayout, toggleSectionExpanded: () => {} }
+  const setup = await testRender(() => <McpSection api={api} controller={controller} preferences={preferences} />, {
+    width: 44,
+    height: 7,
+  })
+
+  try {
+    await setup.renderOnce()
+    const frame = setup.captureCharFrame()
+    expect(frame).toContain("MCP unavailable")
+    expect(frame).toContain("Retry")
+    expect(frame).toContain("cached-mcp")
+
+    const lines = frame.split("\n")
+    const retryRow = lines.findIndex((line) => line.includes("Retry"))
+    await setup.mockMouse.pressDown(lines[retryRow].indexOf("Retry"), retryRow)
+    expect(retries).toBe(1)
   } finally {
     setup.renderer.destroy()
   }
@@ -259,11 +367,13 @@ test("the built settings dialog saves the current layout as default", async () =
     persistMcp: () => true,
     lspIconStyle: () => "nerd",
     toggleKey: () => "ctrl+shift+b",
+    focusKey: () => "ctrl+shift+f",
     skippedSkillCount: () => 0,
     toggleSection: () => {},
     toggleMcpPersistence: () => mcpToggles++,
     toggleLspIconStyle: () => iconToggles++,
     setToggleKey: () => {},
+    setFocusKey: () => {},
     resetSections: () => {},
     resetPluginSettings: () => {},
     resetSkillConfirmations: () => {},
@@ -271,10 +381,10 @@ test("the built settings dialog saves the current layout as default", async () =
       saved++
     },
   }
-  const setup = await testRender(
-    () => <SettingsDialog api={api} preferences={preferences} />,
-    { width: 100, height: 20 },
-  )
+  const setup = await testRender(() => <SettingsDialog api={api} preferences={preferences} />, {
+    width: 100,
+    height: 20,
+  })
 
   try {
     await setup.flush()
@@ -295,6 +405,7 @@ test("the built settings dialog saves the current layout as default", async () =
     next?.run()
     select?.run()
     expect(iconToggles).toBe(1)
+    next?.run()
     next?.run()
     next?.run()
     await setup.flush()
@@ -350,10 +461,10 @@ test("the sidebar shortcut binding follows runtime settings", async () => {
       dispatchCommand: () => ({ ok: true }),
     },
   } as unknown as TuiPluginApi
-  const setup = await testRender(
-    () => <SidebarToggleBinding api={api} preferences={{ toggleKey: shortcut }} />,
-    { width: 1, height: 1 },
-  )
+  const setup = await testRender(() => <SidebarToggleBinding api={api} preferences={{ toggleKey: shortcut }} />, {
+    width: 1,
+    height: 1,
+  })
 
   try {
     await setup.renderOnce()
