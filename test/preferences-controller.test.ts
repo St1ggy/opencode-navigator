@@ -412,6 +412,111 @@ test("creates, applies, updates, renames, deletes, and persists layout presets",
   }
 })
 
+test("manages user-wide MCP presets and favorite skills", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+  const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+  const review = { name: "review", location: "/skills/review", content: "" }
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await controller.load()
+    expect(controller.saveMcpPreset(" Work ", { wiki: "disabled", context7: "enabled" })).toBe("Work")
+    expect(() => controller.saveMcpPreset("work", { wiki: "enabled" })).toThrow("already exists")
+    controller.toggleFavoriteSkill(review)
+    expect(controller.isFavoriteSkill(review)).toBe(true)
+    expect(controller.updateMcpPreset("Work", { wiki: "enabled" })).toBe(true)
+    expect(controller.renameMcpPreset("Work", "Review")).toBe("Review")
+    controller.setActiveScope("/another-worktree")
+    expect(controller.mcpPresets()).toEqual({ Review: { wiki: "enabled" } })
+    expect(controller.isFavoriteSkill(review)).toBe(true)
+    await controller.flush()
+
+    const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await restarted.load()
+    expect(restarted.mcpPresets()).toEqual({ Review: { wiki: "enabled" } })
+    expect(restarted.isFavoriteSkill(review)).toBe(true)
+    expect(restarted.deleteMcpPreset("Review")).toBe(true)
+    restarted.toggleFavoriteSkill(review)
+    await restarted.flush()
+
+    const cleared = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await cleared.load()
+    expect(cleared.mcpPresets()).toEqual({})
+    expect(cleared.isFavoriteSkill(review)).toBe(false)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("defers favorite toggles and MCP preset editing until hydration", async () => {
+  let finish!: () => void
+  const review = { name: "review", location: "/skills/review", content: "" }
+  const store: PreferencesStore = {
+    load: () =>
+      new Promise((resolve) => {
+        finish = () => resolve({ global: {}, worktrees: {}, user: { favoriteSkills: [review.location] } })
+      }),
+    async update() {},
+    async flush() {},
+  }
+  const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+  const controller = createPreferencesController(api, defaults, store)
+
+  controller.toggleFavoriteSkill(review)
+  expect(() => controller.saveMcpPreset("Work", { wiki: "enabled" })).toThrow("still loading")
+  finish()
+  await controller.load()
+  await Promise.resolve()
+  expect(controller.ready()).toBe(true)
+  expect(controller.isFavoriteSkill(review)).toBe(false)
+})
+
+test("reconciles conflicting MCP preset saves from independent controllers", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+  const toasts: string[] = []
+  const api = {
+    ui: { toast: (toast: { message: string }) => toasts.push(toast.message) },
+  } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+  try {
+    const first = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    const second = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await Promise.all([first.load(), second.load()])
+    first.saveMcpPreset("Focus", { wiki: "enabled" })
+    second.saveMcpPreset("focus", { wiki: "disabled" })
+    await Promise.all([first.flush(), second.flush()])
+
+    const persisted = (await createPreferencesStore(directory).load()).user.mcpPresets ?? {}
+    expect(first.mcpPresets()).toEqual(persisted)
+    expect(second.mcpPresets()).toEqual(persisted)
+    expect(toasts).toContain("Preset changed in another OpenCode instance; reloaded saved presets")
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("opens the setup wizard only once after preference hydration", async () => {
   const values = new Map<string, unknown>()
   let opened = 0

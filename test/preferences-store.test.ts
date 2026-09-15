@@ -101,6 +101,88 @@ test("preserves concurrent preset saves from independent store instances", async
   }
 })
 
+test("preserves concurrent MCP presets and favorite skills", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    await Promise.all([
+      first.update({
+        user: { mcpPreset: { operation: "save", name: "Work", states: { wiki: "disabled" } } },
+      }),
+      second.update({ user: { favoriteSkill: { location: "/skills/review", favorite: true } } }),
+    ])
+    await Promise.all([first.flush(), second.flush()])
+
+    expect((await createPreferencesStore(directory).load()).user).toEqual({
+      mcpPresets: { Work: { wiki: "disabled" } },
+      favoriteSkills: ["/skills/review"],
+    })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("merges concurrent favorite skill toggles", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    await Promise.all([
+      first.update({ user: { favoriteSkill: { location: "/skills/review", favorite: true } } }),
+      second.update({ user: { favoriteSkill: { location: "/skills/commit", favorite: true } } }),
+    ])
+    await Promise.all([first.flush(), second.flush()])
+
+    expect((await createPreferencesStore(directory).load()).user.favoriteSkills).toEqual([
+      "/skills/commit",
+      "/skills/review",
+    ])
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("keeps concurrent MCP preset operations case-insensitive and rename-safe", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  try {
+    const seed = createPreferencesStore(directory)
+    await seed.update({
+      user: { mcpPreset: { operation: "save", name: "Work", states: { wiki: "disabled" } } },
+    })
+    await seed.flush()
+
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    await Promise.all([
+      first.update({ user: { mcpPreset: { operation: "rename", name: "Review", previousName: "Work" } } }),
+      second.update({
+        user: { mcpPreset: { operation: "update", name: "Work", states: { wiki: "enabled" } } },
+      }),
+    ])
+    await Promise.all([first.flush(), second.flush()])
+
+    const third = createPreferencesStore(directory)
+    const fourth = createPreferencesStore(directory)
+    await Promise.all([
+      third.update({
+        user: { mcpPreset: { operation: "save", name: "Focus", states: { wiki: "enabled" } } },
+      }),
+      fourth.update({
+        user: { mcpPreset: { operation: "save", name: "focus", states: { wiki: "disabled" } } },
+      }),
+    ])
+    await Promise.all([third.flush(), fourth.flush()])
+
+    const presets = (await createPreferencesStore(directory).load()).user.mcpPresets ?? {}
+    expect(Object.keys(presets).filter((name) => name.toLocaleLowerCase() === "focus")).toHaveLength(1)
+    expect(presets.Review).toBeDefined()
+    expect(presets.Work).toBeUndefined()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("merges an update queued before the initial load", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {

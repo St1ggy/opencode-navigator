@@ -2,17 +2,18 @@ import type { TuiPluginApi, TuiSidebarLspItem, TuiSidebarMcpItem } from "@openco
 import { type BoxRenderable, TextAttributes } from "@opentui/core"
 import { createEffect, createMemo, createSignal, For, type JSX, onCleanup, Show, untrack } from "solid-js"
 import { QUICK_ACTIONS } from "../constants"
-import type { McpController } from "../controllers/mcp"
+import { matchingMcpPreset, type McpController } from "../controllers/mcp"
 import type { PreferencesController } from "../controllers/preferences"
 import type { SkillController, SkillInfo } from "../controllers/skills"
 import type { SubagentController } from "../controllers/subagents"
 import type { SidebarTodo, TodoController } from "../controllers/todo"
 import { isAbortError, type TargetRequestState } from "../controllers/request-state"
 import { SkillDialog } from "../dialogs/skill"
+import { openMcpPresets } from "../dialogs/mcp-presets"
 import { lspIcon, lspIconName, type LspIconStyle } from "../icons/lsp"
 import type { SidebarInteraction } from "../sidebar-interaction"
 import { mcpToggleAction } from "../state"
-import { matchesFilter, Section, SectionFilter, useSidebarItem } from "./common"
+import { matchesFilter, Section, SectionFilter, SectionWithHeaderAction, useSidebarItem } from "./common"
 
 function RequestErrorRow(props: {
   api: TuiPluginApi
@@ -296,6 +297,10 @@ function SkillRow(props: {
   item: SkillInfo
   order: number
   onUse: () => void
+  favorite: boolean
+  favoriteDisabled: boolean
+  separator: boolean
+  onToggleFavorite: () => void
 }) {
   const theme = () => props.api.theme.current
   const id = () => `opencode-pretty-sidebar.skill.${props.item.location || props.item.name}`
@@ -303,6 +308,16 @@ function SkillRow(props: {
     id: id(),
     order: () => props.order,
     activate: props.onUse,
+  })
+  function toggleFavorite() {
+    props.onToggleFavorite()
+    queueMicrotask(() => props.interaction?.select(`${id()}.favorite`))
+  }
+  const favorite = useSidebarItem(props.api, props.interaction, {
+    id: `${id()}.favorite`,
+    order: () => props.order + 0.5,
+    disabled: () => props.favoriteDisabled,
+    activate: toggleFavorite,
   })
 
   return (
@@ -313,6 +328,7 @@ function SkillRow(props: {
       gap={1}
       paddingLeft={1}
       paddingRight={1}
+      marginTop={props.separator ? 1 : 0}
       backgroundColor={row.backgroundColor()}
       onMouseOver={row.onMouseOver}
       onMouseOut={row.onMouseOut}
@@ -324,6 +340,21 @@ function SkillRow(props: {
       <text flexGrow={1} fg={row.foregroundColor()} wrapMode="word">
         {props.item.name}
       </text>
+      <box
+        ref={(node: BoxRenderable) => favorite.ref(node)}
+        id={`${id()}.favorite`}
+        paddingLeft={1}
+        paddingRight={1}
+        backgroundColor={favorite.backgroundColor()}
+        onMouseOver={favorite.onMouseOver}
+        onMouseOut={favorite.onMouseOut}
+        onMouseUp={(event) => {
+          event.stopPropagation()
+          favorite.activate(event)
+        }}
+      >
+        <text fg={favorite.focused() ? favorite.foregroundColor() : theme().warning}>{props.favorite ? "★" : "☆"}</text>
+      </box>
     </box>
   )
 }
@@ -337,7 +368,16 @@ export function SkillsSection(props: {
 }) {
   const [query, setQuery] = createSignal("")
   const target = createMemo(() => props.controller.target())
-  const list = createMemo(() => props.controller.list(target()))
+  const list = createMemo(() => {
+    const favorites = props.preferences.favoriteSkills?.() ?? new Set<string>()
+    return [...props.controller.list(target())]
+      .sort((left, right) => {
+        const leftFavorite = favorites.has(left.location)
+        const rightFavorite = favorites.has(right.location)
+        return Number(rightFavorite) - Number(leftFavorite) || left.name.localeCompare(right.name)
+      })
+      .map((item) => ({ ...item }))
+  })
   const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name, item.description)))
   const state = createMemo(() => props.controller.state(target()))
 
@@ -424,6 +464,14 @@ export function SkillsSection(props: {
                     item={item}
                     order={(props.order ?? 300) + 10 + index()}
                     onUse={() => selectSkill(item)}
+                    favorite={props.preferences.isFavoriteSkill?.(item) ?? false}
+                    favoriteDisabled={props.preferences.ready?.() === false}
+                    separator={
+                      index() > 0 &&
+                      Boolean(props.preferences.isFavoriteSkill?.(filtered()[index() - 1])) &&
+                      !props.preferences.isFavoriteSkill?.(item)
+                    }
+                    onToggleFavorite={() => props.preferences.toggleFavoriteSkill?.(item)}
                   />
                 )}
               </For>
@@ -782,6 +830,7 @@ export function McpSection(props: {
       },
   )
   const bulkRunning = createMemo(() => bulk().status === "running")
+  const mutationRunning = createMemo(() => props.controller.mutating?.(target()) === true)
   const connectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === "connect").length)
   const disconnectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === "disconnect").length)
   const errors = createMemo(
@@ -792,19 +841,31 @@ export function McpSection(props: {
       ).length,
   )
   const summary = createMemo(() => `${active()}/${list().length}${errors() ? ` · ${errors()}!` : ""}`)
+  const presetName = createMemo(() => {
+    const presets = props.preferences.mcpPresets?.() ?? {}
+    const selected = props.controller.selectedPreset?.(target())
+    return selected && Object.hasOwn(presets, selected) ? selected : matchingMcpPreset(list(), presets)
+  })
 
   async function toggle(name: string) {
     await props.controller.toggle(name).catch(() => {})
   }
 
   return (
-    <Section
+    <SectionWithHeaderAction
       api={props.api}
       interaction={props.interaction}
       sectionId="opencode-pretty-sidebar.section.mcp"
       order={props.order ?? 600}
       title="MCP"
       summary={summary()}
+      headerAction={{
+        id: "opencode-pretty-sidebar.mcp.presets",
+        order: (props.order ?? 600) + 0.5,
+        label: () => (presetName() ? `Preset: ${presetName()}` : "Preset"),
+        disabled: () => bulkRunning() || mutationRunning() || props.preferences.ready?.() === false,
+        onActivate: () => openMcpPresets(props.api, props.controller, props.preferences),
+      }}
       open={props.preferences.expanded().mcp}
       onToggle={() => props.preferences.toggleSectionExpanded("mcp")}
     >
@@ -827,7 +888,7 @@ export function McpSection(props: {
               id="opencode-pretty-sidebar.mcp.connect-all"
               order={(props.order ?? 600) + 2}
               label="Connect all"
-              disabled={bulkRunning() || connectable() === 0}
+              disabled={bulkRunning() || mutationRunning() || connectable() === 0}
               onActivate={() => void props.controller.connectAll(target())}
             />
             <McpBulkAction
@@ -836,13 +897,18 @@ export function McpSection(props: {
               id="opencode-pretty-sidebar.mcp.disconnect-all"
               order={(props.order ?? 600) + 3}
               label="Disconnect all"
-              disabled={bulkRunning() || disconnectable() === 0}
+              disabled={bulkRunning() || mutationRunning() || disconnectable() === 0}
               onActivate={() => void props.controller.disconnectAll(target())}
             />
           </box>
           <Show when={bulkRunning()}>
             <text fg={props.api.theme.current.textMuted}>
-              {bulk().action === "connect" ? "Connecting" : "Disconnecting"} {bulk().completed}/{bulk().total}…
+              {bulk().action === "connect"
+                ? "Connecting"
+                : bulk().action === "disconnect"
+                  ? "Disconnecting"
+                  : `Applying ${bulk().preset}`}{" "}
+              {bulk().completed}/{bulk().total}…
             </text>
           </Show>
           <Show when={bulk().status === "error"}>
@@ -888,6 +954,6 @@ export function McpSection(props: {
           </Show>
         </box>
       </SectionRequestBody>
-    </Section>
+    </SectionWithHeaderAction>
   )
 }

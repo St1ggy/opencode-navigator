@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { createMcpController } from "../src/controllers/mcp"
+import { createMcpController, matchingMcpPreset } from "../src/controllers/mcp"
 import type { DesiredMcpState } from "../src/preferences-schema"
 
 function deferred<Value>() {
@@ -13,6 +13,21 @@ function deferred<Value>() {
   return { promise, resolve, reject }
 }
 
+test("matches MCP presets by the complete live server states", () => {
+  const items = [
+    { name: "wiki", status: "connected" as const },
+    { name: "tracker", status: "disabled" as const },
+  ]
+  const states = { wiki: "enabled" as const, tracker: "disabled" as const }
+  expect(matchingMcpPreset(items, { Work: states })).toBe("Work")
+  expect(matchingMcpPreset(items, { Partial: { wiki: "enabled" } })).toBeUndefined()
+  expect(matchingMcpPreset(items, { Extra: { ...states, other: "disabled" } })).toBeUndefined()
+  expect(matchingMcpPreset(items, { Different: { ...states, tracker: "enabled" } })).toBeUndefined()
+  expect(matchingMcpPreset([{ name: "wiki", status: "failed" }], { Work: { wiki: "disabled" } })).toBeUndefined()
+  expect(matchingMcpPreset([], { Empty: {} })).toBeUndefined()
+  expect(matchingMcpPreset(items, { Work: states, Focus: states })).toBe("Focus")
+})
+
 function preferences(initial: Record<string, DesiredMcpState> = {}) {
   let values = { ...initial }
   return {
@@ -21,6 +36,9 @@ function preferences(initial: Record<string, DesiredMcpState> = {}) {
       desiredMcpState: (_scope: string, name: string) => values[name],
       setDesiredMcpState: (_scope: string, name: string, state: DesiredMcpState) => {
         values = { ...values, [name]: state }
+      },
+      setDesiredMcpStates: (_scope: string, states: Record<string, DesiredMcpState>) => {
+        values = { ...values, ...states }
       },
     },
     values: () => values,
@@ -384,4 +402,180 @@ test("a context change leaves an aborted bulk operation idle instead of successf
   controller.deactivate(current)
   await request
   expect(controller.bulkState(current)).toMatchObject({ action: "connect", status: "idle", completed: 0, failed: [] })
+})
+
+test("applies mixed MCP presets and retries only failed actions", async () => {
+  const states: Record<string, string> = { context7: "connected", tracker: "disabled", wiki: "connected" }
+  const calls: string[] = []
+  let trackerFails = true
+  const saved = preferences()
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/repo", directory: "/repo" },
+      mcp: () => Object.entries(states).map(([name, status]) => ({ name, status })),
+    },
+    client: {
+      mcp: {
+        status: () =>
+          Promise.resolve({
+            data: Object.fromEntries(Object.entries(states).map(([name, status]) => [name, { status }])),
+          }),
+        connect: ({ name }: { name: string }) => {
+          calls.push(`connect:${name}`)
+          if (name === "tracker" && trackerFails) return Promise.reject(new Error("tracker unavailable"))
+          states[name] = "connected"
+          return Promise.resolve({ data: true as const })
+        },
+        disconnect: ({ name }: { name: string }) => {
+          calls.push(`disconnect:${name}`)
+          states[name] = "disabled"
+          return Promise.resolve({ data: true as const })
+        },
+      },
+    },
+    ui: { toast: () => {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => true, saved.access)
+  await controller.refresh()
+
+  await controller.applyPreset("Focus", {
+    context7: "disabled",
+    tracker: "enabled",
+    wiki: "enabled",
+    future: "disabled",
+  })
+  expect(calls).toEqual(["disconnect:context7", "connect:tracker"])
+  expect(saved.values()).toEqual({ context7: "disabled", tracker: "enabled", wiki: "enabled", future: "disabled" })
+  expect(controller.selectedPreset()).toBe("Focus")
+  expect(controller.bulkState()).toMatchObject({
+    action: "preset",
+    preset: "Focus",
+    status: "error",
+    failed: ["tracker"],
+  })
+
+  trackerFails = false
+  await controller.retryBulk()
+  expect(calls).toEqual(["disconnect:context7", "connect:tracker", "connect:tracker"])
+  expect(controller.bulkState()).toMatchObject({ action: "preset", preset: "Focus", status: "ready", failed: [] })
+  controller.renameSelectedPreset("Focus")
+  expect(controller.selectedPreset()).toBeUndefined()
+})
+
+test("does not apply a preset during an individual mutation", async () => {
+  const pending = deferred<{ data: true }>()
+  const saved = preferences()
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/repo", directory: "/repo" },
+      mcp: () => [{ name: "wiki", status: "disabled" }],
+    },
+    client: {
+      mcp: {
+        connect: () => pending.promise,
+        disconnect: () => Promise.resolve({ data: true }),
+        status: () => Promise.resolve({ data: { wiki: { status: "disabled" } } }),
+      },
+    },
+    ui: { toast: () => {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => true, saved.access)
+
+  const mutation = controller.toggle("wiki")
+  expect(controller.mutating()).toBe(true)
+  expect(controller.applyPreset("Disabled", { wiki: "disabled" })).toBeUndefined()
+  expect(controller.selectedPreset()).toBeUndefined()
+  expect(saved.values()).toEqual({ wiki: "enabled" })
+  pending.resolve({ data: true })
+  await mutation
+})
+
+test("a successful row retry clears its stale bulk failure", async () => {
+  let fails = true
+  let calls = 0
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/repo", directory: "/repo" },
+      mcp: () => [{ name: "wiki", status: "disabled" }],
+    },
+    client: {
+      mcp: {
+        connect: () => {
+          calls++
+          return fails ? Promise.reject(new Error("unavailable")) : Promise.resolve({ data: true })
+        },
+        disconnect: () => Promise.resolve({ data: true }),
+        status: () => Promise.resolve({ data: { wiki: { status: "disabled" } } }),
+      },
+    },
+    ui: { toast: () => {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => false, preferences().access)
+
+  await controller.connectAll()
+  expect(controller.bulkState()).toMatchObject({ status: "error", failed: ["wiki"] })
+  fails = false
+  await controller.retryServer("wiki")
+  expect(controller.bulkState()).toMatchObject({ status: "ready", failed: [] })
+  expect(controller.retryBulk()).toBeUndefined()
+  expect(calls).toBe(2)
+})
+
+test("updating a failed preset invalidates its old retry plan", async () => {
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/repo", directory: "/repo" },
+      mcp: () => [{ name: "wiki", status: "disabled" }],
+    },
+    client: {
+      mcp: {
+        connect: () => Promise.reject(new Error("unavailable")),
+        disconnect: () => Promise.resolve({ data: true }),
+        status: () => Promise.resolve({ data: { wiki: { status: "disabled" } } }),
+      },
+    },
+    ui: { toast: () => {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => false, preferences().access)
+
+  await controller.applyPreset("Work", { wiki: "enabled" })
+  expect(controller.bulkState()).toMatchObject({ status: "error", failed: ["wiki"] })
+  controller.updateSelectedPreset("Work")
+  expect(controller.bulkState()).toMatchObject({ status: "idle", failed: [], total: 0 })
+  expect(controller.retryBulk()).toBeUndefined()
+})
+
+test("external MCP changes clear a selected preset indicator", async () => {
+  let status = "connected"
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/repo", directory: "/repo" },
+      mcp: () => [{ name: "wiki", status }],
+    },
+    client: {
+      mcp: {
+        connect: () => Promise.resolve({ data: true }),
+        disconnect: () => Promise.resolve({ data: true }),
+        status: () => Promise.resolve({ data: { wiki: { status } } }),
+      },
+    },
+    ui: { toast: () => {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => false, preferences().access)
+
+  await controller.applyPreset("Work", { wiki: "enabled" })
+  expect(controller.selectedPreset()).toBe("Work")
+  status = "disabled"
+  await controller.refresh(undefined, true)
+  expect(controller.selectedPreset()).toBeUndefined()
 })

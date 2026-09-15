@@ -1,7 +1,7 @@
 import type { TuiPluginApi, TuiSidebarMcpItem } from "@opencode-ai/plugin/tui"
 import { createSignal } from "solid-js"
 import { currentLocation } from "../location"
-import { preferencesScope } from "../preferences-schema"
+import { preferencesScope, type DesiredMcpStates, type McpPresets } from "../preferences-schema"
 import { mcpToggleAction } from "../state"
 import type { McpPreferencesAccess } from "./preferences"
 import { createRequestState, isAbortError, retryBackgroundRefresh } from "./request-state"
@@ -15,11 +15,31 @@ type McpTarget = {
 type McpAction = "connect" | "disconnect"
 
 export type McpBulkState = {
-  action: McpAction
+  action: McpAction | "preset"
+  preset?: string
   status: "idle" | "running" | "ready" | "error"
   completed: number
   total: number
   failed: string[]
+}
+
+type McpChange = { name: string; action: McpAction }
+
+export function matchingMcpPreset(items: ReadonlyArray<TuiSidebarMcpItem>, presets: McpPresets) {
+  if (!items.length) return
+  return Object.keys(presets)
+    .sort((left, right) => left.localeCompare(right))
+    .find((name) => {
+      const states = presets[name]
+      return (
+        Object.keys(states).length === items.length &&
+        items.every(
+          (item) =>
+            (item.status === "connected" && states[item.name] === "enabled") ||
+            (item.status === "disabled" && states[item.name] === "disabled"),
+        )
+      )
+    })
 }
 
 function statusError(status: unknown) {
@@ -32,10 +52,13 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
   const [snapshots, setSnapshots] = createSignal<Record<string, ReadonlyArray<TuiSidebarMcpItem>>>({})
   const [mutationCounts, setMutationCounts] = createSignal<Record<string, number>>({})
   const [bulkStates, setBulkStates] = createSignal<Record<string, McpBulkState>>({})
+  const [selectedPresets, setSelectedPresets] = createSignal<Record<string, string>>({})
   const refreshing = new Map<string, Promise<ReadonlyArray<TuiSidebarMcpItem>>>()
   const mutations = new Map<string, Promise<void>>()
   const mutationRetries = new Map<string, () => Promise<void>>()
   const bulkGenerations = new Map<string, number>()
+  const bulkRetries = new Map<string, McpChange[]>()
+  const selectedPresetStates = new Map<string, DesiredMcpStates>()
   const requests = createRequestState(api.lifecycle?.signal)
   const serverRequests = createRequestState(api.lifecycle?.signal)
   let activation = 0
@@ -83,6 +106,57 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     return JSON.stringify([current.key, name])
   }
 
+  function mutating(current = target()) {
+    return (mutationCounts()[current.key] ?? 0) > 0
+  }
+
+  function resetSelectedPreset(current: McpTarget) {
+    selectedPresetStates.delete(current.key)
+    setSelectedPresets((values) => {
+      const next = { ...values }
+      delete next[current.key]
+      return next
+    })
+  }
+
+  function invalidatePresetOperation(current: McpTarget, name: string) {
+    const state = bulkStates()[current.key]
+    if (state?.action !== "preset" || state.preset !== name) return
+    bulkRetries.delete(current.key)
+    setBulkStates((values) => ({
+      ...values,
+      [current.key]: { ...state, status: "idle", completed: 0, total: 0, failed: [] },
+    }))
+  }
+
+  function reconcileSelectedPreset(current: McpTarget, items: ReadonlyArray<TuiSidebarMcpItem>) {
+    const states = selectedPresetStates.get(current.key)
+    const bulk = bulkStates()[current.key]
+    if (!states || (bulk?.action === "preset" && (bulk.status === "running" || bulk.status === "error"))) return
+    const changed = items.some((item) => {
+      const desired = states[item.name]
+      if (!desired) return false
+      return (item.status === "connected" ? "enabled" : "disabled") !== desired
+    })
+    if (changed) resetSelectedPreset(current)
+  }
+
+  function clearBulkFailure(current: McpTarget, name: string) {
+    setBulkStates((values) => {
+      const state = values[current.key]
+      if (!state || state.status !== "error" || !state.failed.includes(name)) return values
+      const failed = state.failed.filter((candidate) => candidate !== name)
+      bulkRetries.set(
+        current.key,
+        (bulkRetries.get(current.key) ?? []).filter((candidate) => candidate.name !== name),
+      )
+      return {
+        ...values,
+        [current.key]: { ...state, status: failed.length > 0 ? "error" : "ready", failed },
+      }
+    })
+  }
+
   function list(current = target()) {
     return snapshots()[current.key] ?? api.state.mcp()
   }
@@ -100,6 +174,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
           .map(([name, status]) => ({ name, status: status.status, error: statusError(status) }))
           .sort((a, b) => a.name.localeCompare(b.name))
         if (requestState.isCurrent()) setSnapshots((value) => ({ ...value, [current.key]: items }))
+        if (requestState.isCurrent()) reconcileSelectedPreset(current, items)
         requestState.succeed()
         return items
       })
@@ -137,6 +212,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
       .then(() => {
         requestState.succeed()
         mutationRetries.delete(key)
+        clearBulkFailure(current, name)
       })
       .catch((cause) => {
         requestState.fail(cause)
@@ -167,6 +243,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     if (!action || mutations.has(serverKey(current, name))) return
 
     activation += 1
+    resetSelectedPreset(current)
     save(current, name, action === "disconnect")
     await changeServer(current, name, action)
   }
@@ -225,55 +302,62 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     )
   }
 
-  async function changeAll(action: McpAction, current = target(), names?: string[]) {
+  async function changeMany(
+    operation: { action: McpAction | "preset"; preset?: string },
+    changes: McpChange[],
+    current = target(),
+  ) {
+    if (mutating(current)) return
     setActive(current)
     const generation = (bulkGenerations.get(current.key) ?? 0) + 1
     bulkGenerations.set(current.key, generation)
-    const candidates =
-      names ??
-      list(current)
-        .filter((item) => mcpToggleAction(item.status) === action)
-        .map((item) => item.name)
     setBulkStates((values) => ({
       ...values,
-      [current.key]: { action, status: "running", completed: 0, total: candidates.length, failed: [] },
+      [current.key]: { ...operation, status: "running", completed: 0, total: changes.length, failed: [] },
     }))
-    if (candidates.length === 0) {
+    if (changes.length === 0) {
       setBulkStates((values) => ({
         ...values,
-        [current.key]: { action, status: "ready", completed: 0, total: 0, failed: [] },
+        [current.key]: { ...operation, status: "ready", completed: 0, total: 0, failed: [] },
       }))
       return
     }
 
     const failed: string[] = []
+    const retry: McpChange[] = []
     await Promise.all(
-      candidates.map(async (name) => {
-        save(current, name, action === "disconnect")
+      changes.map(async ({ name, action }) => {
+        if (operation.action !== "preset") save(current, name, action === "disconnect")
         try {
-          await changeServer(current, name, action, `${action} all MCP servers`, false)
+          const description =
+            operation.action === "preset" ? `apply ${operation.preset} MCP preset` : `${action} all MCP servers`
+          await changeServer(current, name, action, description, false)
         } catch (cause) {
-          if (!isAbortError(cause)) failed.push(name)
+          if (!isAbortError(cause)) {
+            failed.push(name)
+            retry.push({ name, action })
+          }
         } finally {
           setBulkStates((values) => {
             if (bulkGenerations.get(current.key) !== generation) return values
             const state = values[current.key]
-            if (!state || state.action !== action) return values
+            if (!state || state.action !== operation.action) return values
             return { ...values, [current.key]: { ...state, completed: state.completed + 1 } }
           })
         }
       }),
     )
     if (bulkGenerations.get(current.key) !== generation) return
+    bulkRetries.set(current.key, retry)
     if (activeTarget === current.key) await refresh(current, true).catch(() => {})
     failed.sort((left, right) => left.localeCompare(right))
     setBulkStates((values) => ({
       ...values,
       [current.key]: {
-        action,
+        ...operation,
         status: failed.length > 0 ? "error" : "ready",
-        completed: candidates.length,
-        total: candidates.length,
+        completed: changes.length,
+        total: changes.length,
         failed,
       },
     }))
@@ -281,7 +365,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
       api.ui.toast({
         variant: "warning",
         title: "MCP servers",
-        message: `Could not ${action}: ${failed.join(", ")}`,
+        message: `Could not ${operation.action === "preset" ? `apply ${operation.preset}` : operation.action}: ${failed.join(", ")}`,
         duration: 4000,
       })
     }
@@ -321,20 +405,78 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     retryServer(name: string, current = target()) {
       return mutationRetries.get(serverKey(current, name))?.()
     },
-    mutating(current = target()) {
-      return (mutationCounts()[current.key] ?? 0) > 0
-    },
+    mutating,
     bulkState,
+    selectedPreset(current = target()) {
+      return selectedPresets()[current.key]
+    },
+    capturePreset(current = target()): DesiredMcpStates {
+      return Object.fromEntries(
+        list(current).map((item) => [item.name, item.status === "connected" ? "enabled" : "disabled"]),
+      ) as DesiredMcpStates
+    },
+    applyPreset(name: string, states: Record<string, "enabled" | "disabled">, current = target()) {
+      if (mutating(current)) return
+      const items = new Map(list(current).map((item) => [item.name, item]))
+      const changes = Object.entries(states).flatMap(([server, desired]) => {
+        const item = items.get(server)
+        const action = item && mcpToggleAction(item.status)
+        if ((desired === "enabled" && action === "connect") || (desired === "disabled" && action === "disconnect")) {
+          return [{ name: server, action }]
+        }
+        return []
+      })
+      if (persist()) {
+        if (preferences.setDesiredMcpStates) preferences.setDesiredMcpStates(current.scope, states)
+        else {
+          for (const [server, state] of Object.entries(states)) {
+            preferences.setDesiredMcpState(current.scope, server, state)
+          }
+        }
+      }
+      setSelectedPresets((values) => ({ ...values, [current.key]: name }))
+      selectedPresetStates.set(current.key, { ...states })
+      return changeMany({ action: "preset", preset: name }, changes, current)
+    },
+    updateSelectedPreset(name: string, current = target()) {
+      invalidatePresetOperation(current, name)
+      if (selectedPresets()[current.key] === name) resetSelectedPreset(current)
+    },
+    renameSelectedPreset(previous: string, current = target()) {
+      invalidatePresetOperation(current, previous)
+      if (selectedPresets()[current.key] === previous) resetSelectedPreset(current)
+    },
+    clearSelectedPreset(name: string, current = target()) {
+      invalidatePresetOperation(current, name)
+      if (selectedPresets()[current.key] === name) resetSelectedPreset(current)
+    },
     connectAll(current = target()) {
-      return changeAll("connect", current)
+      if (mutating(current)) return
+      resetSelectedPreset(current)
+      return changeMany(
+        { action: "connect" },
+        list(current)
+          .filter((item) => mcpToggleAction(item.status) === "connect")
+          .map((item) => ({ name: item.name, action: "connect" })),
+        current,
+      )
     },
     disconnectAll(current = target()) {
-      return changeAll("disconnect", current)
+      if (mutating(current)) return
+      resetSelectedPreset(current)
+      return changeMany(
+        { action: "disconnect" },
+        list(current)
+          .filter((item) => mcpToggleAction(item.status) === "disconnect")
+          .map((item) => ({ name: item.name, action: "disconnect" })),
+        current,
+      )
     },
     retryBulk(current = target()) {
       const state = bulkState(current)
       if (state.status !== "error" || state.failed.length === 0) return
-      return changeAll(state.action, current, state.failed)
+      const changes = bulkRetries.get(current.key) ?? []
+      return changeMany({ action: state.action, ...(state.preset ? { preset: state.preset } : {}) }, changes, current)
     },
   }
 }

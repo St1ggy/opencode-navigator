@@ -16,6 +16,7 @@ export type SectionLayoutDefault = {
 export type DesiredMcpState = "enabled" | "disabled"
 export type DesiredMcpStates = Record<string, DesiredMcpState>
 export type LayoutPresets = Record<string, SectionLayoutDefault>
+export type McpPresets = Record<string, DesiredMcpStates>
 
 export type PreferenceValues = {
   behavior?: Partial<PluginSettings>
@@ -30,6 +31,8 @@ export type PreferencesDocument = {
     skippedSkillConfirmations?: string[]
     onboardingCompleted?: boolean
     layoutPresets?: LayoutPresets
+    mcpPresets?: McpPresets
+    favoriteSkills?: string[]
   }
 }
 
@@ -123,6 +126,23 @@ export function parseDesiredMcpStates(value: unknown): DesiredMcpStates {
   )
 }
 
+export function parseMcpPresets(value: unknown): McpPresets {
+  const input = record(value)
+  if (!input) return {}
+  const presets: McpPresets = {}
+  const names = new Set<string>()
+  for (const [candidate, value] of Object.entries(input).sort(([left], [right]) => left.localeCompare(right))) {
+    const name = candidate.trim().slice(0, 64)
+    const states = parseDesiredMcpStates(value)
+    const key = name.toLocaleLowerCase()
+    if (name && !names.has(key) && Object.keys(states).length > 0 && Object.keys(presets).length < 50) {
+      names.add(key)
+      presets[name] = states
+    }
+  }
+  return presets
+}
+
 function parseStringList(value: unknown) {
   if (!Array.isArray(value)) return
   return [...new Set(value.filter((item): item is string => typeof item === "string" && item.length > 0))].sort()
@@ -165,6 +185,8 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   const userInput = record(input.user)
   const skippedSkillConfirmations = parseStringList(userInput?.skippedSkillConfirmations)
   const layoutPresets = parseLayoutPresets(userInput?.layoutPresets)
+  const mcpPresets = parseMcpPresets(userInput?.mcpPresets)
+  const favoriteSkills = parseStringList(userInput?.favoriteSkills)
 
   return {
     global: {
@@ -179,6 +201,8 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
         ? { onboardingCompleted: userInput.onboardingCompleted }
         : {}),
       ...(Object.keys(layoutPresets).length > 0 ? { layoutPresets } : {}),
+      ...(Object.keys(mcpPresets).length > 0 ? { mcpPresets } : {}),
+      ...(favoriteSkills ? { favoriteSkills } : {}),
     },
   }
 }

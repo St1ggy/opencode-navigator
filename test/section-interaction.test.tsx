@@ -3,6 +3,7 @@ import { expect, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
 import { createSignal } from "solid-js"
+import { McpPresetMenu } from "../src/dialogs/mcp-presets"
 import {
   FirstRunWizard,
   LspBadge,
@@ -204,6 +205,62 @@ test("the built Skills section filters by name and description", async () => {
   }
 })
 
+test("the built Skills section keeps favorites first and toggles them independently", async () => {
+  const items = [
+    { name: "commit", description: "Create commits", location: "/skills/commit", content: "" },
+    { name: "review-code", description: "Review changes", location: "/skills/review", content: "" },
+  ]
+  const [favorites, setFavorites] = createSignal(new Set(["/skills/review"]))
+  const api = {
+    theme: { current: sidebarTheme },
+    ui: { dialog: { replace: () => {} }, toast: () => {} },
+  } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: "test", routing: { directory: "/test" } }),
+    list: () => items,
+    state: () => ({ status: "ready" }),
+    refresh: async () => items,
+    retry: async () => items,
+    use: async () => {},
+  }
+  const preferences = {
+    expanded: () => expandedLayout,
+    toggleSectionExpanded: () => {},
+    shouldConfirmSkill: () => false,
+    favoriteSkills: favorites,
+    isFavoriteSkill: (item: (typeof items)[number]) => favorites().has(item.location),
+    toggleFavoriteSkill: (item: (typeof items)[number]) => {
+      const next = new Set(favorites())
+      if (next.has(item.location)) next.delete(item.location)
+      else next.add(item.location)
+      setFavorites(next)
+    },
+  }
+  const setup = await testRender(() => <SkillsSection api={api} controller={controller} preferences={preferences} />, {
+    width: 44,
+    height: 8,
+  })
+
+  try {
+    await setup.renderOnce()
+    const frame = setup.captureCharFrame()
+    expect(frame.indexOf("review-code")).toBeLessThan(frame.indexOf("commit"))
+    const lines = frame.split("\n")
+    const reviewLine = lines.findIndex((line) => line.includes("review-code"))
+    expect(lines[reviewLine + 1].trim()).toBe("")
+    expect(lines[reviewLine + 2]).toContain("commit")
+    await setup.mockMouse.click(lines[reviewLine].indexOf("★"), reviewLine)
+    await setup.renderOnce()
+    expect(favorites().has("/skills/review")).toBe(false)
+    expect(setup.captureCharFrame().indexOf("commit")).toBeLessThan(setup.captureCharFrame().indexOf("review-code"))
+    const updatedLines = setup.captureCharFrame().split("\n")
+    const commitLine = updatedLines.findIndex((line) => line.includes("commit"))
+    expect(updatedLines[commitLine + 1]).toContain("review-code")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
 test("the built MCP section filters servers by name", async () => {
   const items = [
     { name: "context7", status: "connected" },
@@ -247,6 +304,108 @@ test("the built MCP section filters servers by name", async () => {
   } finally {
     setup.renderer.destroy()
   }
+})
+
+test("the built MCP section opens its preset selector from the header", async () => {
+  let opened = 0
+  let toggled = 0
+  const [selectedPreset, setSelectedPreset] = createSignal<string | undefined>("Work")
+  const [status, setStatus] = createSignal("connected")
+  const api = {
+    theme: { current: sidebarTheme },
+    ui: {
+      dialog: { replace: () => opened++, setSize: () => {} },
+      toast: () => {},
+    },
+  } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: "test", scope: "/test", routing: { directory: "/test" } }),
+    list: () => [{ name: "wiki", status: status() }],
+    state: () => ({ status: "ready" }),
+    retry: async () => {},
+    serverState: () => ({ status: "ready" }),
+    retryServer: async () => {},
+    toggle: async () => {},
+    selectedPreset,
+  }
+  const preferences = {
+    expanded: () => ({ ...expandedLayout, mcp: false }),
+    toggleSectionExpanded: () => toggled++,
+    mcpPresets: () => ({ Work: { wiki: "enabled" } }),
+  }
+  const setup = await testRender(() => <McpSection api={api} controller={controller} preferences={preferences} />, {
+    width: 44,
+    height: 3,
+  })
+
+  try {
+    await setup.renderOnce()
+    const line = setup.captureCharFrame().split("\n")[0]
+    expect(line).toContain("Preset: Work")
+    await setup.mockMouse.pressDown(line.indexOf("Work"), 0)
+    expect(opened).toBe(0)
+    expect(toggled).toBe(0)
+    await setup.mockMouse.release(line.indexOf("Work"), 0)
+    expect(opened).toBe(1)
+    expect(toggled).toBe(0)
+    setSelectedPreset(undefined)
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain("Preset: Work")
+    setStatus("disabled")
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).not.toContain("Preset: Work")
+    expect(setup.captureCharFrame()).toContain("Preset")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("MCP preset menu displays titles above subtitles and supports keyboard and mouse", async () => {
+  let layer: { commands: Array<{ name: string; run: () => void }> } | undefined
+  let cleaned = false
+  const selected: string[] = []
+  const api = {
+    theme: { current: sidebarTheme },
+    keymap: {
+      registerLayer: (value: typeof layer) => {
+        layer = value
+        return () => {
+          cleaned = true
+        }
+      },
+    },
+    ui: { dialog: { clear: () => {} } },
+  } as unknown as TuiPluginApi
+  const options = [
+    { title: "Save current", description: "Create a preset from the current server states", value: "save" },
+    { title: "Work", description: "2/3 enabled", value: "work" },
+  ]
+  const setup = await testRender(
+    () => (
+      <McpPresetMenu
+        api={api}
+        title="MCP presets"
+        options={options}
+        onSelect={(option) => selected.push(option.value)}
+      />
+    ),
+    { width: 60, height: 12 },
+  )
+  try {
+    await setup.renderOnce()
+    const lines = setup.captureCharFrame().split("\n")
+    const saveLine = lines.findIndex((line) => line.includes("Save current"))
+    expect(lines[saveLine + 1]).toContain(options[0].description)
+    expect(setup.captureCharFrame()).not.toContain("…")
+    layer?.commands.find((command) => command.name.endsWith(".next"))?.run()
+    layer?.commands.find((command) => command.name.endsWith(".select"))?.run()
+    expect(selected).toEqual(["work"])
+    await setup.mockMouse.click(lines[saveLine].indexOf("Save current"), saveLine)
+    expect(selected).toEqual(["work", "save"])
+  } finally {
+    setup.renderer.destroy()
+  }
+  expect(cleaned).toBe(true)
 })
 
 test("the built Skills section keeps cached rows visible with an inline retry", async () => {

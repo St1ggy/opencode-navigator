@@ -5,11 +5,13 @@ import {
   emptyPreferencesDocument,
   parseDesiredMcpStates,
   parseLayoutPresets,
+  parseMcpPresets,
   parsePluginSettings,
   parsePreferencesDocument,
   parseSectionLayout,
   type DesiredMcpState,
   type LayoutPresets,
+  type McpPresets,
   type PluginSettings,
   type PreferencesDocument,
   type SectionLayoutDefault,
@@ -31,6 +33,13 @@ export type PreferencesUpdate = {
     onboardingCompleted?: boolean
     layoutPresets?: LayoutPresets
     layoutPreset?: { name: string; layout?: SectionLayoutDefault; previousName?: string }
+    mcpPresets?: McpPresets
+    mcpPreset?:
+      | { operation: "save" | "update"; name: string; states: Record<string, DesiredMcpState> }
+      | { operation: "rename"; name: string; previousName: string }
+      | { operation: "delete"; name: string }
+    favoriteSkills?: string[]
+    favoriteSkill?: { location: string; favorite: boolean }
   }
   mcp?: {
     scope?: string
@@ -107,6 +116,42 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     else if (name) delete layoutPresets[name]
   }
   const parsedLayoutPresets = parseLayoutPresets(layoutPresets)
+  const mcpPresets = { ...(update.user?.mcpPresets ?? current.user.mcpPresets) }
+  const mcpPresetUpdate = update.user?.mcpPreset
+  if (mcpPresetUpdate) {
+    const requested = mcpPresetUpdate.name.trim().slice(0, 64)
+    const existing = Object.keys(mcpPresets).find((name) => name.toLocaleLowerCase() === requested.toLocaleLowerCase())
+    if (mcpPresetUpdate.operation === "save" && requested && !existing && Object.keys(mcpPresets).length < 50) {
+      const states = parseDesiredMcpStates(mcpPresetUpdate.states)
+      if (Object.keys(states).length > 0) mcpPresets[requested] = states
+    }
+    if (mcpPresetUpdate.operation === "update" && existing) {
+      const states = parseDesiredMcpStates(mcpPresetUpdate.states)
+      if (Object.keys(states).length > 0) mcpPresets[existing] = states
+    }
+    if (mcpPresetUpdate.operation === "rename" && requested) {
+      const previous = Object.keys(mcpPresets).find(
+        (name) => name.toLocaleLowerCase() === mcpPresetUpdate.previousName.toLocaleLowerCase(),
+      )
+      if (previous && (!existing || existing === previous)) {
+        const states = mcpPresets[previous]
+        delete mcpPresets[previous]
+        mcpPresets[requested] = states
+      }
+    }
+    if (mcpPresetUpdate.operation === "delete" && existing) delete mcpPresets[existing]
+  }
+  const parsedMcpPresets = parseMcpPresets(mcpPresets)
+  const favoriteSkills = update.user?.favoriteSkills
+    ? parseSkillConfirmations(update.user.favoriteSkills)
+    : [...(current.user.favoriteSkills ?? [])]
+  const favoriteSkill = update.user?.favoriteSkill
+  if (favoriteSkill?.location) {
+    const index = favoriteSkills.indexOf(favoriteSkill.location)
+    if (favoriteSkill.favorite && index < 0) favoriteSkills.push(favoriteSkill.location)
+    if (!favoriteSkill.favorite && index >= 0) favoriteSkills.splice(index, 1)
+    favoriteSkills.sort()
+  }
 
   return {
     global: target.kind === "global" ? scope : current.global,
@@ -119,6 +164,8 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
           ? { onboardingCompleted: current.user.onboardingCompleted }
           : {}),
       ...(Object.keys(parsedLayoutPresets).length > 0 ? { layoutPresets: parsedLayoutPresets } : {}),
+      ...(Object.keys(parsedMcpPresets).length > 0 ? { mcpPresets: parsedMcpPresets } : {}),
+      ...(favoriteSkills.length > 0 ? { favoriteSkills } : {}),
     },
   }
 }

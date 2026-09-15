@@ -80,6 +80,11 @@ describe("preferences schema", () => {
             },
             Empty: {},
           },
+          mcpPresets: {
+            " Work ": { wiki: "disabled", context7: "enabled", bad: "maybe" },
+            Empty: {},
+          },
+          favoriteSkills: ["/skills/review", 42, "/skills/review", "/skills/commit"],
           unknown: true,
         },
         unknown: true,
@@ -115,6 +120,8 @@ describe("preferences schema", () => {
             order: ["mcp", "todo", "subagents", "skills", "quick_actions", "lsp"],
           },
         },
+        mcpPresets: { Work: { context7: "enabled", wiki: "disabled" } },
+        favoriteSkills: ["/skills/commit", "/skills/review"],
       },
     } satisfies PreferencesDocument)
   })
@@ -122,6 +129,13 @@ describe("preferences schema", () => {
   test("rejects structurally malformed documents", () => {
     expect(() => parsePreferencesDocument([])).toThrow("Invalid preferences document")
     expect(() => parsePreferencesDocument(null)).toThrow("Invalid preferences document")
+  })
+
+  test("normalizes MCP preset names case-insensitively", () => {
+    const presets = parsePreferencesDocument({
+      user: { mcpPresets: { Work: { wiki: "enabled" }, work: { wiki: "disabled" } } },
+    }).user.mcpPresets
+    expect(Object.keys(presets ?? {})).toHaveLength(1)
   })
 
   test("resolves supported values leaf-wise in session, worktree, global, option, built-in order", () => {

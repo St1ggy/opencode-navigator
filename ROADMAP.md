@@ -52,7 +52,7 @@ verification workflow before expanding the product surface.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
 - [x] Limit the published package to the license, README, bundle, and package metadata.
 - [x] Run TypeScript, Oxlint, and Prettier checks through `bun run check`.
-- [x] Enforce a 180,000-byte raw bundle budget through `bun run check` and CI.
+- [x] Enforce a 210,000-byte raw bundle budget through `bun run check` and CI.
 
 ### Keyboard Navigation
 
@@ -78,7 +78,7 @@ verification workflow before expanding the product surface.
 - [ ] Preview layout presets before applying them.
 - [~] Configurable section ordering exists; row density and visible-row limits remain planned.
 - [x] Save layout defaults globally or for the current worktree using the unified persistence model.
-- [ ] Save desired MCP server state as named presets, preview changes, and apply them with per-server progress and partial-failure retry.
+- [~] Named MCP state presets support save, apply, update, rename, delete, per-server progress, and partial-failure retry; change previews remain planned.
 - [x] Add `Connect all` and `Disconnect all` with per-server progress, partial-failure reporting, and failed-only retry.
 - [ ] Optionally link one layout preset and one MCP preset as a workspace profile.
 
@@ -86,7 +86,7 @@ verification workflow before expanding the product surface.
 
 - [ ] Todo: filters, grouping, active/completed display modes, and status counts.
 - [ ] Subagents: runtime, retry countdown, recent completions, filters, failure attention, and parent-session navigation.
-- [ ] Skills: pinned and recent items, source details, fuzzy keyboard selection, and trusted-skill confirmation settings.
+- [~] Skills: user-wide favorites exist; recent items, source details, fuzzy keyboard selection, and trusted-skill confirmation settings remain planned.
 - [ ] Quick Actions: ordering, visibility, recent actions, registered commands, and route-aware disabled reasons.
 - [~] LSP: compact Nerd Font glyphs and text badges exist; sorting, expandable details, and actionable errors remain.
 - [~] MCP: filtering, pending rows, error text, individual and bulk connect/disconnect, and retry exist; grouping and pinning remain.

@@ -11,13 +11,14 @@ actions, and makes every MCP server clickable directly in the sidebar.
 - Theme-aware session title and activity indicator
 - First-run setup guide with interactive section settings
 - Collapsible Todo section with progress and priority indicators
-- Active subagent list with live statuses and click-to-open navigation
-- Compact, searchable workspace skill list with click-to-confirm slash commands
+- Active subagent list with live statuses and click-to-open navigation, including dev-team workers running on separate local OpenCode servers
+- Compact, searchable workspace skill list with user-wide favorites and click-to-confirm slash commands
 - Quick actions for rename, timeline, transcript copy, export, and compaction
 - Live LSP connection status with compact inline server icons and click-to-reveal names
 - Searchable MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
 - Connect or disconnect every eligible MCP server with per-server progress and failed-only retry
+- Save named MCP state presets and apply them from the MCP section heading
 - Persist enabled and disabled MCP server states globally or per worktree and reapply them between sessions
 - Show or hide each sidebar section independently
 - Configure section visibility and order from the sidebar settings button
@@ -144,7 +145,8 @@ worktree, then current-session order. Behavior changes apply immediately in the
 selected scope. Section visibility, expansion, and order remain in memory until
 `Save current layout as default` is selected. The layout, behavior, and
 remembered MCP-state resets remove only the selected scope's overrides, exposing
-inherited values again. Skill-confirmation choices remain user-wide. Preferences
+inherited values again. Skill-confirmation choices, favorite skills, and MCP
+presets remain user-wide. Preferences
 are stored in one unversioned, validated file under OpenCode's state directory.
 The initial layout-preset list is empty. `Save as…` captures current visibility,
 expansion, and section order; saved presets can be applied to the selected scope,
@@ -168,13 +170,20 @@ initializes. `Connect all` and `Disconnect all` run eligible server changes in
 parallel, retain successful results when some servers fail, and offer a retry for
 only the failed servers.
 
+Use the `Preset` selector in the MCP heading to save the current enabled/disabled
+state, apply a preset, update it from the current scope, rename it, or delete it.
+Preset application runs only the necessary server changes and keeps per-server
+progress and failed-only retry behavior. Servers in a preset that are not present
+in the current scope are retained as desired state but skipped at application time.
+
 Todo priorities are read-only because OpenCode does not expose a Todo mutation
 API to TUI plugins.
 
 Selecting a skill opens its description with Accept and Cancel controls before
 appending its `/<name>` command to the current prompt. Select "Don't show again
 for this skill" to skip that confirmation later. The sidebar settings dialog
-can restore skipped confirmations. Quick actions invoke OpenCode's built-in
+can restore skipped confirmations. Select the star beside a skill to keep it
+ahead of non-favorite skills in every workspace. Quick actions invoke OpenCode's built-in
 commands and display the active keybindings from your configuration.
 
 ## Scripts

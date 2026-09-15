@@ -60,17 +60,28 @@ export function useSidebarItem(
   }
 }
 
-export function Section(props: {
+type SectionProps = {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   sectionId?: string
   order?: number
   title: string
   summary: string
+  headerAction?: SectionHeaderAction
   open: boolean
   onToggle: () => void
   children: import("solid-js").JSX.Element
-}) {
+}
+
+type SectionHeaderAction = {
+  id: string
+  order: number
+  label: () => string
+  disabled: () => boolean
+  onActivate: () => void
+}
+
+export function Section(props: SectionProps) {
   const theme = () => props.api.theme.current
   const item = useSidebarItem(
     props.api,
@@ -82,6 +93,19 @@ export function Section(props: {
     },
     () => theme().text,
   )
+  const action = props.headerAction
+    ? useSidebarItem(
+        props.api,
+        props.interaction,
+        {
+          id: props.headerAction.id,
+          order: () => props.headerAction!.order,
+          disabled: props.headerAction.disabled,
+          activate: props.headerAction.onActivate,
+        },
+        () => theme().accent,
+      )
+    : undefined
 
   return (
     <box paddingLeft={1} paddingRight={1} gap={1}>
@@ -103,6 +127,26 @@ export function Section(props: {
           <b>{props.title}</b>
         </text>
         <box flexDirection="row" gap={1} flexShrink={0}>
+          <Show when={action}>
+            {(control) => (
+              <box
+                ref={(node: BoxRenderable) => control().ref(node)}
+                id={props.headerAction?.id}
+                backgroundColor={control().backgroundColor()}
+                onMouseOver={control().onMouseOver}
+                onMouseOut={control().onMouseOut}
+                onMouseDown={(event) => event.stopPropagation()}
+                onMouseUp={(event) => {
+                  event.stopPropagation()
+                  control().activate(event)
+                }}
+              >
+                <text fg={control().foregroundColor()} wrapMode="none">
+                  {props.headerAction?.label()}
+                </text>
+              </box>
+            )}
+          </Show>
           <text fg={item.focused() ? item.foregroundColor() : theme().textMuted}>{props.summary}</text>
         </box>
       </box>
@@ -110,6 +154,8 @@ export function Section(props: {
     </box>
   )
 }
+
+export const SectionWithHeaderAction = Section
 
 export function matchesFilter(query: string, ...values: Array<string | undefined>) {
   const needle = query.trim().toLocaleLowerCase()
