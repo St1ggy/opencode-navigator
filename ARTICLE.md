@@ -80,11 +80,11 @@ Skills берутся из текущего workspace. На скриншоте �
 
 ![Настройки сайдбара](screenshots/03-layout-settings.png)
 
-Настройки разделены на несколько коротких групп:
+Настройки разделены на несколько коротких вкладок:
 
-- `Preference scope` — глобальные значения или переопределения текущего worktree;
-- `Sections` — видимость Todo, Subagents, Skills, Quick actions, LSP и MCP;
-- `Section order` — порядок блоков, который меняется через `Shift+Up` и `Shift+Down`;
+- `Sections` — видимость и порядок Todo, Subagents, Skills, Quick actions, LSP и MCP; порядок меняется через `Left`/`Right` или `Shift+Up`/`Shift+Down`;
+- `Scope` — глобальные значения или переопределения текущего worktree;
+- `Presets` — сохранение, применение и редактирование именованных layout-пресетов;
 - `Behavior` — запоминание состояния MCP, стиль LSP-иконок, shortcut переключения и shortcut фокуса сайдбара;
 - `Defaults & help` — сохранение и сброс layout, возврат настроек из `tui.json`, очистка MCP-состояний, сброс подтверждений Skills и повторный запуск setup guide.
 
@@ -164,7 +164,7 @@ opencode plugin --global opencode-pretty-sidebar
 
 Пакет: [npm](https://www.npmjs.com/package/opencode-pretty-sidebar).
 
-Текущая версия на момент публикации — `0.6.0`.
+Текущая версия на момент публикации — `0.7.0`.
 
 ## Нужен фидбек
 
