@@ -21,8 +21,11 @@ export function createSubagentController(api: TuiPluginApi) {
   const refreshing = new Map<string, Promise<void>>()
   const journals = new Set<{ sessions: SessionMutation[]; statuses: StatusMutation[] }>()
   const targets = new Map<string, SubagentTarget>()
+  const remoteFailures = new Map<string, number>()
+  const remoteRetryAt = new Map<string, number>()
   const requests = createRequestState(api.lifecycle.signal)
   let activeTarget: string | undefined
+  let pollTimer: ReturnType<typeof setTimeout> | undefined
 
   function target(parentID: string): SubagentTarget {
     const parent = api.state.session.get(parentID)
@@ -51,6 +54,9 @@ export function createSubagentController(api: TuiPluginApi) {
   }
 
   function recordSession(mutation: SessionMutation) {
+    const sessionID = mutation.type === "upsert" ? mutation.info.id : mutation.sessionID
+    remoteFailures.delete(sessionID)
+    remoteRetryAt.delete(sessionID)
     for (const journal of journals) journal.sessions.push(mutation)
     setChildren((current) =>
       Object.fromEntries(
@@ -78,18 +84,40 @@ export function createSubagentController(api: TuiPluginApi) {
       journals.delete(journal)
       return pending!
     }
+    const signal = AbortSignal.any([requestState.signal, AbortSignal.timeout(5_000)])
     const request = Promise.all([
-      api.client.session.children(
-        { sessionID: current.parentID, ...current.routing },
-        { throwOnError: true, signal: requestState.signal },
-      ),
-      api.client.session.status(current.routing, { throwOnError: true, signal: requestState.signal }),
+      api.client.session.children({ sessionID: current.parentID, ...current.routing }, { throwOnError: true, signal }),
+      api.client.session.status(current.routing, { throwOnError: true, signal }),
     ])
-      .then(([childResult, statusResult]) => {
+      .then(async ([childResult, statusResult]) => {
         let nextChildren: ReadonlyArray<Session> = childResult.data ?? []
         for (const mutation of journal.sessions) nextChildren = applySession(nextChildren, current.parentID, mutation)
 
         let nextStatuses = { ...statusResult.data }
+        const remoteStatuses = await Promise.all(
+          nextChildren.map((session) =>
+            (remoteRetryAt.get(session.id) ?? 0) <= Date.now()
+              ? fetchDevTeamStatus(session, requestState.signal)
+              : undefined,
+          ),
+        )
+        if (!requestState.isCurrent()) return
+        for (const result of remoteStatuses) {
+          if (!result) continue
+          if (result.failed) {
+            const failures = (remoteFailures.get(result.sessionID) ?? 0) + 1
+            remoteFailures.set(result.sessionID, failures)
+            if (failures >= 3) remoteRetryAt.set(result.sessionID, Date.now() + 30_000)
+            const previous = statuses()[current.key]?.[result.sessionID]
+            if (failures <= 3 && previous) nextStatuses[result.sessionID] = previous
+            continue
+          }
+          remoteFailures.delete(result.sessionID)
+          remoteRetryAt.delete(result.sessionID)
+          if (result.status) nextStatuses[result.sessionID] = result.status
+          else delete nextStatuses[result.sessionID]
+        }
+        for (const mutation of journal.sessions) nextChildren = applySession(nextChildren, current.parentID, mutation)
         for (const mutation of journal.statuses) nextStatuses = applyStatus(nextStatuses, mutation)
 
         if (requestState.isCurrent()) {
@@ -144,7 +172,10 @@ export function createSubagentController(api: TuiPluginApi) {
         void retryBackgroundRefresh(() => refreshTarget(current), { signal: api.lifecycle.signal }).catch(() => {})
     }),
   ]
-  api.lifecycle.onDispose(() => unsubscribe.forEach((dispose) => dispose()))
+  api.lifecycle.onDispose(() => {
+    unsubscribe.forEach((dispose) => dispose())
+    if (pollTimer) clearTimeout(pollTimer)
+  })
 
   return {
     list,
@@ -162,10 +193,18 @@ export function createSubagentController(api: TuiPluginApi) {
         requests.abortAll()
         refreshing.clear()
         activeTarget = current.key
+        const poll = () => {
+          if (activeTarget !== current.key || api.lifecycle.signal.aborted) return
+          void refreshTarget(current).catch(() => {})
+          pollTimer = setTimeout(poll, 1_000)
+        }
+        pollTimer = setTimeout(poll, 1_000)
       }
       return () => {
         if (activeTarget !== current.key) return
         activeTarget = undefined
+        if (pollTimer) clearTimeout(pollTimer)
+        pollTimer = undefined
         requests.abortAll()
         refreshing.clear()
       }
@@ -173,6 +212,31 @@ export function createSubagentController(api: TuiPluginApi) {
     open(sessionID: string) {
       api.route.navigate("session", { sessionID })
     },
+  }
+}
+
+async function fetchDevTeamStatus(
+  session: Session,
+  signal: AbortSignal,
+): Promise<{ sessionID: string; status?: SessionStatus; failed?: boolean } | undefined> {
+  const metadata = session.metadata
+  const devTeam = metadata && typeof metadata.devTeam === "object" ? metadata.devTeam : undefined
+  const serverUrl = devTeam && "serverUrl" in devTeam ? devTeam.serverUrl : undefined
+  if (typeof serverUrl !== "string") return
+  try {
+    const url = new URL("/session/status", serverUrl)
+    if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) return
+    url.searchParams.set("directory", session.directory)
+    const response = await fetch(url, {
+      redirect: "error",
+      signal: AbortSignal.any([signal, AbortSignal.timeout(1_000)]),
+    })
+    if (!response.ok) return { sessionID: session.id, failed: true }
+    const statuses = (await response.json()) as Record<string, SessionStatus>
+    return { sessionID: session.id, status: statuses[session.id] }
+  } catch {
+    if (signal.aborted) return
+    return { sessionID: session.id, failed: true }
   }
 }
 
