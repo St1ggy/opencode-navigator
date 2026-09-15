@@ -1,10 +1,23 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { batch, createSignal } from "solid-js"
+import { createSignal } from "solid-js"
 import type { PluginConfig } from "../config"
 import { DEFAULT_SECTION_EXPANSION } from "../constants"
-import { emptyPreferencesDocument, type DesiredMcpState, type PluginSettings } from "../preferences-schema"
-import type { PreferencesStore } from "../preferences-store"
-import { resolveSectionVisibility, type SidebarSection } from "../state"
+import {
+  emptyPreferencesDocument,
+  resolvePreferences,
+  type DesiredMcpState,
+  type PreferenceValues,
+  type PreferencesDocument,
+  type ResolvedPreferences,
+  type ScopedPreferences,
+} from "../preferences-schema"
+import {
+  applyPreferencesUpdate,
+  type PreferencesStore,
+  type PreferencesUpdate,
+  type PreferenceTarget,
+} from "../preferences-store"
+import { SIDEBAR_SECTIONS, type SidebarSection } from "../state"
 import type { SkillInfo } from "./skills"
 
 export type McpPreferencesAccess = {
@@ -13,24 +26,49 @@ export type McpPreferencesAccess = {
   setDesiredMcpState(scope: string, name: string, state: DesiredMcpState): void
 }
 
+type PreferenceScope = "global" | "worktree"
+
+function targetKey(target: PreferenceTarget) {
+  return target.kind === "global" ? "global" : `worktree:${target.key}`
+}
+
+function targetForScope(scope: string): PreferenceTarget {
+  return scope === "global" ? { kind: "global" } : { kind: "worktree", key: scope }
+}
+
+function values(scope: ScopedPreferences | undefined): PreferenceValues | undefined {
+  if (!scope) return
+  return {
+    behavior: scope.behavior,
+    layout: scope.layout,
+    desiredMcpStates: scope.mcp,
+  }
+}
+
 export function createPreferencesController(api: TuiPluginApi, defaults: PluginConfig, store: PreferencesStore) {
-  const [sections, setSections] = createSignal(defaults.sections)
-  const [expanded, setExpanded] = createSignal(DEFAULT_SECTION_EXPANSION)
+  const builtIns: ResolvedPreferences = {
+    behavior: {
+      toggleKey: defaults.toggleKey,
+      focusKey: defaults.focusKey,
+      persistMcp: defaults.persistMcp,
+      lspIconStyle: defaults.lspIconStyle,
+    },
+    layout: {
+      sections: defaults.sections,
+      expanded: DEFAULT_SECTION_EXPANSION,
+      order: defaults.sectionOrder ?? [...SIDEBAR_SECTIONS],
+    },
+    desiredMcpStates: {},
+  }
+  const [resolved, setResolved] = createSignal(builtIns)
   const [skippedSkills, setSkippedSkills] = createSignal(new Set<string>())
-  const [toggleKey, setToggleKey] = createSignal(defaults.toggleKey)
-  const [focusKey, setFocusKey] = createSignal(defaults.focusKey)
-  const [persistMcp, setPersistMcp] = createSignal(defaults.persistMcp)
-  const [lspIconStyle, setLspIconStyle] = createSignal(defaults.lspIconStyle)
   const [onboardingCompleted, setOnboardingCompleted] = createSignal(false)
-  const pendingSectionValues = new Map<SidebarSection, boolean>()
-  const pendingExpandedValues = new Map<SidebarSection, boolean>()
-  const pendingSettings: Partial<PluginSettings> = {}
-  const pendingSkippedSkills = new Set<string>()
-  const pendingMcp = new Map<string, Map<string, DesiredMcpState>>()
-  let desiredMcpByScope: Record<string, Record<string, DesiredMcpState>> = {}
-  let resetLayoutPending = false
-  let resetSettingsPending = false
-  let resetSkillsPending = false
+  const [activeTarget, setActiveTarget] = createSignal<PreferenceTarget>({ kind: "global" })
+  const [preferenceScope, setPreferenceScope] = createSignal<PreferenceScope>("global")
+  const [revision, setRevision] = createSignal(0)
+  const sessionLayouts = new Map<string, ResolvedPreferences["layout"]>()
+  const pendingUpdates: PreferencesUpdate[] = []
+  let document: PreferencesDocument = emptyPreferencesDocument()
   let hydrated = false
   let hydration: Promise<void> | undefined
   let persistenceWarningShown = false
@@ -62,18 +100,58 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     }
   }
 
-  function persistSettings(settings: Partial<PluginSettings>) {
-    if (!hydrated) {
-      Object.assign(pendingSettings, settings)
-      return
+  function resolveTarget(target: PreferenceTarget, session = true) {
+    const worktree = target.kind === "worktree" ? document.worktrees[target.key] : undefined
+    const globalSession = session ? sessionLayouts.get("global") : undefined
+    const result = resolvePreferences({
+      builtIns,
+      global: {
+        ...values(document.global),
+        ...(globalSession ? { layout: globalSession } : {}),
+      },
+      worktree: values(worktree),
+      session: session && target.kind === "worktree" ? { layout: sessionLayouts.get(targetKey(target)) } : undefined,
+    })
+    return {
+      ...result,
+      behavior: {
+        ...result.behavior,
+        toggleKey: validKey(result.behavior.toggleKey) ? result.behavior.toggleKey : defaults.toggleKey,
+        focusKey: validKey(result.behavior.focusKey) ? result.behavior.focusKey : defaults.focusKey,
+      },
     }
-    persist(store.update({ behavior: settings }))
+  }
+
+  function refreshResolved() {
+    setResolved(resolveTarget(activeTarget()))
+    setRevision((value) => value + 1)
+  }
+
+  function selectedTarget() {
+    const active = activeTarget()
+    return preferenceScope() === "worktree" && active.kind === "worktree" ? active : { kind: "global" as const }
+  }
+
+  function selectedResolved() {
+    revision()
+    return resolveTarget(selectedTarget(), false)
+  }
+
+  function selectedLayoutResolved() {
+    revision()
+    return resolveTarget(selectedTarget())
+  }
+
+  function update(update: PreferencesUpdate) {
+    document = applyPreferencesUpdate(document, update)
+    if (hydrated) persist(store.update(update))
+    else pendingUpdates.push(update)
+    refreshResolved()
   }
 
   function load() {
     if (hydrated) return Promise.resolve()
     if (hydration) return hydration
-
     hydration = store
       .load()
       .catch((cause) => {
@@ -81,156 +159,148 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
         return emptyPreferencesDocument()
       })
       .then((loaded) => {
-        const shouldRestoreDefaults = resetLayoutPending
-        const shouldRestoreSettings = resetSettingsPending
-        const shouldPersistSettings = Object.keys(pendingSettings).length > 0
-        const shouldPersistSkills = resetSkillsPending || pendingSkippedSkills.size > 0
-        const settingsToPersist = { ...pendingSettings }
-        let nextSections = resetLayoutPending
-          ? defaults.sections
-          : resolveSectionVisibility(defaults.sections, loaded.global.layout?.sections)
-        for (const [name, visible] of pendingSectionValues) nextSections = { ...nextSections, [name]: visible }
-        let nextExpanded = resetLayoutPending
-          ? DEFAULT_SECTION_EXPANSION
-          : resolveSectionVisibility(DEFAULT_SECTION_EXPANSION, loaded.global.layout?.expanded)
-        for (const [name, open] of pendingExpandedValues) nextExpanded = { ...nextExpanded, [name]: open }
-
-        const savedSettings = shouldRestoreSettings ? {} : (loaded.global.behavior ?? {})
-        const nextToggleKey = pendingSettings.toggleKey ?? savedSettings.toggleKey ?? defaults.toggleKey
-        const nextFocusKey = pendingSettings.focusKey ?? savedSettings.focusKey ?? defaults.focusKey
-        const nextSettings: PluginSettings = {
-          toggleKey: validKey(nextToggleKey) ? nextToggleKey : defaults.toggleKey,
-          focusKey: validKey(nextFocusKey) ? nextFocusKey : defaults.focusKey,
-          persistMcp: pendingSettings.persistMcp ?? savedSettings.persistMcp ?? defaults.persistMcp,
-          lspIconStyle: pendingSettings.lspIconStyle ?? savedSettings.lspIconStyle ?? defaults.lspIconStyle,
-        }
-
-        const savedSkills = loaded.user.skippedSkillConfirmations ?? []
-        const nextSkipped = resetSkillsPending ? new Set<string>() : new Set(savedSkills)
-        for (const name of pendingSkippedSkills) nextSkipped.add(name)
-
-        desiredMcpByScope = Object.fromEntries(
-          Object.entries(loaded.worktrees).map(([scope, value]) => [scope, { ...value.mcp }]),
-        )
-        for (const [scope, states] of pendingMcp) {
-          desiredMcpByScope[scope] = { ...desiredMcpByScope[scope], ...Object.fromEntries(states) }
-        }
-
+        document = pendingUpdates.reduce(applyPreferencesUpdate, loaded)
         hydrated = true
-        batch(() => {
-          setSections(nextSections)
-          setExpanded(nextExpanded)
-          setSkippedSkills(nextSkipped)
-          setToggleKey(nextSettings.toggleKey)
-          setFocusKey(nextSettings.focusKey)
-          setPersistMcp(nextSettings.persistMcp)
-          setLspIconStyle(nextSettings.lspIconStyle)
-          setOnboardingCompleted(loaded.user.onboardingCompleted === true)
-        })
-        pendingSectionValues.clear()
-        pendingExpandedValues.clear()
-        pendingSkippedSkills.clear()
-        resetLayoutPending = false
-        resetSettingsPending = false
-        resetSkillsPending = false
-        if (shouldRestoreDefaults) persist(store.update({ clearLayout: true }))
-        if (shouldRestoreSettings || shouldPersistSettings) {
-          persist(
-            store.update({
-              ...(shouldRestoreSettings ? { clearBehavior: true } : {}),
-              ...(shouldPersistSettings ? { behavior: settingsToPersist } : {}),
-            }),
-          )
-        }
-        if (shouldPersistSkills) {
-          persist(store.update({ user: { skippedSkillConfirmations: [...nextSkipped].sort() } }))
-        }
-        for (const [scope, states] of pendingMcp) {
-          for (const [name, state] of states) persist(store.update({ mcp: { scope, name, state } }))
-        }
-        for (const name of Object.keys(pendingSettings) as Array<keyof PluginSettings>) delete pendingSettings[name]
-        pendingMcp.clear()
+        const queued = pendingUpdates.splice(0)
+        for (const update of queued) persist(store.update(update))
+        setSkippedSkills(new Set(document.user.skippedSkillConfirmations ?? []))
+        setOnboardingCompleted(document.user.onboardingCompleted === true)
+        refreshResolved()
       })
     return hydration
   }
 
-  function setKey(value: string, name: "toggleKey" | "focusKey", setter: (value: string) => void) {
+  function setKey(value: string, name: "toggleKey" | "focusKey") {
     void load()
     const next = value.trim()
     if (!validKey(next)) throw new Error("Enter a valid OpenCode keybinding")
-    setter(next)
-    persistSettings({ [name]: next })
+    update({ target: selectedTarget(), behavior: { [name]: next } })
+  }
+
+  function setSessionLayout(layout: ResolvedPreferences["layout"]) {
+    sessionLayouts.set(targetKey(activeTarget()), layout)
+    refreshResolved()
+  }
+
+  function setSelectedSessionLayout(layout: ResolvedPreferences["layout"]) {
+    sessionLayouts.set(targetKey(selectedTarget()), layout)
+    refreshResolved()
   }
 
   return {
-    sections,
-    expanded,
-    toggleKey,
-    focusKey,
-    persistMcp,
-    lspIconStyle,
+    sections: () => resolved().layout.sections,
+    expanded: () => resolved().layout.expanded,
+    sectionOrder: () => resolved().layout.order,
+    toggleKey: () => resolved().behavior.toggleKey,
+    focusKey: () => resolved().behavior.focusKey,
+    persistMcp: () => resolved().behavior.persistMcp,
+    lspIconStyle: () => resolved().behavior.lspIconStyle,
+    selectedToggleKey: () => selectedResolved().behavior.toggleKey,
+    selectedFocusKey: () => selectedResolved().behavior.focusKey,
+    selectedPersistMcp: () => selectedResolved().behavior.persistMcp,
+    selectedLspIconStyle: () => selectedResolved().behavior.lspIconStyle,
+    selectedSections: () => selectedLayoutResolved().layout.sections,
+    selectedExpanded: () => selectedLayoutResolved().layout.expanded,
+    selectedSectionOrder: () => selectedLayoutResolved().layout.order,
+    preferenceScope,
+    canUseWorktreeScope: () => activeTarget().kind === "worktree",
+    preferenceScopeLabel: () => {
+      const target = activeTarget()
+      return preferenceScope() === "worktree" && target.kind === "worktree" ? target.key : "Global"
+    },
     skippedSkillCount: () => skippedSkills().size,
     load,
+    setActiveScope(scope: string) {
+      const next = targetForScope(scope)
+      if (targetKey(next) === targetKey(activeTarget())) return
+      setActiveTarget(next)
+      if (next.kind === "global" && preferenceScope() === "worktree") setPreferenceScope("global")
+      refreshResolved()
+    },
+    setPreferenceScope(scope: PreferenceScope) {
+      setPreferenceScope(scope === "worktree" && activeTarget().kind === "global" ? "global" : scope)
+      setRevision((value) => value + 1)
+    },
     async flush() {
       await hydration
       await store.flush()
     },
     toggleSection(name: SidebarSection) {
       void load()
-      const next = { ...sections(), [name]: !sections()[name] }
-      setSections(next)
-      if (!hydrated) pendingSectionValues.set(name, next[name])
+      setSessionLayout({
+        ...resolved().layout,
+        sections: { ...resolved().layout.sections, [name]: !resolved().layout.sections[name] },
+      })
     },
     toggleSectionExpanded(name: SidebarSection) {
       void load()
-      const next = { ...expanded(), [name]: !expanded()[name] }
-      setExpanded(next)
-      if (!hydrated) pendingExpandedValues.set(name, next[name])
+      setSessionLayout({
+        ...resolved().layout,
+        expanded: { ...resolved().layout.expanded, [name]: !resolved().layout.expanded[name] },
+      })
+    },
+    moveSection(name: SidebarSection, direction: -1 | 1) {
+      void load()
+      const order = [...resolved().layout.order]
+      const index = order.indexOf(name)
+      const destination = index + direction
+      if (index < 0 || destination < 0 || destination >= order.length) return
+      ;[order[index], order[destination]] = [order[destination], order[index]]
+      setSessionLayout({ ...resolved().layout, order })
+    },
+    toggleSelectedSection(name: SidebarSection) {
+      void load()
+      const layout = resolveTarget(selectedTarget()).layout
+      setSelectedSessionLayout({ ...layout, sections: { ...layout.sections, [name]: !layout.sections[name] } })
+    },
+    moveSelectedSection(name: SidebarSection, direction: -1 | 1) {
+      void load()
+      const layout = resolveTarget(selectedTarget()).layout
+      const order = [...layout.order]
+      const index = order.indexOf(name)
+      const destination = index + direction
+      if (index < 0 || destination < 0 || destination >= order.length) return
+      ;[order[index], order[destination]] = [order[destination], order[index]]
+      setSelectedSessionLayout({ ...layout, order })
     },
     async saveLayoutAsDefault() {
       await load()
-      await store.update({ layout: { sections: sections(), expanded: expanded() } })
+      const target = selectedTarget()
+      const layout = sessionLayouts.get(targetKey(target)) ?? resolved().layout
+      document = applyPreferencesUpdate(document, { target, layout })
+      await store.update({ target, layout })
+      refreshResolved()
     },
     resetSections() {
       void load()
-      resetLayoutPending = !hydrated
-      pendingSectionValues.clear()
-      pendingExpandedValues.clear()
-      batch(() => {
-        setSections(defaults.sections)
-        setExpanded(DEFAULT_SECTION_EXPANSION)
-      })
-      if (hydrated) persist(store.update({ clearLayout: true }))
+      const target = selectedTarget()
+      sessionLayouts.delete(targetKey(target))
+      update({ target, clearLayout: true })
     },
     setToggleKey(value: string) {
-      setKey(value, "toggleKey", setToggleKey)
+      setKey(value, "toggleKey")
     },
     setFocusKey(value: string) {
-      setKey(value, "focusKey", setFocusKey)
+      setKey(value, "focusKey")
     },
     toggleMcpPersistence() {
       void load()
-      const next = !persistMcp()
-      setPersistMcp(next)
-      persistSettings({ persistMcp: next })
+      update({ target: selectedTarget(), behavior: { persistMcp: !selectedResolved().behavior.persistMcp } })
     },
     toggleLspIconStyle() {
       void load()
-      const next = lspIconStyle() === "nerd" ? "text" : "nerd"
-      setLspIconStyle(next)
-      persistSettings({ lspIconStyle: next })
+      update({
+        target: selectedTarget(),
+        behavior: { lspIconStyle: selectedResolved().behavior.lspIconStyle === "nerd" ? "text" : "nerd" },
+      })
     },
     resetPluginSettings() {
       void load()
-      resetSettingsPending = !hydrated
-      for (const name of Object.keys(pendingSettings) as Array<keyof PluginSettings>) delete pendingSettings[name]
-      batch(() => {
-        setToggleKey(defaults.toggleKey)
-        setFocusKey(defaults.focusKey)
-        setPersistMcp(defaults.persistMcp)
-        setLspIconStyle(defaults.lspIconStyle)
-      })
-      if (hydrated) persist(store.update({ clearBehavior: true }))
+      update({ target: selectedTarget(), clearBehavior: true })
+    },
+    resetMcpStates() {
+      void load()
+      update({ target: selectedTarget(), clearMcp: true })
     },
     shouldConfirmSkill(skill: SkillInfo) {
       void load()
@@ -238,46 +308,30 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     },
     skipSkillConfirmation(skill: SkillInfo) {
       void load()
-      const key = skillKey(skill)
       const next = new Set(skippedSkills())
-      next.add(key)
+      next.add(skillKey(skill))
       setSkippedSkills(next)
-      if (hydrated) persist(store.update({ user: { skippedSkillConfirmations: [...next].sort() } }))
-      else pendingSkippedSkills.add(key)
+      update({ user: { skippedSkillConfirmations: [...next].sort() } })
     },
     resetSkillConfirmations() {
       void load()
       setSkippedSkills(new Set<string>())
-      if (hydrated) persist(store.update({ user: { skippedSkillConfirmations: [] } }))
-      else {
-        resetSkillsPending = true
-        pendingSkippedSkills.clear()
-      }
+      update({ user: { skippedSkillConfirmations: [] } })
     },
     async claimFirstRun() {
-      const request = load()
-      if (!request) return false
-      await request
+      await load()
       if (onboardingCompleted()) return false
       setOnboardingCompleted(true)
-      persist(store.update({ user: { onboardingCompleted: true } }))
+      update({ user: { onboardingCompleted: true } })
       return true
     },
     desiredMcpState(scope: string, name: string) {
-      return desiredMcpByScope[scope]?.[name]
+      revision()
+      return resolveTarget(targetForScope(scope), false).desiredMcpStates[name]
     },
     setDesiredMcpState(scope: string, name: string, state: DesiredMcpState) {
       void load()
-      desiredMcpByScope = {
-        ...desiredMcpByScope,
-        [scope]: { ...desiredMcpByScope[scope], [name]: state },
-      }
-      if (hydrated) persist(store.update({ mcp: { scope, name, state } }))
-      else {
-        const states = pendingMcp.get(scope) ?? new Map<string, DesiredMcpState>()
-        states.set(name, state)
-        pendingMcp.set(scope, states)
-      }
+      update({ target: targetForScope(scope), mcp: { name, state } })
     },
   }
 }

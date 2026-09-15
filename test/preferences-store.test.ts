@@ -85,6 +85,31 @@ test("recovers a lock left by a terminated process", async () => {
   }
 })
 
+test("recovers a stale lock after a recovery owner also terminates", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  const preferencesDirectory = join(directory, "opencode-pretty-sidebar")
+  try {
+    await mkdir(preferencesDirectory)
+    await writeFile(
+      join(preferencesDirectory, "preferences.lock"),
+      JSON.stringify({ token: "stale", pid: 2_147_483_647 }),
+    )
+    await writeFile(
+      join(preferencesDirectory, "preferences.lock.recover.c3RhbGU.0000000000000.2147483647.abandoned"),
+      JSON.stringify({ token: "stale", pid: 2_147_483_647 }),
+    )
+
+    const [first, second] = await Promise.all([
+      createPreferencesStore(directory).load(),
+      createPreferencesStore(directory).load(),
+    ])
+    expect(first).toEqual({ global: {}, worktrees: {}, user: {} })
+    expect(second).toEqual(first)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("stores and resets behavior overrides", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {
@@ -109,6 +134,37 @@ test("stores and resets behavior overrides", async () => {
     await store.update({ clearBehavior: true })
     await store.flush()
     expect((await createPreferencesStore(directory).load()).global.behavior).toBeUndefined()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("stores and resets every preference group independently per worktree", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  const target = { kind: "worktree" as const, key: "/repo" }
+  try {
+    const store = createPreferencesStore(directory)
+    await store.update({ target, behavior: { focusKey: "alt+w" } })
+    await store.update({
+      target,
+      layout: {
+        sections: { ...defaults, mcp: false },
+        expanded: defaults,
+        order: ["mcp", "todo", "subagents", "skills", "quick_actions", "lsp"],
+      },
+    })
+    await store.update({ target, mcp: { states: { wiki: "disabled", tracker: "enabled" } } })
+    await store.flush()
+
+    expect((await store.load()).worktrees["/repo"]).toMatchObject({
+      behavior: { focusKey: "alt+w" },
+      layout: { sections: { mcp: false }, order: ["mcp", "todo", "subagents", "skills", "quick_actions", "lsp"] },
+      mcp: { tracker: "enabled", wiki: "disabled" },
+    })
+
+    await store.update({ target, clearLayout: true, clearBehavior: true, clearMcp: true })
+    await store.flush()
+    expect((await store.load()).worktrees["/repo"]).toBeUndefined()
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

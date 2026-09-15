@@ -285,6 +285,83 @@ test("persists behavior settings and restores configured defaults", async () => 
   }
 })
 
+test("resolves worktree overrides, section order, and scoped resets", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+  const api = {
+    keymap: { parseKeySequence: (value: string) => [value] },
+    ui: { toast: () => {} },
+  } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await controller.load()
+    controller.setFocusKey("alt+g")
+    controller.setDesiredMcpState("global", "wiki", "enabled")
+    controller.setActiveScope("/repo-a")
+    controller.setPreferenceScope("worktree")
+    controller.setFocusKey("alt+w")
+    controller.toggleSection("mcp")
+    controller.moveSection("mcp", -1)
+    await controller.saveLayoutAsDefault()
+    controller.setDesiredMcpState("/repo-a", "wiki", "disabled")
+    await controller.flush()
+
+    controller.setActiveScope("/repo-b")
+    expect(controller.focusKey()).toBe("alt+g")
+    expect(controller.sections().mcp).toBe(true)
+    expect(controller.desiredMcpState("/repo-b", "wiki")).toBe("enabled")
+
+    controller.setActiveScope("/repo-a")
+    expect(controller.focusKey()).toBe("alt+w")
+    expect(controller.sections().mcp).toBe(false)
+    expect(controller.sectionOrder().indexOf("mcp")).toBe(4)
+    expect(controller.desiredMcpState("/repo-a", "wiki")).toBe("disabled")
+
+    controller.resetSections()
+    controller.resetPluginSettings()
+    controller.resetMcpStates()
+    await controller.flush()
+    expect(controller.focusKey()).toBe("alt+g")
+    expect(controller.sections().mcp).toBe(true)
+    expect(controller.desiredMcpState("/repo-a", "wiki")).toBe("enabled")
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("saves the active worktree session layout when global scope is selected", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+  const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await controller.load()
+    controller.setActiveScope("/repo-a")
+    controller.toggleSelectedSection("lsp")
+    expect(controller.sections().lsp).toBe(false)
+    await controller.saveLayoutAsDefault()
+    controller.setActiveScope("/repo-b")
+    expect(controller.sections().lsp).toBe(false)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("opens the setup wizard only once after preference hydration", async () => {
   const values = new Map<string, unknown>()
   let opened = 0

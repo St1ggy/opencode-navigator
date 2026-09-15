@@ -69,6 +69,21 @@ test("focus shortcut registration follows runtime replacement and direct command
   }
 })
 
+test("palette focus commands are disabled while a dialog is open", () => {
+  const api = {
+    route: { current: { name: "session" } },
+    renderer: { currentFocusedRenderable: null, on: () => {}, off: () => {} },
+    keymap: { dispatchCommand: () => ({ ok: true }) },
+    ui: { dialog: { open: true } },
+  } as unknown as TuiPluginApi
+  const interaction = createSidebarInteraction(api)
+  try {
+    expect(interaction.baseCommands().every((command) => command.enabled?.() === false)).toBe(true)
+  } finally {
+    interaction.dispose()
+  }
+})
+
 test("real key input wraps arrows and j/k, activates, isolates other focus, and selects before mouse activation", async () => {
   let interaction!: SidebarInteraction
   let modal: BoxRenderable | undefined

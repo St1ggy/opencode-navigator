@@ -77,7 +77,7 @@ export function Section(props: {
     props.interaction,
     {
       id: props.sectionId ?? `section.${props.title}`,
-      order: props.order ?? 0,
+      order: () => props.order ?? 0,
       activate: props.onToggle,
     },
     () => theme().text,
@@ -131,7 +131,7 @@ export function SectionFilter(props: {
   const theme = () => props.api.theme.current
   const item = useSidebarItem(props.api, props.interaction, {
     id: props.id ?? `filter.${props.placeholder}`,
-    order: props.order ?? 0,
+    order: () => props.order ?? 0,
     activate: () => {
       if (!input) return
       setInputFocused(true)

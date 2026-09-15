@@ -190,7 +190,11 @@ test("the built Skills section filters by name and description", async () => {
     expect(setup.captureCharFrame()).toContain("review-code")
     expect(setup.captureCharFrame()).toContain("commit")
 
-    await setup.mockMouse.pressDown(8, 2)
+    const filterLine = setup
+      .captureCharFrame()
+      .split("\n")
+      .findIndex((line) => line.includes("Filter skills"))
+    await setup.mockMouse.pressDown(8, filterLine)
     await setup.mockInput.typeText("pending")
     await setup.renderOnce()
     expect(setup.captureCharFrame()).toContain("review-code")
@@ -231,7 +235,11 @@ test("the built MCP section filters servers by name", async () => {
     expect(setup.captureCharFrame()).toContain("context7")
     expect(setup.captureCharFrame()).toContain("tracker")
 
-    await setup.mockMouse.pressDown(8, 2)
+    const filterLine = setup
+      .captureCharFrame()
+      .split("\n")
+      .findIndex((line) => line.includes("Filter MCP"))
+    await setup.mockMouse.pressDown(8, filterLine)
     await setup.mockInput.typeText("track")
     await setup.renderOnce()
     expect(setup.captureCharFrame()).not.toContain("context7")
@@ -364,19 +372,35 @@ test("the built settings dialog saves the current layout as default", async () =
   const preferences = {
     sections,
     expanded: () => expandedLayout,
+    sectionOrder: () => ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"],
+    selectedSections: sections,
+    selectedExpanded: () => expandedLayout,
+    selectedSectionOrder: () => ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"],
+    preferenceScope: () => "global",
+    preferenceScopeLabel: () => "Global",
+    canUseWorktreeScope: () => false,
+    setPreferenceScope: () => {},
     persistMcp: () => true,
+    selectedPersistMcp: () => true,
     lspIconStyle: () => "nerd",
+    selectedLspIconStyle: () => "nerd",
     toggleKey: () => "ctrl+shift+b",
+    selectedToggleKey: () => "ctrl+shift+b",
     focusKey: () => "ctrl+shift+f",
+    selectedFocusKey: () => "ctrl+shift+f",
     skippedSkillCount: () => 0,
     toggleSection: () => {},
+    toggleSelectedSection: () => {},
     toggleMcpPersistence: () => mcpToggles++,
     toggleLspIconStyle: () => iconToggles++,
     setToggleKey: () => {},
     setFocusKey: () => {},
     resetSections: () => {},
     resetPluginSettings: () => {},
+    resetMcpStates: () => {},
     resetSkillConfirmations: () => {},
+    moveSection: () => {},
+    moveSelectedSection: () => {},
     saveLayoutAsDefault: async () => {
       saved++
     },
@@ -397,7 +421,7 @@ test("the built settings dialog saves the current layout as default", async () =
 
     const next = layer?.commands.find((command) => command.name.endsWith(".settings.next"))
     const select = layer?.commands.find((command) => command.name.endsWith(".settings.select"))
-    for (let index = 0; index < 6; index++) next?.run()
+    for (let index = 0; index < 14; index++) next?.run()
     await setup.flush()
     expect(setup.captureCharFrame()).toContain("Remember MCP states")
     select?.run()

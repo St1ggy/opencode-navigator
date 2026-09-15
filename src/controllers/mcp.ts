@@ -14,6 +14,14 @@ type McpTarget = {
 
 type McpAction = "connect" | "disconnect"
 
+export type McpBulkState = {
+  action: McpAction
+  status: "idle" | "running" | "ready" | "error"
+  completed: number
+  total: number
+  failed: string[]
+}
+
 function statusError(status: unknown) {
   if (!status || typeof status !== "object" || !("error" in status)) return
   const error = (status as { error?: unknown }).error
@@ -22,19 +30,51 @@ function statusError(status: unknown) {
 
 export function createMcpController(api: TuiPluginApi, persist: () => boolean, preferences: McpPreferencesAccess) {
   const [snapshots, setSnapshots] = createSignal<Record<string, ReadonlyArray<TuiSidebarMcpItem>>>({})
-  const [mutationCount, setMutationCount] = createSignal(0)
+  const [mutationCounts, setMutationCounts] = createSignal<Record<string, number>>({})
+  const [bulkStates, setBulkStates] = createSignal<Record<string, McpBulkState>>({})
   const refreshing = new Map<string, Promise<ReadonlyArray<TuiSidebarMcpItem>>>()
   const mutations = new Map<string, Promise<void>>()
   const mutationRetries = new Map<string, () => Promise<void>>()
+  const bulkGenerations = new Map<string, number>()
   const requests = createRequestState(api.lifecycle?.signal)
   const serverRequests = createRequestState(api.lifecycle?.signal)
   let activation = 0
+  let activeTarget: string | undefined
+
+  function changeMutationCount(current: McpTarget, offset: number) {
+    setMutationCounts((values) => {
+      const next = Math.max(0, (values[current.key] ?? 0) + offset)
+      if (next === 0) {
+        const copy = { ...values }
+        delete copy[current.key]
+        return copy
+      }
+      return { ...values, [current.key]: next }
+    })
+  }
+
+  function setActive(current: McpTarget) {
+    if (activeTarget === current.key) return
+    if (activeTarget) {
+      bulkGenerations.set(activeTarget, (bulkGenerations.get(activeTarget) ?? 0) + 1)
+      setBulkStates((values) => {
+        const state = values[activeTarget!]
+        if (!state || state.status !== "running") return values
+        return { ...values, [activeTarget!]: { ...state, status: "idle" } }
+      })
+    }
+    activation += 1
+    requests.abortAll()
+    serverRequests.abortAll()
+    refreshing.clear()
+    activeTarget = current.key
+  }
 
   function target(): McpTarget {
     const location = currentLocation(api)
     return {
       key: location.key,
-      scope: preferencesScope(api.state.path),
+      scope: preferencesScope({ directory: location.routing.directory, worktree: api.state.path.worktree }),
       routing: location.routing,
     }
   }
@@ -88,7 +128,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
 
     const requestState = serverRequests.start(key, operation, false)
     if (!requestState) return mutations.get(key)!
-    setMutationCount((value) => value + 1)
+    changeMutationCount(current, 1)
     const request = (
       action === "disconnect"
         ? api.client.mcp.disconnect({ name, ...current.routing }, { throwOnError: true, signal: requestState.signal })
@@ -107,7 +147,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
       })
       .finally(() => {
         requestState.finish()
-        setMutationCount((value) => value - 1)
+        changeMutationCount(current, -1)
         if (mutations.get(key) === request) mutations.delete(key)
       })
     mutations.set(key, request)
@@ -132,6 +172,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
   }
 
   async function activate(current = target()) {
+    setActive(current)
     const generation = ++activation
     const hydration = preferences.load()
     if (!hydration) return
@@ -172,11 +213,99 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     return retryBackgroundRefresh(() => activate(current), { signal: api.lifecycle?.signal })
   }
 
+  function bulkState(current = target()): McpBulkState {
+    return (
+      bulkStates()[current.key] ?? {
+        action: "connect",
+        status: "idle",
+        completed: 0,
+        total: 0,
+        failed: [],
+      }
+    )
+  }
+
+  async function changeAll(action: McpAction, current = target(), names?: string[]) {
+    setActive(current)
+    const generation = (bulkGenerations.get(current.key) ?? 0) + 1
+    bulkGenerations.set(current.key, generation)
+    const candidates =
+      names ??
+      list(current)
+        .filter((item) => mcpToggleAction(item.status) === action)
+        .map((item) => item.name)
+    setBulkStates((values) => ({
+      ...values,
+      [current.key]: { action, status: "running", completed: 0, total: candidates.length, failed: [] },
+    }))
+    if (candidates.length === 0) {
+      setBulkStates((values) => ({
+        ...values,
+        [current.key]: { action, status: "ready", completed: 0, total: 0, failed: [] },
+      }))
+      return
+    }
+
+    const failed: string[] = []
+    await Promise.all(
+      candidates.map(async (name) => {
+        save(current, name, action === "disconnect")
+        try {
+          await changeServer(current, name, action, `${action} all MCP servers`, false)
+        } catch (cause) {
+          if (!isAbortError(cause)) failed.push(name)
+        } finally {
+          setBulkStates((values) => {
+            if (bulkGenerations.get(current.key) !== generation) return values
+            const state = values[current.key]
+            if (!state || state.action !== action) return values
+            return { ...values, [current.key]: { ...state, completed: state.completed + 1 } }
+          })
+        }
+      }),
+    )
+    if (bulkGenerations.get(current.key) !== generation) return
+    if (activeTarget === current.key) await refresh(current, true).catch(() => {})
+    failed.sort((left, right) => left.localeCompare(right))
+    setBulkStates((values) => ({
+      ...values,
+      [current.key]: {
+        action,
+        status: failed.length > 0 ? "error" : "ready",
+        completed: candidates.length,
+        total: candidates.length,
+        failed,
+      },
+    }))
+    if (failed.length > 0 && activeTarget === current.key) {
+      api.ui.toast({
+        variant: "warning",
+        title: "MCP servers",
+        message: `Could not ${action}: ${failed.join(", ")}`,
+        duration: 4000,
+      })
+    }
+  }
+
   return {
     list,
     refresh,
     reconnect,
     activate,
+    deactivate(current: McpTarget) {
+      if (activeTarget !== current.key) return
+      activeTarget = undefined
+      activation += 1
+      bulkGenerations.set(current.key, (bulkGenerations.get(current.key) ?? 0) + 1)
+      setBulkStates((values) => {
+        const state = values[current.key]
+        if (!state || state.status !== "running") return values
+        return { ...values, [current.key]: { ...state, status: "idle" } }
+      })
+      requests.abortAll()
+      serverRequests.abortAll()
+      refreshing.clear()
+    },
     target,
     toggle,
     persist,
@@ -192,8 +321,20 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     retryServer(name: string, current = target()) {
       return mutationRetries.get(serverKey(current, name))?.()
     },
-    mutating() {
-      return mutationCount() > 0
+    mutating(current = target()) {
+      return (mutationCounts()[current.key] ?? 0) > 0
+    },
+    bulkState,
+    connectAll(current = target()) {
+      return changeAll("connect", current)
+    },
+    disconnectAll(current = target()) {
+      return changeAll("disconnect", current)
+    },
+    retryBulk(current = target()) {
+      const state = bulkState(current)
+      if (state.status !== "error" || state.failed.length === 0) return
+      return changeAll(state.action, current, state.failed)
     },
   }
 }

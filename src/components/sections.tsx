@@ -1,16 +1,17 @@
 import type { TuiPluginApi, TuiSidebarLspItem, TuiSidebarMcpItem } from "@opencode-ai/plugin/tui"
 import { type BoxRenderable, TextAttributes } from "@opentui/core"
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, type JSX, onCleanup, Show, untrack } from "solid-js"
 import { QUICK_ACTIONS } from "../constants"
 import type { McpController } from "../controllers/mcp"
 import type { PreferencesController } from "../controllers/preferences"
 import type { SkillController, SkillInfo } from "../controllers/skills"
 import type { SubagentController } from "../controllers/subagents"
 import type { SidebarTodo, TodoController } from "../controllers/todo"
-import type { TargetRequestState } from "../controllers/request-state"
+import { isAbortError, type TargetRequestState } from "../controllers/request-state"
 import { SkillDialog } from "../dialogs/skill"
 import { lspIcon, lspIconName, type LspIconStyle } from "../icons/lsp"
 import type { SidebarInteraction } from "../sidebar-interaction"
+import { mcpToggleAction } from "../state"
 import { matchesFilter, Section, SectionFilter, useSidebarItem } from "./common"
 
 function RequestErrorRow(props: {
@@ -23,8 +24,9 @@ function RequestErrorRow(props: {
 }) {
   const item = useSidebarItem(props.api, props.interaction, {
     id: props.id,
-    order: props.order,
-    disabled: () => props.state.status === "loading" || props.state.status === "refreshing",
+    order: () => props.order,
+    disabled: () =>
+      !props.state.error?.retryable || props.state.status === "loading" || props.state.status === "refreshing",
     activate: props.onRetry,
   })
   return (
@@ -52,12 +54,51 @@ function RequestErrorRow(props: {
           >
             {error().message}
           </text>
-          <text flexShrink={0} fg={item.focused() ? item.foregroundColor() : props.api.theme.current.accent}>
-            Retry
-          </text>
+          <Show when={error().retryable}>
+            <text flexShrink={0} fg={item.focused() ? item.foregroundColor() : props.api.theme.current.accent}>
+              Retry
+            </text>
+          </Show>
         </box>
       )}
     </Show>
+  )
+}
+
+function SectionRequestBody(props: {
+  api: TuiPluginApi
+  interaction?: SidebarInteraction
+  id: string
+  order: number
+  state: TargetRequestState
+  hasItems: boolean
+  empty: string
+  loading: string
+  onRetry: () => void
+  children: JSX.Element
+}) {
+  const pending = () => props.state.status === "loading" || props.state.status === "refreshing"
+  return (
+    <box>
+      <RequestErrorRow
+        api={props.api}
+        interaction={props.interaction}
+        id={props.id}
+        order={props.order}
+        state={props.state}
+        onRetry={props.onRetry}
+      />
+      <Show when={pending() && !props.hasItems}>
+        <text fg={props.api.theme.current.textMuted}>{props.loading}</text>
+      </Show>
+      <Show when={props.state.status === "refreshing" && props.hasItems}>
+        <text fg={props.api.theme.current.textMuted}>Refreshing…</text>
+      </Show>
+      <Show when={props.hasItems}>{props.children}</Show>
+      <Show when={props.state.status === "ready" && !props.hasItems && !props.state.error}>
+        <text fg={props.api.theme.current.textMuted}>{props.empty}</text>
+      </Show>
+    </box>
   )
 }
 
@@ -109,13 +150,17 @@ export function TodoSection(props: {
   controller: TodoController
   preferences: PreferencesController
   sessionID: string
+  order?: number
 }) {
   const list = createMemo(() => props.controller.list(props.sessionID))
   const done = createMemo(() => list().filter((item) => item.status === "completed").length)
   const state = createMemo(() => props.controller.state(props.sessionID))
 
   createEffect(() => {
-    void props.controller.refresh(props.sessionID).catch(() => {})
+    const sessionID = props.sessionID
+    const deactivate = untrack(() => props.controller.activate?.(sessionID) ?? (() => {}))
+    onCleanup(deactivate)
+    untrack(() => void props.controller.refresh(sessionID).catch(() => {}))
   })
 
   return (
@@ -123,25 +168,27 @@ export function TodoSection(props: {
       api={props.api}
       interaction={props.interaction}
       sectionId="opencode-pretty-sidebar.section.todo"
-      order={100}
+      order={props.order ?? 100}
       title="TODO"
       summary={`${done()}/${list().length}`}
       open={props.preferences.expanded().todo}
       onToggle={() => props.preferences.toggleSectionExpanded("todo")}
     >
-      <RequestErrorRow
+      <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
         id="opencode-pretty-sidebar.retry.todo"
-        order={101}
+        order={(props.order ?? 100) + 1}
         state={state()}
+        hasItems={list().length > 0}
+        empty="No tasks yet"
+        loading="Loading tasks…"
         onRetry={() => void props.controller.retry(props.sessionID)}
-      />
-      <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No tasks yet</text>}>
+      >
         <box gap={1}>
           <For each={list()}>{(item) => <TodoRow api={props.api} item={item} />}</For>
         </box>
-      </Show>
+      </SectionRequestBody>
     </Section>
   )
 }
@@ -158,7 +205,7 @@ function SubagentRow(props: {
   const id = () => `opencode-pretty-sidebar.subagent.${props.item.session.id}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
-    order: props.order,
+    order: () => props.order,
     activate: props.onOpen,
   })
 
@@ -191,51 +238,55 @@ export function SubagentSection(props: {
   controller: SubagentController
   preferences: PreferencesController
   sessionID: string
+  order?: number
 }) {
   const list = createMemo(() => props.controller.list(props.sessionID))
   const state = createMemo(() => props.controller.state(props.sessionID))
 
   createEffect(() => {
-    void props.controller.refresh(props.sessionID).catch(() => {})
+    const sessionID = props.sessionID
+    const deactivate = untrack(() => props.controller.activate?.(sessionID) ?? (() => {}))
+    onCleanup(deactivate)
+    untrack(() => void props.controller.refresh(sessionID).catch(() => {}))
   })
 
   return (
-    <Show when={list().length > 0 || state().error}>
-      <Section
+    <Section
+      api={props.api}
+      interaction={props.interaction}
+      sectionId="opencode-pretty-sidebar.section.subagents"
+      order={props.order ?? 200}
+      title="SUBAGENTS"
+      summary={`${list().length}`}
+      open={props.preferences.expanded().subagents}
+      onToggle={() => props.preferences.toggleSectionExpanded("subagents")}
+    >
+      <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
-        sectionId="opencode-pretty-sidebar.section.subagents"
-        order={200}
-        title="SUBAGENTS"
-        summary={`${list().length}`}
-        open={props.preferences.expanded().subagents}
-        onToggle={() => props.preferences.toggleSectionExpanded("subagents")}
+        id="opencode-pretty-sidebar.retry.subagents"
+        order={(props.order ?? 200) + 1}
+        state={state()}
+        hasItems={list().length > 0}
+        empty="No active subagents"
+        loading="Loading subagents…"
+        onRetry={() => void props.controller.retry(props.sessionID)}
       >
-        <RequestErrorRow
-          api={props.api}
-          interaction={props.interaction}
-          id="opencode-pretty-sidebar.retry.subagents"
-          order={201}
-          state={state()}
-          onRetry={() => void props.controller.retry(props.sessionID)}
-        />
-        <Show when={list().length > 0}>
-          <box gap={1}>
-            <For each={list()}>
-              {(item, index) => (
-                <SubagentRow
-                  api={props.api}
-                  interaction={props.interaction}
-                  item={item}
-                  order={210 + index()}
-                  onOpen={() => props.controller.open(item.session.id)}
-                />
-              )}
-            </For>
-          </box>
-        </Show>
-      </Section>
-    </Show>
+        <box gap={1}>
+          <For each={list()}>
+            {(item, index) => (
+              <SubagentRow
+                api={props.api}
+                interaction={props.interaction}
+                item={item}
+                order={(props.order ?? 200) + 10 + index()}
+                onOpen={() => props.controller.open(item.session.id)}
+              />
+            )}
+          </For>
+        </box>
+      </SectionRequestBody>
+    </Section>
   )
 }
 
@@ -250,7 +301,7 @@ function SkillRow(props: {
   const id = () => `opencode-pretty-sidebar.skill.${props.item.location || props.item.name}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
-    order: props.order,
+    order: () => props.order,
     activate: props.onUse,
   })
 
@@ -282,6 +333,7 @@ export function SkillsSection(props: {
   interaction?: SidebarInteraction
   controller: SkillController
   preferences: PreferencesController
+  order?: number
 }) {
   const [query, setQuery] = createSignal("")
   const target = createMemo(() => props.controller.target())
@@ -290,13 +342,17 @@ export function SkillsSection(props: {
   const state = createMemo(() => props.controller.state(target()))
 
   createEffect(() => {
-    void props.controller.refresh(target()).catch(() => {})
+    const current = target()
+    const deactivate = untrack(() => props.controller.activate?.(current) ?? (() => {}))
+    onCleanup(deactivate)
+    untrack(() => void props.controller.refresh(current).catch(() => {}))
   })
 
   async function useSkill(item: SkillInfo) {
     try {
       await props.controller.use(target(), item.name)
     } catch (cause) {
+      if (isAbortError(cause)) return
       props.api.ui.toast({
         variant: "error",
         title: "Skills",
@@ -328,27 +384,29 @@ export function SkillsSection(props: {
       api={props.api}
       interaction={props.interaction}
       sectionId="opencode-pretty-sidebar.section.skills"
-      order={300}
+      order={props.order ?? 300}
       title="SKILLS"
       summary={`${list().length}`}
       open={props.preferences.expanded().skills}
       onToggle={() => props.preferences.toggleSectionExpanded("skills")}
     >
-      <RequestErrorRow
+      <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
         id="opencode-pretty-sidebar.retry.skills"
-        order={301}
+        order={(props.order ?? 300) + 1}
         state={state()}
+        hasItems={list().length > 0}
+        empty="No skills"
+        loading="Loading skills…"
         onRetry={() => void props.controller.retry(target())}
-      />
-      <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No skills</text>}>
+      >
         <box>
           <SectionFilter
             api={props.api}
             interaction={props.interaction}
             id="opencode-pretty-sidebar.filter.skills"
-            order={302}
+            order={(props.order ?? 300) + 2}
             query={query()}
             placeholder="Filter skills..."
             onInput={setQuery}
@@ -364,7 +422,7 @@ export function SkillsSection(props: {
                     api={props.api}
                     interaction={props.interaction}
                     item={item}
-                    order={310 + index()}
+                    order={(props.order ?? 300) + 10 + index()}
                     onUse={() => selectSkill(item)}
                   />
                 )}
@@ -372,7 +430,7 @@ export function SkillsSection(props: {
             </box>
           </Show>
         </box>
-      </Show>
+      </SectionRequestBody>
     </Section>
   )
 }
@@ -407,7 +465,7 @@ function QuickActionRow(props: {
   const id = () => `opencode-pretty-sidebar.quick-action.${props.action.command}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
-    order: props.order,
+    order: () => props.order,
     activate: run,
   })
 
@@ -445,13 +503,14 @@ export function QuickActionsSection(props: {
   api: TuiPluginApi
   preferences: PreferencesController
   interaction?: SidebarInteraction
+  order?: number
 }) {
   return (
     <Section
       api={props.api}
       interaction={props.interaction}
       sectionId="opencode-pretty-sidebar.section.quick_actions"
-      order={400}
+      order={props.order ?? 400}
       title="QUICK ACTIONS"
       summary={`${QUICK_ACTIONS.length}`}
       open={props.preferences.expanded().quick_actions}
@@ -460,7 +519,12 @@ export function QuickActionsSection(props: {
       <box>
         <For each={QUICK_ACTIONS}>
           {(action, index) => (
-            <QuickActionRow api={props.api} interaction={props.interaction} action={action} order={410 + index()} />
+            <QuickActionRow
+              api={props.api}
+              interaction={props.interaction}
+              action={action}
+              order={(props.order ?? 400) + 10 + index()}
+            />
           )}
         </For>
       </box>
@@ -495,7 +559,7 @@ export function LspBadge(props: {
     props.interaction,
     {
       id: props.navigationId ?? `opencode-pretty-sidebar.lsp.${props.id}`,
-      order: props.order ?? 0,
+      order: () => props.order ?? 0,
       activate: () => setShowName((value) => !value),
     },
     statusColor,
@@ -536,6 +600,7 @@ export function LspSection(props: {
   iconStyle: LspIconStyle
   preferences: PreferencesController
   interaction?: SidebarInteraction
+  order?: number
 }) {
   const list = createMemo(() => props.api.state.lsp())
   const connected = createMemo(() => list().filter((item) => item.status === "connected").length)
@@ -546,7 +611,7 @@ export function LspSection(props: {
       api={props.api}
       interaction={props.interaction}
       sectionId="opencode-pretty-sidebar.section.lsp"
-      order={500}
+      order={props.order ?? 500}
       title="LSP"
       summary={`${connected()}/${list().length}`}
       open={props.preferences.expanded().lsp}
@@ -568,7 +633,7 @@ export function LspSection(props: {
                 interaction={props.interaction}
                 id={item.id}
                 navigationId={`opencode-pretty-sidebar.lsp.${item.id}.${item.root}`}
-                order={510 + index()}
+                order={(props.order ?? 500) + 10 + index()}
                 status={item.status}
                 iconStyle={props.iconStyle}
               />
@@ -610,7 +675,7 @@ function McpRow(props: {
   const id = () => `opencode-pretty-sidebar.mcp.${props.item.name}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
-    order: props.order,
+    order: () => props.order,
     disabled,
     activate: props.onToggle,
   })
@@ -662,11 +727,43 @@ function McpRow(props: {
   )
 }
 
+function McpBulkAction(props: {
+  api: TuiPluginApi
+  interaction?: SidebarInteraction
+  id: string
+  order: number
+  label: string
+  disabled: boolean
+  onActivate: () => void
+}) {
+  const item = useSidebarItem(props.api, props.interaction, {
+    id: props.id,
+    order: () => props.order,
+    disabled: () => props.disabled,
+    activate: props.onActivate,
+  })
+  return (
+    <box
+      ref={(node: BoxRenderable) => item.ref(node)}
+      id={props.id}
+      paddingLeft={1}
+      paddingRight={1}
+      backgroundColor={item.backgroundColor()}
+      onMouseOver={item.onMouseOver}
+      onMouseOut={item.onMouseOut}
+      onMouseDown={(event) => item.activate(event)}
+    >
+      <text fg={item.foregroundColor()}>{props.label}</text>
+    </box>
+  )
+}
+
 export function McpSection(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   controller: McpController
   preferences: PreferencesController
+  order?: number
 }) {
   const [query, setQuery] = createSignal("")
   const target = createMemo(() => props.controller.target())
@@ -674,6 +771,19 @@ export function McpSection(props: {
   const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name)))
   const active = createMemo(() => list().filter((item) => item.status === "connected").length)
   const state = createMemo(() => props.controller.state(target()))
+  const bulk = createMemo(
+    () =>
+      props.controller.bulkState?.(target()) ?? {
+        action: "connect" as const,
+        status: "idle" as const,
+        completed: 0,
+        total: 0,
+        failed: [],
+      },
+  )
+  const bulkRunning = createMemo(() => bulk().status === "running")
+  const connectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === "connect").length)
+  const disconnectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === "disconnect").length)
   const errors = createMemo(
     () =>
       list().filter(
@@ -684,7 +794,6 @@ export function McpSection(props: {
   const summary = createMemo(() => `${active()}/${list().length}${errors() ? ` · ${errors()}!` : ""}`)
 
   async function toggle(name: string) {
-    if (props.controller.mutating()) return
     await props.controller.toggle(name).catch(() => {})
   }
 
@@ -693,27 +802,65 @@ export function McpSection(props: {
       api={props.api}
       interaction={props.interaction}
       sectionId="opencode-pretty-sidebar.section.mcp"
-      order={600}
+      order={props.order ?? 600}
       title="MCP"
       summary={summary()}
       open={props.preferences.expanded().mcp}
       onToggle={() => props.preferences.toggleSectionExpanded("mcp")}
     >
-      <RequestErrorRow
+      <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
         id="opencode-pretty-sidebar.retry.mcp"
-        order={601}
+        order={(props.order ?? 600) + 1}
         state={state()}
+        hasItems={list().length > 0}
+        empty="No MCP servers"
+        loading="Loading MCP servers…"
         onRetry={() => void props.controller.retry(target())}
-      />
-      <Show when={list().length > 0} fallback={<text fg={props.api.theme.current.textMuted}>No MCP servers</text>}>
+      >
         <box>
+          <box flexDirection="row" gap={1} paddingBottom={bulkRunning() || bulk().status === "error" ? 1 : 0}>
+            <McpBulkAction
+              api={props.api}
+              interaction={props.interaction}
+              id="opencode-pretty-sidebar.mcp.connect-all"
+              order={(props.order ?? 600) + 2}
+              label="Connect all"
+              disabled={bulkRunning() || connectable() === 0}
+              onActivate={() => void props.controller.connectAll(target())}
+            />
+            <McpBulkAction
+              api={props.api}
+              interaction={props.interaction}
+              id="opencode-pretty-sidebar.mcp.disconnect-all"
+              order={(props.order ?? 600) + 3}
+              label="Disconnect all"
+              disabled={bulkRunning() || disconnectable() === 0}
+              onActivate={() => void props.controller.disconnectAll(target())}
+            />
+          </box>
+          <Show when={bulkRunning()}>
+            <text fg={props.api.theme.current.textMuted}>
+              {bulk().action === "connect" ? "Connecting" : "Disconnecting"} {bulk().completed}/{bulk().total}…
+            </text>
+          </Show>
+          <Show when={bulk().status === "error"}>
+            <McpBulkAction
+              api={props.api}
+              interaction={props.interaction}
+              id="opencode-pretty-sidebar.mcp.retry-all"
+              order={(props.order ?? 600) + 4}
+              label={`Retry ${bulk().failed.length} failed`}
+              disabled={false}
+              onActivate={() => void props.controller.retryBulk(target())}
+            />
+          </Show>
           <SectionFilter
             api={props.api}
             interaction={props.interaction}
             id="opencode-pretty-sidebar.filter.mcp"
-            order={602}
+            order={(props.order ?? 600) + 5}
             query={query()}
             placeholder="Filter MCP..."
             onInput={setQuery}
@@ -729,9 +876,9 @@ export function McpSection(props: {
                     api={props.api}
                     interaction={props.interaction}
                     item={item}
-                    order={610 + index() * 2}
+                    order={(props.order ?? 600) + 10 + index() * 2}
                     state={props.controller.serverState(item.name, target())}
-                    disabled={props.controller.mutating()}
+                    disabled={bulkRunning()}
                     onToggle={() => void toggle(item.name)}
                     onRetry={() => void props.controller.retryServer(item.name, target())?.catch(() => {})}
                   />
@@ -740,7 +887,7 @@ export function McpSection(props: {
             </box>
           </Show>
         </box>
-      </Show>
+      </SectionRequestBody>
     </Section>
   )
 }

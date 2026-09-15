@@ -53,8 +53,20 @@ export function createRequestState(lifecycleSignal?: AbortSignal) {
     return states()[target] ?? idle
   }
 
+  function abort(target: string) {
+    const request = active.get(target)
+    if (!request) return
+    request.controller.abort()
+    active.delete(target)
+    const current = state(target)
+    setStates((values) => ({
+      ...values,
+      [target]: current.lastSuccessfulAt ? { status: "ready", lastSuccessfulAt: current.lastSuccessfulAt } : idle,
+    }))
+  }
+
   function abortAll() {
-    for (const request of active.values()) request.controller.abort()
+    for (const target of active.keys()) abort(target)
   }
 
   lifecycleSignal?.addEventListener("abort", abortAll, { once: true })
@@ -117,7 +129,7 @@ export function createRequestState(lifecycleSignal?: AbortSignal) {
     }
   }
 
-  return { state, start, abortAll }
+  return { state, start, abort, abortAll }
 }
 
 function wait(delay: number, signal?: AbortSignal) {

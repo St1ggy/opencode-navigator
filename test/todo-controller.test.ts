@@ -113,3 +113,38 @@ test("aborts a todo request on disposal without exposing an error", async () => 
   expect(requestSignal?.aborted).toBe(true)
   expect(controller.state("session-1")).toEqual({ status: "idle" })
 })
+
+test("changing the active todo context eagerly invalidates an abort-ignoring request", async () => {
+  let resolveOld!: (value: { data: Array<{ content: string; status: "pending" }> }) => void
+  let oldSignal: AbortSignal | undefined
+  const api = {
+    state: {
+      path: { directory: "/repo" },
+      session: { get: () => undefined, todo: () => [] },
+    },
+    client: {
+      session: {
+        todo: ({ sessionID }: { sessionID: string }, options: { signal: AbortSignal }) => {
+          if (sessionID !== "old") return Promise.resolve({ data: [] })
+          oldSignal = options.signal
+          return new Promise<{ data: Array<{ content: string; status: "pending" }> }>((resolve) => {
+            resolveOld = resolve
+          })
+        },
+      },
+    },
+    event: { on: () => () => {} },
+    lifecycle: { signal: new AbortController().signal, onDispose: () => () => {} },
+  } as unknown as TuiPluginApi
+  const controller = createTodoController(api)
+
+  controller.activate("old")
+  const request = controller.refresh("old")
+  controller.activate("new")
+  expect(oldSignal?.aborted).toBe(true)
+  expect(controller.state("old")).toEqual({ status: "idle" })
+
+  resolveOld({ data: [{ content: "stale", status: "pending" }] })
+  await request
+  expect(controller.list("old")).toEqual([])
+})

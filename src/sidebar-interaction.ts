@@ -7,10 +7,14 @@ import type { SidebarSection } from "./state"
 
 export type SidebarNavigationDescriptor = {
   id: string
-  order: number
+  order: number | (() => number)
   renderable: Renderable
   activate: () => void
   disabled?: () => boolean
+}
+
+function order(descriptor: SidebarNavigationDescriptor) {
+  return typeof descriptor.order === "function" ? descriptor.order() : descriptor.order
 }
 
 const SECTION_COMMANDS: ReadonlyArray<{ section: SidebarSection; title: string }> = [
@@ -58,7 +62,7 @@ export function createSidebarInteraction(api: TuiPluginApi) {
     revision()
     return [...descriptors.values()]
       .filter((descriptor) => isEffectivelyVisible(descriptor.renderable))
-      .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+      .sort((left, right) => order(left) - order(right) || left.id.localeCompare(right.id))
   }
 
   function scrollIntoView(descriptor: SidebarNavigationDescriptor) {
@@ -325,7 +329,7 @@ export function createSidebarInteraction(api: TuiPluginApi) {
           title: "Focus sidebar",
           category: "Sidebar",
           namespace: "palette",
-          enabled: () => api.route.current.name === "session",
+          enabled: () => api.route.current.name === "session" && !api.ui?.dialog?.open,
           run: () => deferFocus(),
         },
         ...SECTION_COMMANDS.map(({ section, title }) => ({
@@ -333,7 +337,7 @@ export function createSidebarInteraction(api: TuiPluginApi) {
           title,
           category: "Sidebar",
           namespace: "palette",
-          enabled: () => api.route.current.name === "session",
+          enabled: () => api.route.current.name === "session" && !api.ui?.dialog?.open,
           run: () => deferFocus(section),
         })),
       ]

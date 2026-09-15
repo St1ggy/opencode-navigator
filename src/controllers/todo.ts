@@ -15,6 +15,7 @@ export function createTodoController(api: TuiPluginApi) {
   const refreshing = new Map<string, Promise<ReadonlyArray<SidebarTodo>>>()
   const revisions = new Map<string, number>()
   const requests = createRequestState(api.lifecycle.signal)
+  let activeTarget: string | undefined
 
   function target(sessionID: string): TodoTarget {
     const session = api.state.session.get(sessionID)
@@ -79,6 +80,20 @@ export function createTodoController(api: TuiPluginApi) {
     },
     retry(sessionID: string) {
       return refresh(sessionID, true)
+    },
+    activate(sessionID: string) {
+      const key = target(sessionID).key
+      if (activeTarget !== key) {
+        requests.abortAll()
+        refreshing.clear()
+        activeTarget = key
+      }
+      return () => {
+        if (activeTarget !== key) return
+        activeTarget = undefined
+        requests.abortAll()
+        refreshing.clear()
+      }
     },
   }
 }

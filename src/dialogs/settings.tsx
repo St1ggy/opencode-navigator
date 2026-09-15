@@ -1,7 +1,7 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { type ScrollBoxRenderable, TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
-import { createMemo, createSignal, For, onCleanup } from "solid-js"
+import { createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import { PLUGIN_ID, SECTION_DEFINITIONS } from "../constants"
 import type { PreferencesController } from "../controllers/preferences"
 import { SIDEBAR_SECTIONS, type SidebarSection } from "../state"
@@ -12,38 +12,69 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
   const [active, setActive] = createSignal(0)
   const theme = () => props.api.theme.current
   const dimensions = useTerminalDimensions()
-  const bodyHeight = createMemo(() => Math.max(1, Math.floor(dimensions().height / 2) - 6))
+  const bodyHeight = createMemo(() => Math.max(4, dimensions().height - 9))
   const groups = createMemo(() => [
     {
+      title: "Preference scope",
+      options: [
+        {
+          title: `${props.preferences.preferenceScope() === "global" ? "●" : "○"} Global`,
+          value: "scope:global",
+          description: "applies to every worktree",
+        },
+        {
+          title: `${props.preferences.preferenceScope() === "worktree" ? "●" : "○"} Current worktree`,
+          value: "scope:worktree",
+          description: props.preferences.canUseWorktreeScope()
+            ? props.preferences.preferenceScopeLabel()
+            : "unavailable outside a worktree",
+        },
+      ],
+    },
+    {
       title: "Sections",
-      options: SECTION_DEFINITIONS.map((section) => ({
-        title: `${props.preferences.sections()[section.name] ? "☑" : "☐"} ${section.label}`,
-        value: section.name,
-        description: props.preferences.sections()[section.name] ? "visible" : "hidden",
-      })),
+      options: props.preferences.selectedSectionOrder().map((name) => {
+        const section = SECTION_DEFINITIONS.find((candidate) => candidate.name === name)!
+        return {
+          title: `${props.preferences.selectedSections()[section.name] ? "☑" : "☐"} ${section.label}`,
+          value: section.name,
+          description: props.preferences.selectedSections()[section.name] ? "visible" : "hidden",
+        }
+      }),
+    },
+    {
+      title: "Section order",
+      options: props.preferences.selectedSectionOrder().map((name, index) => {
+        const section = SECTION_DEFINITIONS.find((candidate) => candidate.name === name)!
+        return {
+          title: `${index + 1}. ${section.label}`,
+          value: `order:${name}`,
+          description: "return moves down · shift+↑/↓ reorders",
+        }
+      }),
     },
     {
       title: "Behavior",
       options: [
         {
-          title: `${props.preferences.persistMcp() ? "☑" : "☐"} Remember MCP states`,
+          title: `${props.preferences.selectedPersistMcp() ? "☑" : "☐"} Remember MCP states`,
           value: "persist_mcp",
-          description: props.preferences.persistMcp() ? "on · per worktree" : "off",
+          description: props.preferences.selectedPersistMcp() ? "on" : "off",
         },
         {
           title: "LSP icon style",
           value: "lsp_icon_style",
-          description: props.preferences.lspIconStyle() === "nerd" ? "Nerd Font" : "text badges",
+          description: props.preferences.selectedLspIconStyle() === "nerd" ? "Nerd Font" : "text badges",
         },
         {
           title: "Sidebar shortcut",
           value: "toggle_key",
-          description: props.preferences.toggleKey(),
+          description: props.preferences.selectedToggleKey(),
         },
         {
           title: "Focus shortcut",
           value: "focus_key",
-          description: props.preferences.focusKey(),
+          description: props.preferences.selectedFocusKey(),
         },
       ],
     },
@@ -53,8 +84,8 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
         {
           title: "↓ Save current layout as default",
           value: "save_layout",
-          description: `${SIDEBAR_SECTIONS.filter((name) => props.preferences.sections()[name]).length} visible · ${
-            SIDEBAR_SECTIONS.filter((name) => props.preferences.expanded()[name]).length
+          description: `${SIDEBAR_SECTIONS.filter((name) => props.preferences.selectedSections()[name]).length} visible · ${
+            SIDEBAR_SECTIONS.filter((name) => props.preferences.selectedExpanded()[name]).length
           } expanded`,
         },
         {
@@ -66,6 +97,11 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
           title: "↺ Restore configured behavior",
           value: "reset_settings",
           description: "MCP memory, icons, shortcuts",
+        },
+        {
+          title: "↺ Clear remembered MCP states",
+          value: "reset_mcp",
+          description: `scope: ${props.preferences.preferenceScopeLabel()}`,
         },
         {
           title: "↺ Show skill confirmations again",
@@ -90,8 +126,27 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
     if (option) body?.scrollChildIntoView(optionId(option.value))
   }
 
+  function reorder(value: string | undefined, direction: -1 | 1) {
+    if (!value?.startsWith("order:")) return
+    props.preferences.moveSelectedSection(value.slice("order:".length) as SidebarSection, direction)
+    queueMicrotask(() => {
+      const next = options().findIndex((candidate) => candidate.value === value)
+      if (next < 0) return
+      setActive(next)
+      body?.scrollChildIntoView(optionId(value))
+    })
+  }
+
   function select(value = options()[active()]?.value) {
     if (!value) return
+    if (value === "scope:global" || value === "scope:worktree") {
+      props.preferences.setPreferenceScope(value === "scope:global" ? "global" : "worktree")
+      return
+    }
+    if (value.startsWith("order:")) {
+      reorder(value, 1)
+      return
+    }
     if (value === "save_layout") {
       void props.preferences
         .saveLayoutAsDefault()
@@ -130,7 +185,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
         <props.api.ui.DialogPrompt
           title="Sidebar shortcut"
           description={() => <text fg={theme().textMuted}>Use OpenCode key syntax, for example alt+s.</text>}
-          value={props.preferences.toggleKey()}
+          value={props.preferences.selectedToggleKey()}
           onConfirm={(input) => {
             try {
               props.preferences.setToggleKey(input)
@@ -156,7 +211,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
         <props.api.ui.DialogPrompt
           title="Focus shortcut"
           description={() => <text fg={theme().textMuted}>Use OpenCode key syntax, for example alt+f.</text>}
-          value={props.preferences.focusKey()}
+          value={props.preferences.selectedFocusKey()}
           onConfirm={(input) => {
             try {
               props.preferences.setFocusKey(input)
@@ -181,6 +236,10 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       props.preferences.resetPluginSettings()
       return
     }
+    if (value === "reset_mcp") {
+      props.preferences.resetMcpStates()
+      return
+    }
     if (value === "reset_skills") {
       props.preferences.resetSkillConfirmations()
       return
@@ -189,7 +248,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       openFirstRunWizard(props.api, props.preferences)
       return
     }
-    props.preferences.toggleSection(value as SidebarSection)
+    props.preferences.toggleSelectedSection(value as SidebarSection)
   }
 
   const unregister = props.api.keymap.registerLayer({
@@ -199,6 +258,8 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       { name: `${PLUGIN_ID}.settings.previous`, run: () => move(-1) },
       { name: `${PLUGIN_ID}.settings.next`, run: () => move(1) },
       { name: `${PLUGIN_ID}.settings.select`, run: () => select() },
+      { name: `${PLUGIN_ID}.settings.move-up`, run: () => reorder(options()[active()]?.value, -1) },
+      { name: `${PLUGIN_ID}.settings.move-down`, run: () => reorder(options()[active()]?.value, 1) },
     ],
     bindings: [
       { key: "up", cmd: `${PLUGIN_ID}.settings.previous` },
@@ -206,6 +267,8 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       { key: "tab", cmd: `${PLUGIN_ID}.settings.next` },
       { key: "space", cmd: `${PLUGIN_ID}.settings.select` },
       { key: "return", cmd: `${PLUGIN_ID}.settings.select` },
+      { key: "shift+up", cmd: `${PLUGIN_ID}.settings.move-up` },
+      { key: "shift+down", cmd: `${PLUGIN_ID}.settings.move-down` },
     ],
   })
   onCleanup(unregister)
@@ -258,7 +321,31 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                           >
                             {option.title}
                           </text>
-                          <text fg={theme().borderSubtle}>{option.description}</text>
+                          <text flexGrow={1} fg={theme().borderSubtle}>
+                            {option.description}
+                          </text>
+                          <Show when={option.value.startsWith("order:")}>
+                            <box flexDirection="row" flexShrink={0} gap={1}>
+                              <text
+                                fg={theme().accent}
+                                onMouseDown={(event) => {
+                                  event.stopPropagation()
+                                  reorder(option.value, -1)
+                                }}
+                              >
+                                ↑
+                              </text>
+                              <text
+                                fg={theme().accent}
+                                onMouseDown={(event) => {
+                                  event.stopPropagation()
+                                  reorder(option.value, 1)
+                                }}
+                              >
+                                ↓
+                              </text>
+                            </box>
+                          </Show>
                         </box>
                       )
                     }}
@@ -269,7 +356,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
           </For>
         </box>
       </scrollbox>
-      <text fg={theme().textMuted}>↑/↓ navigate · enter select</text>
+      <text fg={theme().textMuted}>↑/↓ navigate · enter select · shift+↑/↓ reorder</text>
     </box>
   )
 }

@@ -1,8 +1,10 @@
 import type { PluginSettings } from "./preferences-schema"
-import { parseSectionVisibility, type SectionVisibility } from "./state"
+import { parseSectionOrder } from "./preferences-schema"
+import { SIDEBAR_SECTIONS, parseSectionVisibility, type SectionVisibility, type SidebarSection } from "./state"
 
 export type PluginConfig = PluginSettings & {
   sections: SectionVisibility
+  sectionOrder?: SidebarSection[]
 }
 
 export function pluginConfig(options: Record<string, unknown> | undefined): PluginConfig {
@@ -13,6 +15,7 @@ export function pluginConfig(options: Record<string, unknown> | undefined): Plug
       typeof options?.focus_key === "string" && options.focus_key.trim() ? options.focus_key.trim() : "ctrl+shift+f",
     persistMcp: options?.persist_mcp !== false,
     sections: parseSectionVisibility(options?.sections),
+    sectionOrder: parseSectionOrder(options?.section_order) ?? [...SIDEBAR_SECTIONS],
     lspIconStyle: options?.lsp_icon_style === "text" ? "text" : "nerd",
   }
 }

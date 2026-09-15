@@ -10,6 +10,8 @@ export function createSkillController(api: TuiPluginApi) {
   const refreshing = new Map<string, Promise<ReadonlyArray<SkillInfo>>>()
   const targets = new Map<string, ReturnType<typeof currentLocation>>()
   const requests = createRequestState(api.lifecycle.signal)
+  const promptRequests = createRequestState(api.lifecycle.signal)
+  let activeTarget: string | undefined
 
   function target() {
     return currentLocation(api)
@@ -68,8 +70,38 @@ export function createSkillController(api: TuiPluginApi) {
     retry(current = target()) {
       return refresh(current, true)
     },
-    use(current: ReturnType<typeof currentLocation>, name: string) {
-      return api.client.tui.appendPrompt({ ...current.routing, text: `/${name} ` }, { throwOnError: true })
+    activate(current = target()) {
+      targets.set(current.key, current)
+      if (activeTarget !== current.key) {
+        requests.abortAll()
+        promptRequests.abortAll()
+        refreshing.clear()
+        activeTarget = current.key
+      }
+      return () => {
+        if (activeTarget !== current.key) return
+        activeTarget = undefined
+        requests.abortAll()
+        promptRequests.abortAll()
+        refreshing.clear()
+      }
+    },
+    async use(current: ReturnType<typeof currentLocation>, name: string) {
+      if (activeTarget && activeTarget !== current.key) throw new DOMException("Sidebar context changed", "AbortError")
+      const request = promptRequests.start(current.key, "insert skill", false, true)
+      if (!request) return
+      try {
+        await api.client.tui.appendPrompt(
+          { ...current.routing, text: `/${name} ` },
+          { throwOnError: true, signal: request.signal },
+        )
+        request.succeed()
+      } catch (cause) {
+        request.fail(cause)
+        throw cause
+      } finally {
+        request.finish()
+      }
     },
   }
 }

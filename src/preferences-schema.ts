@@ -1,4 +1,4 @@
-import { SIDEBAR_SECTIONS, type SectionVisibility } from "./state"
+import { SIDEBAR_SECTIONS, type SectionVisibility, type SidebarSection } from "./state"
 
 export type PluginSettings = {
   toggleKey: string
@@ -10,6 +10,7 @@ export type PluginSettings = {
 export type SectionLayoutDefault = {
   sections: Partial<SectionVisibility>
   expanded: Partial<SectionVisibility>
+  order?: SidebarSection[]
 }
 
 export type DesiredMcpState = "enabled" | "disabled"
@@ -22,11 +23,8 @@ export type PreferenceValues = {
 }
 
 export type PreferencesDocument = {
-  global: {
-    behavior?: Partial<PluginSettings>
-    layout?: SectionLayoutDefault
-  }
-  worktrees: Record<string, { mcp: DesiredMcpStates }>
+  global: ScopedPreferences
+  worktrees: Record<string, ScopedPreferences>
   user: {
     skippedSkillConfirmations?: string[]
     onboardingCompleted?: boolean
@@ -38,8 +36,15 @@ export type ResolvedPreferences = {
   layout: {
     sections: SectionVisibility
     expanded: SectionVisibility
+    order: SidebarSection[]
   }
   desiredMcpStates: DesiredMcpStates
+}
+
+export type ScopedPreferences = {
+  behavior?: Partial<PluginSettings>
+  layout?: SectionLayoutDefault
+  mcp?: DesiredMcpStates
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -53,6 +58,21 @@ export function parseSectionPreferences(value: unknown): Partial<SectionVisibili
   return Object.fromEntries(
     SIDEBAR_SECTIONS.flatMap((name) => (typeof input[name] === "boolean" ? [[name, input[name]]] : [])),
   ) as Partial<SectionVisibility>
+}
+
+export function parseSectionOrder(value: unknown): SidebarSection[] | undefined {
+  if (!Array.isArray(value)) return
+  const seen = new Set<SidebarSection>()
+  const order: SidebarSection[] = []
+  for (const candidate of value) {
+    if (!SIDEBAR_SECTIONS.includes(candidate as SidebarSection) || seen.has(candidate as SidebarSection)) continue
+    seen.add(candidate as SidebarSection)
+    order.push(candidate as SidebarSection)
+  }
+  for (const section of SIDEBAR_SECTIONS) {
+    if (!seen.has(section)) order.push(section)
+  }
+  return order
 }
 
 export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
@@ -71,8 +91,9 @@ export function parseSectionLayout(value: unknown): SectionLayoutDefault | undef
   if (!input) return
   const sections = parseSectionPreferences(input.sections)
   const expanded = parseSectionPreferences(input.expanded)
-  if (Object.keys(sections).length === 0 && Object.keys(expanded).length === 0) return
-  return { sections, expanded }
+  const order = parseSectionOrder(input.order)
+  if (Object.keys(sections).length === 0 && Object.keys(expanded).length === 0 && !order) return
+  return { sections, expanded, ...(order ? { order } : {}) }
 }
 
 export function parseDesiredMcpStates(value: unknown): DesiredMcpStates {
@@ -108,14 +129,24 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   const globalInput = record(input.global)
   const behavior = parsePluginSettings(globalInput?.behavior)
   const layout = parseSectionLayout(globalInput?.layout)
+  const globalMcp = parseDesiredMcpStates(globalInput?.mcp)
   const worktreesInput = record(input.worktrees)
   const worktrees: PreferencesDocument["worktrees"] = {}
   for (const [scope, candidate] of Object.entries(worktreesInput ?? {}).sort(([left], [right]) =>
     left.localeCompare(right),
   )) {
     if (!scope) continue
-    const mcp = parseDesiredMcpStates(record(candidate)?.mcp)
-    if (Object.keys(mcp).length > 0) worktrees[scope] = { mcp }
+    const candidateInput = record(candidate)
+    const scopedBehavior = parsePluginSettings(candidateInput?.behavior)
+    const scopedLayout = parseSectionLayout(candidateInput?.layout)
+    const mcp = parseDesiredMcpStates(candidateInput?.mcp)
+    if (Object.keys(scopedBehavior).length > 0 || scopedLayout || Object.keys(mcp).length > 0) {
+      worktrees[scope] = {
+        ...(Object.keys(scopedBehavior).length > 0 ? { behavior: scopedBehavior } : {}),
+        ...(scopedLayout ? { layout: scopedLayout } : {}),
+        ...(Object.keys(mcp).length > 0 ? { mcp } : {}),
+      }
+    }
   }
   const userInput = record(input.user)
   const skippedSkillConfirmations = parseStringList(userInput?.skippedSkillConfirmations)
@@ -124,6 +155,7 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
     global: {
       ...(Object.keys(behavior).length > 0 ? { behavior } : {}),
       ...(layout ? { layout } : {}),
+      ...(Object.keys(globalMcp).length > 0 ? { mcp: globalMcp } : {}),
     },
     worktrees,
     user: {
@@ -142,6 +174,7 @@ function parseValues(value: PreferenceValues | undefined): PreferenceValues {
     layout: {
       sections: parseSectionPreferences(value.layout?.sections),
       expanded: parseSectionPreferences(value.layout?.expanded),
+      ...(parseSectionOrder(value.layout?.order) ? { order: parseSectionOrder(value.layout?.order) } : {}),
     },
     desiredMcpStates: parseDesiredMcpStates(value.desiredMcpStates),
   }
@@ -163,15 +196,17 @@ export function resolvePreferences(input: {
   const behavior = { ...input.builtIns.behavior }
   const sections = { ...input.builtIns.layout.sections }
   const expanded = { ...input.builtIns.layout.expanded }
+  let order = [...input.builtIns.layout.order]
   const desiredMcpStates = { ...input.builtIns.desiredMcpStates }
 
   for (const layer of layers) {
     Object.assign(behavior, layer.behavior)
     Object.assign(sections, layer.layout?.sections)
     Object.assign(expanded, layer.layout?.expanded)
+    if (layer.layout?.order?.length) order = [...layer.layout.order]
     Object.assign(desiredMcpStates, layer.desiredMcpStates)
   }
-  return { behavior, layout: { sections, expanded }, desiredMcpStates }
+  return { behavior, layout: { sections, expanded, order }, desiredMcpStates }
 }
 
 export function preferencesScope(path: { worktree?: string; directory?: string }) {

@@ -295,3 +295,93 @@ test("reports every MCP server whose saved state restoration failed", async () =
 
   expect(toasts.map((toast) => toast.message)).toEqual(["Could not restore: tracker, wiki"])
 })
+
+test("connect all runs concurrently, reports partial progress, and retries only failures", async () => {
+  const pending = deferred<{ data: true }>()
+  const calls: string[] = []
+  const disconnects: string[] = []
+  const states: Record<string, string> = { context7: "disabled", tracker: "disabled", wiki: "connected" }
+  let trackerFails = true
+  const saved = preferences()
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/repo", directory: "/repo" },
+      mcp: () => Object.entries(states).map(([name, status]) => ({ name, status })),
+    },
+    client: {
+      mcp: {
+        status: () =>
+          Promise.resolve({
+            data: Object.fromEntries(Object.entries(states).map(([name, status]) => [name, { status }])),
+          }),
+        connect: ({ name }: { name: string }) => {
+          calls.push(name)
+          if (name === "context7") return pending.promise.then((result) => ((states[name] = "connected"), result))
+          if (trackerFails) return Promise.reject(new Error("tracker unavailable"))
+          states[name] = "connected"
+          return Promise.resolve({ data: true as const })
+        },
+        disconnect: ({ name }: { name: string }) => {
+          disconnects.push(name)
+          states[name] = "disabled"
+          return Promise.resolve({ data: true as const })
+        },
+      },
+    },
+    ui: { toast: () => {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => true, saved.access)
+  await controller.refresh()
+
+  const request = controller.connectAll()
+  await Promise.resolve()
+  expect(calls).toEqual(["context7", "tracker"])
+  expect(controller.bulkState()).toMatchObject({ action: "connect", status: "running", total: 2 })
+  pending.resolve({ data: true })
+  await request
+
+  expect(controller.bulkState()).toMatchObject({ status: "error", completed: 2, failed: ["tracker"] })
+  expect(saved.values()).toEqual({ context7: "enabled", tracker: "enabled" })
+
+  trackerFails = false
+  await controller.retryBulk()
+  expect(calls).toEqual(["context7", "tracker", "tracker"])
+  expect(controller.bulkState()).toMatchObject({ status: "ready", completed: 1, failed: [] })
+
+  await controller.disconnectAll()
+  expect(disconnects).toEqual(["context7", "tracker", "wiki"])
+  expect(controller.bulkState()).toMatchObject({ action: "disconnect", status: "ready", completed: 3, failed: [] })
+  expect(saved.values()).toEqual({ context7: "disabled", tracker: "disabled", wiki: "disabled" })
+})
+
+test("a context change leaves an aborted bulk operation idle instead of successful", async () => {
+  const current = { key: "old", scope: "/old", routing: { directory: "/old" } }
+  const api = {
+    route: { current: { name: "home" } },
+    state: {
+      path: { worktree: "/old", directory: "/old" },
+      mcp: () => [{ name: "wiki", status: "disabled" }],
+    },
+    client: {
+      mcp: {
+        connect: (_input: unknown, options: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            options.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")))
+          }),
+        disconnect: () => Promise.resolve({ data: true }),
+        status: () => Promise.resolve({ data: { wiki: { status: "disabled" } } }),
+      },
+    },
+    ui: { toast: () => {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => false, preferences().access)
+
+  const request = controller.connectAll(current)
+  await Promise.resolve()
+  controller.deactivate(current)
+  await request
+  expect(controller.bulkState(current)).toMatchObject({ action: "connect", status: "idle", completed: 0, failed: [] })
+})

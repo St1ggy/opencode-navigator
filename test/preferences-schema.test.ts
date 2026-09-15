@@ -5,6 +5,7 @@ import {
   resolvePreferences,
   type PreferencesDocument,
 } from "../src/preferences-schema"
+import type { SidebarSection } from "../src/state"
 
 const builtIns = {
   behavior: {
@@ -30,6 +31,7 @@ const builtIns = {
       lsp: false,
       mcp: false,
     },
+    order: ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"] as SidebarSection[],
   },
   desiredMcpStates: {},
 }
@@ -55,10 +57,16 @@ describe("preferences schema", () => {
           layout: {
             sections: { todo: false, skills: "no" },
             expanded: { skills: true, unknown: true },
+            order: ["mcp", "todo", "mcp", "unknown"],
           },
+          mcp: { global: "enabled" },
         },
         worktrees: {
-          "/repo": { mcp: { wiki: "disabled", context7: "enabled", bad: "maybe" } },
+          "/repo": {
+            behavior: { focusKey: "alt+w" },
+            layout: { sections: { mcp: false }, expanded: {}, order: ["skills", "todo"] },
+            mcp: { wiki: "disabled", context7: "enabled", bad: "maybe" },
+          },
           invalid: "no",
         },
         user: {
@@ -71,9 +79,24 @@ describe("preferences schema", () => {
     ).toEqual({
       global: {
         behavior: { toggleKey: "alt+s", persistMcp: false },
-        layout: { sections: { todo: false }, expanded: { skills: true } },
+        layout: {
+          sections: { todo: false },
+          expanded: { skills: true },
+          order: ["mcp", "todo", "subagents", "skills", "quick_actions", "lsp"],
+        },
+        mcp: { global: "enabled" },
       },
-      worktrees: { "/repo": { mcp: { context7: "enabled", wiki: "disabled" } } },
+      worktrees: {
+        "/repo": {
+          behavior: { focusKey: "alt+w" },
+          layout: {
+            sections: { mcp: false },
+            expanded: {},
+            order: ["skills", "todo", "subagents", "quick_actions", "lsp", "mcp"],
+          },
+          mcp: { context7: "enabled", wiki: "disabled" },
+        },
+      },
       user: { skippedSkillConfirmations: ["/skills/review"], onboardingCompleted: true },
     } satisfies PreferencesDocument)
   })
@@ -99,6 +122,7 @@ describe("preferences schema", () => {
         },
         worktree: {
           behavior: { focusKey: "ctrl+w" },
+          layout: { order: ["mcp", "todo"] },
           desiredMcpStates: { wiki: "enabled", context7: "disabled" },
         },
         session: {
@@ -117,6 +141,7 @@ describe("preferences schema", () => {
       layout: {
         sections: { ...builtIns.layout.sections, todo: false },
         expanded: builtIns.layout.expanded,
+        order: ["mcp", "todo", "subagents", "skills", "quick_actions", "lsp"],
       },
       desiredMcpStates: { wiki: "enabled", optionOnly: "disabled", context7: "enabled" },
     })

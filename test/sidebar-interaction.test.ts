@@ -101,6 +101,32 @@ test("interaction orders, wraps, activates, blocks disabled items, and falls bac
   expect(renderer.currentFocusedRenderable).toBe(outside)
 })
 
+test("interaction reevaluates dynamic row order after a section move", () => {
+  const { api, renderer } = testApi()
+  const interaction = createSidebarInteraction(api)
+  const root = renderable(renderer, "sidebar", renderable(renderer, "host"))
+  let firstOrder = 100
+  let secondOrder = 200
+  interaction.setContentRoot(root)
+  interaction.register({
+    id: "first-row",
+    order: () => firstOrder,
+    renderable: renderable(renderer, "first-row", root),
+    activate: () => {},
+  })
+  interaction.register({
+    id: "second-row",
+    order: () => secondOrder,
+    renderable: renderable(renderer, "second-row", root),
+    activate: () => {},
+  })
+
+  expect(interaction.available().map((item) => item.id)).toEqual(["first-row", "second-row"])
+  firstOrder = 200
+  secondOrder = 100
+  expect(interaction.available().map((item) => item.id)).toEqual(["second-row", "first-row"])
+})
+
 test("interaction defers hidden focus, supports direct sections, and passes return context to commands", async () => {
   const { api, renderer, dispatched } = testApi()
   const interaction = createSidebarInteraction(api)

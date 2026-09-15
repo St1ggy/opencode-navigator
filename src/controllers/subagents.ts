@@ -22,6 +22,7 @@ export function createSubagentController(api: TuiPluginApi) {
   const journals = new Set<{ sessions: SessionMutation[]; statuses: StatusMutation[] }>()
   const targets = new Map<string, SubagentTarget>()
   const requests = createRequestState(api.lifecycle.signal)
+  let activeTarget: string | undefined
 
   function target(parentID: string): SubagentTarget {
     const parent = api.state.session.get(parentID)
@@ -138,9 +139,9 @@ export function createSubagentController(api: TuiPluginApi) {
       recordStatus({ sessionID: event.properties.sessionID, status: { type: "idle" } }),
     ),
     api.event.on("server.connected", () => {
-      for (const current of targets.values()) {
+      const current = activeTarget ? targets.get(activeTarget) : undefined
+      if (current)
         void retryBackgroundRefresh(() => refreshTarget(current), { signal: api.lifecycle.signal }).catch(() => {})
-      }
     }),
   ]
   api.lifecycle.onDispose(() => unsubscribe.forEach((dispose) => dispose()))
@@ -153,6 +154,21 @@ export function createSubagentController(api: TuiPluginApi) {
     },
     retry(parentID: string) {
       return refresh(parentID, true)
+    },
+    activate(parentID: string) {
+      const current = target(parentID)
+      targets.set(current.key, current)
+      if (activeTarget !== current.key) {
+        requests.abortAll()
+        refreshing.clear()
+        activeTarget = current.key
+      }
+      return () => {
+        if (activeTarget !== current.key) return
+        activeTarget = undefined
+        requests.abortAll()
+        refreshing.clear()
+      }
     },
     open(sessionID: string) {
       api.route.navigate("session", { sessionID })

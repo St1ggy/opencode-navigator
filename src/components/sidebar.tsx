@@ -1,6 +1,6 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import type { BoxRenderable } from "@opentui/core"
-import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, Match, onCleanup, Show, Switch, untrack } from "solid-js"
 import { FOCUS_COMMAND, PLUGIN_ID, TOGGLE_COMMAND } from "../constants"
 import type { McpController } from "../controllers/mcp"
 import type { PreferencesController } from "../controllers/preferences"
@@ -9,6 +9,8 @@ import type { SubagentController } from "../controllers/subagents"
 import type { TodoController } from "../controllers/todo"
 import { showFirstRunWizard } from "../dialogs/first-run"
 import { openSettings } from "../dialogs/settings"
+import { currentLocation } from "../location"
+import { preferencesScope } from "../preferences-schema"
 import type { SidebarInteraction } from "../sidebar-interaction"
 import { useSidebarItem } from "./common"
 import { LspSection, McpSection, QuickActionsSection, SkillsSection, SubagentSection, TodoSection } from "./sections"
@@ -106,51 +108,35 @@ export function SidebarContent(props: {
         props.interaction.leave()
       }}
     >
-      <Show when={sections().todo}>
-        <TodoSection
-          api={props.api}
-          controller={props.todo}
-          preferences={props.preferences}
-          interaction={props.interaction}
-          sessionID={props.sessionID}
-        />
-      </Show>
-      <Show when={sections().subagents}>
-        <SubagentSection
-          api={props.api}
-          controller={props.subagents}
-          preferences={props.preferences}
-          interaction={props.interaction}
-          sessionID={props.sessionID}
-        />
-      </Show>
-      <Show when={sections().skills}>
-        <SkillsSection
-          api={props.api}
-          controller={props.skills}
-          preferences={props.preferences}
-          interaction={props.interaction}
-        />
-      </Show>
-      <Show when={sections().quick_actions}>
-        <QuickActionsSection api={props.api} preferences={props.preferences} interaction={props.interaction} />
-      </Show>
-      <Show when={sections().lsp}>
-        <LspSection
-          api={props.api}
-          iconStyle={props.preferences.lspIconStyle()}
-          preferences={props.preferences}
-          interaction={props.interaction}
-        />
-      </Show>
-      <Show when={sections().mcp}>
-        <McpSection
-          api={props.api}
-          controller={props.mcp}
-          preferences={props.preferences}
-          interaction={props.interaction}
-        />
-      </Show>
+      <For each={props.preferences.sectionOrder()}>
+        {(section, index) => {
+          const order = () => (index() + 1) * 100
+          return (
+            <Show when={sections()[section]}>
+              <Switch>
+                <Match when={section === "todo"}>
+                  <TodoSection {...props} order={order()} controller={props.todo} />
+                </Match>
+                <Match when={section === "subagents"}>
+                  <SubagentSection {...props} order={order()} controller={props.subagents} />
+                </Match>
+                <Match when={section === "skills"}>
+                  <SkillsSection {...props} order={order()} controller={props.skills} />
+                </Match>
+                <Match when={section === "quick_actions"}>
+                  <QuickActionsSection {...props} order={order()} />
+                </Match>
+                <Match when={section === "lsp"}>
+                  <LspSection {...props} order={order()} iconStyle={props.preferences.lspIconStyle()} />
+                </Match>
+                <Match when={section === "mcp"}>
+                  <McpSection {...props} order={order()} controller={props.mcp} />
+                </Match>
+              </Switch>
+            </Show>
+          )
+        }}
+      </For>
     </box>
   )
 }
@@ -163,16 +149,25 @@ export function McpPersistence(props: { api: TuiPluginApi; controller: McpContro
     const params = "params" in route ? route.params : undefined
     if (typeof params?.sessionID !== "string") return
     const current = props.controller.target()
-    void props.controller.activate(current).catch(() => {})
+    onCleanup(() => props.controller.deactivate(current))
+    untrack(() => void props.controller.activate(current).catch(() => {}))
   })
-  return <></>
+  return <box />
 }
 
 export function PreferencesPersistence(props: { api: TuiPluginApi; controller: PreferencesController }) {
   createEffect(() => {
+    const route = props.api.route.current
+    const location = currentLocation(props.api)
+    untrack(() =>
+      props.controller.setActiveScope(
+        preferencesScope({ directory: location.routing.directory, worktree: props.api.state.path.worktree }),
+      ),
+    )
+    void route
     void props.controller.load()
   })
-  return <></>
+  return <box />
 }
 
 export function SidebarToggleBinding(props: { api: TuiPluginApi; preferences: PreferencesController }) {
@@ -185,17 +180,17 @@ export function SidebarToggleBinding(props: { api: TuiPluginApi; preferences: Pr
           title: "Toggle sidebar",
           category: "Sidebar",
           namespace: "palette",
-          enabled: () => props.api.route.current.name === "session",
+          enabled: () => props.api.route.current.name === "session" && !props.api.ui?.dialog?.open,
           run() {
             props.api.keymap.dispatchCommand("session.sidebar.toggle")
           },
         },
       ],
-      bindings: [{ key, cmd: TOGGLE_COMMAND, desc: "Toggle sidebar" }],
+      bindings: [{ key, cmd: TOGGLE_COMMAND }],
     })
     onCleanup(unregister)
   })
-  return <></>
+  return <box />
 }
 
 export function SidebarFocusBinding(props: {
@@ -211,11 +206,11 @@ export function SidebarFocusBinding(props: {
   createEffect(() => {
     const key = props.preferences.focusKey()
     const unregister = props.api.keymap.registerLayer({
-      bindings: [{ key, cmd: FOCUS_COMMAND, desc: "Focus sidebar" }],
+      bindings: [{ key, cmd: FOCUS_COMMAND }],
     })
     onCleanup(unregister)
   })
-  return <></>
+  return <box />
 }
 
 export function FirstRunWizardPersistence(props: { api: TuiPluginApi; preferences: PreferencesController }) {
@@ -225,5 +220,5 @@ export function FirstRunWizardPersistence(props: { api: TuiPluginApi; preference
     checked = true
     void showFirstRunWizard(props.api, props.preferences).catch(() => {})
   })
-  return <></>
+  return <box />
 }

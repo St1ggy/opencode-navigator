@@ -28,6 +28,19 @@ test("an intentional abort restores the non-error state", () => {
   expect(requests.state("target")).toEqual({ status: "idle" })
 })
 
+test("abortAll invalidates tokens and settles loading state immediately", () => {
+  const requests = createRequestState()
+  const request = requests.start("old-worktree", "load target", false)!
+
+  requests.abortAll()
+
+  expect(request.signal.aborted).toBe(true)
+  expect(request.isCurrent()).toBe(false)
+  expect(requests.state("old-worktree")).toEqual({ status: "idle" })
+  request.succeed()
+  expect(requests.state("old-worktree")).toEqual({ status: "idle" })
+})
+
 test("background refresh retries are bounded and can use a zero-delay waiter", async () => {
   let attempts = 0
   const delays: number[] = []
