@@ -27,14 +27,14 @@ verification workflow before expanding the product surface.
 - [x] Separate stateful logic from rendering; Todo, Subagents, Skills, MCP, preferences, and sidebar interaction live outside the section components.
 - [x] Keep `src/tui.tsx` as a composition and export facade, with controllers, components, dialogs, and icons in focused modules.
 - [x] Keep Solid and OpenTUI packages external so the plugin shares OpenCode's reactive runtime.
-- [~] Share request-state, error/retry, focus, disabled, and activation primitives; loading, empty, and pending presentation remains section-specific.
+- [x] Share request-state, loading/empty/error/pending presentation, retry, focus, disabled, and activation primitives across asynchronous sections.
 
 ### Unified Persistence
 
 - [x] Store layout, behavior, MCP, onboarding, and skill-confirmation state in one validated, atomic, concurrency-safe preferences file.
 - [x] Remember desired enabled and disabled MCP state by exact worktree, directory, or global location key.
-- [~] Use one preferences document and shared value types; layout and behavior remain global while MCP state uses an exact location scope.
-- [~] Provide layout, behavior, and skill-confirmation reset controls; explicit scope selection, inherited global/worktree precedence, and MCP-state reset remain planned.
+- [x] Use one preferences document and shared value types for global and exact-worktree layout, behavior, and MCP overrides.
+- [x] Provide explicit global/worktree scope selection, inherited precedence, and per-scope layout, behavior, and MCP reset controls.
 - [x] Keep commit-safe project-local profiles and project persistence scope deferred to the portability phase.
 
 ### Request And Error Reliability
@@ -43,7 +43,7 @@ verification workflow before expanding the product surface.
 - [x] Preserve Subagent events that arrive during an in-flight refresh.
 - [x] Scope Skills and MCP snapshots by directory/workspace and ignore superseded MCP activation work.
 - [x] Surface Todo, Subagent, Skills, and MCP refresh failures with inline retries, plus mutation and persistence failures.
-- [~] Isolate refresh state and responses by immutable target and abort requests on disposal; context changes do not cancel every in-flight mutation.
+- [x] Isolate refresh state and responses by immutable target, eagerly invalidate reads and mutations on context changes, and abort all work on disposal.
 - [x] Add explicit section and MCP mutation retries plus bounded reconnect backoff.
 
 ### Toolchain
@@ -76,10 +76,10 @@ verification workflow before expanding the product surface.
 
 - [ ] Add built-in `Minimal`, `Coding`, `Agents`, and `Full` layout presets. The early `Agents` preset includes Todo, Subagents, and Skills and does not depend on usage limits.
 - [ ] Preview presets and allow named custom presets to be saved, renamed, and deleted.
-- [ ] Add configurable section ordering, row density, and visible-row limits.
-- [ ] Save layout defaults globally or for the current worktree using the unified persistence model.
+- [~] Configurable section ordering exists; row density and visible-row limits remain planned.
+- [x] Save layout defaults globally or for the current worktree using the unified persistence model.
 - [ ] Save desired MCP server state as named presets, preview changes, and apply them with per-server progress and partial-failure retry.
-- [ ] Add `Connect all` and `Disconnect all` beside MCP preset restore, using the same bulk-operation flow.
+- [x] Add `Connect all` and `Disconnect all` with per-server progress, partial-failure reporting, and failed-only retry.
 - [ ] Optionally link one layout preset and one MCP preset as a workspace profile.
 
 ### Section Improvements
@@ -89,7 +89,7 @@ verification workflow before expanding the product surface.
 - [ ] Skills: pinned and recent items, source details, fuzzy keyboard selection, and trusted-skill confirmation settings.
 - [ ] Quick Actions: ordering, visibility, recent actions, registered commands, and route-aware disabled reasons.
 - [~] LSP: compact Nerd Font glyphs and text badges exist; sorting, expandable details, and actionable errors remain.
-- [~] MCP: filtering, pending rows, error text, individual connect/disconnect, and retry exist; grouping, pinning, and bulk controls remain.
+- [~] MCP: filtering, pending rows, error text, individual and bulk connect/disconnect, and retry exist; grouping and pinning remain.
 
 ### Agents And Limits
 
@@ -107,7 +107,7 @@ verification workflow before expanding the product surface.
 
 - [ ] Import and export layout and MCP settings as versioned JSON with validation and unsupported-field previews.
 - [ ] Add commit-safe project-local profiles after global/worktree persistence is stable.
-- [ ] Document precedence across plugin options, global settings, worktree settings, and project-local profiles.
+- [~] Current configured-default, global, worktree, and session precedence is documented; project-local profiles remain deferred.
 
 ### Release Polish
 
@@ -129,7 +129,7 @@ public OpenCode TUI or stable authenticated provider API:
 
 ## Suggested Delivery Order
 
-1. Complete the P0 architecture, persistence, reliability, keyboard, and smoke-test foundation.
+1. Maintain the completed P0 architecture, persistence, reliability, keyboard, and smoke-test foundation.
 2. Add layout and MCP presets on the unified global/worktree preference model.
 3. Improve existing sections using the shared request and interaction contracts.
 4. Add the OpenCode agent overview, then stable provider and CLI adapters.
