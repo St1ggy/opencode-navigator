@@ -1,7 +1,4 @@
 {
-  "projectId": "project_b5259e99-fd1e-464b-8866-1bc057d7c41c",
-  "workers": 4,
-  "provider": "git",
-  "plugins": [],
-  "baseRef": "main"
+  "projectId": "project_168ee13a-6449-4961-83fa-bb203327d46b",
+  "projectName": "opencode-pretty-sidebar"
 }
