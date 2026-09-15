@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createPreferencesStore } from "../src/preferences-store"
-import type { SectionVisibility } from "../src/state"
+import type { SectionVisibility, SidebarSection } from "../src/state"
 
 const defaults: SectionVisibility = {
   todo: true,
@@ -34,6 +34,27 @@ test("stores and clears the default layout", async () => {
   }
 })
 
+test("stores and clears user layout presets", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  const layout = {
+    sections: { ...defaults, skills: false },
+    expanded: { ...defaults, todo: false },
+    order: ["mcp", "todo", "subagents", "skills", "quick_actions", "lsp"] as SidebarSection[],
+  }
+  try {
+    const store = createPreferencesStore(directory)
+    await store.update({ user: { layoutPresets: { Focus: layout } } })
+    await store.flush()
+    expect((await createPreferencesStore(directory).load()).user.layoutPresets).toEqual({ Focus: layout })
+
+    await store.update({ user: { layoutPresets: {} } })
+    await store.flush()
+    expect((await createPreferencesStore(directory).load()).user.layoutPresets).toBeUndefined()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("preserves concurrent updates from independent store instances", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {
@@ -50,6 +71,31 @@ test("preserves concurrent updates from independent store instances", async () =
       "/one": { mcp: { wiki: "disabled" } },
       "/two": { mcp: { context7: "enabled" } },
     })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("preserves concurrent preset saves from independent store instances", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
+  const layout = {
+    sections: defaults,
+    expanded: defaults,
+    order: ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"] as SidebarSection[],
+  }
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    await Promise.all([
+      first.update({ user: { layoutPreset: { name: "Focus", layout } } }),
+      second.update({ user: { layoutPreset: { name: "Review", layout } } }),
+    ])
+    await Promise.all([first.flush(), second.flush()])
+
+    expect(Object.keys((await createPreferencesStore(directory).load()).user.layoutPresets ?? {})).toEqual([
+      "Focus",
+      "Review",
+    ])
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

@@ -72,6 +72,14 @@ describe("preferences schema", () => {
         user: {
           skippedSkillConfirmations: ["/skills/review", 42, "/skills/review"],
           onboardingCompleted: true,
+          layoutPresets: {
+            " Focus ": {
+              sections: { skills: false, unknown: true },
+              expanded: { todo: false },
+              order: ["mcp", "todo", "mcp", "unknown"],
+            },
+            Empty: {},
+          },
           unknown: true,
         },
         unknown: true,
@@ -97,7 +105,17 @@ describe("preferences schema", () => {
           mcp: { context7: "enabled", wiki: "disabled" },
         },
       },
-      user: { skippedSkillConfirmations: ["/skills/review"], onboardingCompleted: true },
+      user: {
+        skippedSkillConfirmations: ["/skills/review"],
+        onboardingCompleted: true,
+        layoutPresets: {
+          Focus: {
+            sections: { skills: false },
+            expanded: { todo: false },
+            order: ["mcp", "todo", "subagents", "skills", "quick_actions", "lsp"],
+          },
+        },
+      },
     } satisfies PreferencesDocument)
   })
 

@@ -362,6 +362,56 @@ test("saves the active worktree session layout when global scope is selected", a
   }
 })
 
+test("creates, applies, updates, renames, deletes, and persists layout presets", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+  const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: true,
+  })
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await controller.load()
+    expect(controller.layoutPresets()).toEqual({})
+
+    controller.setActiveScope("/repo-a")
+    controller.setPreferenceScope("worktree")
+    controller.toggleSelectedSection("lsp")
+    controller.moveSelectedSection("mcp", -1)
+    expect(controller.saveLayoutPreset(" Focus ")).toBe("Focus")
+    expect(() => controller.saveLayoutPreset("focus")).toThrow("already exists")
+
+    controller.toggleSelectedSection("lsp")
+    controller.applyLayoutPreset(controller.layoutPresets().Focus)
+    expect(controller.selectedSections().lsp).toBe(false)
+    expect(controller.selectedSectionOrder().indexOf("mcp")).toBe(4)
+
+    controller.toggleSelectedSection("skills")
+    expect(controller.updateLayoutPreset("Focus")).toBe(true)
+    expect(controller.renameLayoutPreset("Focus", "Deep work")).toBe("Deep work")
+    expect(controller.layoutPresets().Focus).toBeUndefined()
+    expect(controller.layoutPresets()["Deep work"].sections.skills).toBe(false)
+    await controller.flush()
+
+    const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await restarted.load()
+    expect(Object.keys(restarted.layoutPresets())).toEqual(["Deep work"])
+    expect(restarted.deleteLayoutPreset("Deep work")).toBe(true)
+    expect(restarted.deleteLayoutPreset("Deep work")).toBe(false)
+    await restarted.flush()
+
+    const cleared = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await cleared.load()
+    expect(cleared.layoutPresets()).toEqual({})
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("opens the setup wizard only once after preference hydration", async () => {
   const values = new Map<string, unknown>()
   let opened = 0

@@ -86,8 +86,11 @@ plugin or `tui.json`.
 On first launch, a short setup guide explains the sidebar controls and lets you
 choose which sections to show. The guide is shown once and can be opened again
 later from the sidebar settings button. The settings dialog also selects global
-or current-worktree scope and controls section order, MCP state persistence, LSP
-icon style, and the sidebar shortcuts without a restart.
+or current-worktree scope, manages named layout presets, and controls section
+order, MCP state persistence, LSP icon style, and the sidebar shortcuts without
+a restart. Settings are grouped into tabs; use `Tab` and `Shift+Tab` to switch
+tabs. In the Sections tab, use `Left`/`Right` or `Shift+Up`/`Shift+Down` to
+reorder the selected section.
 
 ## Options
 
@@ -143,6 +146,9 @@ selected scope. Section visibility, expansion, and order remain in memory until
 remembered MCP-state resets remove only the selected scope's overrides, exposing
 inherited values again. Skill-confirmation choices remain user-wide. Preferences
 are stored in one unversioned, validated file under OpenCode's state directory.
+The initial layout-preset list is empty. `Save as…` captures current visibility,
+expansion, and section order; saved presets can be applied to the selected scope,
+updated from the current layout, renamed, or deleted.
 
 ## Keyboard controls
 

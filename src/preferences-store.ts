@@ -4,10 +4,12 @@ import { join } from "node:path"
 import {
   emptyPreferencesDocument,
   parseDesiredMcpStates,
+  parseLayoutPresets,
   parsePluginSettings,
   parsePreferencesDocument,
   parseSectionLayout,
   type DesiredMcpState,
+  type LayoutPresets,
   type PluginSettings,
   type PreferencesDocument,
   type SectionLayoutDefault,
@@ -27,6 +29,8 @@ export type PreferencesUpdate = {
   user?: {
     skippedSkillConfirmations?: string[]
     onboardingCompleted?: boolean
+    layoutPresets?: LayoutPresets
+    layoutPreset?: { name: string; layout?: SectionLayoutDefault; previousName?: string }
   }
   mcp?: {
     scope?: string
@@ -93,6 +97,16 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
   const skippedSkillConfirmations = update.user?.skippedSkillConfirmations
     ? parseSkillConfirmations(update.user.skippedSkillConfirmations)
     : current.user.skippedSkillConfirmations
+  const layoutPresets = { ...(update.user?.layoutPresets ?? current.user.layoutPresets) }
+  const presetUpdate = update.user?.layoutPreset
+  if (presetUpdate) {
+    if (presetUpdate.previousName) delete layoutPresets[presetUpdate.previousName]
+    const name = presetUpdate.name.trim().slice(0, 64)
+    const layout = parseSectionLayout(presetUpdate.layout)
+    if (name && layout) layoutPresets[name] = layout
+    else if (name) delete layoutPresets[name]
+  }
+  const parsedLayoutPresets = parseLayoutPresets(layoutPresets)
 
   return {
     global: target.kind === "global" ? scope : current.global,
@@ -104,6 +118,7 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
         : typeof current.user.onboardingCompleted === "boolean"
           ? { onboardingCompleted: current.user.onboardingCompleted }
           : {}),
+      ...(Object.keys(parsedLayoutPresets).length > 0 ? { layoutPresets: parsedLayoutPresets } : {}),
     },
   }
 }

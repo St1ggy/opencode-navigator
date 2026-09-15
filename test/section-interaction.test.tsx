@@ -352,10 +352,21 @@ test("the built settings dialog saves the current layout as default", async () =
     lsp: false,
     mcp: true,
   })
-  let layer: { commands: Array<{ name: string; run: () => void }> } | undefined
+  let layer:
+    | {
+        commands: Array<{ name: string; run: () => void }>
+        bindings: Array<{ key: string; cmd: string }>
+      }
+    | undefined
   let saved = 0
   let mcpToggles = 0
   let iconToggles = 0
+  let prompt: { onConfirm: (value: string) => void } | undefined
+  let presetActions: { options: Array<{ value: string }>; onSelect: (option: { value: string }) => void } | undefined
+  let replacement: (() => unknown) | undefined
+  const savedPresets: string[] = []
+  const sectionMoves: Array<[string, number]> = []
+  let updatedPresets = 0
   const api = {
     theme: { current: sidebarTheme },
     keymap: {
@@ -365,7 +376,21 @@ test("the built settings dialog saves the current layout as default", async () =
       },
     },
     ui: {
-      dialog: { clear: () => {} },
+      DialogPrompt: (props: { onConfirm: (value: string) => void }) => {
+        prompt = props
+        return null
+      },
+      DialogSelect: (props: typeof presetActions) => {
+        presetActions = props
+        return null
+      },
+      dialog: {
+        clear: () => {},
+        replace: (value: () => unknown) => {
+          replacement = value
+        },
+        setSize: () => {},
+      },
       toast: () => {},
     },
   } as unknown as TuiPluginApi
@@ -376,6 +401,13 @@ test("the built settings dialog saves the current layout as default", async () =
     selectedSections: sections,
     selectedExpanded: () => expandedLayout,
     selectedSectionOrder: () => ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"],
+    layoutPresets: () => ({
+      Focus: {
+        sections: sections(),
+        expanded: expandedLayout,
+        order: ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"],
+      },
+    }),
     preferenceScope: () => "global",
     preferenceScopeLabel: () => "Global",
     canUseWorktreeScope: () => false,
@@ -400,44 +432,98 @@ test("the built settings dialog saves the current layout as default", async () =
     resetMcpStates: () => {},
     resetSkillConfirmations: () => {},
     moveSection: () => {},
-    moveSelectedSection: () => {},
+    moveSelectedSection: (name: string, direction: number) => sectionMoves.push([name, direction]),
+    applyLayoutPreset: () => {},
+    saveLayoutPreset: (name: string) => {
+      savedPresets.push(name)
+      return name
+    },
+    updateLayoutPreset: () => {
+      updatedPresets++
+      return true
+    },
+    renameLayoutPreset: (_current: string, name: string) => name,
+    deleteLayoutPreset: () => true,
     saveLayoutAsDefault: async () => {
       saved++
     },
   }
   const setup = await testRender(() => <SettingsDialog api={api} preferences={preferences} />, {
     width: 100,
-    height: 20,
+    height: 30,
   })
 
   try {
     await setup.flush()
     const initialFrame = setup.captureCharFrame()
     expect(initialFrame).toContain("Sidebar settings")
+    expect(initialFrame).toContain("Scope")
+    expect(initialFrame).toContain("Presets")
     expect(initialFrame).toContain("Sections")
+    expect(initialFrame).toContain("Behavior")
+    expect(initialFrame).toContain("Defaults")
     expect(initialFrame).toContain("Todo")
-    expect(initialFrame).toContain("↑/↓ navigate · enter select")
+    expect(initialFrame).not.toContain("Global")
+    expect(initialFrame).not.toContain("Focus")
+    expect(initialFrame).not.toContain("Save as…")
+    expect(initialFrame).toContain("tab switch · ↑/↓ navigate")
+    expect(initialFrame).toContain("shift+↑/↓ reorder")
     expect(initialFrame).not.toContain("Save current layout as default")
+    expect(initialFrame.trimEnd().split("\n").length).toBeLessThanOrEqual(23)
 
     const next = layer?.commands.find((command) => command.name.endsWith(".settings.next"))
+    const nextTab = layer?.commands.find((command) => command.name.endsWith(".settings.next-tab"))
     const select = layer?.commands.find((command) => command.name.endsWith(".settings.select"))
-    for (let index = 0; index < 14; index++) next?.run()
+    layer?.commands.find((command) => command.name.endsWith(".settings.move-down"))?.run()
+    expect(sectionMoves).toEqual([["todo", 1]])
+    expect(layer?.bindings.filter((binding) => binding.key === "left" || binding.key === "right")).toHaveLength(2)
+    expect(layer?.bindings.filter((binding) => binding.key === "tab" || binding.key === "shift+tab")).toHaveLength(2)
+    await setup.flush()
+
+    nextTab?.run()
+    await setup.flush()
+    const scopeFrame = setup.captureCharFrame()
+    expect(scopeFrame).toContain("Global")
+    expect(scopeFrame).toContain("enter select")
+    expect(scopeFrame).not.toContain("reorder")
+    expect(scopeFrame.trimEnd().split("\n").length).toBeLessThanOrEqual(13)
+    nextTab?.run()
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("Focus")
+    expect(setup.captureCharFrame()).toContain("Save as…")
+    expect(setup.captureCharFrame()).toContain("enter manage")
+    expect(setup.captureCharFrame()).not.toContain("reorder")
+
+    select?.run()
+    replacement?.()
+    expect(presetActions?.options.map((option) => option.value)).toEqual(["apply", "update", "rename", "delete"])
+    presetActions?.onSelect({ value: "update" })
+    expect(updatedPresets).toBe(1)
+
+    next?.run()
+    select?.run()
+    replacement?.()
+    prompt?.onConfirm("Focus")
+    expect(savedPresets).toEqual(["Focus"])
+
+    nextTab?.run()
     await setup.flush()
     expect(setup.captureCharFrame()).toContain("Remember MCP states")
+    expect(setup.captureCharFrame()).toContain("enter change")
     select?.run()
     expect(mcpToggles).toBe(1)
     next?.run()
     select?.run()
     expect(iconToggles).toBe(1)
-    next?.run()
-    next?.run()
-    next?.run()
+    nextTab?.run()
     await setup.flush()
     const defaultFrame = setup.captureCharFrame()
     const saveLine = defaultFrame.split("\n").find((line) => line.includes("Save current layout as default"))
     expect(defaultFrame).toContain("Sidebar settings")
-    expect(defaultFrame).toContain("Defaults & help")
-    expect(defaultFrame).toContain("↑/↓ navigate · enter select")
+    expect(defaultFrame).toContain("Defaults")
+    expect(defaultFrame).toContain("tab switch · ↑/↓ navigate")
+    expect(defaultFrame).toContain("enter run")
+    expect(defaultFrame).not.toContain("reorder")
     expect(defaultFrame).not.toContain("Todo")
     expect(saveLine).toContain("4 visible · 2 expanded")
     select?.run()

@@ -4,12 +4,15 @@ import type { PluginConfig } from "../config"
 import { DEFAULT_SECTION_EXPANSION } from "../constants"
 import {
   emptyPreferencesDocument,
+  parseSectionLayout,
   resolvePreferences,
   type DesiredMcpState,
+  type LayoutPresets,
   type PreferenceValues,
   type PreferencesDocument,
   type ResolvedPreferences,
   type ScopedPreferences,
+  type SectionLayoutDefault,
 } from "../preferences-schema"
 import {
   applyPreferencesUpdate,
@@ -65,6 +68,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
   const [onboardingCompleted, setOnboardingCompleted] = createSignal(false)
   const [activeTarget, setActiveTarget] = createSignal<PreferenceTarget>({ kind: "global" })
   const [preferenceScope, setPreferenceScope] = createSignal<PreferenceScope>("global")
+  const [layoutPresets, setLayoutPresets] = createSignal<LayoutPresets>({})
   const [revision, setRevision] = createSignal(0)
   const sessionLayouts = new Map<string, ResolvedPreferences["layout"]>()
   const pendingUpdates: PreferencesUpdate[] = []
@@ -165,6 +169,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
         for (const update of queued) persist(store.update(update))
         setSkippedSkills(new Set(document.user.skippedSkillConfirmations ?? []))
         setOnboardingCompleted(document.user.onboardingCompleted === true)
+        setLayoutPresets(document.user.layoutPresets ?? {})
         refreshResolved()
       })
     return hydration
@@ -187,6 +192,30 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     refreshResolved()
   }
 
+  function normalizePresetName(value: string) {
+    const name = value.trim()
+    if (!name) throw new Error("Enter a preset name")
+    if (name.length > 64) throw new Error("Preset names can contain at most 64 characters")
+    return name
+  }
+
+  function currentLayoutPreset(): SectionLayoutDefault {
+    const layout = selectedLayoutResolved().layout
+    return {
+      sections: { ...layout.sections },
+      expanded: { ...layout.expanded },
+      order: [...layout.order],
+    }
+  }
+
+  function persistLayoutPresets(
+    next: LayoutPresets,
+    layoutPreset: NonNullable<PreferencesUpdate["user"]>["layoutPreset"],
+  ) {
+    setLayoutPresets(next)
+    update({ user: { layoutPreset } })
+  }
+
   return {
     sections: () => resolved().layout.sections,
     expanded: () => resolved().layout.expanded,
@@ -202,6 +231,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     selectedSections: () => selectedLayoutResolved().layout.sections,
     selectedExpanded: () => selectedLayoutResolved().layout.expanded,
     selectedSectionOrder: () => selectedLayoutResolved().layout.order,
+    layoutPresets,
     preferenceScope,
     canUseWorktreeScope: () => activeTarget().kind === "worktree",
     preferenceScopeLabel: () => {
@@ -262,6 +292,59 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
       if (index < 0 || destination < 0 || destination >= order.length) return
       ;[order[index], order[destination]] = [order[destination], order[index]]
       setSelectedSessionLayout({ ...layout, order })
+    },
+    applyLayoutPreset(preset: SectionLayoutDefault) {
+      void load()
+      const current = selectedLayoutResolved().layout
+      const parsed = parseSectionLayout(preset)
+      if (!parsed) throw new Error("Invalid layout preset")
+      setSelectedSessionLayout({
+        sections: { ...current.sections, ...parsed.sections },
+        expanded: { ...current.expanded, ...parsed.expanded },
+        order: parsed.order ?? current.order,
+      })
+    },
+    saveLayoutPreset(value: string) {
+      void load()
+      const name = normalizePresetName(value)
+      if (
+        Object.keys(layoutPresets()).some((candidate) => candidate.toLocaleLowerCase() === name.toLocaleLowerCase())
+      ) {
+        throw new Error("A preset with this name already exists")
+      }
+      if (Object.keys(layoutPresets()).length >= 50) throw new Error("You can save at most 50 layout presets")
+      const layout = currentLayoutPreset()
+      persistLayoutPresets({ ...layoutPresets(), [name]: layout }, { name, layout })
+      return name
+    },
+    updateLayoutPreset(name: string) {
+      if (!layoutPresets()[name]) return false
+      const layout = currentLayoutPreset()
+      persistLayoutPresets({ ...layoutPresets(), [name]: layout }, { name, layout })
+      return true
+    },
+    renameLayoutPreset(current: string, value: string) {
+      const name = normalizePresetName(value)
+      const preset = layoutPresets()[current]
+      if (!preset) throw new Error("Layout preset no longer exists")
+      if (
+        name.toLocaleLowerCase() !== current.toLocaleLowerCase() &&
+        Object.keys(layoutPresets()).some((candidate) => candidate.toLocaleLowerCase() === name.toLocaleLowerCase())
+      ) {
+        throw new Error("A preset with this name already exists")
+      }
+      const next = { ...layoutPresets() }
+      delete next[current]
+      next[name] = preset
+      persistLayoutPresets(next, { name, layout: preset, previousName: current })
+      return name
+    },
+    deleteLayoutPreset(name: string) {
+      if (!layoutPresets()[name]) return false
+      const next = { ...layoutPresets() }
+      delete next[name]
+      persistLayoutPresets(next, { name })
+      return true
     },
     async saveLayoutAsDefault() {
       await load()

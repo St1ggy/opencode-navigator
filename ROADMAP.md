@@ -52,7 +52,7 @@ verification workflow before expanding the product surface.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
 - [x] Limit the published package to the license, README, bundle, and package metadata.
 - [x] Run TypeScript, Oxlint, and Prettier checks through `bun run check`.
-- [x] Enforce a 170,000-byte raw bundle budget through `bun run check` and CI.
+- [x] Enforce a 180,000-byte raw bundle budget through `bun run check` and CI.
 
 ### Keyboard Navigation
 
@@ -74,8 +74,8 @@ verification workflow before expanding the product surface.
 
 ### Presets And Layout
 
-- [ ] Add built-in `Minimal`, `Coding`, `Agents`, and `Full` layout presets. The early `Agents` preset includes Todo, Subagents, and Skills and does not depend on usage limits.
-- [ ] Preview presets and allow named custom presets to be saved, renamed, and deleted.
+- [x] Start with an empty preset list and allow named layout presets to be saved, applied, updated, renamed, and deleted.
+- [ ] Preview layout presets before applying them.
 - [~] Configurable section ordering exists; row density and visible-row limits remain planned.
 - [x] Save layout defaults globally or for the current worktree using the unified persistence model.
 - [ ] Save desired MCP server state as named presets, preview changes, and apply them with per-server progress and partial-failure retry.

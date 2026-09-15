@@ -15,6 +15,7 @@ export type SectionLayoutDefault = {
 
 export type DesiredMcpState = "enabled" | "disabled"
 export type DesiredMcpStates = Record<string, DesiredMcpState>
+export type LayoutPresets = Record<string, SectionLayoutDefault>
 
 export type PreferenceValues = {
   behavior?: Partial<PluginSettings>
@@ -28,6 +29,7 @@ export type PreferencesDocument = {
   user: {
     skippedSkillConfirmations?: string[]
     onboardingCompleted?: boolean
+    layoutPresets?: LayoutPresets
   }
 }
 
@@ -96,6 +98,18 @@ export function parseSectionLayout(value: unknown): SectionLayoutDefault | undef
   return { sections, expanded, ...(order ? { order } : {}) }
 }
 
+export function parseLayoutPresets(value: unknown): LayoutPresets {
+  const input = record(value)
+  if (!input) return {}
+  const presets: LayoutPresets = {}
+  for (const [candidate, value] of Object.entries(input).sort(([left], [right]) => left.localeCompare(right))) {
+    const name = candidate.trim().slice(0, 64)
+    const layout = parseSectionLayout(value)
+    if (name && layout && Object.keys(presets).length < 50) presets[name] = layout
+  }
+  return presets
+}
+
 export function parseDesiredMcpStates(value: unknown): DesiredMcpStates {
   const input = record(value)
   if (!input) return {}
@@ -150,6 +164,7 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   }
   const userInput = record(input.user)
   const skippedSkillConfirmations = parseStringList(userInput?.skippedSkillConfirmations)
+  const layoutPresets = parseLayoutPresets(userInput?.layoutPresets)
 
   return {
     global: {
@@ -163,6 +178,7 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
       ...(typeof userInput?.onboardingCompleted === "boolean"
         ? { onboardingCompleted: userInput.onboardingCompleted }
         : {}),
+      ...(Object.keys(layoutPresets).length > 0 ? { layoutPresets } : {}),
     },
   }
 }
