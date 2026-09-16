@@ -16,6 +16,171 @@ function session(id: string, parentID: string, created: number): Session {
   }
 }
 
+function historyHarness(child: Session = session("child", "parent", 0)) {
+  const handlers = new Map<string, (event: any) => void>()
+  const disposers: Array<() => void> = []
+  let now = 100
+  let snapshot: Record<string, SessionStatus> = { [child.id]: { type: "busy" } }
+  let requests = 0
+  const lifecycle = new AbortController()
+  const api = {
+    state: {
+      path: { directory: "/repo" },
+      session: { get: () => ({ directory: "/repo" }), status: () => ({ type: "busy" }) },
+    },
+    client: {
+      session: {
+        children: async () => {
+          requests++
+          return { data: [child] }
+        },
+        status: async () => ({ data: snapshot }),
+      },
+    },
+    event: {
+      on: (type: string, handler: (event: any) => void) => {
+        handlers.set(type, handler)
+        return () => handlers.delete(type)
+      },
+    },
+    lifecycle: { signal: lifecycle.signal, onDispose: (fn: () => void) => disposers.push(fn) },
+    route: { navigate() {} },
+  } as unknown as TuiPluginApi
+  return {
+    api,
+    controller: createSubagentController(api, { now: () => now }),
+    emit: (type: string, properties: unknown) => handlers.get(type)?.({ properties }),
+    setNow: (value: number) => {
+      now = value
+    },
+    setSnapshot: (value: typeof snapshot) => {
+      snapshot = value
+    },
+    requests: () => requests,
+    dispose: () => {
+      lifecycle.abort()
+      disposers.forEach((fn) => fn())
+    },
+  }
+}
+
+test("subagent history survives route changes and idle overrides stale host state", async () => {
+  const h = historyHarness()
+  try {
+    const leave = h.controller.activate("parent")
+    await h.controller.refresh("parent")
+    expect(h.controller.list("parent")[0].run?.startedAt).toBe(100)
+    h.setNow(300)
+    h.emit("session.error", { sessionID: "child", error: { name: "UnknownError", data: { message: "broken" } } })
+    h.emit("session.status", { sessionID: "child", status: { type: "idle" } })
+    expect(h.controller.list("parent")).toEqual([])
+    expect(h.controller.recent("parent")[0].run).toMatchObject({ outcome: "error", finishedAt: 300 })
+    leave()
+    h.controller.activate("other")()
+    expect(h.controller.recent("parent")).toHaveLength(1)
+    h.setSnapshot({})
+    await h.controller.refresh("parent")
+    expect(h.controller.list("parent")).toEqual([])
+    h.emit("session.deleted", { sessionID: "child" })
+    expect(h.controller.recent("parent")).toEqual([])
+  } finally {
+    h.dispose()
+  }
+})
+
+test("worker failures and cooldown preserve the last confirmed run until a successful idle snapshot", async () => {
+  const originalFetch = globalThis.fetch
+  let calls = 0
+  let fail = false
+  globalThis.fetch = (async () => {
+    calls++
+    return fail
+      ? new Response("unavailable", { status: 503 })
+      : Response.json(calls === 1 ? { child: { type: "busy" } } : {})
+  }) as unknown as typeof fetch
+  const h = historyHarness({
+    ...session("child", "parent", 0),
+    metadata: { devTeam: { serverUrl: "http://127.0.0.1:4100" } },
+  })
+  try {
+    await h.controller.refresh("parent")
+    fail = true
+    for (let index = 0; index < 5; index++) await h.controller.refresh("parent")
+    expect(calls).toBe(4)
+    expect(h.controller.list("parent")[0]).toMatchObject({ unavailable: true, status: { type: "busy" } })
+    expect(h.controller.recent("parent")).toEqual([])
+    h.setNow(31_000)
+    fail = false
+    await h.controller.refresh("parent")
+    expect(h.controller.list("parent")).toEqual([])
+    expect(h.controller.recent("parent")).toHaveLength(1)
+  } finally {
+    globalThis.fetch = originalFetch
+    h.dispose()
+  }
+})
+
+test("polling switches targets once and stops on disposal", async () => {
+  const h = historyHarness()
+  h.controller.activate("first")
+  h.controller.activate("parent")
+  await Bun.sleep(1100)
+  expect(h.requests()).toBe(1)
+  h.dispose()
+  await Bun.sleep(1100)
+  expect(h.requests()).toBe(1)
+})
+
+test("status and error events during refresh win over an older snapshot", async () => {
+  const h = historyHarness()
+  try {
+    await h.controller.refresh("parent")
+    let finish!: (value: { data: Record<string, SessionStatus> }) => void
+    const client = h.api.client.session as unknown as { status: () => Promise<{ data: Record<string, SessionStatus> }> }
+    client.status = () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+    const refresh = h.controller.refresh("parent")
+    h.setNow(200)
+    h.emit("session.status", { sessionID: "child", status: { type: "idle" } })
+    h.setNow(300)
+    h.emit("session.status", { sessionID: "child", status: { type: "busy" } })
+    h.emit("session.error", {
+      sessionID: "child",
+      error: { name: "UnknownError", data: { message: "new run failed" } },
+    })
+    finish({ data: {} })
+    await refresh
+    expect(h.controller.list("parent")[0].run).toMatchObject({ startedAt: 300, outcome: "error" })
+    expect(h.controller.recent("parent")).toEqual([])
+  } finally {
+    h.dispose()
+  }
+})
+
+test("an old target response cannot create history after activation changes", async () => {
+  const h = historyHarness()
+  try {
+    h.controller.activate("parent")
+    await h.controller.refresh("parent")
+    const client = h.api.client.session as unknown as { status: () => Promise<{ data: Record<string, SessionStatus> }> }
+    let finish!: (value: { data: Record<string, SessionStatus> }) => void
+    client.status = () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+    const refresh = h.controller.refresh("parent")
+    h.controller.activate("other")
+    finish({ data: {} })
+    await refresh
+    expect(h.controller.recent("parent")).toEqual([])
+    expect(h.controller.list("parent")[0].run?.startedAt).toBe(100)
+  } finally {
+    h.dispose()
+  }
+})
+
 test("keeps active subagent events received during refresh and opens a child session", async () => {
   let resolveChildren!: (value: { data: Session[] }) => void
   let resolveStatuses!: (value: { data: Record<string, SessionStatus> }) => void

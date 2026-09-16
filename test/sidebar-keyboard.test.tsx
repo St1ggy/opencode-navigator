@@ -5,6 +5,14 @@ import type { BoxRenderable } from "@opentui/core"
 import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
 import { testRender, useRenderer } from "@opentui/solid"
 import { createSignal, onCleanup } from "solid-js"
+import { For } from "solid-js"
+import { ListVisibilityControl } from "../src/components/list-visibility"
+import { createListVisibility } from "../src/controllers/list-visibility"
+import { SubagentSection, TodoSection } from "../src/components/sections"
+import type { SubagentViewItem } from "../src/subagent-view"
+import type { SubagentController } from "../src/controllers/subagents"
+import type { TodoController } from "../src/controllers/todo"
+import { batch } from "solid-js"
 import { SectionFilter, useSidebarItem } from "../src/components/common"
 import { SidebarFocusBinding } from "../src/components/sidebar"
 import type { PreferencesController } from "../src/controllers/preferences"
@@ -18,7 +26,193 @@ const theme = {
   text: "#c0caf5",
   textMuted: "#a9b1d6",
   accent: "#ff9e64",
+  warning: "#e0af68",
+  error: "#f7768e",
+  success: "#9ece6a",
+  info: "#7dcfff",
 }
+
+test("Todo modes activate through real sidebar keyboard navigation", async () => {
+  let interaction!: SidebarInteraction
+  function Harness() {
+    const renderer = useRenderer()
+    const api = {
+      renderer,
+      theme: { current: theme },
+      keymap: createDefaultOpenTuiKeymap(renderer),
+      route: { current: { name: "session" } },
+      ui: { dialog: { open: false } },
+    } as unknown as TuiPluginApi
+    interaction = createSidebarInteraction(api)
+    onCleanup(() => interaction.dispose())
+    const controller = {
+      list: () => [{ content: "done", status: "completed" }],
+      state: () => ({ status: "ready" }),
+      refresh: async () => [],
+    } as unknown as TodoController
+    const preferences = {
+      expanded: () => ({ todo: true }),
+      toggleSectionExpanded() {},
+    } as unknown as PreferencesController
+    return (
+      <box ref={(node: BoxRenderable) => interaction.setContentRoot(node)} focusable>
+        <TodoSection
+          api={api}
+          controller={controller}
+          preferences={preferences}
+          interaction={interaction}
+          sessionID="parent"
+        />
+      </box>
+    )
+  }
+  const setup = await testRender(() => <Harness />, { width: 34, height: 16 })
+  try {
+    await setup.flush()
+    interaction.focus(null, "opencode-pretty-sidebar.todo.filter.active")
+    setup.mockInput.pressEnter()
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("No active tasks")
+    setup.mockInput.pressArrow("down")
+    setup.mockInput.pressEnter()
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("Completed")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("Subagent ticks and active-to-recent moves preserve row identity and keyboard focus", async () => {
+  const item: SubagentViewItem = {
+    session: { id: "child", title: "Worker" } as SubagentViewItem["session"],
+    status: { type: "busy" },
+    run: { sessionID: "child", startedAt: Date.now() - 1000, startedBeforeObservation: false },
+  }
+  const [active, setActive] = createSignal([item])
+  const [recent, setRecent] = createSignal<SubagentViewItem[]>([])
+  let interaction!: SidebarInteraction
+  let refreshes = 0
+  const opened: string[] = []
+  function Harness() {
+    const renderer = useRenderer()
+    const api = {
+      renderer,
+      theme: { current: theme },
+      keymap: createDefaultOpenTuiKeymap(renderer),
+      route: { current: { name: "session" } },
+      ui: { dialog: { open: false } },
+    } as unknown as TuiPluginApi
+    interaction = createSidebarInteraction(api)
+    onCleanup(() => interaction.dispose())
+    const controller = {
+      list: active,
+      recent,
+      state: () => ({ status: "ready" }),
+      refresh: async () => {
+        refreshes++
+      },
+      open: (id: string) => opened.push(id),
+    } as unknown as SubagentController
+    const preferences = {
+      expanded: () => ({ subagents: true }),
+      toggleSectionExpanded() {},
+    } as unknown as PreferencesController
+    return (
+      <box ref={(node: BoxRenderable) => interaction.setContentRoot(node)} focusable>
+        <SubagentSection
+          api={api}
+          controller={controller}
+          preferences={preferences}
+          interaction={interaction}
+          sessionID="parent"
+        />
+      </box>
+    )
+  }
+  const setup = await testRender(() => <Harness />, { width: 36, height: 14 })
+  try {
+    await setup.flush()
+    const id = "opencode-pretty-sidebar.subagent.child"
+    interaction.focus(null, id)
+    const node = interaction.available().find((row) => row.id === id)?.renderable
+    await Bun.sleep(1100)
+    await setup.flush()
+    expect(interaction.available().find((row) => row.id === id)?.renderable).toBe(node)
+    expect(refreshes).toBe(1)
+    batch(() => {
+      setActive([])
+      setRecent([
+        { ...item, status: { type: "idle" }, run: { ...item.run!, finishedAt: Date.now(), outcome: "finished" } },
+      ])
+    })
+    await setup.flush()
+    expect(interaction.selectedId()).toBe(id)
+    expect(interaction.available().find((row) => row.id === id)?.renderable).toBe(node)
+    setup.mockInput.pressEnter()
+    expect(opened).toEqual(["child"])
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("list footer expands with Enter, collapses with mouse, and returns focus when removed", async () => {
+  let interaction!: SidebarInteraction
+  const [items, setItems] = createSignal([1, 2, 3])
+  function Harness() {
+    const renderer = useRenderer()
+    const api = {
+      renderer,
+      keymap: createDefaultOpenTuiKeymap(renderer),
+      theme: { current: theme },
+      route: { current: { name: "session" } },
+      ui: { dialog: { open: false } },
+    } as unknown as TuiPluginApi
+    interaction = createSidebarInteraction(api)
+    onCleanup(() => interaction.dispose())
+    const visibility = createListVisibility({ items, limit: () => 1, resetKey: () => "test" })
+    const heading = useSidebarItem(api, interaction, {
+      id: "opencode-pretty-sidebar.section.skills",
+      order: 100,
+      activate() {},
+    })
+    return (
+      <box ref={(node: BoxRenderable) => interaction.setContentRoot(node)} focusable>
+        <box ref={heading.ref}>
+          <text>Skills</text>
+        </box>
+        <For each={visibility.visible()}>{(item) => <text>skill-{item}</text>}</For>
+        <ListVisibilityControl
+          api={api}
+          interaction={interaction}
+          section="skills"
+          order={100}
+          visibility={visibility}
+        />
+      </box>
+    )
+  }
+  const setup = await testRender(() => <Harness />, { width: 40, height: 8 })
+  try {
+    await setup.flush()
+    interaction.focus(null, "opencode-pretty-sidebar.list.skills")
+    setup.mockInput.pressEnter()
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("skill-3")
+    expect(interaction.selectedId()).toBe("opencode-pretty-sidebar.list.skills")
+    const lines = setup.captureCharFrame().split("\n")
+    const line = lines.findIndex((value) => value.includes("Show less"))
+    await setup.mockMouse.click(lines[line].indexOf("Show less"), line)
+    await setup.flush()
+    expect(setup.captureCharFrame()).not.toContain("skill-3")
+    expect(interaction.selectedId()).toBe("opencode-pretty-sidebar.list.skills")
+    setItems([1])
+    await setup.flush()
+    expect(interaction.selectedId()).toBe("opencode-pretty-sidebar.section.skills")
+    expect(interaction.available().some((item) => item.id === "opencode-pretty-sidebar.list.skills")).toBe(false)
+  } finally {
+    setup.renderer.destroy()
+  }
+})
 
 test("focus shortcut registration follows runtime replacement and direct commands have no bindings", async () => {
   const [focusKey, setFocusKey] = createSignal("ctrl+shift+f")

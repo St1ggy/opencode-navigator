@@ -2,6 +2,11 @@ import type { TuiPluginApi, TuiSidebarLspItem, TuiSidebarMcpItem } from "@openco
 import { type BoxRenderable, TextAttributes } from "@opentui/core"
 import { createEffect, createMemo, createSignal, For, type JSX, onCleanup, Show, untrack } from "solid-js"
 import { QUICK_ACTIONS } from "../constants"
+import { createListVisibility } from "../controllers/list-visibility"
+import { currentLocation } from "../location"
+import { ListVisibilityControl } from "./list-visibility"
+import { buildTodoView, type TodoViewMode } from "../todo-view"
+import { buildSubagentView, createSubagentClock, formatSubagentDuration, type SubagentViewItem } from "../subagent-view"
 import { matchingMcpPreset, type McpController } from "../controllers/mcp"
 import type { PreferencesController } from "../controllers/preferences"
 import type { SkillController, SkillInfo } from "../controllers/skills"
@@ -11,7 +16,7 @@ import { isAbortError, type TargetRequestState } from "../controllers/request-st
 import { SkillDialog } from "../dialogs/skill"
 import { openMcpPresets } from "../dialogs/mcp-presets"
 import { lspIcon, lspIconName, type LspIconStyle } from "../icons/lsp"
-import type { SidebarInteraction } from "../sidebar-interaction"
+import { offsetSidebarOrder, type SidebarInteraction, type SidebarOrder } from "../sidebar-interaction"
 import { mcpToggleAction } from "../state"
 import { matchesFilter, Section, SectionFilter, SectionWithHeaderAction, useSidebarItem } from "./common"
 
@@ -19,7 +24,7 @@ function RequestErrorRow(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   id: string
-  order: number
+  order: SidebarOrder
   state: TargetRequestState
   onRetry: () => void
 }) {
@@ -70,7 +75,7 @@ function SectionRequestBody(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   id: string
-  order: number
+  order: SidebarOrder
   state: TargetRequestState
   hasItems: boolean
   empty: string
@@ -154,11 +159,23 @@ export function TodoSection(props: {
   order?: number
 }) {
   const list = createMemo(() => props.controller.list(props.sessionID))
-  const done = createMemo(() => list().filter((item) => item.status === "completed").length)
+  const [mode, setMode] = createSignal<TodoViewMode>("all")
+  const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
+  createEffect(() => {
+    targetKey()
+    setMode("all")
+  })
+  const view = createMemo(() => buildTodoView(list(), mode()))
+  const visibility = createListVisibility({
+    items: () => view().rows,
+    limit: () => props.preferences.sectionItemLimit?.("todo") ?? 0,
+    resetKey: () => JSON.stringify([targetKey(), mode()]),
+  })
   const state = createMemo(() => props.controller.state(props.sessionID))
 
   createEffect(() => {
     const sessionID = props.sessionID
+    targetKey()
     const deactivate = untrack(() => props.controller.activate?.(sessionID) ?? (() => {}))
     onCleanup(deactivate)
     untrack(() => void props.controller.refresh(sessionID).catch(() => {}))
@@ -171,7 +188,7 @@ export function TodoSection(props: {
       sectionId="opencode-pretty-sidebar.section.todo"
       order={props.order ?? 100}
       title="TODO"
-      summary={`${done()}/${list().length}`}
+      summary={`${view().counts.completed}/${list().length}`}
       open={props.preferences.expanded().todo}
       onToggle={() => props.preferences.toggleSectionExpanded("todo")}
     >
@@ -179,7 +196,7 @@ export function TodoSection(props: {
         api={props.api}
         interaction={props.interaction}
         id="opencode-pretty-sidebar.retry.todo"
-        order={(props.order ?? 100) + 1}
+        order={[props.order ?? 100, 1]}
         state={state()}
         hasItems={list().length > 0}
         empty="No tasks yet"
@@ -187,7 +204,49 @@ export function TodoSection(props: {
         onRetry={() => void props.controller.retry(props.sessionID)}
       >
         <box gap={1}>
-          <For each={list()}>{(item) => <TodoRow api={props.api} item={item} />}</For>
+          <box flexDirection="row" flexWrap="wrap">
+            <For each={["all", "active", "finished"] as const}>
+              {(value, index) => (
+                <McpBulkAction
+                  api={props.api}
+                  interaction={props.interaction}
+                  id={`opencode-pretty-sidebar.todo.filter.${value}`}
+                  order={[props.order ?? 100, 2 + index()]}
+                  label={`${mode() === value ? "● " : ""}${value[0].toUpperCase() + value.slice(1)} ${view().counts[value]}`}
+                  disabled={false}
+                  onActivate={() => setMode(value)}
+                />
+              )}
+            </For>
+          </box>
+          <Show
+            when={view().rows.length > 0}
+            fallback={
+              <text fg={props.api.theme.current.textMuted}>
+                {mode() === "active" ? "No active tasks" : "No finished tasks"}
+              </text>
+            }
+          >
+            <For each={visibility.visible()}>
+              {(row, index) => (
+                <box gap={1}>
+                  <Show when={index() === 0 || visibility.visible()[index() - 1].group !== row.group}>
+                    <text fg={props.api.theme.current.textMuted}>
+                      <b>{row.group}</b>
+                    </text>
+                  </Show>
+                  <TodoRow api={props.api} item={row.item} />
+                </box>
+              )}
+            </For>
+          </Show>
+          <ListVisibilityControl
+            api={props.api}
+            interaction={props.interaction}
+            section="todo"
+            order={props.order ?? 100}
+            visibility={visibility}
+          />
         </box>
       </SectionRequestBody>
     </Section>
@@ -197,12 +256,16 @@ export function TodoSection(props: {
 function SubagentRow(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
-  item: ReturnType<SubagentController["list"]>[number]
-  order: number
+  item: SubagentViewItem
+  now: number
+  order: SidebarOrder
   onOpen: () => void
 }) {
   const theme = () => props.api.theme.current
   const retrying = () => props.item.status.type === "retry"
+  const idle = () => props.item.status.type === "idle"
+  const failed = () => props.item.run?.outcome === "error"
+  const cancelled = () => props.item.run?.outcome === "cancelled"
   const id = () => `opencode-pretty-sidebar.subagent.${props.item.session.id}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
@@ -214,8 +277,6 @@ function SubagentRow(props: {
     <box
       ref={(node: BoxRenderable) => row.ref(node)}
       id={id()}
-      flexDirection="row"
-      gap={1}
       paddingLeft={1}
       paddingRight={1}
       backgroundColor={row.backgroundColor()}
@@ -223,12 +284,55 @@ function SubagentRow(props: {
       onMouseOut={row.onMouseOut}
       onMouseDown={(event) => row.activate(event)}
     >
-      <text flexShrink={0} fg={row.focused() ? row.foregroundColor() : retrying() ? theme().warning : theme().primary}>
-        {retrying() ? "↻" : "●"}
-      </text>
-      <text flexGrow={1} fg={row.foregroundColor()} wrapMode="word">
-        {props.item.session.title}
-      </text>
+      <box flexDirection="row" gap={1}>
+        <text
+          flexShrink={0}
+          fg={
+            row.focused()
+              ? row.foregroundColor()
+              : failed()
+                ? theme().error
+                : retrying() || props.item.unavailable
+                  ? theme().warning
+                  : idle()
+                    ? theme().textMuted
+                    : theme().primary
+          }
+        >
+          {failed() ? "!" : cancelled() ? "×" : retrying() ? "↻" : idle() ? "○" : "●"}
+        </text>
+        <text flexGrow={1} fg={row.foregroundColor()} wrapMode="word">
+          {props.item.session.title}
+        </text>
+        <text flexShrink={0} fg={row.focused() ? row.foregroundColor() : theme().textMuted}>
+          {props.item.run
+            ? formatSubagentDuration(
+                props.item.run.startedAt,
+                props.item.run.finishedAt ?? props.now,
+                props.item.run.startedBeforeObservation,
+              )
+            : ""}
+        </text>
+      </box>
+      <Show when={props.item.run?.errorMessage}>
+        <text fg={row.focused() ? row.foregroundColor() : failed() ? theme().error : theme().textMuted} wrapMode="word">
+          {cancelled() ? "Cancelled" : "Error"}: {props.item.run?.errorMessage}
+        </text>
+      </Show>
+      <Show when={props.item.unavailable}>
+        <text fg={theme().warning}>Worker status unavailable</text>
+      </Show>
+      <Show when={props.item.status.type === "retry" ? props.item.status : undefined}>
+        {(status) => (
+          <text fg={row.focused() ? row.foregroundColor() : theme().warning} wrapMode="word">
+            Retry #{status().attempt} · {Math.max(0, Math.ceil((status().next - props.now) / 1000))}s ·{" "}
+            {status().message}
+          </text>
+        )}
+      </Show>
+      <Show when={idle() && !props.item.run?.errorMessage}>
+        <text fg={theme().textMuted}>Finished</text>
+      </Show>
     </box>
   )
 }
@@ -242,10 +346,27 @@ export function SubagentSection(props: {
   order?: number
 }) {
   const list = createMemo(() => props.controller.list(props.sessionID))
+  const recent = createMemo(() => props.controller.recent?.(props.sessionID) ?? [])
+  const rows = createMemo(() => buildSubagentView(list(), recent()))
+  const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
+  const visibility = createListVisibility({
+    items: rows,
+    limit: () => props.preferences.sectionItemLimit?.("subagents") ?? 0,
+    resetKey: targetKey,
+  })
+  const clockKey = createMemo(() =>
+    props.preferences.expanded().subagents && visibility.visible().some((item) => item.status.type !== "idle")
+      ? targetKey()
+      : undefined,
+  )
+  const now = createSubagentClock(clockKey)
+  const byId = createMemo(() => new Map(visibility.visible().map((item) => [item.session.id, item])))
+  const ids = createMemo(() => visibility.visible().map((item) => item.session.id))
   const state = createMemo(() => props.controller.state(props.sessionID))
 
   createEffect(() => {
     const sessionID = props.sessionID
+    targetKey()
     const deactivate = untrack(() => props.controller.activate?.(sessionID) ?? (() => {}))
     onCleanup(deactivate)
     untrack(() => void props.controller.refresh(sessionID).catch(() => {}))
@@ -258,7 +379,7 @@ export function SubagentSection(props: {
       sectionId="opencode-pretty-sidebar.section.subagents"
       order={props.order ?? 200}
       title="SUBAGENTS"
-      summary={`${list().length}`}
+      summary={`${list().length} active · ${recent().length} recent`}
       open={props.preferences.expanded().subagents}
       onToggle={() => props.preferences.toggleSectionExpanded("subagents")}
     >
@@ -266,25 +387,44 @@ export function SubagentSection(props: {
         api={props.api}
         interaction={props.interaction}
         id="opencode-pretty-sidebar.retry.subagents"
-        order={(props.order ?? 200) + 1}
+        order={[props.order ?? 200, 1]}
         state={state()}
-        hasItems={list().length > 0}
-        empty="No active subagents"
+        hasItems={rows().length > 0}
+        empty="No subagents"
         loading="Loading subagents…"
         onRetry={() => void props.controller.retry(props.sessionID)}
       >
         <box gap={1}>
-          <For each={list()}>
-            {(item, index) => (
-              <SubagentRow
-                api={props.api}
-                interaction={props.interaction}
-                item={item}
-                order={(props.order ?? 200) + 10 + index()}
-                onOpen={() => props.controller.open(item.session.id)}
-              />
-            )}
+          <For each={ids()}>
+            {(id, index) => {
+              const initial = byId().get(id)!
+              const item = () => byId().get(id) ?? initial
+              return (
+                <box gap={1}>
+                  <Show when={index() === 0 || visibility.visible()[index() - 1]?.group !== item().group}>
+                    <text fg={props.api.theme.current.textMuted}>
+                      <b>{item().group}</b>
+                    </text>
+                  </Show>
+                  <SubagentRow
+                    api={props.api}
+                    interaction={props.interaction}
+                    item={item()}
+                    now={now()}
+                    order={[props.order ?? 200, 10 + index() * 2]}
+                    onOpen={() => props.controller.open(id)}
+                  />
+                </box>
+              )
+            }}
           </For>
+          <ListVisibilityControl
+            api={props.api}
+            interaction={props.interaction}
+            section="subagents"
+            order={props.order ?? 200}
+            visibility={visibility}
+          />
         </box>
       </SectionRequestBody>
     </Section>
@@ -295,7 +435,7 @@ function SkillRow(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   item: SkillInfo
-  order: number
+  order: SidebarOrder
   onUse: () => void
   favorite: boolean
   favoriteDisabled: boolean
@@ -315,7 +455,7 @@ function SkillRow(props: {
   }
   const favorite = useSidebarItem(props.api, props.interaction, {
     id: `${id()}.favorite`,
-    order: () => props.order + 0.5,
+    order: () => offsetSidebarOrder(props.order, 0.5),
     disabled: () => props.favoriteDisabled,
     activate: toggleFavorite,
   })
@@ -379,6 +519,11 @@ export function SkillsSection(props: {
       .map((item) => ({ ...item }))
   })
   const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name, item.description)))
+  const visibility = createListVisibility({
+    items: filtered,
+    limit: () => props.preferences.sectionItemLimit?.("skills") ?? 0,
+    resetKey: () => JSON.stringify([target().key, query()]),
+  })
   const state = createMemo(() => props.controller.state(target()))
 
   createEffect(() => {
@@ -434,7 +579,7 @@ export function SkillsSection(props: {
         api={props.api}
         interaction={props.interaction}
         id="opencode-pretty-sidebar.retry.skills"
-        order={(props.order ?? 300) + 1}
+        order={[props.order ?? 300, 1]}
         state={state()}
         hasItems={list().length > 0}
         empty="No skills"
@@ -446,7 +591,7 @@ export function SkillsSection(props: {
             api={props.api}
             interaction={props.interaction}
             id="opencode-pretty-sidebar.filter.skills"
-            order={(props.order ?? 300) + 2}
+            order={[props.order ?? 300, 2]}
             query={query()}
             placeholder="Filter skills..."
             onInput={setQuery}
@@ -456,25 +601,32 @@ export function SkillsSection(props: {
             fallback={<text fg={props.api.theme.current.textMuted}>No matching skills</text>}
           >
             <box>
-              <For each={filtered()}>
+              <For each={visibility.visible()}>
                 {(item, index) => (
                   <SkillRow
                     api={props.api}
                     interaction={props.interaction}
                     item={item}
-                    order={(props.order ?? 300) + 10 + index()}
+                    order={[props.order ?? 300, 10 + index() * 2]}
                     onUse={() => selectSkill(item)}
                     favorite={props.preferences.isFavoriteSkill?.(item) ?? false}
                     favoriteDisabled={props.preferences.ready?.() === false}
                     separator={
                       index() > 0 &&
-                      Boolean(props.preferences.isFavoriteSkill?.(filtered()[index() - 1])) &&
+                      Boolean(props.preferences.isFavoriteSkill?.(visibility.visible()[index() - 1])) &&
                       !props.preferences.isFavoriteSkill?.(item)
                     }
                     onToggleFavorite={() => props.preferences.toggleFavoriteSkill?.(item)}
                   />
                 )}
               </For>
+              <ListVisibilityControl
+                api={props.api}
+                interaction={props.interaction}
+                section="skills"
+                order={props.order ?? 300}
+                visibility={visibility}
+              />
             </box>
           </Show>
         </box>
@@ -487,7 +639,7 @@ function QuickActionRow(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   action: (typeof QUICK_ACTIONS)[number]
-  order: number
+  order: SidebarOrder
 }) {
   const theme = () => props.api.theme.current
   const shortcut = createMemo(() => {
@@ -553,6 +705,11 @@ export function QuickActionsSection(props: {
   interaction?: SidebarInteraction
   order?: number
 }) {
+  const visibility = createListVisibility({
+    items: () => QUICK_ACTIONS,
+    limit: () => props.preferences.sectionItemLimit?.("quick_actions") ?? 0,
+    resetKey: () => currentLocation(props.api).key,
+  })
   return (
     <Section
       api={props.api}
@@ -565,16 +722,23 @@ export function QuickActionsSection(props: {
       onToggle={() => props.preferences.toggleSectionExpanded("quick_actions")}
     >
       <box>
-        <For each={QUICK_ACTIONS}>
+        <For each={visibility.visible()}>
           {(action, index) => (
             <QuickActionRow
               api={props.api}
               interaction={props.interaction}
               action={action}
-              order={(props.order ?? 400) + 10 + index()}
+              order={[props.order ?? 400, 10 + index() * 2]}
             />
           )}
         </For>
+        <ListVisibilityControl
+          api={props.api}
+          interaction={props.interaction}
+          section="quick_actions"
+          order={props.order ?? 400}
+          visibility={visibility}
+        />
       </box>
     </Section>
   )
@@ -585,7 +749,7 @@ export function LspBadge(props: {
   interaction?: SidebarInteraction
   id: string
   navigationId?: string
-  order?: number
+  order?: SidebarOrder
   status: TuiSidebarLspItem["status"]
   iconStyle: LspIconStyle
 }) {
@@ -651,6 +815,11 @@ export function LspSection(props: {
   order?: number
 }) {
   const list = createMemo(() => props.api.state.lsp())
+  const visibility = createListVisibility({
+    items: list,
+    limit: () => props.preferences.sectionItemLimit?.("lsp") ?? 0,
+    resetKey: () => currentLocation(props.api).key,
+  })
   const connected = createMemo(() => list().filter((item) => item.status === "connected").length)
   const disabled = createMemo(() => !props.api.state.config.lsp)
 
@@ -674,14 +843,14 @@ export function LspSection(props: {
         }
       >
         <box flexDirection="row" flexWrap="wrap" gap={1} paddingLeft={1} paddingRight={1}>
-          <For each={list()}>
+          <For each={visibility.visible()}>
             {(item: TuiSidebarLspItem, index) => (
               <LspBadge
                 api={props.api}
                 interaction={props.interaction}
                 id={item.id}
                 navigationId={`opencode-pretty-sidebar.lsp.${item.id}.${item.root}`}
-                order={(props.order ?? 500) + 10 + index()}
+                order={[props.order ?? 500, 10 + index() * 2]}
                 status={item.status}
                 iconStyle={props.iconStyle}
               />
@@ -689,6 +858,13 @@ export function LspSection(props: {
           </For>
         </box>
       </Show>
+      <ListVisibilityControl
+        api={props.api}
+        interaction={props.interaction}
+        section="lsp"
+        order={props.order ?? 500}
+        visibility={visibility}
+      />
     </Section>
   )
 }
@@ -710,7 +886,7 @@ function McpRow(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   item: TuiSidebarMcpItem
-  order: number
+  order: SidebarOrder
   state: TargetRequestState
   disabled: boolean
   onToggle: () => void
@@ -767,7 +943,7 @@ function McpRow(props: {
         api={props.api}
         interaction={props.interaction}
         id={`${id()}.retry`}
-        order={props.order + 0.5}
+        order={offsetSidebarOrder(props.order, 0.5)}
         state={props.state}
         onRetry={props.onRetry}
       />
@@ -779,7 +955,7 @@ function McpBulkAction(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   id: string
-  order: number
+  order: SidebarOrder
   label: string
   disabled: boolean
   onActivate: () => void
@@ -817,6 +993,11 @@ export function McpSection(props: {
   const target = createMemo(() => props.controller.target())
   const list = createMemo(() => props.controller.list(target()))
   const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name)))
+  const visibility = createListVisibility({
+    items: filtered,
+    limit: () => props.preferences.sectionItemLimit?.("mcp") ?? 0,
+    resetKey: () => JSON.stringify([target().key, query()]),
+  })
   const active = createMemo(() => list().filter((item) => item.status === "connected").length)
   const state = createMemo(() => props.controller.state(target()))
   const bulk = createMemo(
@@ -861,7 +1042,7 @@ export function McpSection(props: {
       summary={summary()}
       headerAction={{
         id: "opencode-pretty-sidebar.mcp.presets",
-        order: (props.order ?? 600) + 0.5,
+        order: [props.order ?? 600, 0.5],
         label: () => (presetName() ? `Preset: ${presetName()}` : "Preset"),
         disabled: () => bulkRunning() || mutationRunning() || props.preferences.ready?.() === false,
         onActivate: () => openMcpPresets(props.api, props.controller, props.preferences),
@@ -873,7 +1054,7 @@ export function McpSection(props: {
         api={props.api}
         interaction={props.interaction}
         id="opencode-pretty-sidebar.retry.mcp"
-        order={(props.order ?? 600) + 1}
+        order={[props.order ?? 600, 1]}
         state={state()}
         hasItems={list().length > 0}
         empty="No MCP servers"
@@ -886,7 +1067,7 @@ export function McpSection(props: {
               api={props.api}
               interaction={props.interaction}
               id="opencode-pretty-sidebar.mcp.connect-all"
-              order={(props.order ?? 600) + 2}
+              order={[props.order ?? 600, 2]}
               label="Connect all"
               disabled={bulkRunning() || mutationRunning() || connectable() === 0}
               onActivate={() => void props.controller.connectAll(target())}
@@ -895,7 +1076,7 @@ export function McpSection(props: {
               api={props.api}
               interaction={props.interaction}
               id="opencode-pretty-sidebar.mcp.disconnect-all"
-              order={(props.order ?? 600) + 3}
+              order={[props.order ?? 600, 3]}
               label="Disconnect all"
               disabled={bulkRunning() || mutationRunning() || disconnectable() === 0}
               onActivate={() => void props.controller.disconnectAll(target())}
@@ -916,7 +1097,7 @@ export function McpSection(props: {
               api={props.api}
               interaction={props.interaction}
               id="opencode-pretty-sidebar.mcp.retry-all"
-              order={(props.order ?? 600) + 4}
+              order={[props.order ?? 600, 4]}
               label={`Retry ${bulk().failed.length} failed`}
               disabled={false}
               onActivate={() => void props.controller.retryBulk(target())}
@@ -926,7 +1107,7 @@ export function McpSection(props: {
             api={props.api}
             interaction={props.interaction}
             id="opencode-pretty-sidebar.filter.mcp"
-            order={(props.order ?? 600) + 5}
+            order={[props.order ?? 600, 5]}
             query={query()}
             placeholder="Filter MCP..."
             onInput={setQuery}
@@ -936,13 +1117,13 @@ export function McpSection(props: {
             fallback={<text fg={props.api.theme.current.textMuted}>No matching MCP servers</text>}
           >
             <box>
-              <For each={filtered()}>
+              <For each={visibility.visible()}>
                 {(item, index) => (
                   <McpRow
                     api={props.api}
                     interaction={props.interaction}
                     item={item}
-                    order={(props.order ?? 600) + 10 + index() * 2}
+                    order={[props.order ?? 600, 10 + index() * 2]}
                     state={props.controller.serverState(item.name, target())}
                     disabled={bulkRunning()}
                     onToggle={() => void toggle(item.name)}
@@ -950,6 +1131,13 @@ export function McpSection(props: {
                   />
                 )}
               </For>
+              <ListVisibilityControl
+                api={props.api}
+                interaction={props.interaction}
+                section="mcp"
+                order={props.order ?? 600}
+                visibility={visibility}
+              />
             </box>
           </Show>
         </box>

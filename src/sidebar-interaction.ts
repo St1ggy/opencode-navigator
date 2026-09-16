@@ -5,16 +5,23 @@ import { FOCUS_COMMAND, PLUGIN_ID } from "./constants"
 import { openKeyboardHelp } from "./dialogs/keyboard-help"
 import type { SidebarSection } from "./state"
 
+export type SidebarOrder = number | readonly [section: number, item: number]
+
+export function offsetSidebarOrder(value: SidebarOrder, offset: number): SidebarOrder {
+  return typeof value === "number" ? [value, offset] : [value[0], value[1] + offset]
+}
+
 export type SidebarNavigationDescriptor = {
   id: string
-  order: number | (() => number)
+  order: SidebarOrder | (() => SidebarOrder)
   renderable: Renderable
   activate: () => void
   disabled?: () => boolean
 }
 
 function order(descriptor: SidebarNavigationDescriptor) {
-  return typeof descriptor.order === "function" ? descriptor.order() : descriptor.order
+  const value = typeof descriptor.order === "function" ? descriptor.order() : descriptor.order
+  return typeof value === "number" ? ([value, 0] as const) : value
 }
 
 const SECTION_COMMANDS: ReadonlyArray<{ section: SidebarSection; title: string }> = [
@@ -62,7 +69,10 @@ export function createSidebarInteraction(api: TuiPluginApi) {
     revision()
     return [...descriptors.values()]
       .filter((descriptor) => isEffectivelyVisible(descriptor.renderable))
-      .sort((left, right) => order(left) - order(right) || left.id.localeCompare(right.id))
+      .sort(
+        (left, right) =>
+          order(left)[0] - order(right)[0] || order(left)[1] - order(right)[1] || left.id.localeCompare(right.id),
+      )
   }
 
   function scrollIntoView(descriptor: SidebarNavigationDescriptor) {

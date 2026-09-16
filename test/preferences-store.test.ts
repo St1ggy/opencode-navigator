@@ -196,6 +196,30 @@ test("merges an update queued before the initial load", async () => {
   }
 })
 
+test("concurrent list-limit deltas preserve other sections and user preferences", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-limits-"))
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    await Promise.all([
+      first.update({
+        behavior: { sectionItemLimits: { todo: 3 } },
+        user: { favoriteSkill: { location: "/skill", favorite: true } },
+      }),
+      second.update({
+        behavior: { sectionItemLimits: { mcp: 4 } },
+        user: { mcpPreset: { operation: "save", name: "Work", states: { wiki: "enabled" } } },
+      }),
+    ])
+    const saved = await first.load()
+    expect(saved.global.behavior?.sectionItemLimits).toEqual({ todo: 3, mcp: 4 })
+    expect(saved.user.favoriteSkills).toEqual(["/skill"])
+    expect(saved.user.mcpPresets?.Work).toEqual({ wiki: "enabled" })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("recovers a lock left by a terminated process", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   const preferencesDirectory = join(directory, "opencode-pretty-sidebar")

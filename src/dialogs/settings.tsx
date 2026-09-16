@@ -145,7 +145,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
   const contentHeight = createMemo(() => Math.min(bodyHeight(), Math.max(1, options().length * 2 - 1)))
   const footerHint = createMemo(() => {
     const common = "tab switch · ↑/↓ navigate"
-    if (activeGroup() === "sections") return `${common} · enter toggle · ←/→ or shift+↑/↓ reorder`
+    if (activeGroup() === "sections") return `${common} · enter toggle · l item limit · ←/→ or shift+↑/↓ reorder`
     if (activeGroup() === "presets") return `${common} · enter manage`
     if (activeGroup() === "behavior") return `${common} · enter change`
     if (activeGroup() === "defaults") return `${common} · enter run`
@@ -283,6 +283,36 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
     props.api.ui.dialog.setSize("medium")
   }
 
+  function openLimitPrompt(
+    section: SidebarSection,
+    value = String(props.preferences.selectedSectionItemLimit(section)),
+  ) {
+    props.api.ui.dialog.replace(() => (
+      <props.api.ui.DialogPrompt
+        title={`${SECTION_DEFINITIONS.find((item) => item.name === section)!.label} item limit`}
+        description={() => <text fg={theme().textMuted}>Visible items before Show all. Enter 0 for All.</text>}
+        value={value}
+        onConfirm={(input) => {
+          try {
+            if (!/^\d+$/.test(input.trim())) throw new Error("Enter a non-negative whole number (0 for All)")
+            props.preferences.setSectionItemLimit(section, Number(input))
+            openSettings(props.api, props.preferences, section)
+          } catch (error) {
+            props.api.ui.toast({
+              variant: "error",
+              title: "List limit",
+              message: error instanceof Error ? error.message : "Invalid limit",
+              duration: 4000,
+            })
+            openLimitPrompt(section, input)
+          }
+        }}
+        onCancel={() => openSettings(props.api, props.preferences, section)}
+      />
+    ))
+    props.api.ui.dialog.setSize("medium")
+  }
+
   function select(value = options()[active()]?.value) {
     if (!value) return
     if (value === "scope:global" || value === "scope:worktree") {
@@ -409,6 +439,13 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       { name: `${PLUGIN_ID}.settings.previous`, run: () => move(-1) },
       { name: `${PLUGIN_ID}.settings.next`, run: () => move(1) },
       { name: `${PLUGIN_ID}.settings.select`, run: () => select() },
+      {
+        name: `${PLUGIN_ID}.settings.item-limit`,
+        run: () => {
+          const section = options()[active()]?.value as SidebarSection
+          if (activeGroup() === "sections" && SIDEBAR_SECTIONS.includes(section)) openLimitPrompt(section)
+        },
+      },
       { name: `${PLUGIN_ID}.settings.previous-tab`, run: () => switchGroup(-1) },
       { name: `${PLUGIN_ID}.settings.next-tab`, run: () => switchGroup(1) },
       { name: `${PLUGIN_ID}.settings.move-up`, run: () => reorder(options()[active()]?.value, -1) },
@@ -421,6 +458,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       { key: "shift+tab", cmd: `${PLUGIN_ID}.settings.previous-tab` },
       { key: "space", cmd: `${PLUGIN_ID}.settings.select` },
       { key: "return", cmd: `${PLUGIN_ID}.settings.select` },
+      { key: "l", cmd: `${PLUGIN_ID}.settings.item-limit` },
       { key: "left", cmd: `${PLUGIN_ID}.settings.move-up` },
       { key: "right", cmd: `${PLUGIN_ID}.settings.move-down` },
       { key: "shift+up", cmd: `${PLUGIN_ID}.settings.move-up` },
@@ -493,6 +531,16 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                   </text>
                   <Show when={SIDEBAR_SECTIONS.includes(option.value as SidebarSection)}>
                     <box flexDirection="row" flexShrink={0} gap={1}>
+                      <text
+                        fg={theme().accent}
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onMouseUp={(event) => {
+                          event.stopPropagation()
+                          openLimitPrompt(option.value as SidebarSection)
+                        }}
+                      >
+                        Items: {props.preferences.selectedSectionItemLimit?.(option.value as SidebarSection) || "All"}
+                      </text>
                       <text
                         fg={theme().accent}
                         onMouseDown={(event) => {

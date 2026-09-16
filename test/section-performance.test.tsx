@@ -2,6 +2,7 @@
 import { expect, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
+import { createSignal } from "solid-js"
 import { McpSection, SkillsSection, SubagentSection, TodoSection } from "../src/components/sections"
 import type { McpController } from "../src/controllers/mcp"
 import type { PreferencesController } from "../src/controllers/preferences"
@@ -37,7 +38,9 @@ const api = {
   theme: { current: theme },
   ui: { dialog: { replace: () => {} }, toast: () => {} },
 } as unknown as TuiPluginApi
+const [limit, setLimit] = createSignal(0)
 const preferences = {
+  sectionItemLimit: limit,
   expanded: () => expanded,
   toggleSectionExpanded: () => {},
   shouldConfirmSkill: () => false,
@@ -52,8 +55,25 @@ async function expectLargeList(component: () => import("solid-js").JSX.Element, 
     const frame = setup.captureCharFrame()
     expect(frame).toContain(lastItem)
     expect(performance.now() - started).toBeLessThan(MAX_RENDER_MS)
+    setLimit(5)
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).not.toContain(lastItem)
+    expect(setup.captureCharFrame().match(new RegExp(`${lastItem.split("-")[0]}-\\d+`, "g"))).toHaveLength(5)
+    expect(setup.captureCharFrame()).toContain("Show all (495 more)")
+    let lines = setup.captureCharFrame().split("\n")
+    let row = lines.findIndex((line) => line.includes("Show all"))
+    await setup.mockMouse.click(lines[row].indexOf("Show all"), row)
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain(lastItem)
+    lines = setup.captureCharFrame().split("\n")
+    row = lines.findIndex((line) => line.includes("Show less"))
+    await setup.mockMouse.click(lines[row].indexOf("Show less"), row)
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).not.toContain(lastItem)
+    expect(performance.now() - started).toBeLessThan(MAX_RENDER_MS)
   } finally {
     setup.renderer.destroy()
+    setLimit(0)
   }
 }
 

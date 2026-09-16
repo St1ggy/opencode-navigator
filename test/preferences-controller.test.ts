@@ -8,6 +8,7 @@ import { createPreferencesController } from "../src/controllers/preferences"
 import { createPreferencesStore, type PreferencesStore } from "../src/preferences-store"
 import type { SectionVisibility } from "../src/state"
 import { showFirstRunWizard } from "../src/tui"
+import { pluginConfig } from "../src/config"
 
 function pluginDefaults(sections: SectionVisibility) {
   return {
@@ -16,6 +17,7 @@ function pluginDefaults(sections: SectionVisibility) {
     focusKey: "ctrl+shift+f",
     persistMcp: true,
     lspIconStyle: "nerd" as const,
+    sectionItemLimits: {},
   }
 }
 
@@ -32,6 +34,38 @@ function memoryStore(): PreferencesStore {
     async flush() {},
   }
 }
+
+test("persists scoped limits before hydration and restores inherited defaults", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-limits-"))
+  const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const defaults = pluginConfig({ section_item_limits: { todo: 2 } })
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    controller.setSectionItemLimit("todo", 5)
+    controller.setSectionItemLimit("skills", 7)
+    await controller.load()
+    controller.setActiveScope("/repo")
+    controller.setPreferenceScope("worktree")
+    controller.setSectionItemLimit("todo", 0)
+    await controller.flush()
+    const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+    await restarted.load()
+    restarted.setActiveScope("/repo")
+    restarted.setPreferenceScope("worktree")
+    expect(restarted.sectionItemLimit("todo")).toBe(0)
+    expect(restarted.selectedSectionItemLimit("skills")).toBe(7)
+    expect(() => restarted.setSectionItemLimit("todo", -1)).toThrow("whole number")
+    restarted.resetPluginSettings()
+    expect(restarted.sectionItemLimit("todo")).toBe(5)
+    restarted.setPreferenceScope("global")
+    restarted.resetPluginSettings()
+    expect(restarted.sectionItemLimit("todo")).toBe(2)
+    expect(restarted.sectionItemLimit("skills")).toBe(0)
+    await restarted.flush()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
 
 test("persists section visibility and skipped skill confirmations", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))

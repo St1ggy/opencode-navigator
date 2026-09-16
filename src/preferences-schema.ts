@@ -1,10 +1,13 @@
 import { SIDEBAR_SECTIONS, type SectionVisibility, type SidebarSection } from "./state"
 
+export type SectionItemLimits = Partial<Record<SidebarSection, number>>
+
 export type PluginSettings = {
   toggleKey: string
   focusKey: string
   persistMcp: boolean
   lspIconStyle: "nerd" | "text"
+  sectionItemLimits: SectionItemLimits
 }
 
 export type SectionLayoutDefault = {
@@ -80,6 +83,17 @@ export function parseSectionOrder(value: unknown): SidebarSection[] | undefined 
   return order
 }
 
+export function parseSectionItemLimits(value: unknown): SectionItemLimits {
+  const input = record(value)
+  if (!input) return {}
+  return Object.fromEntries(
+    SIDEBAR_SECTIONS.flatMap((section) => {
+      const limit = input[section]
+      return typeof limit === "number" && Number.isSafeInteger(limit) && limit >= 0 ? [[section, limit]] : []
+    }),
+  )
+}
+
 export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
   const input = record(value)
   if (!input) return {}
@@ -88,6 +102,9 @@ export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
     ...(typeof input.focusKey === "string" && input.focusKey.trim() ? { focusKey: input.focusKey.trim() } : {}),
     ...(typeof input.persistMcp === "boolean" ? { persistMcp: input.persistMcp } : {}),
     ...(input.lspIconStyle === "nerd" || input.lspIconStyle === "text" ? { lspIconStyle: input.lspIconStyle } : {}),
+    ...(Object.keys(parseSectionItemLimits(input.sectionItemLimits)).length
+      ? { sectionItemLimits: parseSectionItemLimits(input.sectionItemLimits) }
+      : {}),
   }
 }
 
@@ -240,7 +257,9 @@ export function resolvePreferences(input: {
   const desiredMcpStates = { ...input.builtIns.desiredMcpStates }
 
   for (const layer of layers) {
+    const sectionItemLimits = { ...behavior.sectionItemLimits, ...layer.behavior?.sectionItemLimits }
     Object.assign(behavior, layer.behavior)
+    behavior.sectionItemLimits = sectionItemLimits
     Object.assign(sections, layer.layout?.sections)
     Object.assign(expanded, layer.layout?.expanded)
     if (layer.layout?.order?.length) order = [...layer.layout.order]

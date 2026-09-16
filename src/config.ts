@@ -1,5 +1,5 @@
 import type { PluginSettings } from "./preferences-schema"
-import { parseSectionOrder } from "./preferences-schema"
+import { parseSectionOrder, parseSectionItemLimits } from "./preferences-schema"
 import { SIDEBAR_SECTIONS, parseSectionVisibility, type SectionVisibility, type SidebarSection } from "./state"
 
 export type PluginConfig = PluginSettings & {
@@ -17,5 +17,6 @@ export function pluginConfig(options: Record<string, unknown> | undefined): Plug
     sections: parseSectionVisibility(options?.sections),
     sectionOrder: parseSectionOrder(options?.section_order) ?? [...SIDEBAR_SECTIONS],
     lspIconStyle: options?.lsp_icon_style === "text" ? "text" : "nerd",
+    sectionItemLimits: parseSectionItemLimits(options?.section_item_limits),
   }
 }

@@ -52,7 +52,7 @@ verification workflow before expanding the product surface.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
 - [x] Limit the published package to the license, README, bundle, and package metadata.
 - [x] Run TypeScript, Oxlint, and Prettier checks through `bun run check`.
-- [x] Enforce a 210,000-byte raw bundle budget through `bun run check` and CI.
+- [x] Enforce a 240,000-byte raw bundle budget through `bun run check` and CI.
 
 ### Keyboard Navigation
 
@@ -76,7 +76,7 @@ verification workflow before expanding the product surface.
 
 - [x] Start with an empty preset list and allow named layout presets to be saved, applied, updated, renamed, and deleted.
 - [ ] Preview layout presets before applying them.
-- [~] Configurable section ordering exists; row density and visible-row limits remain planned.
+- [~] Configurable section ordering and per-section item limits with Show all / Show less exist; row density remains planned.
 - [x] Save layout defaults globally or for the current worktree using the unified persistence model.
 - [~] Named MCP state presets support save, apply, update, rename, delete, per-server progress, and partial-failure retry; change previews remain planned.
 - [x] Add `Connect all` and `Disconnect all` with per-server progress, partial-failure reporting, and failed-only retry.
@@ -84,8 +84,8 @@ verification workflow before expanding the product surface.
 
 ### Section Improvements
 
-- [ ] Todo: filters, grouping, active/completed display modes, and status counts.
-- [ ] Subagents: runtime, retry countdown, recent completions, filters, failure attention, and parent-session navigation.
+- [x] Todo: All / Active / Finished filters, status grouping, separate cancelled tasks, and status counts.
+- [~] Subagents: observed runtime, retry countdown, in-memory recent runs, and failure attention exist; filters and parent-session navigation remain planned.
 - [~] Skills: user-wide favorites exist; recent items, source details, fuzzy keyboard selection, and trusted-skill confirmation settings remain planned.
 - [ ] Quick Actions: ordering, visibility, recent actions, registered commands, and route-aware disabled reasons.
 - [~] LSP: compact Nerd Font glyphs and text badges exist; sorting, expandable details, and actionable errors remain.

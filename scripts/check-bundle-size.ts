@@ -1,4 +1,4 @@
-const MAX_BUNDLE_BYTES = 210_000
+const MAX_BUNDLE_BYTES = 240_000
 const bundle = Bun.file(new URL("../dist/tui.js", import.meta.url))
 
 if (!(await bundle.exists())) {

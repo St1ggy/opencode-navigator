@@ -83,6 +83,11 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     ...(update.clearBehavior ? {} : existing.behavior),
     ...parsePluginSettings(update.behavior),
   }
+  const sectionItemLimits = {
+    ...(update.clearBehavior ? {} : existing.behavior?.sectionItemLimits),
+    ...parsePluginSettings(update.behavior).sectionItemLimits,
+  }
+  if (Object.keys(sectionItemLimits).length) behavior.sectionItemLimits = sectionItemLimits
   const mcpUpdate = {
     ...update.mcp?.states,
     ...(update.mcp?.name && update.mcp.state ? { [update.mcp.name]: update.mcp.state } : {}),

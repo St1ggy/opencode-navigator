@@ -127,6 +127,33 @@ test("interaction reevaluates dynamic row order after a section move", () => {
   expect(interaction.available().map((item) => item.id)).toEqual(["second-row", "first-row"])
 })
 
+test("500 rows and their actions stay inside their section navigation order", () => {
+  const { api, renderer } = testApi()
+  const interaction = createSidebarInteraction(api)
+  let base = 100
+  for (let index = 0; index < 500; index++) {
+    for (const [suffix, offset] of [
+      ["", 0],
+      [".star", 0.5],
+    ] as const) {
+      const id = `row-${index}${suffix}`
+      interaction.register({
+        id,
+        order: () => [base, 10 + index * 2 + offset],
+        renderable: renderable(renderer, id),
+        activate() {},
+      })
+    }
+  }
+  interaction.register({ id: "next-section", order: 200, renderable: renderable(renderer, "next"), activate() {} })
+  const ids = interaction.available().map((item) => item.id)
+  expect(ids.slice(0, 2)).toEqual(["row-0", "row-0.star"])
+  expect(ids.slice(-3)).toEqual(["row-499", "row-499.star", "next-section"])
+  base = 300
+  expect(interaction.available()[0].id).toBe("next-section")
+  interaction.dispose()
+})
+
 test("interaction defers hidden focus, supports direct sections, and passes return context to commands", async () => {
   const { api, renderer, dispatched } = testApi()
   const interaction = createSidebarInteraction(api)

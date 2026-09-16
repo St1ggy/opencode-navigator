@@ -2,8 +2,16 @@
 import { expect, test } from "bun:test"
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { testRender } from "@opentui/solid"
-import { createSignal } from "solid-js"
+import { batch, createSignal } from "solid-js"
 import { McpPresetMenu } from "../src/dialogs/mcp-presets"
+import { LspSection, QuickActionsSection, TodoSection, SubagentSection } from "../src/components/sections"
+import type { TodoController } from "../src/controllers/todo"
+import type { SubagentController } from "../src/controllers/subagents"
+import type { SubagentViewItem } from "../src/subagent-view"
+import type { PreferencesController } from "../src/controllers/preferences"
+import { createPreferencesController } from "../src/controllers/preferences"
+import { pluginConfig } from "../src/config"
+import type { JSX } from "solid-js"
 import {
   FirstRunWizard,
   LspBadge,
@@ -36,6 +44,174 @@ const expandedLayout = {
   lsp: false,
   mcp: true,
 }
+
+test("Subagents show observed duration, retry, errors and recent under one limit", async () => {
+  const startedAt = Date.now() - 123_000
+  const child: SubagentViewItem = {
+    session: { id: "child", title: "Worker" } as SubagentViewItem["session"],
+    status: { type: "retry", attempt: 2, next: Date.now() - 1, message: "network" },
+    run: { sessionID: "child", startedAt, startedBeforeObservation: true },
+  }
+  const [active, setActive] = createSignal([child])
+  const [recent, setRecent] = createSignal<SubagentViewItem[]>([
+    {
+      ...child,
+      session: { ...child.session, id: "older", title: "Earlier worker" },
+      status: { type: "idle" },
+      run: {
+        ...child.run!,
+        sessionID: "older",
+        finishedAt: startedAt + 12_000,
+        outcome: "cancelled",
+        errorMessage: "aborted",
+      },
+    },
+  ])
+  const opened: string[] = []
+  const api = { theme: { current: sidebarTheme } } as unknown as TuiPluginApi
+  const controller = {
+    list: active,
+    recent,
+    state: () => ({ status: "ready" }),
+    refresh: async () => {},
+    open: (id: string) => opened.push(id),
+  } as unknown as SubagentController
+  const preferences = {
+    expanded: () => ({ ...expandedLayout, subagents: true }),
+    sectionItemLimit: () => 1,
+    toggleSectionExpanded() {},
+  } as unknown as PreferencesController
+  const setup = await testRender(
+    () => <SubagentSection api={api} controller={controller} preferences={preferences} sessionID="parent" />,
+    { width: 50, height: 20 },
+  )
+  try {
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("≥2m 03s")
+    expect(setup.captureCharFrame()).toContain("Retry #2 · 0s")
+    expect(setup.captureCharFrame()).not.toContain("Earlier worker")
+    let lines = setup.captureCharFrame().split("\n")
+    const more = lines.findIndex((line) => line.includes("Show all"))
+    await setup.mockMouse.click(lines[more].indexOf("Show all"), more)
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("Recent")
+    expect(setup.captureCharFrame()).toContain("Cancelled: aborted")
+    lines = setup.captureCharFrame().split("\n")
+    const older = lines.findIndex((line) => line.includes("Earlier worker"))
+    await setup.mockMouse.click(lines[older].indexOf("Earlier worker"), older)
+    expect(opened).toEqual(["older"])
+    batch(() => {
+      setActive([])
+      setRecent([
+        {
+          ...child,
+          status: { type: "idle" },
+          run: { ...child.run!, finishedAt: startedAt + 123_000, outcome: "error", errorMessage: "failed" },
+        },
+      ])
+    })
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("0 active · 1 recent")
+    expect(setup.captureCharFrame()).toContain("Error: failed")
+    expect(setup.captureCharFrame()).not.toContain("No subagents")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("Todo filters compose with limits, live updates, and session changes", async () => {
+  const [sessionID, setSessionID] = createSignal("one")
+  const [items, setItems] = createSignal([
+    { content: "pending-task", status: "pending" },
+    { content: "done-task", status: "completed" },
+    { content: "running-task", status: "in_progress" },
+    { content: "cancelled-task", status: "cancelled" },
+  ])
+  const api = { theme: { current: sidebarTheme } } as unknown as TuiPluginApi
+  const controller = {
+    list: items,
+    target: (id: string) => ({ key: id }),
+    state: () => ({ status: "ready" }),
+    refresh: async () => items(),
+  } as unknown as TodoController
+  const preferences = {
+    expanded: () => ({ ...expandedLayout, todo: true }),
+    sectionItemLimit: () => 1,
+    toggleSectionExpanded() {},
+  } as unknown as PreferencesController
+  const setup = await testRender(
+    () => <TodoSection api={api} controller={controller} preferences={preferences} sessionID={sessionID()} />,
+    { width: 50, height: 22 },
+  )
+  async function click(label: string) {
+    const lines = setup.captureCharFrame().split("\n")
+    const row = lines.findIndex((line) => line.includes(label))
+    await setup.mockMouse.click(lines[row].indexOf(label), row)
+    await setup.flush()
+  }
+  try {
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("running-task")
+    expect(setup.captureCharFrame()).not.toContain("pending-task")
+    await click("Finished 2")
+    expect(setup.captureCharFrame()).toContain("done-task")
+    expect(setup.captureCharFrame()).not.toContain("Cancelled")
+    await click("Show all")
+    expect(setup.captureCharFrame()).toContain("Cancelled")
+    expect(setup.captureCharFrame()).toContain("cancelled-task")
+    await click("Active 2")
+    expect(setup.captureCharFrame()).not.toContain("done-task")
+    setItems([{ content: "done-task", status: "completed" }])
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("No active tasks")
+    setSessionID("two")
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("● All 1")
+    expect(setup.captureCharFrame()).toContain("done-task")
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("LSP and Quick Actions respect per-section limits and show all", async () => {
+  const api = {
+    theme: { current: sidebarTheme },
+    route: { current: { name: "home" } },
+    state: {
+      path: { directory: "/repo" },
+      config: { lsp: true },
+      lsp: () => [
+        { id: "typescript", root: "/repo", status: "connected" },
+        { id: "python", root: "/repo", status: "connected" },
+      ],
+    },
+    keymap: { getCommandBindings: () => new Map() },
+    keys: { formatBindings: () => "" },
+  } as unknown as TuiPluginApi
+  const preferences = {
+    expanded: () => ({ ...expandedLayout, lsp: true, quick_actions: true }),
+    sectionItemLimit: () => 1,
+    toggleSectionExpanded() {},
+  } as unknown as PreferencesController
+  for (const component of [
+    () => <LspSection api={api} preferences={preferences} iconStyle="text" />,
+    () => <QuickActionsSection api={api} preferences={preferences} />,
+  ]) {
+    const setup = await testRender(component, { width: 50, height: 14 })
+    try {
+      await setup.renderOnce()
+      const lines = setup.captureCharFrame().split("\n")
+      const line = lines.findIndex((value) => value.includes("Show all"))
+      expect(line).toBeGreaterThan(0)
+      await setup.mockMouse.click(lines[line].indexOf("Show all"), line)
+      await setup.renderOnce()
+      expect(setup.captureCharFrame()).toContain("Show less")
+      expect(setup.captureCharFrame()).toMatch(/python|Compact/)
+    } finally {
+      setup.renderer.destroy()
+    }
+  }
+})
 
 test("the built sidebar remains reactive and toggles on mouse down", async () => {
   const api = {
@@ -579,6 +755,10 @@ test("the built settings dialog saves the current layout as default", async () =
     selectedToggleKey: () => "ctrl+shift+b",
     focusKey: () => "ctrl+shift+f",
     selectedFocusKey: () => "ctrl+shift+f",
+    selectedSectionItemLimit: () => 0,
+    setSectionItemLimit: (_section: string, value: number) => {
+      expect(value).toBe(5)
+    },
     skippedSkillCount: () => 0,
     toggleSection: () => {},
     toggleSelectedSection: () => {},
@@ -619,6 +799,8 @@ test("the built settings dialog saves the current layout as default", async () =
     expect(initialFrame).toContain("Scope")
     expect(initialFrame).toContain("Presets")
     expect(initialFrame).toContain("Sections")
+    expect(initialFrame).not.toContain("Lists")
+    expect(initialFrame).toContain("Items: All")
     expect(initialFrame).toContain("Behavior")
     expect(initialFrame).toContain("Defaults")
     expect(initialFrame).toContain("Todo")
@@ -639,6 +821,10 @@ test("the built settings dialog saves the current layout as default", async () =
     expect(layer?.bindings.filter((binding) => binding.key === "tab" || binding.key === "shift+tab")).toHaveLength(2)
     await setup.flush()
 
+    expect(setup.captureCharFrame()).toContain("l item limit")
+    layer?.commands.find((command) => command.name.endsWith(".settings.item-limit"))?.run()
+    replacement?.()
+    prompt?.onConfirm("5")
     nextTab?.run()
     await setup.flush()
     const scopeFrame = setup.captureCharFrame()
@@ -688,6 +874,75 @@ test("the built settings dialog saves the current layout as default", async () =
     select?.run()
     await Promise.resolve()
     expect(saved).toBe(1)
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test("Sections edits limits with L and mouse without toggling visibility and restores the selected row", async () => {
+  let layer: { commands: Array<{ name: string; run: () => void }> } | undefined
+  let prompt: { title: string; value: string; onConfirm: (value: string) => void; onCancel: () => void } | undefined
+  const toasts: unknown[] = []
+  let preferences!: PreferencesController
+  const [view, setView] = createSignal<() => JSX.Element>(() => <SettingsDialog api={api} preferences={preferences} />)
+  const api = {
+    theme: { current: sidebarTheme },
+    keymap: {
+      registerLayer: (value: typeof layer) => {
+        layer = value
+        return () => {}
+      },
+    },
+    ui: {
+      dialog: { replace: (render: () => JSX.Element) => setView(() => render), setSize() {}, clear() {} },
+      DialogPrompt: (props: NonNullable<typeof prompt>) => {
+        prompt = props
+        return <text>{props.title}</text>
+      },
+      toast: (value: unknown) => toasts.push(value),
+    },
+  } as unknown as TuiPluginApi
+  preferences = createPreferencesController(api, pluginConfig(undefined), {
+    load: async () => ({ global: {}, worktrees: {}, user: {} }),
+    update: async () => {},
+    flush: async () => {},
+  })
+  await preferences.load()
+  const setup = await testRender(() => <box>{view()()}</box>, { width: 100, height: 30 })
+  const run = (suffix: string) => layer?.commands.find((command) => command.name.endsWith(`.settings.${suffix}`))?.run()
+  try {
+    await setup.flush()
+    run("next")
+    run("item-limit")
+    await setup.flush()
+    expect(prompt?.title).toBe("Subagents item limit")
+    prompt?.onConfirm("-2")
+    await setup.flush()
+    expect(toasts).toHaveLength(1)
+    expect(prompt?.value).toBe("-2")
+    expect(preferences.selectedSectionItemLimit("subagents")).toBe(0)
+    prompt?.onConfirm("5")
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain("Items: 5")
+    run("select")
+    expect(preferences.selectedSections().subagents).toBe(false)
+    const lines = setup.captureCharFrame().split("\n")
+    const mcpLine = lines.findIndex((line) => line.includes("6. MCP"))
+    await setup.mockMouse.pressDown(lines[mcpLine].indexOf("Items:"), mcpLine)
+    expect(preferences.selectedSections().mcp).toBe(true)
+    await setup.mockMouse.release(lines[mcpLine].indexOf("Items:"), mcpLine)
+    await setup.flush()
+    expect(prompt?.title).toBe("MCP item limit")
+    prompt?.onCancel()
+    await setup.flush()
+    run("select")
+    expect(preferences.selectedSections().mcp).toBe(false)
+    await setup.mockMouse.moveTo(0, 0)
+    run("move-up")
+    await setup.flush()
+    run("item-limit")
+    await setup.flush()
+    expect(prompt?.title).toBe("MCP item limit")
   } finally {
     setup.renderer.destroy()
   }

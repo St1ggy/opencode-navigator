@@ -13,6 +13,7 @@ const builtIns = {
     focusKey: "ctrl+shift+f",
     persistMcp: true,
     lspIconStyle: "nerd" as const,
+    sectionItemLimits: {},
   },
   layout: {
     sections: {
@@ -131,6 +132,21 @@ describe("preferences schema", () => {
     expect(() => parsePreferencesDocument(null)).toThrow("Invalid preferences document")
   })
 
+  test("merges list limits leaf-wise and allows explicit unlimited overrides", () => {
+    const result = resolvePreferences({
+      builtIns,
+      pluginOptions: { behavior: { sectionItemLimits: { todo: 2, skills: 5 } } },
+      global: { behavior: { sectionItemLimits: { todo: 3, mcp: 8 } } },
+      worktree: { behavior: { sectionItemLimits: { todo: 0 } } },
+    })
+    expect(result.behavior.sectionItemLimits).toEqual({ todo: 0, skills: 5, mcp: 8 })
+    expect(
+      parsePreferencesDocument({
+        global: { behavior: { sectionItemLimits: { todo: Infinity, skills: NaN, mcp: -1 } } },
+      }).global,
+    ).toEqual({})
+  })
+
   test("normalizes MCP preset names case-insensitively", () => {
     const presets = parsePreferencesDocument({
       user: { mcpPresets: { Work: { wiki: "enabled" }, work: { wiki: "disabled" } } },
@@ -169,6 +185,7 @@ describe("preferences schema", () => {
         focusKey: "ctrl+w",
         persistMcp: false,
         lspIconStyle: "nerd",
+        sectionItemLimits: {},
       },
       layout: {
         sections: { ...builtIns.layout.sections, todo: false },

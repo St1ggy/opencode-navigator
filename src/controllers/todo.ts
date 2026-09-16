@@ -73,6 +73,7 @@ export function createTodoController(api: TuiPluginApi) {
   api.lifecycle.onDispose(unsubscribe)
 
   return {
+    target,
     list,
     refresh,
     state(sessionID: string) {

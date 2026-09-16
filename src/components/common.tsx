@@ -1,7 +1,7 @@
 import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import type { BoxRenderable, InputRenderable, MouseEvent, Renderable, RGBA } from "@opentui/core"
 import { createSignal, onCleanup, Show } from "solid-js"
-import type { SidebarInteraction, SidebarNavigationDescriptor } from "../sidebar-interaction"
+import type { SidebarInteraction, SidebarNavigationDescriptor, SidebarOrder } from "../sidebar-interaction"
 
 export function sidebarInteractiveColors(
   theme: TuiThemeCurrent,
@@ -75,7 +75,7 @@ type SectionProps = {
 
 type SectionHeaderAction = {
   id: string
-  order: number
+  order: SidebarOrder
   label: () => string
   disabled: () => boolean
   onActivate: () => void
@@ -166,7 +166,7 @@ export function SectionFilter(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   id?: string
-  order?: number
+  order?: SidebarOrder
   query: string
   placeholder: string
   onInput: (value: string) => void

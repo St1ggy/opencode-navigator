@@ -43,6 +43,7 @@ test("the built plugin registers its lifecycle and sidebar slots", async () => {
     "session.updated",
     "session.deleted",
     "session.status",
+    "session.error",
     "session.idle",
     "server.connected",
     "server.connected",

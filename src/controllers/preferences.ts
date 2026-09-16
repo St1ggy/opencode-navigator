@@ -58,6 +58,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
       focusKey: defaults.focusKey,
       persistMcp: defaults.persistMcp,
       lspIconStyle: defaults.lspIconStyle,
+      sectionItemLimits: defaults.sectionItemLimits,
     },
     layout: {
       sections: defaults.sections,
@@ -297,6 +298,13 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     selectedFocusKey: () => selectedResolved().behavior.focusKey,
     selectedPersistMcp: () => selectedResolved().behavior.persistMcp,
     selectedLspIconStyle: () => selectedResolved().behavior.lspIconStyle,
+    sectionItemLimit: (section: SidebarSection) => resolved().behavior.sectionItemLimits[section] ?? 0,
+    selectedSectionItemLimit: (section: SidebarSection) => selectedResolved().behavior.sectionItemLimits[section] ?? 0,
+    setSectionItemLimit(section: SidebarSection, value: number) {
+      if (!Number.isSafeInteger(value) || value < 0) throw new Error("Enter a non-negative whole number (0 for All)")
+      void load()
+      update({ target: selectedTarget(), behavior: { sectionItemLimits: { [section]: value } } })
+    },
     selectedSections: () => selectedLayoutResolved().layout.sections,
     selectedExpanded: () => selectedLayoutResolved().layout.expanded,
     selectedSectionOrder: () => selectedLayoutResolved().layout.order,
