@@ -9,6 +9,7 @@ import { createPreferencesStore, type PreferencesStore } from "../src/preference
 import type { SectionVisibility } from "../src/state"
 import { showFirstRunWizard } from "../src/tui"
 import { pluginConfig } from "../src/config"
+import { QUICK_ACTION_IDS } from "../src/quick-actions"
 
 function pluginDefaults(sections: SectionVisibility) {
   return {
@@ -18,6 +19,8 @@ function pluginDefaults(sections: SectionVisibility) {
     persistMcp: true,
     lspIconStyle: "nerd" as const,
     sectionItemLimits: {},
+    quickActionOrder: [...QUICK_ACTION_IDS],
+    quickActionVisibility: {},
   }
 }
 
@@ -61,6 +64,34 @@ test("persists scoped limits before hydration and restores inherited defaults", 
     restarted.resetPluginSettings()
     expect(restarted.sectionItemLimit("todo")).toBe(2)
     expect(restarted.sectionItemLimit("skills")).toBe(0)
+    await restarted.flush()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("quick action settings persist per scope with leaf-wise inheritance and reset", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-actions-"))
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+  try {
+    const controller = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+    await controller.load()
+    controller.toggleQuickAction("session.rename")
+    controller.moveQuickAction("session.export", -1)
+    controller.setActiveScope("/repo")
+    controller.setPreferenceScope("worktree")
+    controller.toggleQuickAction("session.timeline")
+    await controller.flush()
+    const restarted = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+    await restarted.load()
+    restarted.setActiveScope("/repo")
+    restarted.setPreferenceScope("worktree")
+    expect(restarted.quickActionVisible("session.rename")).toBe(false)
+    expect(restarted.quickActionVisible("session.timeline")).toBe(false)
+    expect(restarted.quickActionOrder()[2]).toBe("session.export")
+    restarted.resetPluginSettings()
+    expect(restarted.quickActionVisible("session.rename")).toBe(false)
+    expect(restarted.quickActionVisible("session.timeline")).toBe(true)
     await restarted.flush()
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -464,6 +495,7 @@ test("manages user-wide MCP presets and favorite skills", async () => {
     expect(controller.saveMcpPreset(" Work ", { wiki: "disabled", context7: "enabled" })).toBe("Work")
     expect(() => controller.saveMcpPreset("work", { wiki: "enabled" })).toThrow("already exists")
     controller.toggleFavoriteSkill(review)
+    await controller.recordSkillUse(review)
     expect(controller.isFavoriteSkill(review)).toBe(true)
     expect(controller.updateMcpPreset("Work", { wiki: "enabled" })).toBe(true)
     expect(controller.renameMcpPreset("Work", "Review")).toBe("Review")
@@ -476,6 +508,7 @@ test("manages user-wide MCP presets and favorite skills", async () => {
     await restarted.load()
     expect(restarted.mcpPresets()).toEqual({ Review: { wiki: "enabled" } })
     expect(restarted.isFavoriteSkill(review)).toBe(true)
+    expect(restarted.recentSkills()).toEqual([review.location])
     expect(restarted.deleteMcpPreset("Review")).toBe(true)
     restarted.toggleFavoriteSkill(review)
     await restarted.flush()

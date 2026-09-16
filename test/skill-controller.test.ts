@@ -52,9 +52,30 @@ test("loads workspace skills and inserts the selected slash command", async () =
   await controller.refresh(target)
   expect(controller.list(target).map((skill) => skill.name)).toEqual(["commit", "review"])
 
-  await controller.use(target, "review")
+  expect(await controller.use(target, "review")).toBe(true)
   expect(prompts).toEqual([{ directory: "/repo/app", workspace: "workspace-1", text: "/review " }])
   expect(handlers.has("server.connected")).toBe(true)
+})
+
+test("skill insertion does not report success for a rejected or superseded append", async () => {
+  const response = deferred<{ data: boolean }>()
+  let pending = false
+  const lifecycle = new AbortController()
+  const api = {
+    route: { current: { name: "home" } },
+    state: { path: { directory: "/repo" } },
+    client: { tui: { appendPrompt: () => (pending ? response.promise : Promise.resolve({ data: false })) } },
+    event: { on: () => () => {} },
+    lifecycle: { signal: lifecycle.signal, onDispose() {} },
+  } as unknown as TuiPluginApi
+  const controller = createSkillController(api)
+  const target = controller.target()
+  expect(await controller.use(target, "review")).toBe(false)
+  pending = true
+  const request = controller.use(target, "review")
+  lifecycle.abort()
+  response.resolve({ data: true })
+  expect(await request).toBe(false)
 })
 
 test("preserves cached skills on failure and a retry wins over a late failure", async () => {

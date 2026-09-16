@@ -12,6 +12,7 @@ export function KeyboardHelpDialog(props: { api: TuiPluginApi }) {
       <text fg={theme().textMuted}>enter on a filter starts typing · esc returns</text>
       <text fg={theme().textMuted}>Todo: enter on All / Active / Finished changes the view</text>
       <text fg={theme().textMuted}>Show all / Show less expands or limits the filtered list</text>
+      <text fg={theme().textMuted}>Skills: activate the i control for source · ◷ marks recent</text>
       <text fg={theme().textMuted}>esc leaves the sidebar · ? opens this help</text>
     </box>
   )

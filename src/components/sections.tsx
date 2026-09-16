@@ -440,6 +440,8 @@ function SkillRow(props: {
   favorite: boolean
   favoriteDisabled: boolean
   separator: boolean
+  recent: boolean
+  onDetails: () => void
   onToggleFavorite: () => void
 }) {
   const theme = () => props.api.theme.current
@@ -459,6 +461,11 @@ function SkillRow(props: {
     disabled: () => props.favoriteDisabled,
     activate: toggleFavorite,
   })
+  const details = useSidebarItem(props.api, props.interaction, {
+    id: `${id()}.details`,
+    order: () => offsetSidebarOrder(props.order, 0.25),
+    activate: props.onDetails,
+  })
 
   return (
     <box
@@ -475,11 +482,26 @@ function SkillRow(props: {
       onMouseUp={(event) => row.activate(event)}
     >
       <text flexShrink={0} fg={row.focused() ? row.foregroundColor() : theme().accent}>
-        ◆
+        {props.recent ? "◷" : "◆"}
       </text>
       <text flexGrow={1} fg={row.foregroundColor()} wrapMode="word">
         {props.item.name}
       </text>
+      <box
+        ref={details.ref}
+        id={`${id()}.details`}
+        paddingLeft={1}
+        paddingRight={1}
+        backgroundColor={details.backgroundColor()}
+        onMouseOver={details.onMouseOver}
+        onMouseOut={details.onMouseOut}
+        onMouseUp={(event) => {
+          event.stopPropagation()
+          details.activate(event)
+        }}
+      >
+        <text fg={details.foregroundColor()}>i</text>
+      </box>
       <box
         ref={(node: BoxRenderable) => favorite.ref(node)}
         id={`${id()}.favorite`}
@@ -508,13 +530,25 @@ export function SkillsSection(props: {
 }) {
   const [query, setQuery] = createSignal("")
   const target = createMemo(() => props.controller.target())
+  const recent = createMemo(
+    () => new Map((props.preferences.recentSkills?.() ?? []).map((location, index) => [location, index])),
+  )
+  function skillGroup(item: SkillInfo) {
+    return props.preferences.isFavoriteSkill?.(item) ? "favorite" : recent().has(item.location) ? "recent" : "other"
+  }
   const list = createMemo(() => {
     const favorites = props.preferences.favoriteSkills?.() ?? new Set<string>()
     return [...props.controller.list(target())]
       .sort((left, right) => {
         const leftFavorite = favorites.has(left.location)
         const rightFavorite = favorites.has(right.location)
-        return Number(rightFavorite) - Number(leftFavorite) || left.name.localeCompare(right.name)
+        return (
+          Number(rightFavorite) - Number(leftFavorite) ||
+          (!leftFavorite
+            ? (recent().get(left.location) ?? Infinity) - (recent().get(right.location) ?? Infinity)
+            : 0) ||
+          left.name.localeCompare(right.name)
+        )
       })
       .map((item) => ({ ...item }))
   })
@@ -535,7 +569,8 @@ export function SkillsSection(props: {
 
   async function useSkill(item: SkillInfo) {
     try {
-      await props.controller.use(target(), item.name)
+      const inserted = await props.controller.use(target(), item.name)
+      if (inserted) await props.preferences.recordSkillUse?.(item)
     } catch (cause) {
       if (isAbortError(cause)) return
       props.api.ui.toast({
@@ -552,6 +587,10 @@ export function SkillsSection(props: {
       void useSkill(item)
       return
     }
+    showSkillDetails(item)
+  }
+
+  function showSkillDetails(item: SkillInfo) {
     props.api.ui.dialog.replace(() => (
       <SkillDialog
         api={props.api}
@@ -609,13 +648,11 @@ export function SkillsSection(props: {
                     item={item}
                     order={[props.order ?? 300, 10 + index() * 2]}
                     onUse={() => selectSkill(item)}
+                    onDetails={() => showSkillDetails(item)}
+                    recent={recent().has(item.location)}
                     favorite={props.preferences.isFavoriteSkill?.(item) ?? false}
                     favoriteDisabled={props.preferences.ready?.() === false}
-                    separator={
-                      index() > 0 &&
-                      Boolean(props.preferences.isFavoriteSkill?.(visibility.visible()[index() - 1])) &&
-                      !props.preferences.isFavoriteSkill?.(item)
-                    }
+                    separator={index() > 0 && skillGroup(visibility.visible()[index() - 1]) !== skillGroup(item)}
                     onToggleFavorite={() => props.preferences.toggleFavoriteSkill?.(item)}
                   />
                 )}
@@ -705,8 +742,14 @@ export function QuickActionsSection(props: {
   interaction?: SidebarInteraction
   order?: number
 }) {
+  const actions = createMemo(() =>
+    (props.preferences.quickActionOrder?.() ?? QUICK_ACTIONS.map((action) => action.command)).flatMap((id) => {
+      const action = QUICK_ACTIONS.find((candidate) => candidate.command === id)
+      return action && props.preferences.quickActionVisible?.(id) !== false ? [{ ...action }] : []
+    }),
+  )
   const visibility = createListVisibility({
-    items: () => QUICK_ACTIONS,
+    items: actions,
     limit: () => props.preferences.sectionItemLimit?.("quick_actions") ?? 0,
     resetKey: () => currentLocation(props.api).key,
   })
@@ -717,11 +760,14 @@ export function QuickActionsSection(props: {
       sectionId="opencode-pretty-sidebar.section.quick_actions"
       order={props.order ?? 400}
       title="QUICK ACTIONS"
-      summary={`${QUICK_ACTIONS.length}`}
+      summary={`${actions().length}`}
       open={props.preferences.expanded().quick_actions}
       onToggle={() => props.preferences.toggleSectionExpanded("quick_actions")}
     >
       <box>
+        <Show when={actions().length === 0}>
+          <text fg={props.api.theme.current.textMuted}>No quick actions selected</text>
+        </Show>
         <For each={visibility.visible()}>
           {(action, index) => (
             <QuickActionRow

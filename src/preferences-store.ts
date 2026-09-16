@@ -6,6 +6,7 @@ import {
   parseDesiredMcpStates,
   parseLayoutPresets,
   parseMcpPresets,
+  parseRecentSkills,
   parsePluginSettings,
   parsePreferencesDocument,
   parseSectionLayout,
@@ -40,6 +41,7 @@ export type PreferencesUpdate = {
       | { operation: "delete"; name: string }
     favoriteSkills?: string[]
     favoriteSkill?: { location: string; favorite: boolean }
+    recentSkill?: string
   }
   mcp?: {
     scope?: string
@@ -88,6 +90,11 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     ...parsePluginSettings(update.behavior).sectionItemLimits,
   }
   if (Object.keys(sectionItemLimits).length) behavior.sectionItemLimits = sectionItemLimits
+  const quickActionVisibility = {
+    ...(update.clearBehavior ? {} : existing.behavior?.quickActionVisibility),
+    ...parsePluginSettings(update.behavior).quickActionVisibility,
+  }
+  if (Object.keys(quickActionVisibility).length) behavior.quickActionVisibility = quickActionVisibility
   const mcpUpdate = {
     ...update.mcp?.states,
     ...(update.mcp?.name && update.mcp.state ? { [update.mcp.name]: update.mcp.state } : {}),
@@ -147,6 +154,10 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     if (mcpPresetUpdate.operation === "delete" && existing) delete mcpPresets[existing]
   }
   const parsedMcpPresets = parseMcpPresets(mcpPresets)
+  const recentSkills = parseRecentSkills([
+    ...(update.user?.recentSkill ? [update.user.recentSkill] : []),
+    ...(current.user.recentSkills ?? []),
+  ])
   const favoriteSkills = update.user?.favoriteSkills
     ? parseSkillConfirmations(update.user.favoriteSkills)
     : [...(current.user.favoriteSkills ?? [])]
@@ -171,6 +182,7 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
       ...(Object.keys(parsedLayoutPresets).length > 0 ? { layoutPresets: parsedLayoutPresets } : {}),
       ...(Object.keys(parsedMcpPresets).length > 0 ? { mcpPresets: parsedMcpPresets } : {}),
       ...(favoriteSkills.length > 0 ? { favoriteSkills } : {}),
+      ...(recentSkills.length > 0 ? { recentSkills } : {}),
     },
   }
 }

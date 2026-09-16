@@ -1,4 +1,10 @@
 import { SIDEBAR_SECTIONS, type SectionVisibility, type SidebarSection } from "./state"
+import {
+  parseQuickActionOrder,
+  parseQuickActionVisibility,
+  type QuickActionId,
+  type QuickActionVisibility,
+} from "./quick-actions"
 
 export type SectionItemLimits = Partial<Record<SidebarSection, number>>
 
@@ -8,6 +14,8 @@ export type PluginSettings = {
   persistMcp: boolean
   lspIconStyle: "nerd" | "text"
   sectionItemLimits: SectionItemLimits
+  quickActionOrder: QuickActionId[]
+  quickActionVisibility: QuickActionVisibility
 }
 
 export type SectionLayoutDefault = {
@@ -36,6 +44,7 @@ export type PreferencesDocument = {
     layoutPresets?: LayoutPresets
     mcpPresets?: McpPresets
     favoriteSkills?: string[]
+    recentSkills?: string[]
   }
 }
 
@@ -105,6 +114,12 @@ export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
     ...(Object.keys(parseSectionItemLimits(input.sectionItemLimits)).length
       ? { sectionItemLimits: parseSectionItemLimits(input.sectionItemLimits) }
       : {}),
+    ...(parseQuickActionOrder(input.quickActionOrder)
+      ? { quickActionOrder: parseQuickActionOrder(input.quickActionOrder) }
+      : {}),
+    ...(Object.keys(parseQuickActionVisibility(input.quickActionVisibility)).length
+      ? { quickActionVisibility: parseQuickActionVisibility(input.quickActionVisibility) }
+      : {}),
   }
 }
 
@@ -165,6 +180,11 @@ function parseStringList(value: unknown) {
   return [...new Set(value.filter((item): item is string => typeof item === "string" && item.length > 0))].sort()
 }
 
+export function parseRecentSkills(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value.filter((item): item is string => typeof item === "string" && item.length > 0))].slice(0, 10)
+}
+
 export function emptyPreferencesDocument(): PreferencesDocument {
   return {
     global: {},
@@ -204,6 +224,7 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   const layoutPresets = parseLayoutPresets(userInput?.layoutPresets)
   const mcpPresets = parseMcpPresets(userInput?.mcpPresets)
   const favoriteSkills = parseStringList(userInput?.favoriteSkills)
+  const recentSkills = parseRecentSkills(userInput?.recentSkills)
 
   return {
     global: {
@@ -220,6 +241,7 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
       ...(Object.keys(layoutPresets).length > 0 ? { layoutPresets } : {}),
       ...(Object.keys(mcpPresets).length > 0 ? { mcpPresets } : {}),
       ...(favoriteSkills ? { favoriteSkills } : {}),
+      ...(recentSkills.length ? { recentSkills } : {}),
     },
   }
 }
@@ -258,8 +280,10 @@ export function resolvePreferences(input: {
 
   for (const layer of layers) {
     const sectionItemLimits = { ...behavior.sectionItemLimits, ...layer.behavior?.sectionItemLimits }
+    const quickActionVisibility = { ...behavior.quickActionVisibility, ...layer.behavior?.quickActionVisibility }
     Object.assign(behavior, layer.behavior)
     behavior.sectionItemLimits = sectionItemLimits
+    behavior.quickActionVisibility = quickActionVisibility
     Object.assign(sections, layer.layout?.sections)
     Object.assign(expanded, layer.layout?.expanded)
     if (layer.layout?.order?.length) order = [...layer.layout.order]

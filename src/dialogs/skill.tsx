@@ -1,5 +1,6 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { TextAttributes } from "@opentui/core"
+import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
+import { useTerminalDimensions } from "@opentui/solid"
 import { createSignal, onCleanup } from "solid-js"
 import { PLUGIN_ID } from "../constants"
 import type { SkillInfo } from "../controllers/skills"
@@ -12,6 +13,8 @@ export function SkillDialog(props: {
   const [skipConfirmation, setSkipConfirmation] = createSignal(false)
   const [active, setActive] = createSignal<"accept" | "cancel">("accept")
   const theme = () => props.api.theme.current
+  const dimensions = useTerminalDimensions()
+  let body: ScrollBoxRenderable | undefined
 
   function accept() {
     const skip = skipConfirmation()
@@ -27,6 +30,8 @@ export function SkillDialog(props: {
     mode: "modal",
     priority: 1000,
     commands: [
+      { name: `${PLUGIN_ID}.skill-dialog.scroll-up`, run: () => body?.scrollBy(-1) },
+      { name: `${PLUGIN_ID}.skill-dialog.scroll-down`, run: () => body?.scrollBy(1) },
       {
         name: `${PLUGIN_ID}.skill-dialog.move`,
         run() {
@@ -48,6 +53,8 @@ export function SkillDialog(props: {
       },
     ],
     bindings: [
+      { key: "up", cmd: `${PLUGIN_ID}.skill-dialog.scroll-up` },
+      { key: "down", cmd: `${PLUGIN_ID}.skill-dialog.scroll-down` },
       { key: "left", cmd: `${PLUGIN_ID}.skill-dialog.move` },
       { key: "right", cmd: `${PLUGIN_ID}.skill-dialog.move` },
       { key: "tab", cmd: `${PLUGIN_ID}.skill-dialog.move` },
@@ -67,9 +74,20 @@ export function SkillDialog(props: {
           esc
         </text>
       </box>
-      <scrollbox maxHeight={12} scrollbarOptions={{ visible: false }}>
+      <scrollbox
+        ref={(node) => (body = node)}
+        maxHeight={Math.max(3, Math.floor(dimensions().height * 0.75) - 8)}
+        contentOptions={{ minHeight: 0 }}
+        scrollX={false}
+      >
         <text fg={theme().textMuted} wrapMode="word">
           {props.skill.description?.trim() || "No description available."}
+        </text>
+        <text fg={theme().text} attributes={TextAttributes.BOLD}>
+          Source
+        </text>
+        <text fg={theme().textMuted} wrapMode="word">
+          {props.skill.location || "Unknown"}
         </text>
       </scrollbox>
       <box flexDirection="row" gap={1} onMouseDown={() => setSkipConfirmation((value) => !value)}>

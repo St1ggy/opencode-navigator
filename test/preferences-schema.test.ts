@@ -6,6 +6,7 @@ import {
   type PreferencesDocument,
 } from "../src/preferences-schema"
 import type { SidebarSection } from "../src/state"
+import { QUICK_ACTION_IDS } from "../src/quick-actions"
 
 const builtIns = {
   behavior: {
@@ -14,6 +15,8 @@ const builtIns = {
     persistMcp: true,
     lspIconStyle: "nerd" as const,
     sectionItemLimits: {},
+    quickActionOrder: [...QUICK_ACTION_IDS],
+    quickActionVisibility: {},
   },
   layout: {
     sections: {
@@ -132,6 +135,13 @@ describe("preferences schema", () => {
     expect(() => parsePreferencesDocument(null)).toThrow("Invalid preferences document")
   })
 
+  test("recent skills preserve recency rather than sorting locations", () => {
+    expect(parsePreferencesDocument({ user: { recentSkills: ["/z", "", 1, "/a", "/z"] } }).user.recentSkills).toEqual([
+      "/z",
+      "/a",
+    ])
+  })
+
   test("merges list limits leaf-wise and allows explicit unlimited overrides", () => {
     const result = resolvePreferences({
       builtIns,
@@ -186,6 +196,8 @@ describe("preferences schema", () => {
         persistMcp: false,
         lspIconStyle: "nerd",
         sectionItemLimits: {},
+        quickActionOrder: [...QUICK_ACTION_IDS],
+        quickActionVisibility: {},
       },
       layout: {
         sections: { ...builtIns.layout.sections, todo: false },

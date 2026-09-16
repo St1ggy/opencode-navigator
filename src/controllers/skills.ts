@@ -89,13 +89,15 @@ export function createSkillController(api: TuiPluginApi) {
     async use(current: ReturnType<typeof currentLocation>, name: string) {
       if (activeTarget && activeTarget !== current.key) throw new DOMException("Sidebar context changed", "AbortError")
       const request = promptRequests.start(current.key, "insert skill", false, true)
-      if (!request) return
+      if (!request) return false
       try {
-        await api.client.tui.appendPrompt(
+        const result = await api.client.tui.appendPrompt(
           { ...current.routing, text: `/${name} ` },
           { throwOnError: true, signal: request.signal },
         )
+        if (!request.isCurrent()) return false
         request.succeed()
+        return result.data === true
       } catch (cause) {
         request.fail(cause)
         throw cause

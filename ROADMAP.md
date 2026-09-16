@@ -52,7 +52,7 @@ verification workflow before expanding the product surface.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
 - [x] Limit the published package to the license, README, bundle, and package metadata.
 - [x] Run TypeScript, Oxlint, and Prettier checks through `bun run check`.
-- [x] Enforce a 240,000-byte raw bundle budget through `bun run check` and CI.
+- [x] Enforce a 275,000-byte raw bundle budget through `bun run check` and CI.
 
 ### Keyboard Navigation
 
@@ -86,14 +86,14 @@ verification workflow before expanding the product surface.
 
 - [x] Todo: All / Active / Finished filters, status grouping, separate cancelled tasks, and status counts.
 - [~] Subagents: observed runtime, retry countdown, in-memory recent runs, and failure attention exist; filters and parent-session navigation remain planned.
-- [~] Skills: user-wide favorites exist; recent items, source details, fuzzy keyboard selection, and trusted-skill confirmation settings remain planned.
-- [ ] Quick Actions: ordering, visibility, recent actions, registered commands, and route-aware disabled reasons.
+- [~] Skills: user-wide favorites, recent items, and source details exist; fuzzy keyboard selection and trusted-skill confirmation settings remain planned.
+- [~] Quick Actions: scoped ordering and visibility exist; recent actions, additional registered commands, and route-aware disabled reasons remain planned.
 - [~] LSP: compact Nerd Font glyphs and text badges exist; sorting, expandable details, and actionable errors remain.
 - [~] MCP: filtering, pending rows, error text, individual and bulk connect/disconnect, and retry exist; grouping and pinning remain.
 
 ### Agents And Limits
 
-- [ ] Show the active OpenCode agent, model, provider, capabilities, and parent/child session context.
+- Use OpenCode's existing agent/model display above the prompt; omit a duplicate sidebar overview.
 - [ ] Define independent adapters for OpenCode, stable provider quota APIs, and machine-readable external agent CLIs.
 - [ ] Preserve provider-native units and reset windows while showing freshness, unsupported, authentication, stale, and rate-limited states.
 - [ ] Never read undocumented credential files or store provider credentials in sidebar preferences or logs.
@@ -132,7 +132,7 @@ public OpenCode TUI or stable authenticated provider API:
 1. Maintain the completed P0 architecture, persistence, reliability, keyboard, and smoke-test foundation.
 2. Add layout and MCP presets on the unified global/worktree preference model.
 3. Improve existing sections using the shared request and interaction contracts.
-4. Add the OpenCode agent overview, then stable provider and CLI adapters.
+4. Add stable provider and CLI adapters for supported quota information.
 5. Build unified search after section keyboard behavior is consistent.
 6. Add portable project-local profiles after the settings schema has settled.
 7. Finish performance, accessibility, bundle, and release polish for 1.0.

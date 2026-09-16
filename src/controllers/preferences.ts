@@ -5,6 +5,7 @@ import { DEFAULT_SECTION_EXPANSION } from "../constants"
 import {
   emptyPreferencesDocument,
   parseSectionLayout,
+  parseRecentSkills,
   resolvePreferences,
   type DesiredMcpState,
   type LayoutPresets,
@@ -23,6 +24,7 @@ import {
 } from "../preferences-store"
 import { SIDEBAR_SECTIONS, type SidebarSection } from "../state"
 import type { SkillInfo } from "./skills"
+import type { QuickActionId } from "../quick-actions"
 
 export type McpPreferencesAccess = {
   load(): Promise<void> | undefined
@@ -59,6 +61,8 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
       persistMcp: defaults.persistMcp,
       lspIconStyle: defaults.lspIconStyle,
       sectionItemLimits: defaults.sectionItemLimits,
+      quickActionOrder: defaults.quickActionOrder,
+      quickActionVisibility: defaults.quickActionVisibility,
     },
     layout: {
       sections: defaults.sections,
@@ -75,6 +79,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
   const [layoutPresets, setLayoutPresets] = createSignal<LayoutPresets>({})
   const [mcpPresets, setMcpPresets] = createSignal<McpPresets>({})
   const [favoriteSkills, setFavoriteSkills] = createSignal(new Set<string>())
+  const [recentSkills, setRecentSkills] = createSignal<string[]>([])
   const [ready, setReady] = createSignal(false)
   const [revision, setRevision] = createSignal(0)
   const sessionLayouts = new Map<string, ResolvedPreferences["layout"]>()
@@ -181,6 +186,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
         setLayoutPresets(document.user.layoutPresets ?? {})
         setMcpPresets(document.user.mcpPresets ?? {})
         setFavoriteSkills(new Set(document.user.favoriteSkills ?? []))
+        setRecentSkills(document.user.recentSkills ?? [])
         setReady(true)
         refreshResolved()
       })
@@ -298,6 +304,26 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     selectedFocusKey: () => selectedResolved().behavior.focusKey,
     selectedPersistMcp: () => selectedResolved().behavior.persistMcp,
     selectedLspIconStyle: () => selectedResolved().behavior.lspIconStyle,
+    quickActionOrder: () => resolved().behavior.quickActionOrder,
+    quickActionVisible: (id: QuickActionId) => resolved().behavior.quickActionVisibility[id] !== false,
+    selectedQuickActionOrder: () => selectedResolved().behavior.quickActionOrder,
+    selectedQuickActionVisible: (id: QuickActionId) => selectedResolved().behavior.quickActionVisibility[id] !== false,
+    toggleQuickAction(id: QuickActionId) {
+      void load()
+      update({
+        target: selectedTarget(),
+        behavior: { quickActionVisibility: { [id]: selectedResolved().behavior.quickActionVisibility[id] === false } },
+      })
+    },
+    moveQuickAction(id: QuickActionId, direction: -1 | 1) {
+      void load()
+      const order = [...selectedResolved().behavior.quickActionOrder]
+      const index = order.indexOf(id)
+      const destination = index + direction
+      if (index < 0 || destination < 0 || destination >= order.length) return
+      ;[order[index], order[destination]] = [order[destination], order[index]]
+      update({ target: selectedTarget(), behavior: { quickActionOrder: order } })
+    },
     sectionItemLimit: (section: SidebarSection) => resolved().behavior.sectionItemLimits[section] ?? 0,
     selectedSectionItemLimit: (section: SidebarSection) => selectedResolved().behavior.sectionItemLimits[section] ?? 0,
     setSectionItemLimit(section: SidebarSection, value: number) {
@@ -311,6 +337,13 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     layoutPresets,
     mcpPresets,
     favoriteSkills,
+    recentSkills,
+    async recordSkillUse(skill: SkillInfo) {
+      await load()
+      if (!skill.location) return
+      setRecentSkills(parseRecentSkills([skill.location, ...recentSkills()]))
+      update({ user: { recentSkill: skill.location } })
+    },
     ready,
     preferenceScope,
     canUseWorktreeScope: () => activeTarget().kind === "worktree",

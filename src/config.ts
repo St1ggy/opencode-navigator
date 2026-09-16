@@ -1,6 +1,7 @@
 import type { PluginSettings } from "./preferences-schema"
 import { parseSectionOrder, parseSectionItemLimits } from "./preferences-schema"
 import { SIDEBAR_SECTIONS, parseSectionVisibility, type SectionVisibility, type SidebarSection } from "./state"
+import { parseQuickActionOrder, parseQuickActionVisibility, QUICK_ACTION_IDS } from "./quick-actions"
 
 export type PluginConfig = PluginSettings & {
   sections: SectionVisibility
@@ -18,5 +19,7 @@ export function pluginConfig(options: Record<string, unknown> | undefined): Plug
     sectionOrder: parseSectionOrder(options?.section_order) ?? [...SIDEBAR_SECTIONS],
     lspIconStyle: options?.lsp_icon_style === "text" ? "text" : "nerd",
     sectionItemLimits: parseSectionItemLimits(options?.section_item_limits),
+    quickActionOrder: parseQuickActionOrder(options?.quick_action_order) ?? [...QUICK_ACTION_IDS],
+    quickActionVisibility: parseQuickActionVisibility(options?.quick_action_visibility),
   }
 }

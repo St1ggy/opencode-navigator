@@ -12,8 +12,8 @@ actions, and makes every MCP server clickable directly in the sidebar.
 - First-run setup guide with interactive section settings
 - Collapsible Todo section with status filters, grouped tasks, progress and priority indicators
 - Active subagent list with live statuses and click-to-open navigation, including dev-team workers running in separate local processes
-- Compact, searchable workspace skill list with user-wide favorites and click-to-confirm slash commands
-- Quick actions for rename, timeline, transcript copy, export, and compaction
+- Compact, searchable workspace skill list with user-wide favorites, recent skills, source details, and click-to-confirm slash commands
+- Configurable quick actions for rename, timeline, transcript copy, export, and compaction
 - Live LSP connection status with compact inline server icons and click-to-reveal names
 - Searchable MCP section with live radio-style connection controls
 - Click any MCP row to connect or disconnect it
@@ -104,6 +104,11 @@ target, filter, or limit changes. MCP bulk actions still operate on the full ser
 list. Limit changes persist immediately in the selected Global or Current worktree
 scope; Restore configured behavior removes that scope's limit overrides.
 
+On the Quick Actions row, click `Actions` or press `A` to choose individual
+actions and their order. Enter toggles visibility; Left/Right or Shift+Up/Down
+reorders the selected action. Changes save in the selected Global or Current
+worktree scope. Escape returns to the Quick Actions row in Sections.
+
 ## Options
 
 Pass configured defaults with a tuple entry:
@@ -121,6 +126,8 @@ Pass configured defaults with a tuple entry:
         "toggle_key": "ctrl+shift+b",
         "section_order": ["todo", "subagents", "skills", "quick_actions", "lsp", "mcp"],
         "section_item_limits": { "todo": 0, "subagents": 0, "skills": 5, "mcp": 5 },
+        "quick_action_order": ["session.rename", "session.timeline", "session.copy", "session.export", "session.compact"],
+        "quick_action_visibility": { "session.export": false },
         "sections": {
           "todo": true,
           "subagents": true,
@@ -153,6 +160,11 @@ Pass configured defaults with a tuple entry:
 - `section_item_limits`: non-negative integer limits for `todo`, `subagents`,
   `skills`, `quick_actions`, `lsp`, and `mcp`. Missing values default to `0` (All).
   Worktree overrides inherit each unspecified section from Global independently.
+- `quick_action_order`: command IDs of the five built-in quick actions in display
+  order. Missing actions are appended; unknown and duplicate IDs are ignored.
+- `quick_action_visibility`: visibility by command ID. Actions default to visible;
+  unspecified worktree values inherit the global setting. Restore configured
+  behavior resets action overrides as well as the other behavior settings.
 
 Every option is also available from the sidebar gear button. Choose `Global` or
 `Current worktree` before editing. Values resolve in configured-default, global,
@@ -212,7 +224,11 @@ Selecting a skill opens its description with Accept and Cancel controls before
 appending its `/<name>` command to the current prompt. Select "Don't show again
 for this skill" to skip that confirmation later. The sidebar settings dialog
 can restore skipped confirmations. Select the star beside a skill to keep it
-ahead of non-favorite skills in every workspace. Quick actions invoke OpenCode's built-in
+ahead of non-favorite skills in every workspace. The last 10 successfully inserted
+skills are remembered user-wide by source location and appear after favorites,
+most recent first, marked `◷`. Other skills remain alphabetical. The `i` control
+opens the description and full source location even when confirmation is skipped.
+Quick actions invoke OpenCode's built-in
 commands and display the active keybindings from your configuration.
 
 ## Scripts

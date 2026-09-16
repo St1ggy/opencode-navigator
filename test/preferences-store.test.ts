@@ -143,6 +143,25 @@ test("merges concurrent favorite skill toggles", async () => {
   }
 })
 
+test("recent skills merge concurrent uses, deduplicate, and retain the latest ten", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-recent-"))
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    await Promise.all([first.update({ user: { recentSkill: "/a" } }), second.update({ user: { recentSkill: "/b" } })])
+    expect((await first.load()).user.recentSkills?.slice().sort()).toEqual(["/a", "/b"])
+    for (let index = 0; index < 12; index++) await first.update({ user: { recentSkill: `/${index}` } })
+    await first.update({ user: { recentSkill: "/8" } })
+    const recent = (await second.load()).user.recentSkills!
+    expect(recent).toHaveLength(10)
+    expect(recent[0]).toBe("/8")
+    expect(new Set(recent).size).toBe(10)
+    expect(recent).not.toContain("/0")
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test("keeps concurrent MCP preset operations case-insensitive and rename-safe", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-store-"))
   try {
@@ -215,6 +234,24 @@ test("concurrent list-limit deltas preserve other sections and user preferences"
     expect(saved.global.behavior?.sectionItemLimits).toEqual({ todo: 3, mcp: 4 })
     expect(saved.user.favoriteSkills).toEqual(["/skill"])
     expect(saved.user.mcpPresets?.Work).toEqual({ wiki: "enabled" })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("concurrent quick-action visibility changes preserve separate actions", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-actions-"))
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    await Promise.all([
+      first.update({ behavior: { quickActionVisibility: { "session.rename": false } } }),
+      second.update({ behavior: { quickActionVisibility: { "session.export": false } } }),
+    ])
+    expect((await first.load()).global.behavior?.quickActionVisibility).toEqual({
+      "session.rename": false,
+      "session.export": false,
+    })
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

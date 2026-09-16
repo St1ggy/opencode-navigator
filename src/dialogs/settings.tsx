@@ -6,6 +6,7 @@ import { PLUGIN_ID, SECTION_DEFINITIONS } from "../constants"
 import type { PreferencesController } from "../controllers/preferences"
 import { SIDEBAR_SECTIONS, type SidebarSection } from "../state"
 import { openFirstRunWizard } from "./first-run"
+import { QuickActionsDialog } from "./quick-actions"
 
 export function SettingsDialog(props: { api: TuiPluginApi; preferences: PreferencesController; activeValue?: string }) {
   let body: ScrollBoxRenderable | undefined
@@ -111,7 +112,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
         {
           title: "↺ Restore configured behavior",
           value: "reset_settings",
-          description: "MCP memory, icons, shortcuts",
+          description: "MCP memory, icons, shortcuts, limits, actions",
         },
         {
           title: "↺ Clear remembered MCP states",
@@ -145,7 +146,8 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
   const contentHeight = createMemo(() => Math.min(bodyHeight(), Math.max(1, options().length * 2 - 1)))
   const footerHint = createMemo(() => {
     const common = "tab switch · ↑/↓ navigate"
-    if (activeGroup() === "sections") return `${common} · enter toggle · l item limit · ←/→ or shift+↑/↓ reorder`
+    if (activeGroup() === "sections")
+      return `${common} · enter toggle · l item limit${options()[active()]?.value === "quick_actions" ? " · a actions" : ""} · ←/→ or shift+↑/↓ reorder`
     if (activeGroup() === "presets") return `${common} · enter manage`
     if (activeGroup() === "behavior") return `${common} · enter change`
     if (activeGroup() === "defaults") return `${common} · enter run`
@@ -432,6 +434,17 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
     props.preferences.toggleSelectedSection(value as SidebarSection)
   }
 
+  function openQuickActions() {
+    props.api.ui.dialog.replace(() => (
+      <QuickActionsDialog
+        api={props.api}
+        preferences={props.preferences}
+        onBack={() => openSettings(props.api, props.preferences, "quick_actions")}
+      />
+    ))
+    props.api.ui.dialog.setSize("medium")
+  }
+
   const unregister = props.api.keymap.registerLayer({
     mode: "modal",
     priority: 1000,
@@ -439,6 +452,12 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       { name: `${PLUGIN_ID}.settings.previous`, run: () => move(-1) },
       { name: `${PLUGIN_ID}.settings.next`, run: () => move(1) },
       { name: `${PLUGIN_ID}.settings.select`, run: () => select() },
+      {
+        name: `${PLUGIN_ID}.settings.quick-actions`,
+        run: () => {
+          if (activeGroup() === "sections" && options()[active()]?.value === "quick_actions") openQuickActions()
+        },
+      },
       {
         name: `${PLUGIN_ID}.settings.item-limit`,
         run: () => {
@@ -459,6 +478,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       { key: "space", cmd: `${PLUGIN_ID}.settings.select` },
       { key: "return", cmd: `${PLUGIN_ID}.settings.select` },
       { key: "l", cmd: `${PLUGIN_ID}.settings.item-limit` },
+      { key: "a", cmd: `${PLUGIN_ID}.settings.quick-actions` },
       { key: "left", cmd: `${PLUGIN_ID}.settings.move-up` },
       { key: "right", cmd: `${PLUGIN_ID}.settings.move-down` },
       { key: "shift+up", cmd: `${PLUGIN_ID}.settings.move-up` },
@@ -531,6 +551,18 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                   </text>
                   <Show when={SIDEBAR_SECTIONS.includes(option.value as SidebarSection)}>
                     <box flexDirection="row" flexShrink={0} gap={1}>
+                      <Show when={option.value === "quick_actions"}>
+                        <text
+                          fg={theme().accent}
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onMouseUp={(event) => {
+                            event.stopPropagation()
+                            openQuickActions()
+                          }}
+                        >
+                          Actions
+                        </text>
+                      </Show>
                       <text
                         fg={theme().accent}
                         onMouseDown={(event) => event.stopPropagation()}
