@@ -27,9 +27,14 @@
   ],
   "files": [
     "dist",
+    "assets",
+    "scripts/install-font.mjs",
     "README.md",
     "LICENSE"
   ],
+  "bin": {
+    "opencode-navigator-font": "./scripts/install-font.mjs"
+  },
   "exports": {
     "./tui": {
       "import": "./dist/tui.js"
@@ -46,6 +51,9 @@
     "bundle:size": "bun run build && bun run scripts/check-bundle-size.ts",
     "format": "prettier --write --ignore-unknown .",
     "format:check": "prettier --check --ignore-unknown .",
+    "font:install": "node scripts/install-font.mjs",
+    "font:build": "uv run scripts/generate-corner-font.py",
+    "font:check": "uv run scripts/generate-corner-font.py --check",
     "lint": "bun run lint:eslint",
     "lint:eslint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix && bun run format",

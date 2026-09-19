@@ -86,7 +86,7 @@ export default [
     },
   },
   {
-    files: ['build.ts', 'scripts/**/*.ts'],
+    files: ['build.ts', 'scripts/**/*.{ts,mjs}'],
     rules: { 'no-console': 'off', 'unicorn/no-process-exit': 'off' },
   },
 ]
