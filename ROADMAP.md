@@ -50,7 +50,7 @@ verification workflow before expanding the product surface.
 
 - [x] Build the distributable before tests and keep Solid/OpenTUI out of the bundle.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
-- [x] Limit the published package to the license, README, bundle, and package metadata.
+- [x] Limit the published package to the license, README, bundle, package metadata, and corner font with its installer.
 - [x] Run TypeScript, ESLint with the shared Solid preset, and Prettier checks through `bun run check`.
 - [x] Enforce a 320,000-byte raw bundle budget through `bun run check` and CI.
 

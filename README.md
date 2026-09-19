@@ -40,6 +40,15 @@ The switch applies to the entire interface, including Quick Actions, search
 tabs, section headings, statuses, favorites, and dialogs.
 Components read the live style through the shared icon context; host-mounted
 and nested dialogs inherit the same context through the dialog adapter.
+Highlighted rows, tabs, and buttons use rounded ends in Nerd Font mode;
+multiline selections use inverse corner masks over a solid background from the additional
+**OpenCode Navigator Corners** fallback font. Installing that font is required
+for rounded multiline selections; Nerd Fonts alone do not contain these four
+custom glyphs. Text fallback retains rectangular
+highlights. Rounded edges stay inside the control's padding and remain clickable.
+Navigator uses the full available sidebar slot width; the current OpenCode TUI
+fixes the outer panel at 42 columns. Long preset labels are truncated to keep the
+MCP heading and server count on one line.
 
 ## Installation
 
@@ -57,7 +66,46 @@ opencode plugin --global opencode-navigator
 
 `opencode plug` is an alias for `opencode plugin`.
 
-The installer adds the package to the `plugin` array in `tui.json`. To avoid
+### Install the corner font
+
+**Required for rounded multiline selections in Nerd Font mode.** Run the font
+installer on the computer displaying your terminal, even if OpenCode runs over
+SSH on another machine:
+
+```sh
+npx --yes --package=opencode-navigator opencode-navigator-font
+```
+
+This command requires Node.js 20+ and npm. It installs the small bundled
+[`OpenCodeNavigatorCorners.ttf`](assets/OpenCodeNavigatorCorners.ttf)
+for your user account. Version 1.001 contains four corner masks and preserves the
+four legacy filled corners. It is licensed under MIT. Keep your existing Nerd Font selected as the terminal font; the new
+font supplies only the missing corner characters through font fallback.
+
+**Fully quit and reopen the terminal application**, then start OpenCode again.
+Restarting only OpenCode may leave the terminal's old font cache in use.
+
+The installer uses `~/Library/Fonts` on macOS, the user font directory under
+`XDG_DATA_HOME` (or `~/.local/share/fonts`) on Linux, and the per-user Windows font
+directory and registry. Linux requires `fc-cache` from Fontconfig.
+The bundled metrics are tested with IoskeleyMono Nerd Font Propo; see
+[`assets/README.md`](assets/README.md) for generating a matching font for other metrics.
+
+If you skip font installation, select **Settings → Behavior → Icon style →
+Text fallback** (or set `icon_style` to `text`) to use rectangular selections
+without missing-glyph boxes.
+
+To remove only the additional font:
+
+```sh
+npx --yes --package=opencode-navigator opencode-navigator-font --uninstall
+```
+
+Switch to Text fallback and restart the terminal after uninstalling it.
+
+### Configure sidebar sections
+
+The `opencode plugin` command adds the package to the `plugin` array in `tui.json`. To avoid
 duplicating sidebar sections, also disable the overlapping built-in plugins:
 
 ```json
@@ -98,6 +146,12 @@ sidebar blocks.
 
 ```sh
 bun install
+bun run font:install
+```
+
+Fully restart the terminal once after installing the corner font, then run:
+
+```sh
 opencode
 ```
 
@@ -229,6 +283,8 @@ visibility and item limits; actions hidden from the sidebar are still searchable
   query changes.
 - `Enter`: insert a skill (honouring its confirmation preference), open a child
   session, connect/disconnect an MCP server, or run a built-in action.
+- MCP toggles keep the search open and update the server status in place,
+  preserving the query, selection, and scroll position.
 - `Escape`: close and return focus; `Ctrl+R`: retry loading sources.
 
 Results use compact title/preview rows. Background refresh preserves the current
@@ -250,9 +306,9 @@ Preset application runs only the necessary server changes and keeps per-server
 progress and failed-only retry behavior. Servers in a preset that are not present
 in the current scope are retained as desired state but skipped at application time.
 
-The MCP star control saves favorites user-wide by server name. Favorites appear
+The MCP bookmark control saves favorites user-wide by server name. Favorites appear
 first, alphabetically within each group, with a blank separator before other
-servers. The star does not connect or disconnect the server.
+servers. The bookmark does not connect or disconnect the server.
 
 LSP servers with connection errors appear first, followed by alphabetical ID and
 root order. Activate any badge, including a custom server, to see its ID, root,
@@ -275,6 +331,9 @@ labelled Finished, not a guarantee of successful task completion; errors and
 cancellations retain their own labels. A worker timeout displays status
 unavailability and does not mark its last confirmed active run as finished.
 Active runs precede Recent under the shared Subagents item limit.
+Local session events update subagents immediately; snapshot and worker-status
+polling runs every five seconds. Background refresh is silent after the initial
+load, including when a section is empty, so it does not shift the list.
 Use `All / Active / Recent / Errors` and the text filter to narrow the subagent
 list before applying its item limit. Filters reset on a target change. In a child
 session, `Parent session` opens the parent even when no subagents are listed.
@@ -316,6 +375,7 @@ bun run lint
 bun run lint:fix
 bun run format
 bun run format:check
+bun run font:install
 bun run build
 bun run bundle:size
 bun run check
@@ -323,6 +383,10 @@ bun run check
 
 `bun run check` runs the tests, TypeScript, ESLint, bundle-size guard, and formatting
 check. The unminified TUI bundle is limited to 320,000 bytes.
+Font generation is a separate development task: `bun run font:build` and
+`bun run font:check` use `uv` and the pinned FontTools dependency. Users install
+the already generated font; Python and FontTools are not needed at runtime.
+CI checks that the bundled font matches its generator.
 
 ## Publishing
 
