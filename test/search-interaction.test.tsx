@@ -24,6 +24,9 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
   const [dialogSize, setDialogSize] = createSignal('medium')
   const [sessionID, setSessionID] = createSignal('session')
   const [busy, setBusy] = createSignal(false)
+  const [mcpStatus, setMcpStatus] = createSignal<'connected' | 'disabled'>('connected')
+  let isFailMcp = false
+  const notices: string[] = []
   const [skillError, setSkillError] = createSignal(false)
   let isFailSkills = false
   let api!: TuiPluginApi
@@ -76,7 +79,7 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
       },
       lifecycle: { signal: new AbortController().signal },
       ui: {
-        toast() {},
+        toast: (notice: { message: string }) => notices.push(notice.message),
         dialog: {
           get open() {
             return Boolean(modal())
@@ -136,13 +139,17 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
     } as unknown as SubagentController
     const mcp = {
       target: () => ({ ...searchContext(api).location, scope: '/repo' }),
-      list: () => [{ name: 'wiki', status: 'connected' }],
+      list: () => [{ name: 'wiki', status: mcpStatus() }],
       state: () => ({ status: 'ready' }),
       refresh: async () => [],
       mutating: busy,
       bulkState: () => ({ status: 'idle' }),
       toggle: async (name: string) => {
         toggled.push(name)
+
+        if (isFailMcp) throw new Error('MCP toggle failed')
+
+        setMcpStatus((status) => (status === 'connected' ? 'disabled' : 'connected'))
       },
     } as unknown as McpController
     const interaction = { ownsFocus: () => false, savedReturnTarget: () => null } as unknown as SidebarInteraction
@@ -245,6 +252,8 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
     expect(used).toEqual(['review-code'])
     expect(preferences.recentSkills()).toEqual(['/skills/review-code'])
     await open('wiki', 'MCP')
+    const search = modal()
+
     setBusy(true)
     await setup.flush()
     setup.mockInput.pressEnter()
@@ -255,6 +264,25 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
     setup.mockInput.pressEnter()
     await setup.flush()
     expect(toggled).toEqual(['wiki'])
+    expect(modal()).toBe(search)
+    expect(setup.captureCharFrame()).toContain('wiki')
+    expect(setup.captureCharFrame()).toContain('Connect · disabled')
+    isFailMcp = true
+    setup.mockInput.pressEnter()
+    await setup.flush()
+    expect(notices).toContain('MCP toggle failed')
+    expect(modal()).toBe(search)
+    expect(mcpStatus()).toBe('disabled')
+    isFailMcp = false
+    setup.mockInput.pressEnter()
+    await setup.flush()
+    expect(toggled).toEqual(['wiki', 'wiki', 'wiki'])
+    expect(modal()).toBe(search)
+    expect(setup.captureCharFrame()).toContain('Disconnect · connected')
+    setup.mockInput.pressEscape()
+    await Bun.sleep(60)
+    await setup.flush()
+    expect(modal()).toBeUndefined()
     await open('export', 'Actions')
     setup.mockInput.pressEnter()
     await setup.flush()

@@ -6,6 +6,7 @@ import { type JSX, Show, createSignal } from 'solid-js'
 import { PLUGIN_ID } from '../src/constants'
 import { createDialogStack } from '../src/dialogs/context'
 import { SearchEverythingDialog, type SearchServices } from '../src/dialogs/search'
+import { uiIcon } from '../src/icons/ui'
 
 import type { Renderable, ScrollBoxRenderable } from '@opentui/core'
 
@@ -106,6 +107,21 @@ test('search stays above the screen midpoint and preserves scroll and rows durin
       ),
       { width: 100, height },
     )
+    const expectCorners = (row: Renderable) => {
+      const lines = setup
+        .captureCharFrame()
+        .split('\n')
+        .map((line) => [...line])
+
+      for (const [dx, dy, icon] of [
+        [0, 0, 'selectionTopLeft'],
+        [row.width - 1, 0, 'selectionTopRight'],
+        [0, row.height - 1, 'selectionBottomLeft'],
+        [row.width - 1, row.height - 1, 'selectionBottomRight'],
+      ] as const) {
+        expect(lines[row.y + dy][row.x + dx], icon).toBe(uiIcon(icon))
+      }
+    }
 
     try {
       dialogs.open(() => <SearchEverythingDialog {...services} />, 'large')
@@ -119,6 +135,7 @@ test('search stays above the screen midpoint and preserves scroll and rows durin
       expect(panel.height).toBeLessThanOrEqual(26)
       expect(panel.y + panel.height).toBeLessThan(height)
       expect(row.height).toBe(2)
+      expectCorners(find(setup.renderer.root, `${PLUGIN_ID}.search-dialog.skill:/skills/0`)!)
       const nextRow = find(setup.renderer.root, `${PLUGIN_ID}.search-dialog.skill:/skills/21`)!
 
       expect(nextRow.y - row.y).toBe(3)
@@ -165,6 +182,7 @@ test('search stays above the screen midpoint and preserves scroll and rows durin
       await setup.flush()
       expect(body.scrollTop).toBe(0)
       expect(setup.captureCharFrame()).toContain('skill-49')
+      expectCorners(find(setup.renderer.root, `${PLUGIN_ID}.search-dialog.skill:/skills/49`)!)
     } finally {
       setup.renderer.destroy()
     }

@@ -9,6 +9,7 @@ import {
 import { useTerminalDimensions } from '@opentui/solid'
 import { For, Show, batch, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 
+import { SelectionBox } from '../components/selection-box'
 import { PLUGIN_ID } from '../constants'
 import { isAbortError } from '../controllers/request-state'
 import { useIcons } from '../icons/context'
@@ -214,6 +215,12 @@ export function SearchEverythingDialog(props: SearchServices & { returnTarget?: 
       return
     }
 
+    if (item.group === 'MCP') {
+      void props.mcp.toggle(item.server).catch(report)
+
+      return
+    }
+
     dialogs.close()
 
     switch (item.group) {
@@ -224,11 +231,6 @@ export function SearchEverythingDialog(props: SearchServices & { returnTarget?: 
 
       case 'Subagents': {
         props.subagents.open(item.sessionID)
-        break
-      }
-
-      case 'MCP': {
-        void props.mcp.toggle(item.server).catch(report)
         break
       }
 
@@ -306,27 +308,29 @@ export function SearchEverythingDialog(props: SearchServices & { returnTarget?: 
           {icons.key('esc')}
         </text>
       </box>
-      <input
-        ref={(node) => (input = node)}
-        value={query()}
-        placeholder="Search skills, subagents, MCP, actions..."
-        focused
-        textColor={theme().text}
-        focusedTextColor={theme().text}
-        placeholderColor={theme().textMuted}
-        backgroundColor={theme().backgroundElement}
-        focusedBackgroundColor={theme().backgroundElement}
-        onInput={(value) => {
-          tabViews.clear()
-          pendingScroll = 0
-          setQuery(value)
-          setSelectedID(undefined)
-        }}
-      />
+      <SelectionBox backgroundColor={theme().backgroundElement} height={1}>
+        <input
+          ref={(node) => (input = node)}
+          value={query()}
+          placeholder="Search skills, subagents, MCP, actions..."
+          focused
+          textColor={theme().text}
+          focusedTextColor={theme().text}
+          placeholderColor={theme().textMuted}
+          backgroundColor="transparent"
+          focusedBackgroundColor="transparent"
+          onInput={(value) => {
+            tabViews.clear()
+            pendingScroll = 0
+            setQuery(value)
+            setSelectedID(undefined)
+          }}
+        />
+      </SelectionBox>
       <box flexDirection="row" flexWrap="wrap" gap={1}>
         <For each={SEARCH_GROUPS}>
           {(tab) => (
-            <box
+            <SelectionBox
               id={`${prefix}.tab.${tab.toLowerCase()}`}
               paddingLeft={1}
               paddingRight={1}
@@ -348,7 +352,7 @@ export function SearchEverythingDialog(props: SearchServices & { returnTarget?: 
                 {icons.section(SEARCH_SECTIONS[tab])} {tab} ({matches().filter((item) => item.group === tab).length})
                 {allErrors().some((source) => source.group === tab) ? ' !' : ''}
               </text>
-            </box>
+            </SelectionBox>
           )}
         </For>
       </box>
@@ -404,7 +408,7 @@ export function SearchEverythingDialog(props: SearchServices & { returnTarget?: 
                   }
 
                   return (
-                    <box
+                    <SelectionBox
                       id={`${prefix}.${id}`}
                       height={2}
                       marginBottom={1}
@@ -421,35 +425,38 @@ export function SearchEverythingDialog(props: SearchServices & { returnTarget?: 
                         activate(id)
                       }}
                     >
-                      <text
-                        fg={
-                          item().disabled
-                            ? theme().textMuted
-                            : active()?.id === id
-                              ? theme().accent
-                              : resultColors().title
-                        }
-                        attributes={TextAttributes.BOLD}
-                        wrapMode="none"
-                        truncate
-                        height={1}
-                      >
-                        {active()?.id === id ? `${icons.icon('selected')} ` : '  '}
-                        {actionIcon()}
-                        {item().title}
-                      </text>
-                      <box paddingLeft={item().group === 'Actions' && icons.style() === 'text' ? 6 : 4} height={1}>
+                      {/* Keep text within the padding reserved for the corner masks. */}
+                      <box overflow="hidden">
                         <text
-                          fg={resultColors().description}
-                          attributes={TextAttributes.DIM}
+                          fg={
+                            item().disabled
+                              ? theme().textMuted
+                              : active()?.id === id
+                                ? theme().accent
+                                : resultColors().title
+                          }
+                          attributes={TextAttributes.BOLD}
                           wrapMode="none"
                           truncate
                           height={1}
                         >
-                          {(item().disabled ?? item().description).replaceAll(/\s+/g, ' ')}
+                          {active()?.id === id ? `${icons.icon('selected')} ` : '  '}
+                          {actionIcon()}
+                          {item().title}
                         </text>
+                        <box paddingLeft={item().group === 'Actions' && icons.style() === 'text' ? 6 : 4} height={1}>
+                          <text
+                            fg={resultColors().description}
+                            attributes={TextAttributes.DIM}
+                            wrapMode="none"
+                            truncate
+                            height={1}
+                          >
+                            {(item().disabled ?? item().description).replaceAll(/\s+/g, ' ')}
+                          </text>
+                        </box>
                       </box>
-                    </box>
+                    </SelectionBox>
                   )
                 }}
               </For>
