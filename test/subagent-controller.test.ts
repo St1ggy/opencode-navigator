@@ -132,14 +132,46 @@ test('worker failures and cooldown preserve the last confirmed run until a succe
 
 test('polling switches targets once and stops on disposal', async () => {
   const h = historyHarness()
+  const originalSetTimeout = globalThis.setTimeout
+  const originalClearTimeout = globalThis.clearTimeout
 
-  h.controller.activate('first')
-  h.controller.activate('parent')
-  await Bun.sleep(1100)
-  expect(h.requests()).toBe(1)
-  h.dispose()
-  await Bun.sleep(1100)
-  expect(h.requests()).toBe(1)
+  type Timer = ReturnType<typeof setTimeout>
+  const timers = new Map<Timer, { run: () => void; delay: number }>()
+  let next = 0
+
+  globalThis.setTimeout = ((run: () => void, delay: number) => {
+    const timer = ++next as unknown as Timer
+
+    timers.set(timer, { run, delay })
+
+    return timer
+  }) as typeof setTimeout
+  globalThis.clearTimeout = ((timer: Timer) => {
+    timers.delete(timer)
+  }) as typeof clearTimeout
+  try {
+    h.controller.activate('first')
+    h.controller.activate('parent')
+    h.controller.activate('parent')
+    expect(timers.size).toBe(1)
+    const [timer, poll] = timers.entries().next().value!
+
+    expect(poll.delay).toBe(5000)
+    expect(h.requests()).toBe(0)
+    timers.delete(timer)
+    poll.run()
+    await h.controller.refresh('parent')
+    expect(h.requests()).toBe(1)
+    expect(timers.size).toBe(1)
+    h.dispose()
+    expect(timers.size).toBe(0)
+    poll.run()
+    expect(h.requests()).toBe(1)
+  } finally {
+    h.dispose()
+    globalThis.setTimeout = originalSetTimeout
+    globalThis.clearTimeout = originalClearTimeout
+  }
 })
 
 test('status and error events during refresh win over an older snapshot', async () => {

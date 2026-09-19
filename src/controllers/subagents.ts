@@ -15,6 +15,8 @@ type SubagentTarget = {
   routing: { directory: string; workspace?: string }
 }
 
+const POLL_INTERVAL_MS = 5000
+
 function activeStatus(status: SessionStatus | undefined): status is Extract<SessionStatus, { type: 'busy' | 'retry' }> {
   return status?.type === 'busy' || status?.type === 'retry'
 }
@@ -318,10 +320,10 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
           if (activeTarget !== current.key || api.lifecycle.signal.aborted) return
 
           void refreshTarget(current).catch(() => {})
-          pollTimer = setTimeout(poll, 1000)
+          pollTimer = setTimeout(poll, POLL_INTERVAL_MS)
         }
 
-        pollTimer = setTimeout(poll, 1000)
+        pollTimer = setTimeout(poll, POLL_INTERVAL_MS)
       }
 
       return () => {
