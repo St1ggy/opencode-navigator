@@ -36,10 +36,12 @@ const ICONS = {
   error: ['\u{EA87}', '!'],
   retry: ['\u{EA77}', '~'],
   pending: ['\u{EB19}', '...'],
-  connected: ['\u{EA71}', 'on'],
-  disconnected: ['\u{EABC}', 'off'],
+  connected: ['\u{F043E}', '(*)'],
+  disconnected: ['\u{F043D}', '( )'],
   favorite: ['\u{EB59}', '*'],
   favoriteEmpty: ['\u{EA6A}', '+'],
+  mcpFavorite: ['\u{F00C0}', '*'],
+  mcpFavoriteEmpty: ['\u{F00C3}', '+'],
   recent: ['\u{EA82}', '~'],
   info: ['\u{EA74}', 'i'],
   search: ['\u{EA6D}', '/'],
@@ -54,6 +56,14 @@ const ICONS = {
   delete: ['\u{EA81}', 'del'],
   priorityMedium: ['\u{EA71}', '-'],
   help: ['\u{EB32}', '?'],
+  selectionLeft: ['\u{E0B6}', ' '],
+  selectionRight: ['\u{E0B4}', ' '],
+  // Inverse corner masks: paint the outside in the backdrop color over a solid selection.
+  // Requires OpenCode Navigator Corners 1.001; see the installation guide.
+  selectionTopLeft: ['\u{10F004}', ' '],
+  selectionTopRight: ['\u{10F005}', ' '],
+  selectionBottomLeft: ['\u{10F006}', ' '],
+  selectionBottomRight: ['\u{10F007}', ' '],
 } as const
 
 export type UiIcon = keyof typeof ICONS
