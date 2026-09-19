@@ -13,7 +13,7 @@ import { emptyPreferencesDocument } from '../src/preferences-schema'
 import { applyPreferencesUpdate } from '../src/preferences-store'
 
 import type { McpController } from '../src/controllers/mcp'
-import type { TuiDialogPromptProps, TuiDialogSelectProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { TuiDialogPromptProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 async function harness() {
   const [modal, setModal] = createSignal<() => JSX.Element>()
@@ -23,7 +23,6 @@ async function harness() {
   let api!: TuiPluginApi
   let preferences!: PreferencesController
   let prompt!: TuiDialogPromptProps
-  let select!: TuiDialogSelectProps<string>
 
   function Harness() {
     const renderer = useRenderer()
@@ -90,11 +89,6 @@ async function harness() {
             </box>
           )
         },
-        DialogSelect(props: TuiDialogSelectProps<string>) {
-          select = props
-
-          return <text>{props.title}</text>
-        },
       },
     } as unknown as TuiPluginApi
     keymap.registerLayer({
@@ -130,7 +124,6 @@ async function harness() {
     size: () => size,
     layers: () => layers,
     prompt: () => prompt,
-    select: () => select,
     async escape() {
       setup.mockInput.pressEscape()
       await Bun.sleep(60)
@@ -196,10 +189,11 @@ test('dialog stack restores frame state and size, handles native closes, and unr
 
 test('settings preserve their tab through nested preset actions, rename cancellation and prompt validation', async () => {
   const h = await harness()
-  const choose = (value: string) => {
-    const props = h.select()
+  const chooseRename = async () => {
+    const lines = h.captureCharFrame().split('\n')
+    const row = lines.findIndex((line) => line.includes('Rename'))
 
-    props.onSelect?.(props.options.find((option) => option.value === value)!)
+    await h.mockMouse.click(lines[row].indexOf('Rename'), row)
   }
 
   try {
@@ -208,15 +202,15 @@ test('settings preserve their tab through nested preset actions, rename cancella
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()
-    expect(h.select().title).toBe('Work')
-    choose('rename')
+    expect(h.captureCharFrame()).toContain('Update from current')
+    await chooseRename()
     await h.flush()
     expect(h.prompt().title).toBe('Rename layout preset')
     h.prompt().onCancel?.()
     await h.flush()
-    expect(h.select().title).toBe('Work')
-    expect(h.select().current).toBe('rename')
-    choose('rename')
+    expect(h.captureCharFrame()).toContain('Update from current')
+    await h.mockMouse.moveTo(99, 39)
+    h.mockInput.pressEnter()
     await h.flush()
     h.prompt().onConfirm?.('')
     await h.flush()
@@ -228,7 +222,7 @@ test('settings preserve their tab through nested preset actions, rename cancella
     expect(h.size()).toBe('xlarge')
     h.mockInput.pressEnter()
     await h.flush()
-    expect(h.select().title).toBe('Work')
+    expect(h.captureCharFrame()).toContain('Update from current')
     await h.escape()
     await h.escape()
     expect(h.modal()).toBeUndefined()

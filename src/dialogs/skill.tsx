@@ -2,6 +2,7 @@ import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
 import { useTerminalDimensions } from '@opentui/solid'
 import { createSignal, onCleanup } from 'solid-js'
 
+import { SelectionBox } from '../components/selection-box'
 import { PLUGIN_ID } from '../constants'
 import { useIcons } from '../icons/context'
 
@@ -114,7 +115,7 @@ export function SkillDialog(props: {
         <text fg={theme().textMuted}>({icons.key('space')})</text>
       </box>
       <box flexDirection="row" justifyContent="flex-end">
-        <box
+        <SelectionBox
           paddingLeft={1}
           paddingRight={1}
           backgroundColor={active() === 'cancel' ? theme().primary : undefined}
@@ -128,8 +129,8 @@ export function SkillDialog(props: {
           <text fg={active() === 'cancel' ? theme().selectedListItemText : theme().textMuted}>
             {icons.icon('close')} Cancel
           </text>
-        </box>
-        <box
+        </SelectionBox>
+        <SelectionBox
           paddingLeft={1}
           paddingRight={1}
           backgroundColor={active() === 'accept' ? theme().primary : undefined}
@@ -143,7 +144,7 @@ export function SkillDialog(props: {
           <text fg={active() === 'accept' ? theme().selectedListItemText : theme().textMuted}>
             {icons.icon('done')} Accept
           </text>
-        </box>
+        </SelectionBox>
       </box>
     </box>
   )

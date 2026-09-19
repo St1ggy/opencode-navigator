@@ -1,6 +1,7 @@
 import { TextAttributes } from '@opentui/core'
 import { For, createSignal, onCleanup } from 'solid-js'
 
+import { SelectionBox } from '../components/selection-box'
 import { PLUGIN_ID, SECTION_DEFINITIONS } from '../constants'
 import { useIcons } from '../icons/context'
 
@@ -97,7 +98,7 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
           const selected = () => active() === index()
 
           return (
-            <box
+            <SelectionBox
               flexDirection="row"
               gap={1}
               paddingLeft={1}
@@ -112,12 +113,12 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
               <text fg={selected() ? theme().text : theme().textMuted}>
                 {icons.section(section.name)} {section.label}
               </text>
-            </box>
+            </SelectionBox>
           )
         }}
       </For>
       <box flexDirection="row" justifyContent="flex-end">
-        <box
+        <SelectionBox
           paddingLeft={2}
           paddingRight={2}
           backgroundColor={active() === finishIndex ? theme().primary : undefined}
@@ -131,7 +132,7 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
           <text fg={active() === finishIndex ? theme().selectedListItemText : theme().textMuted}>
             {icons.icon('done')} Finish
           </text>
-        </box>
+        </SelectionBox>
       </box>
     </box>
   )

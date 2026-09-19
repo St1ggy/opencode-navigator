@@ -26,6 +26,7 @@ import { type TodoViewMode, buildTodoView } from '../todo-view'
 
 import { Section, SectionFilter, SectionWithHeaderAction, matchesFilter, useSidebarItem } from './common'
 import { ListVisibilityControl } from './list-visibility'
+import { SelectionBox } from './selection-box'
 
 import type { PreferencesController } from '../controllers/preferences'
 import type { SkillController, SkillInfo } from '../controllers/skills'
@@ -53,7 +54,7 @@ function RequestErrorRow(props: {
   return (
     <Show when={props.state.error}>
       {(error) => (
-        <box
+        <SelectionBox
           ref={(node: BoxRenderable) => item.ref(node)}
           id={props.id}
           flexDirection="row"
@@ -80,7 +81,7 @@ function RequestErrorRow(props: {
               {icons.icon('retry')} Retry
             </text>
           </Show>
-        </box>
+        </SelectionBox>
       )}
     </Show>
   )
@@ -99,7 +100,7 @@ function SectionRequestBody(props: {
   children: JSX.Element
 }) {
   const icons = useIcons()
-  const pending = () => props.state.status === 'loading' || props.state.status === 'refreshing'
+  const pending = () => props.state.status === 'loading'
 
   return (
     <box>
@@ -116,11 +117,14 @@ function SectionRequestBody(props: {
           {icons.icon('pending')} {props.loading}
         </text>
       </Show>
-      <Show when={props.state.status === 'refreshing' && props.hasItems}>
-        <text fg={props.api.theme.current.textMuted}>{icons.icon('retry')} Refreshing…</text>
-      </Show>
       <Show when={props.hasItems}>{props.children}</Show>
-      <Show when={props.state.status === 'ready' && !props.hasItems && !props.state.error}>
+      <Show
+        when={
+          (props.state.status === 'ready' || props.state.status === 'refreshing') &&
+          !props.hasItems &&
+          !props.state.error
+        }
+      >
         <text fg={props.api.theme.current.textMuted}>
           {icons.icon('info')} {props.empty}
         </text>
@@ -307,7 +311,7 @@ function SubagentRow(props: {
   })
 
   return (
-    <box
+    <SelectionBox
       ref={(node: BoxRenderable) => row.ref(node)}
       id={id()}
       paddingLeft={1}
@@ -366,7 +370,7 @@ function SubagentRow(props: {
       <Show when={idle() && !props.item.run?.errorMessage}>
         <text fg={theme().textMuted}>Finished</text>
       </Show>
-    </box>
+    </SelectionBox>
   )
 }
 
@@ -545,20 +549,32 @@ function SkillRow(props: {
     props.onToggleFavorite()
     queueMicrotask(() => props.interaction?.select(`${id()}.favorite`))
   }
-  const favorite = useSidebarItem(props.api, props.interaction, {
-    id: `${id()}.favorite`,
-    order: () => offsetSidebarOrder(props.order, 0.5),
-    disabled: () => props.favoriteDisabled,
-    activate: toggleFavorite,
-  })
-  const details = useSidebarItem(props.api, props.interaction, {
-    id: `${id()}.details`,
-    order: () => offsetSidebarOrder(props.order, 0.25),
-    activate: props.onDetails,
-  })
+  const favorite = useSidebarItem(
+    props.api,
+    props.interaction,
+    {
+      id: `${id()}.favorite`,
+      order: () => offsetSidebarOrder(props.order, 0.5),
+      disabled: () => props.favoriteDisabled,
+      activate: toggleFavorite,
+    },
+    () => theme().warning,
+    'control',
+  )
+  const details = useSidebarItem(
+    props.api,
+    props.interaction,
+    {
+      id: `${id()}.details`,
+      order: () => offsetSidebarOrder(props.order, 0.25),
+      activate: props.onDetails,
+    },
+    () => theme().text,
+    'control',
+  )
 
   return (
-    <box
+    <SelectionBox
       ref={(node: BoxRenderable) => row.ref(node)}
       id={id()}
       flexDirection="row"
@@ -577,11 +593,10 @@ function SkillRow(props: {
       <text flexGrow={1} fg={row.foregroundColor()} wrapMode="word">
         {props.item.name}
       </text>
-      <box
+      <SelectionBox
+        iconOnly
         ref={details.ref}
         id={`${id()}.details`}
-        paddingLeft={1}
-        paddingRight={1}
         backgroundColor={details.backgroundColor()}
         onMouseOver={details.onMouseOver}
         onMouseOut={details.onMouseOut}
@@ -591,12 +606,11 @@ function SkillRow(props: {
         }}
       >
         <text fg={details.foregroundColor()}>{icons.icon('info')}</text>
-      </box>
-      <box
+      </SelectionBox>
+      <SelectionBox
+        iconOnly
         ref={(node: BoxRenderable) => favorite.ref(node)}
         id={`${id()}.favorite`}
-        paddingLeft={1}
-        paddingRight={1}
         backgroundColor={favorite.backgroundColor()}
         onMouseOver={favorite.onMouseOver}
         onMouseOut={favorite.onMouseOut}
@@ -605,11 +619,9 @@ function SkillRow(props: {
           favorite.activate(event)
         }}
       >
-        <text fg={favorite.focused() ? favorite.foregroundColor() : theme().warning}>
-          {icons.icon(props.favorite ? 'favorite' : 'favoriteEmpty')}
-        </text>
-      </box>
-    </box>
+        <text fg={favorite.foregroundColor()}>{icons.icon(props.favorite ? 'favorite' : 'favoriteEmpty')}</text>
+      </SelectionBox>
+    </SelectionBox>
   )
 }
 
@@ -814,7 +826,7 @@ function QuickActionRow(props: {
   })
 
   return (
-    <box
+    <SelectionBox
       ref={(node: BoxRenderable) => row.ref(node)}
       id={id()}
       flexDirection="row"
@@ -839,7 +851,7 @@ function QuickActionRow(props: {
           </text>
         )}
       </Show>
-    </box>
+    </SelectionBox>
   )
 }
 
@@ -938,14 +950,13 @@ export function LspBadge(props: {
   )
 
   return (
-    <box
+    <SelectionBox
+      iconOnly={isKnown && !showName()}
       ref={(node: BoxRenderable) => item.ref(node)}
       id={props.navigationId ?? `${PLUGIN_ID}.lsp.${props.id}`}
       flexDirection="row"
       gap={1}
       flexShrink={0}
-      paddingLeft={1}
-      paddingRight={1}
       backgroundColor={item.backgroundColor()}
       onMouseOver={item.onMouseOver}
       onMouseOut={item.onMouseOut}
@@ -972,7 +983,7 @@ export function LspBadge(props: {
           {props.id}
         </text>
       </Show>
-    </box>
+    </SelectionBox>
   )
 }
 
@@ -1090,18 +1101,24 @@ function McpRow(props: {
     disabled,
     activate: props.onToggle,
   })
-  const star = useSidebarItem(props.api, props.interaction, {
-    id: `${id()}.favorite`,
-    order: () => offsetSidebarOrder(props.order, 0.25),
-    disabled: () => props.favoriteDisabled,
-    activate: () => {
-      props.onToggleFavorite()
-      queueMicrotask(() => props.interaction?.select(`${id()}.favorite`))
+  const bookmark = useSidebarItem(
+    props.api,
+    props.interaction,
+    {
+      id: `${id()}.favorite`,
+      order: () => offsetSidebarOrder(props.order, 0.25),
+      disabled: () => props.favoriteDisabled,
+      activate: () => {
+        props.onToggleFavorite()
+        queueMicrotask(() => props.interaction?.select(`${id()}.favorite`))
+      },
     },
-  })
+    () => theme().warning,
+    'control',
+  )
 
   return (
-    <box
+    <SelectionBox
       ref={(node: BoxRenderable) => row.ref(node)}
       id={id()}
       backgroundColor={row.backgroundColor()}
@@ -1131,22 +1148,23 @@ function McpRow(props: {
           <text fg={row.focused() ? row.foregroundColor() : mcpColor(props.api, props.item.status)}>
             <b>{icons.icon(mcpToggle(props.item.status, busy()))}</b>
           </text>
-          <box
-            ref={star.ref}
+          <SelectionBox
+            iconOnly
+            ref={bookmark.ref}
             id={`${id()}.favorite`}
-            backgroundColor={star.backgroundColor()}
-            onMouseOver={star.onMouseOver}
-            onMouseOut={star.onMouseOut}
+            backgroundColor={bookmark.backgroundColor()}
+            onMouseOver={bookmark.onMouseOver}
+            onMouseOut={bookmark.onMouseOut}
             onMouseDown={(event) => event.stopPropagation()}
             onMouseUp={(event) => {
               event.stopPropagation()
-              star.activate(event)
+              bookmark.activate(event)
             }}
           >
-            <text fg={star.focused() || props.favoriteDisabled ? star.foregroundColor() : theme().warning}>
-              {icons.icon(props.favorite ? 'favorite' : 'favoriteEmpty')}
+            <text fg={bookmark.foregroundColor()}>
+              {icons.icon(props.favorite ? 'mcpFavorite' : 'mcpFavoriteEmpty')}
             </text>
-          </box>
+          </SelectionBox>
         </box>
       </box>
       <Show when={props.item.error}>
@@ -1162,7 +1180,7 @@ function McpRow(props: {
         state={props.state}
         onRetry={props.onRetry}
       />
-    </box>
+    </SelectionBox>
   )
 }
 
@@ -1183,9 +1201,11 @@ function McpBulkAction(props: {
   })
 
   return (
-    <box
+    <SelectionBox
       ref={(node: BoxRenderable) => item.ref(node)}
       id={props.id}
+      height={1}
+      minWidth={0}
       paddingLeft={1}
       paddingRight={1}
       backgroundColor={item.backgroundColor()}
@@ -1193,8 +1213,10 @@ function McpBulkAction(props: {
       onMouseOut={item.onMouseOut}
       onMouseDown={(event) => item.activate(event)}
     >
-      <text fg={item.foregroundColor()}>{props.label}</text>
-    </box>
+      <text fg={item.foregroundColor()} wrapMode="none" truncate height={1}>
+        {props.label}
+      </text>
+    </SelectionBox>
   )
 }
 

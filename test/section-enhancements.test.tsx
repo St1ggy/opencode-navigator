@@ -1,4 +1,5 @@
 /** @jsxImportSource @opentui/solid */
+import { RGBA } from '@opentui/core'
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { type JSX, Show, createSignal } from 'solid-js'
@@ -22,6 +23,8 @@ const theme = {
   error: '#ff0000',
   warning: '#ffff00',
   backgroundPanel: '#111111',
+  backgroundElement: '#333333',
+  selectedListItemText: '#000000',
 }
 
 test('favorite-only preference updates do not replay MCP connection restoration', async () => {
@@ -87,12 +90,20 @@ test('MCP favorite toggles reorder rows without changing server state', async ()
     const lines = setup.captureCharFrame().split('\n')
     const row = lines.findIndex((line) => line.includes('zebra'))
 
-    await setup.mockMouse.click(lines[row].indexOf(uiIcon('favoriteEmpty')), row)
+    const column = lines[row].indexOf(uiIcon('mcpFavoriteEmpty'))
+
+    await setup.mockMouse.moveTo(column, row)
+    await setup.flush()
+    const buffer = setup.renderer.currentRenderBuffer
+    const offset = (row * buffer.width + column) * 4
+
+    expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex(theme.primary))).toBe(true)
+    await setup.mockMouse.click(column, row)
     await setup.flush()
     const frame = setup.captureCharFrame()
 
     expect(frame.indexOf('zebra'), frame).toBeLessThan(frame.indexOf('alpha'))
-    expect(frame).toContain(uiIcon('favorite'))
+    expect(frame).toContain(uiIcon('mcpFavorite'))
     expect(toggles).toBe(0)
   } finally {
     setup.renderer.destroy()
@@ -212,5 +223,125 @@ test('Subagent filters combine with text search, reset per target, and open the 
     expect(setup.captureCharFrame()).not.toContain('nothing')
   } finally {
     setup.renderer.destroy()
+  }
+})
+
+test('Subagent background refresh preserves cached rows and the empty state without flashing', async () => {
+  const [status, setStatus] = createSignal<'ready' | 'refreshing'>('ready')
+  const [items, setItems] = createSignal<{ session: { id: string; title: string }; status: { type: 'busy' } }[]>([])
+  let activations = 0
+  let refreshes = 0
+  const api = { theme: { current: theme } } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: 'parent' }),
+    list: items,
+    recent: () => [],
+    state: () => ({ status: status() }),
+    activate: () => {
+      activations++
+
+      return () => {}
+    },
+    refresh: async () => {
+      refreshes++
+    },
+  } as unknown as SubagentController
+  const preferences = { expanded: () => ({ subagents: true }) } as unknown as PreferencesController
+  const setup = await testRender(
+    () => <SubagentSection api={api} controller={controller} preferences={preferences} sessionID="parent" />,
+    { width: 37, height: 20 },
+  )
+
+  try {
+    await setup.flush()
+    const empty = setup.captureCharFrame()
+
+    expect(empty).toContain('No subagents')
+    setStatus('refreshing')
+    await setup.flush()
+    expect(setup.captureCharFrame()).toBe(empty)
+    setStatus('ready')
+    setItems([{ session: { id: 'worker', title: 'Working' }, status: { type: 'busy' } }])
+    await setup.flush()
+    const populated = setup.captureCharFrame()
+
+    expect(populated).toContain('Working')
+    for (let tick = 0; tick < 3; tick++) {
+      setStatus('refreshing')
+      setItems(items().map((item) => ({ ...item })))
+      await setup.flush()
+      expect(setup.captureCharFrame()).toBe(populated)
+      setStatus('ready')
+      await setup.flush()
+      expect(setup.captureCharFrame()).toBe(populated)
+    }
+    expect(activations).toBe(1)
+    expect(refreshes).toBe(1)
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('MCP truncates long preset names and keeps expanded controls on one line', async () => {
+  const preset = 'A very long workspace preset with many servers'
+
+  for (const width of [30, 37]) {
+    const [expanded, setExpanded] = createSignal(false)
+    let opened = 0
+    const api = {
+      theme: { current: theme },
+      ui: {
+        dialog: {
+          replace: () => {
+            opened++
+          },
+          setSize() {},
+        },
+      },
+    } as unknown as TuiPluginApi
+    const controller = {
+      target: () => ({ key: 'test' }),
+      list: () => [
+        { name: 'alpha', status: 'connected' },
+        { name: 'beta', status: 'disabled' },
+      ],
+      state: () => ({ status: 'ready' }),
+      serverState: () => ({ status: 'ready' }),
+      selectedPreset: () => preset,
+    } as unknown as McpController
+    const preferences = {
+      expanded: () => ({ mcp: expanded() }),
+      mcpPresets: () => ({ [preset]: { alpha: 'enabled', beta: 'disabled' } }),
+    } as unknown as PreferencesController
+    const setup = await testRender(() => <McpSection api={api} controller={controller} preferences={preferences} />, {
+      width,
+      height: 15,
+    })
+
+    try {
+      await setup.flush()
+      const collapsed = setup.captureCharFrame().trimEnd().split('\n')
+
+      expect(collapsed).toHaveLength(1)
+      expect(collapsed[0]).toContain('MCP')
+      expect(collapsed[0]).toContain('1/2')
+      expect(collapsed[0]).not.toContain(preset)
+      expect(collapsed[0]).toMatch(/…|\.\.\./)
+      await setup.mockMouse.click(collapsed[0].indexOf(uiIcon('presets')), 0)
+      expect(opened, collapsed[0]).toBe(1)
+      setExpanded(true)
+      await setup.flush()
+      const lines = setup.captureCharFrame().split('\n')
+
+      expect(lines[0]).toContain('MCP')
+      expect(lines[0]).toContain('1/2')
+      const bulk = lines.findIndex((line) => line.includes('Connect'))
+
+      expect(bulk).toBeGreaterThan(0)
+      expect(lines[bulk]).toContain('Disconnect')
+      expect(lines[bulk + 1]).toContain('Filter MCP')
+    } finally {
+      setup.renderer.destroy()
+    }
   }
 })

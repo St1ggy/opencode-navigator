@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch, createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js'
+import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, untrack } from 'solid-js'
 
 import { FOCUS_COMMAND, LEGACY_PLUGIN_ID, PLUGIN_ID, TOGGLE_COMMAND } from '../constants'
 import { showFirstRunWizard } from '../dialogs/first-run'
@@ -9,6 +9,7 @@ import { preferencesScope } from '../preferences-schema'
 
 import { useSidebarItem } from './common'
 import { LspSection, McpSection, QuickActionsSection, SkillsSection, SubagentSection, TodoSection } from './sections'
+import { SelectionBox } from './selection-box'
 
 import type { McpController } from '../controllers/mcp'
 import type { PreferencesController } from '../controllers/preferences'
@@ -29,13 +30,18 @@ export function SidebarTitle(props: {
   const icons = useIcons()
   const theme = () => props.api.theme.current
   const status = createMemo(() => props.api.state.session.status(props.sessionID)?.type)
-  const [settingsHover, setSettingsHover] = createSignal(false)
   const settingsId = `${PLUGIN_ID}.settings`
-  const settings = useSidebarItem(props.api, props.interaction, {
-    id: settingsId,
-    order: 0,
-    activate: () => openSettings(props.api, props.preferences),
-  })
+  const settings = useSidebarItem(
+    props.api,
+    props.interaction,
+    {
+      id: settingsId,
+      order: 0,
+      activate: () => openSettings(props.api, props.preferences),
+    },
+    () => theme().textMuted,
+    'control',
+  )
 
   onCleanup(() => props.interaction.setTitleRoot(undefined))
 
@@ -56,31 +62,20 @@ export function SidebarTitle(props: {
             <b>{props.title}</b>
           </text>
         </box>
-        <box
+        <SelectionBox
+          iconOnly
           ref={(node: BoxRenderable) => settings.ref(node)}
           id={settingsId}
           flexShrink={0}
           alignSelf="flex-start"
           height={1}
-          paddingLeft={1}
-          paddingRight={1}
           backgroundColor={settings.backgroundColor()}
-          onMouseOver={() => {
-            setSettingsHover(true)
-            settings.onMouseOver()
-          }}
-          onMouseOut={() => {
-            setSettingsHover(false)
-            settings.onMouseOut()
-          }}
+          onMouseOver={settings.onMouseOver}
+          onMouseOut={settings.onMouseOut}
           onMouseUp={(event) => settings.activate(event)}
         >
-          <text
-            fg={settings.focused() ? settings.foregroundColor() : settingsHover() ? theme().accent : theme().textMuted}
-          >
-            {icons.icon('settings')}
-          </text>
-        </box>
+          <text fg={settings.foregroundColor()}>{icons.icon('settings')}</text>
+        </SelectionBox>
       </box>
     </box>
   )

@@ -2,6 +2,7 @@ import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
 import { useTerminalDimensions } from '@opentui/solid'
 import { For, createEffect, createMemo, onCleanup } from 'solid-js'
 
+import { SelectionBox } from '../components/selection-box'
 import { PLUGIN_ID, QUICK_ACTIONS } from '../constants'
 import { useIcons } from '../icons/context'
 
@@ -95,7 +96,7 @@ export function QuickActionsDialog(props: { api: TuiPluginApi; preferences: Pref
         <box gap={1}>
           <For each={actions()}>
             {(action, index) => (
-              <box
+              <SelectionBox
                 id={`${prefix}.${action.command}`}
                 flexDirection="row"
                 gap={1}
@@ -132,7 +133,7 @@ export function QuickActionsDialog(props: { api: TuiPluginApi; preferences: Pref
                 >
                   {icons.icon('down')}
                 </text>
-              </box>
+              </SelectionBox>
             )}
           </For>
         </box>

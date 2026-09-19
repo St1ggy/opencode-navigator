@@ -2,33 +2,19 @@ import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
 import { useTerminalDimensions } from '@opentui/solid'
 import { For, Show, createEffect, createMemo, onCleanup, onMount } from 'solid-js'
 
+import { SelectionBox } from '../components/selection-box'
 import { DEFAULT_SEARCH_KEY, PLUGIN_ID, SECTION_DEFINITIONS } from '../constants'
 import { useIcons } from '../icons/context'
 import { SIDEBAR_SECTIONS, type SidebarSection } from '../state'
 
 import { createDialogStack, useDialogScroll, useDialogState, useDialogs } from './context'
 import { FirstRunWizard } from './first-run'
+import { PresetMenu } from './mcp-presets'
 import { QuickActionsDialog } from './quick-actions'
 
 import type { PreferencesController } from '../controllers/preferences'
 import type { SettingsTab } from '../icons/ui'
-import type { TuiDialogSelectProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
-
-function PresetActionsMenu(props: { api: TuiPluginApi } & TuiDialogSelectProps<string>) {
-  const [current, setCurrent] = useDialogState('action', props.options[0]?.value ?? '')
-
-  return (
-    <props.api.ui.DialogSelect
-      {...props}
-      current={current()}
-      onMove={(option) => setCurrent(option.value)}
-      onSelect={(option) => {
-        setCurrent(option.value)
-        props.onSelect?.(option)
-      }}
-    />
-  )
-}
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function SettingsDialog(props: { api: TuiPluginApi; preferences: PreferencesController; activeValue?: string }) {
   let body: ScrollBoxRenderable | undefined
@@ -280,10 +266,9 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
 
   function openPresetActions(name: string) {
     dialogs.open(() => (
-      <PresetActionsMenu
+      <PresetMenu
         api={props.api}
         title={name}
-        skipFilter
         options={[
           {
             title: `${icons.icon('done')} Apply`,
@@ -547,7 +532,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       <box flexDirection="row" gap={1}>
         <For each={orderedGroups()}>
           {(group) => (
-            <box
+            <SelectionBox
               paddingLeft={1}
               paddingRight={1}
               backgroundColor={activeGroup() === group.id ? theme().backgroundElement : undefined}
@@ -562,7 +547,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
               >
                 {icons.tab(group.id as SettingsTab)} {group.tab}
               </text>
-            </box>
+            </SelectionBox>
           )}
         </For>
       </box>
@@ -585,7 +570,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
               const selected = () => active() === index()
 
               return (
-                <box
+                <SelectionBox
                   id={optionId(option.value)}
                   flexDirection="row"
                   gap={2}
@@ -650,7 +635,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                       </text>
                     </box>
                   </Show>
-                </box>
+                </SelectionBox>
               )
             }}
           </For>

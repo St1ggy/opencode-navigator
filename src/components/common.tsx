@@ -2,6 +2,8 @@ import { type JSX, Show, createSignal, onCleanup } from 'solid-js'
 
 import { useIcons } from '../icons/context'
 
+import { SelectionBox } from './selection-box'
+
 import type { SidebarInteraction, SidebarNavigationDescriptor, SidebarOrder } from '../sidebar-interaction'
 import type { SidebarSection } from '../state'
 import type { TuiPluginApi, TuiThemeCurrent } from '@opencode-ai/plugin/tui'
@@ -11,15 +13,19 @@ export function sidebarInteractiveColors(
   theme: TuiThemeCurrent,
   state: { focused: boolean; hovered: boolean; disabled: boolean },
   normalColor: RGBA = theme.text,
+  mode: 'row' | 'control' = 'row',
 ) {
+  const highlighted = !state.disabled && (state.focused || (mode === 'control' && state.hovered))
+
   return {
-    backgroundColor:
-      state.focused && !state.disabled
-        ? theme.primary
+    backgroundColor: highlighted
+      ? theme.primary
+      : mode === 'control'
+        ? 'transparent'
         : state.focused || state.hovered
           ? theme.backgroundElement
           : theme.backgroundPanel,
-    foregroundColor: state.disabled ? theme.textMuted : state.focused ? theme.selectedListItemText : normalColor,
+    foregroundColor: state.disabled ? theme.textMuted : highlighted ? theme.selectedListItemText : normalColor,
   }
 }
 
@@ -28,6 +34,7 @@ export function useSidebarItem(
   interaction: SidebarInteraction | undefined,
   descriptor: Omit<SidebarNavigationDescriptor, 'renderable'>,
   normalColor: () => RGBA = () => api.theme.current.text,
+  mode: 'row' | 'control' = 'row',
 ) {
   let unregister: (() => void) | undefined
   const [hovered, setHovered] = createSignal(false)
@@ -38,6 +45,7 @@ export function useSidebarItem(
       api.theme.current,
       { focused: focused(), hovered: hovered(), disabled: disabled() },
       normalColor(),
+      mode,
     )
   const ref = (renderable: Renderable) => {
     unregister?.()
@@ -117,15 +125,17 @@ export function Section(props: SectionProps) {
           activate: props.headerAction.onActivate,
         },
         () => theme().accent,
+        'control',
       )
     : undefined
 
   return (
-    <box paddingLeft={1} paddingRight={1} gap={1}>
-      <box
+    <box gap={1}>
+      <SelectionBox
         ref={(node: BoxRenderable) => item.ref(node)}
         id={props.sectionId}
         flexDirection="row"
+        height={1}
         justifyContent="space-between"
         gap={1}
         paddingLeft={1}
@@ -135,7 +145,7 @@ export function Section(props: SectionProps) {
         onMouseOut={item.onMouseOut}
         onMouseDown={(event) => item.activate(event)}
       >
-        <text fg={item.foregroundColor()}>
+        <text fg={item.foregroundColor()} flexShrink={0} wrapMode="none">
           <span style={{ fg: item.focused() ? item.foregroundColor() : theme().accent }}>
             {icons.icon(props.open ? 'expanded' : 'collapsed')}
           </span>{' '}
@@ -144,12 +154,14 @@ export function Section(props: SectionProps) {
           </span>
           <b>{props.title}</b>
         </text>
-        <box flexDirection="row" gap={1} flexShrink={0}>
+        <box flexDirection="row" gap={1} flexGrow={1} minWidth={0} justifyContent="flex-end">
           <Show when={action}>
             {(control) => (
-              <box
+              <SelectionBox
                 ref={(node: BoxRenderable) => control().ref(node)}
                 id={props.headerAction?.id}
+                flexShrink={1}
+                minWidth={3}
                 backgroundColor={control().backgroundColor()}
                 onMouseOver={control().onMouseOver}
                 onMouseOut={control().onMouseOut}
@@ -159,15 +171,23 @@ export function Section(props: SectionProps) {
                   control().activate(event)
                 }}
               >
-                <text fg={control().foregroundColor()} wrapMode="none">
+                <text fg={control().foregroundColor()} wrapMode="none" truncate height={1}>
                   {props.headerAction?.label()}
                 </text>
-              </box>
+              </SelectionBox>
             )}
           </Show>
-          <text fg={item.focused() ? item.foregroundColor() : theme().textMuted}>{props.summary}</text>
+          <text
+            fg={item.focused() ? item.foregroundColor() : theme().textMuted}
+            flexShrink={props.headerAction ? 0 : 1}
+            wrapMode="none"
+            truncate
+            height={1}
+          >
+            {props.summary}
+          </text>
         </box>
-      </box>
+      </SelectionBox>
       <Show when={props.open}>{props.children}</Show>
     </box>
   )
@@ -219,7 +239,7 @@ export function SectionFilter(props: {
   onCleanup(() => unregisterInput?.())
 
   return (
-    <box
+    <SelectionBox
       ref={(node: BoxRenderable) => item.ref(node)}
       id={props.id}
       flexDirection="row"
@@ -265,6 +285,6 @@ export function SectionFilter(props: {
           {icons.icon('close')}
         </text>
       </Show>
-    </box>
+    </SelectionBox>
   )
 }

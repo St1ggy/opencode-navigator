@@ -4,6 +4,7 @@ import { PLUGIN_ID } from '../constants'
 import { useIcons } from '../icons/context'
 
 import { useSidebarItem } from './common'
+import { SelectionBox } from './selection-box'
 
 import type { ListVisibility } from '../controllers/list-visibility'
 import type { SidebarInteraction } from '../sidebar-interaction'
@@ -42,7 +43,7 @@ export function ListVisibilityControl(props: {
 
   return (
     <Show when={props.visibility.canToggle()}>
-      <box
+      <SelectionBox
         ref={item.ref}
         id={id}
         paddingLeft={1}
@@ -59,7 +60,7 @@ export function ListVisibilityControl(props: {
           {icons.icon(props.visibility.expanded() ? 'up' : 'down')}{' '}
           {props.visibility.expanded() ? 'Show less' : `Show all (${props.visibility.hiddenCount()} more)`}
         </text>
-      </box>
+      </SelectionBox>
     </Show>
   )
 }

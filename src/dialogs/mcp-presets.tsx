@@ -1,6 +1,7 @@
 import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
 import { For, createEffect, onCleanup } from 'solid-js'
 
+import { SelectionBox } from '../components/selection-box'
 import { PLUGIN_ID } from '../constants'
 import { useIcons } from '../icons/context'
 
@@ -13,7 +14,7 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 type PresetOption = { title: string; value: string; description: string; icon?: UiIcon }
 
-export function McpPresetMenu(props: {
+export function PresetMenu(props: {
   api: TuiPluginApi
   title: string
   options: PresetOption[]
@@ -89,7 +90,7 @@ export function McpPresetMenu(props: {
         <box gap={1}>
           <For each={props.options}>
             {(option, index) => (
-              <box
+              <SelectionBox
                 id={`${prefix}.${index()}`}
                 paddingLeft={1}
                 paddingRight={1}
@@ -112,7 +113,7 @@ export function McpPresetMenu(props: {
                 <text fg={theme().textMuted} wrapMode="word">
                   {option.description}
                 </text>
-              </box>
+              </SelectionBox>
             )}
           </For>
         </box>
@@ -154,7 +155,7 @@ export function openMcpPresets(api: TuiPluginApi, controller: McpController, pre
 
   function actions(name: string) {
     dialogs.open(() => (
-      <McpPresetMenu
+      <PresetMenu
         api={api}
         title={name}
         options={[
@@ -219,7 +220,7 @@ export function openMcpPresets(api: TuiPluginApi, controller: McpController, pre
   }
 
   dialogs.open(() => (
-    <McpPresetMenu
+    <PresetMenu
       api={api}
       title="MCP presets"
       options={[
@@ -240,3 +241,5 @@ export function openMcpPresets(api: TuiPluginApi, controller: McpController, pre
     />
   ))
 }
+
+export { PresetMenu as McpPresetMenu }

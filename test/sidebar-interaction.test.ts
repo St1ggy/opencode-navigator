@@ -269,4 +269,18 @@ test('shared interactive colors prioritize enabled focus, hover, and disabled mu
     backgroundColor: hover,
     foregroundColor: muted,
   })
+  expect(sidebarInteractiveColors(theme, { focused: false, hovered: false, disabled: false }, text, 'control')).toEqual(
+    {
+      backgroundColor: 'transparent',
+      foregroundColor: text,
+    },
+  )
+  expect(sidebarInteractiveColors(theme, { focused: false, hovered: true, disabled: false }, text, 'control')).toEqual({
+    backgroundColor: primary,
+    foregroundColor: selected,
+  })
+  expect(sidebarInteractiveColors(theme, { focused: false, hovered: true, disabled: true }, text, 'control')).toEqual({
+    backgroundColor: 'transparent',
+    foregroundColor: muted,
+  })
 })

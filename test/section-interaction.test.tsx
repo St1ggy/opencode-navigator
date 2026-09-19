@@ -733,7 +733,6 @@ test('the built settings dialog saves the current layout as default', async () =
   let mcpToggles = 0
   let iconToggles = 0
   let prompt: { onConfirm: (value: string) => void } | undefined
-  let presetActions: { options: { value: string }[]; onSelect: (option: { value: string }) => void } | undefined
   let replacement: (() => unknown) | undefined
   const savedPresets: string[] = []
   const sectionMoves: [string, number][] = []
@@ -750,11 +749,6 @@ test('the built settings dialog saves the current layout as default', async () =
     ui: {
       DialogPrompt: (props: { onConfirm: (value: string) => void }) => {
         prompt = props
-
-        return null
-      },
-      DialogSelect: (props: typeof presetActions) => {
-        presetActions = props
 
         return null
       },
@@ -890,9 +884,18 @@ test('the built settings dialog saves the current layout as default', async () =
     expect(setup.captureCharFrame()).not.toContain('reorder')
 
     select?.run()
-    replacement?.()
-    expect(presetActions?.options.map((option) => option.value)).toEqual(['apply', 'update', 'rename', 'delete'])
-    presetActions?.onSelect({ value: 'update' })
+    const presetMenu = await testRender(() => replacement?.() as JSX.Element, { width: 60, height: 20 })
+
+    try {
+      await presetMenu.flush()
+      for (const label of ['Apply', 'Update from current', 'Rename', 'Delete']) {
+        expect(presetMenu.captureCharFrame()).toContain(label)
+      }
+      layer?.commands.find((command) => command.name.endsWith('.next'))?.run()
+      layer?.commands.find((command) => command.name.endsWith('.select'))?.run()
+    } finally {
+      presetMenu.renderer.destroy()
+    }
     expect(updatedPresets).toBe(1)
 
     next?.run()
