@@ -46,7 +46,9 @@
     "bundle:size": "bun run build && bun run scripts/check-bundle-size.ts",
     "format": "prettier --write --ignore-unknown .",
     "format:check": "prettier --check --ignore-unknown .",
-    "lint": "oxlint --deny-warnings src test build.ts scripts",
+    "lint": "bun run lint:eslint",
+    "lint:eslint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix && bun run format",
     "prepublishOnly": "bun run check",
     "test": "bun run build && bun test --preload @opentui/solid/preload",
     "test:e2e": "bun run build && bash scripts/smoke-opencode.sh",
@@ -66,11 +68,14 @@
     "@opentui/core": "0.4.5",
     "@opentui/keymap": "0.4.5",
     "@opentui/solid": "0.4.5",
+    "@st1ggy/linter-config": "7.3.1",
     "@types/bun": "1.4.0",
-    "oxlint": "1.82.0",
+    "eslint": "10.8.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-solid": "0.18.0",
     "prettier": "3.9.6",
     "solid-js": "1.9.12",
-    "typescript": "5.8.2",
+    "typescript": "6.0.3",
     "web-tree-sitter": "0.25.10"
   }
 }

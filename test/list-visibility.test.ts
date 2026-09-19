@@ -1,13 +1,15 @@
-import { expect, test } from "bun:test"
-import { createRoot, createSignal } from "solid-js"
-import { createListVisibility } from "../src/controllers/list-visibility"
+import { expect, test } from 'bun:test'
+import { createRoot, createSignal } from 'solid-js'
 
-test("list limits reveal all, collapse, and reset only on relevant changes", () => {
+import { createListVisibility } from '../src/controllers/list-visibility'
+
+test('list limits reveal all, collapse, and reset only on relevant changes', () => {
   createRoot((dispose) => {
     const [items, setItems] = createSignal([1, 2, 3, 4])
     const [limit, setLimit] = createSignal(0)
-    const [key, setKey] = createSignal("target:query")
+    const [key, setKey] = createSignal('target:query')
     const list = createListVisibility({ items, limit, resetKey: key })
+
     expect(list.visible()).toEqual(items())
     expect(list.canToggle()).toBe(false)
     setLimit(2)
@@ -19,10 +21,10 @@ test("list limits reveal all, collapse, and reset only on relevant changes", () 
     list.showLess()
     expect(list.visible()).toEqual([4, 3])
     list.showAll()
-    setKey("other:query")
+    setKey('other:query')
     expect(list.expanded()).toBe(false)
     list.showAll()
-    setKey("other:new-query")
+    setKey('other:new-query')
     expect(list.expanded()).toBe(false)
     list.showAll()
     setLimit(3)
