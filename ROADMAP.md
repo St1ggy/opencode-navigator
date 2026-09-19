@@ -51,8 +51,8 @@ verification workflow before expanding the product surface.
 - [x] Build the distributable before tests and keep Solid/OpenTUI out of the bundle.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
 - [x] Limit the published package to the license, README, bundle, and package metadata.
-- [x] Run TypeScript, Oxlint, and Prettier checks through `bun run check`.
-- [x] Enforce a 275,000-byte raw bundle budget through `bun run check` and CI.
+- [x] Run TypeScript, ESLint with the shared Solid preset, and Prettier checks through `bun run check`.
+- [x] Enforce a 320,000-byte raw bundle budget through `bun run check` and CI.
 
 ### Keyboard Navigation
 
@@ -67,7 +67,7 @@ verification workflow before expanding the product surface.
 - [x] Cover controllers and durable preference behavior with automated tests.
 - [x] Render the built bundle with OpenTUI's test renderer and exercise slot mounting plus representative mouse, filter, settings, wizard, retry, and keybinding flows.
 - [x] Add an advisory end-to-end PTY smoke test that loads the packaged plugin in OpenCode 1.18.30.
-- [x] Cover keyboard focus/navigation and text-only LSP icons.
+- [x] Cover keyboard focus/navigation and a shared Nerd Font/text fallback mode across sections, search, Quick Actions, and dialogs.
 - [x] Enforce renderer performance budgets for 500-row Todo, Skills, Subagents, and MCP lists.
 
 ## Product Direction
@@ -85,11 +85,11 @@ verification workflow before expanding the product surface.
 ### Section Improvements
 
 - [x] Todo: All / Active / Finished filters, status grouping, separate cancelled tasks, and status counts.
-- [~] Subagents: observed runtime, retry countdown, in-memory recent runs, and failure attention exist; filters and parent-session navigation remain planned.
+- [x] Subagents: observed runtime, retry countdown, in-memory recent runs, failure attention, text/status filters, and parent-session navigation.
 - [~] Skills: user-wide favorites, recent items, and source details exist; fuzzy keyboard selection and trusted-skill confirmation settings remain planned.
 - [~] Quick Actions: scoped ordering and visibility exist; recent actions, additional registered commands, and route-aware disabled reasons remain planned.
-- [~] LSP: compact Nerd Font glyphs and text badges exist; sorting, expandable details, and actionable errors remain.
-- [~] MCP: filtering, pending rows, error text, individual and bulk connect/disconnect, and retry exist; grouping and pinning remain.
+- [~] LSP: icons/text badges, error-first sorting, and live ID/root/status details exist; diagnostic-specific actions depend on public API support.
+- [~] MCP: filtering, pending rows, error text, individual/bulk connect/disconnect, retry, and user-wide favorites exist; custom grouping remains planned.
 
 ### Agents And Limits
 
@@ -100,8 +100,8 @@ verification workflow before expanding the product surface.
 
 ### Unified Search
 
-- [ ] Search Skills, Subagents, MCP servers, and Quick Actions from one keyboard-first entry point.
-- [ ] Add fuzzy matching, grouped results, recent selections, and configurable result providers.
+- [x] Search Skills, Subagents, MCP servers, and Quick Actions in a tabbed Search Everything modal with a configurable shortcut and consistent section icons.
+- [~] Fuzzy matching, category tabs, keyboard/mouse activation, and cached-source retries exist; dedicated search history and configurable result providers remain planned.
 
 ### Profiles And Portability
 

@@ -22,7 +22,7 @@
 - запускать Skills и частые действия мышкой;
 - не отдавать половину экрана спискам, которые сейчас не нужны.
 
-Ничего революционного — просто панель, которой мне самому не хватало. Так появился `opencode-pretty-sidebar`.
+Ничего революционного — просто панель, которой мне самому не хватало. Так появился `opencode-pretty-sidebar`, теперь OpenCode Navigator (`opencode-navigator`).
 
 ## Что получилось
 
@@ -138,17 +138,17 @@ TUI-плагин написан на TypeScript/TSX, Solid и OpenTUI. Он ре
 Для установки во все проекты:
 
 ```sh
-opencode plugin --global opencode-pretty-sidebar
+opencode plugin --global opencode-navigator
 ```
 
 Для установки только в текущий проект уберите `--global`.
 
-Команда добавит пакет в `plugin` внутри `tui.json`. Чтобы штатные блоки не дублировали Pretty Sidebar, их нужно отключить там же:
+Команда добавит пакет в `plugin` внутри `tui.json`. Чтобы штатные блоки не дублировали Navigator, их нужно отключить там же:
 
 ```json
 {
   "$schema": "https://opencode.ai/tui.json",
-  "plugin": ["opencode-pretty-sidebar"],
+  "plugin": ["opencode-navigator"],
   "plugin_enabled": {
     "internal:sidebar-context": false,
     "internal:sidebar-mcp": false,
@@ -160,9 +160,9 @@ opencode plugin --global opencode-pretty-sidebar
 
 После изменения конфигурации OpenCode нужно перезапустить. Сайдбар переключается через `Ctrl+Shift+B`, а `Ctrl+Shift+F` переносит в него клавиатурный фокус. Если терминал не различает `Ctrl+Shift+B` и `Ctrl+B`, shortcut можно заменить, например, на `Alt+S`.
 
-Исходники и полная документация: [GitHub](https://github.com/St1ggy/opencode-pretty-sidebar).
+Исходники и полная документация: [GitHub](https://github.com/St1ggy/opencode-navigator).
 
-Пакет: [npm](https://www.npmjs.com/package/opencode-pretty-sidebar).
+Пакет: [npm](https://www.npmjs.com/package/opencode-navigator).
 
 Текущая версия на момент публикации — `0.7.0`.
 
@@ -177,4 +177,4 @@ opencode plugin --global opencode-pretty-sidebar
 - удобно ли управлять Skills и MCP прямо из панели;
 - что ломается в вашем терминале, теме или конфигурации.
 
-Баги и предложения также можно приносить в [GitHub Issues](https://github.com/St1ggy/opencode-pretty-sidebar/issues).
+Баги и предложения также можно приносить в [GitHub Issues](https://github.com/St1ggy/opencode-navigator/issues).
