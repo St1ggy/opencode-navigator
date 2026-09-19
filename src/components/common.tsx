@@ -1,7 +1,11 @@
-import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
-import type { BoxRenderable, InputRenderable, MouseEvent, Renderable, RGBA } from "@opentui/core"
-import { createSignal, onCleanup, Show } from "solid-js"
-import type { SidebarInteraction, SidebarNavigationDescriptor, SidebarOrder } from "../sidebar-interaction"
+import { type JSX, Show, createSignal, onCleanup } from 'solid-js'
+
+import { useIcons } from '../icons/context'
+
+import type { SidebarInteraction, SidebarNavigationDescriptor, SidebarOrder } from '../sidebar-interaction'
+import type { SidebarSection } from '../state'
+import type { TuiPluginApi, TuiThemeCurrent } from '@opencode-ai/plugin/tui'
+import type { BoxRenderable, InputRenderable, MouseEvent, RGBA, Renderable } from '@opentui/core'
 
 export function sidebarInteractiveColors(
   theme: TuiThemeCurrent,
@@ -22,7 +26,7 @@ export function sidebarInteractiveColors(
 export function useSidebarItem(
   api: TuiPluginApi,
   interaction: SidebarInteraction | undefined,
-  descriptor: Omit<SidebarNavigationDescriptor, "renderable">,
+  descriptor: Omit<SidebarNavigationDescriptor, 'renderable'>,
   normalColor: () => RGBA = () => api.theme.current.text,
 ) {
   let unregister: (() => void) | undefined
@@ -39,7 +43,9 @@ export function useSidebarItem(
     unregister?.()
     unregister = interaction?.register({ ...descriptor, renderable })
   }
+
   onCleanup(() => unregister?.())
+
   return {
     ref,
     disabled,
@@ -53,8 +59,11 @@ export function useSidebarItem(
     },
     activate(event?: MouseEvent) {
       if (interaction) return interaction.mouseActivate(descriptor.id, event)
+
       if (disabled()) return false
+
       descriptor.activate()
+
       return true
     },
   }
@@ -66,11 +75,13 @@ type SectionProps = {
   sectionId?: string
   order?: number
   title: string
+  icon?: string
+  section?: SidebarSection
   summary: string
   headerAction?: SectionHeaderAction
   open: boolean
   onToggle: () => void
-  children: import("solid-js").JSX.Element
+  children: JSX.Element
 }
 
 type SectionHeaderAction = {
@@ -82,6 +93,8 @@ type SectionHeaderAction = {
 }
 
 export function Section(props: SectionProps) {
+  const icons = useIcons()
+  const icon = () => (props.section ? icons.section(props.section) : props.icon)
   const theme = () => props.api.theme.current
   const item = useSidebarItem(
     props.api,
@@ -123,7 +136,12 @@ export function Section(props: SectionProps) {
         onMouseDown={(event) => item.activate(event)}
       >
         <text fg={item.foregroundColor()}>
-          <span style={{ fg: item.focused() ? item.foregroundColor() : theme().accent }}>{props.open ? "▾" : "▸"}</span>{" "}
+          <span style={{ fg: item.focused() ? item.foregroundColor() : theme().accent }}>
+            {icons.icon(props.open ? 'expanded' : 'collapsed')}
+          </span>{' '}
+          <span style={{ fg: item.focused() ? item.foregroundColor() : theme().accent }}>
+            {icon() ? `${icon()} ` : ''}
+          </span>
           <b>{props.title}</b>
         </text>
         <box flexDirection="row" gap={1} flexShrink={0}>
@@ -157,8 +175,9 @@ export function Section(props: SectionProps) {
 
 export const SectionWithHeaderAction = Section
 
-export function matchesFilter(query: string, ...values: Array<string | undefined>) {
+export function matchesFilter(query: string, ...values: (string | undefined)[]) {
   const needle = query.trim().toLocaleLowerCase()
+
   return !needle || values.some((value) => value?.toLocaleLowerCase().includes(needle))
 }
 
@@ -171,6 +190,7 @@ export function SectionFilter(props: {
   placeholder: string
   onInput: (value: string) => void
 }) {
+  const icons = useIcons()
   let input: InputRenderable | undefined
   let unregisterInput: (() => void) | undefined
   const [inputFocused, setInputFocused] = createSignal(false)
@@ -180,8 +200,10 @@ export function SectionFilter(props: {
     order: () => props.order ?? 0,
     activate: () => {
       if (!input) return
+
       setInputFocused(true)
       props.interaction?.focusFilter(input)
+
       if (!props.interaction) input.focus()
     },
   })
@@ -190,6 +212,7 @@ export function SectionFilter(props: {
     event?.preventDefault()
     event?.stopPropagation()
     setInputFocused(false)
+
     if (input && props.interaction) props.interaction.leaveFilter(input)
     else input?.blur()
   }
@@ -209,7 +232,7 @@ export function SectionFilter(props: {
       onMouseDown={(event) => item.activate(event)}
     >
       <text flexShrink={0} fg={item.focused() || inputFocused() ? item.foregroundColor() : theme().textMuted}>
-        ⌕
+        {icons.icon('search')}
       </text>
       <input
         ref={(node: InputRenderable) => {
@@ -232,13 +255,14 @@ export function SectionFilter(props: {
         onInput={props.onInput}
         onSubmit={() => leaveInput()}
         onKeyDown={(event) => {
-          if (event.name !== "escape") return
+          if (event.name !== 'escape') return
+
           leaveInput(event)
         }}
       />
       <Show when={props.query}>
-        <text flexShrink={0} fg={theme().textMuted} onMouseDown={() => props.onInput("")}>
-          ×
+        <text flexShrink={0} fg={theme().textMuted} onMouseDown={() => props.onInput('')}>
+          {icons.icon('close')}
         </text>
       </Show>
     </box>

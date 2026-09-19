@@ -1,10 +1,17 @@
-import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import type { McpController } from "../controllers/mcp"
-import type { PreferencesController } from "../controllers/preferences"
-import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
-import { createSignal, For, onCleanup } from "solid-js"
+import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
+import { For, createEffect, onCleanup } from 'solid-js'
 
-type PresetOption = { title: string; value: string; description: string }
+import { PLUGIN_ID } from '../constants'
+import { useIcons } from '../icons/context'
+
+import { createDialogStack, useDialogScroll, useDialogState, useDialogs } from './context'
+
+import type { McpController } from '../controllers/mcp'
+import type { PreferencesController } from '../controllers/preferences'
+import type { UiIcon } from '../icons/ui'
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+
+type PresetOption = { title: string; value: string; description: string; icon?: UiIcon }
 
 export function McpPresetMenu(props: {
   api: TuiPluginApi
@@ -12,19 +19,30 @@ export function McpPresetMenu(props: {
   options: PresetOption[]
   onSelect: (option: PresetOption) => void
 }) {
-  const [active, setActive] = createSignal(0)
+  const icons = useIcons()
+  const dialogs = useDialogs(props.api)
+  const scroll = useDialogScroll()
+  const [active, setActive] = useDialogState('selection', 0)
+
+  createEffect(() => {
+    if (active() >= props.options.length) setActive(Math.max(0, props.options.length - 1))
+  })
   const theme = () => props.api.theme.current
   let body: ScrollBoxRenderable | undefined
-  const prefix = "opencode-pretty-sidebar.mcp-preset-menu"
+  const prefix = `${PLUGIN_ID}.mcp-preset-menu`
+
   function move(offset: number) {
     const count = props.options.length
+
     if (!count) return
+
     const next = (active() + offset + count) % count
+
     setActive(next)
     body?.scrollChildIntoView(`${prefix}.${next}`)
   }
   const unregister = props.api.keymap.registerLayer({
-    mode: "modal",
+    mode: 'modal',
     priority: 1000,
     commands: [
       { name: `${prefix}.previous`, run: () => move(-1) },
@@ -33,29 +51,41 @@ export function McpPresetMenu(props: {
         name: `${prefix}.select`,
         run: () => {
           const option = props.options[active()]
+
           if (option) props.onSelect(option)
         },
       },
     ],
     bindings: [
-      { key: "up", cmd: `${prefix}.previous` },
-      { key: "down", cmd: `${prefix}.next` },
-      { key: "return", cmd: `${prefix}.select` },
-      { key: "space", cmd: `${prefix}.select` },
+      { key: 'up', cmd: `${prefix}.previous` },
+      { key: 'down', cmd: `${prefix}.next` },
+      { key: 'return', cmd: `${prefix}.select` },
+      { key: 'space', cmd: `${prefix}.select` },
     ],
   })
+
   onCleanup(unregister)
+
   return (
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
       <box flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={theme().text}>
-          {props.title}
+          {icons.icon('presets')} {props.title}
         </text>
-        <text fg={theme().textMuted} onMouseUp={() => props.api.ui.dialog.clear()}>
-          esc
+        <text fg={theme().textMuted} onMouseUp={dialogs.back}>
+          {icons.key('esc')}
         </text>
       </box>
-      <scrollbox ref={(node) => (body = node)} height={Math.min(props.options.length * 3, 15)} scrollX={false}>
+      <scrollbox
+        ref={(node) => {
+          body = node
+          scroll.ref(node)
+        }}
+        renderBefore={scroll.restore}
+        renderAfter={scroll.save}
+        height={Math.min(props.options.length * 3, 15)}
+        scrollX={false}
+      >
         <box gap={1}>
           <For each={props.options}>
             {(option, index) => (
@@ -67,6 +97,7 @@ export function McpPresetMenu(props: {
                 onMouseOver={() => setActive(index())}
                 onMouseUp={(event) => {
                   event.stopPropagation()
+                  setActive(index())
                   props.onSelect(option)
                 }}
               >
@@ -75,6 +106,7 @@ export function McpPresetMenu(props: {
                   fg={theme().text}
                   wrapMode="word"
                 >
+                  {option.icon ? `${icons.icon(option.icon)} ` : ''}
                   {option.title}
                 </text>
                 <text fg={theme().textMuted} wrapMode="word">
@@ -85,116 +117,126 @@ export function McpPresetMenu(props: {
           </For>
         </box>
       </scrollbox>
-      <text fg={theme().textMuted}>↑/↓ navigate · enter select · esc close</text>
+      <text fg={theme().textMuted}>
+        {icons.key('up/down')} navigate · {icons.key('enter')} select · {icons.key('esc')} close
+      </text>
     </box>
   )
 }
 
 export function openMcpPresets(api: TuiPluginApi, controller: McpController, preferences: PreferencesController) {
+  const dialogs = createDialogStack(api, preferences.lspIconStyle)
+
   function notify(message: string) {
-    api.ui.toast({ variant: "success", title: "MCP presets", message, duration: 3000 })
+    api.ui.toast({ variant: 'success', title: 'MCP presets', message, duration: 3000 })
   }
 
-  function prompt(value = "", renameFrom?: string) {
-    api.ui.dialog.replace(() => (
-      <api.ui.DialogPrompt
-        title={renameFrom ? "Rename MCP preset" : "Save MCP preset"}
-        description={() => <text fg={api.theme.current.textMuted}>Save the current enabled and disabled servers.</text>}
-        placeholder="Preset name"
-        value={value}
-        onConfirm={(input) => {
-          try {
-            const name = renameFrom
-              ? preferences.renameMcpPreset(renameFrom, input)
-              : preferences.saveMcpPreset(input, controller.capturePreset())
-            if (renameFrom) controller.renameSelectedPreset(renameFrom)
-            notify(renameFrom ? `Renamed to ${name}` : `Saved ${name}`)
-            api.ui.dialog.clear()
-          } catch (cause) {
-            api.ui.toast({
-              variant: "error",
-              title: "MCP presets",
-              message: cause instanceof Error ? cause.message : "Could not save the preset",
-              duration: 4000,
-            })
-            prompt(input, renameFrom)
-          }
-        }}
-      />
-    ))
-    api.ui.dialog.setSize("medium")
+  function prompt(value = '', renameFrom?: string) {
+    dialogs.prompt({
+      title: renameFrom ? 'Rename MCP preset' : 'Save MCP preset',
+      description: () => <text fg={api.theme.current.textMuted}>Save the current enabled and disabled servers.</text>,
+      placeholder: 'Preset name',
+      value,
+      onConfirm(input) {
+        const name = renameFrom
+          ? preferences.renameMcpPreset(renameFrom, input)
+          : preferences.saveMcpPreset(input, controller.capturePreset())
+
+        if (renameFrom) controller.renameSelectedPreset(renameFrom)
+
+        notify(renameFrom ? `Renamed to ${name}` : `Saved ${name}`)
+        dialogs.back()
+
+        if (renameFrom) dialogs.back()
+      },
+    })
   }
 
   function actions(name: string) {
-    api.ui.dialog.replace(() => (
+    dialogs.open(() => (
       <McpPresetMenu
         api={api}
         title={name}
         options={[
-          { title: "Apply", value: "apply", description: "match the saved server states" },
-          { title: "Update from current", value: "update", description: "replace the saved states" },
-          { title: "Rename", value: "rename", description: "change the preset name" },
-          { title: "Delete", value: "delete", description: "remove this preset" },
+          { title: 'Apply', value: 'apply', description: 'match the saved server states', icon: 'done' },
+          { title: 'Update from current', value: 'update', description: 'replace the saved states', icon: 'save' },
+          { title: 'Rename', value: 'rename', description: 'change the preset name', icon: 'edit' },
+          { title: 'Delete', value: 'delete', description: 'remove this preset', icon: 'delete' },
         ]}
         onSelect={(option) => {
-          if (option.value === "apply") {
+          if (option.value === 'apply') {
             const preset = preferences.mcpPresets()[name]
-            api.ui.dialog.clear()
+
+            dialogs.close()
+
             if (preset) void controller.applyPreset(name, preset)
+
             return
           }
-          if (option.value === "update") {
+
+          if (option.value === 'update') {
             try {
               const states = controller.capturePreset()
-              if (!preferences.updateMcpPreset(name, states)) throw new Error("MCP preset no longer exists")
+
+              if (!preferences.updateMcpPreset(name, states)) throw new Error('MCP preset no longer exists')
+
               controller.updateSelectedPreset(name)
               notify(`Updated ${name}`)
-              api.ui.dialog.clear()
-            } catch (cause) {
+              dialogs.back()
+            } catch (error) {
               api.ui.toast({
-                variant: "error",
-                title: "MCP presets",
-                message: cause instanceof Error ? cause.message : "Could not update the preset",
+                variant: 'error',
+                title: 'MCP presets',
+                message: error instanceof Error ? error.message : 'Could not update the preset',
                 duration: 4000,
               })
-              openMcpPresets(api, controller, preferences)
+              dialogs.back()
             }
+
             return
           }
-          if (option.value === "rename") return prompt(name, name)
+
+          if (option.value === 'rename') return prompt(name, name)
+
           if (!preferences.deleteMcpPreset(name)) {
             api.ui.toast({
-              variant: "warning",
-              title: "MCP presets",
-              message: "MCP preset no longer exists",
+              variant: 'warning',
+              title: 'MCP presets',
+              message: 'MCP preset no longer exists',
               duration: 4000,
             })
-            api.ui.dialog.clear()
+            dialogs.back()
+
             return
           }
+
           controller.clearSelectedPreset(name)
           notify(`Deleted ${name}`)
-          api.ui.dialog.clear()
+          dialogs.back()
         }}
       />
     ))
-    api.ui.dialog.setSize("medium")
   }
 
-  api.ui.dialog.replace(() => (
+  dialogs.open(() => (
     <McpPresetMenu
       api={api}
       title="MCP presets"
       options={[
-        { title: "Save current", value: "save", description: "Create a preset from the current server states" },
+        {
+          title: 'Save current',
+          value: 'save',
+          description: 'Create a preset from the current server states',
+          icon: 'save',
+        },
         ...Object.entries(preferences.mcpPresets()).map(([name, states]) => ({
           title: name,
           value: `preset:${name}`,
-          description: `${Object.values(states).filter((state) => state === "enabled").length}/${Object.keys(states).length} enabled`,
+          icon: 'presets' as const,
+          description: `${Object.values(states).filter((state) => state === 'enabled').length}/${Object.keys(states).length} enabled`,
         })),
       ]}
-      onSelect={(option) => (option.value === "save" ? prompt() : actions(option.value.slice("preset:".length)))}
+      onSelect={(option) => (option.value === 'save' ? prompt() : actions(option.value.slice('preset:'.length)))}
     />
   ))
-  api.ui.dialog.setSize("medium")
 }

@@ -1,16 +1,23 @@
-import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { TextAttributes } from "@opentui/core"
-import { createSignal, For, onCleanup } from "solid-js"
-import { PLUGIN_ID, SECTION_DEFINITIONS } from "../constants"
-import type { PreferencesController } from "../controllers/preferences"
+import { TextAttributes } from '@opentui/core'
+import { For, createSignal, onCleanup } from 'solid-js'
+
+import { PLUGIN_ID, SECTION_DEFINITIONS } from '../constants'
+import { useIcons } from '../icons/context'
+
+import { createDialogStack, useDialogs } from './context'
+
+import type { PreferencesController } from '../controllers/preferences'
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function FirstRunWizard(props: { api: TuiPluginApi; preferences: PreferencesController }) {
+  const icons = useIcons()
+  const dialogs = useDialogs(props.api)
   const [active, setActive] = createSignal(0)
   const theme = () => props.api.theme.current
   const finishIndex = SECTION_DEFINITIONS.length
 
   function finish() {
-    props.api.ui.dialog.clear()
+    dialogs.back()
   }
 
   function move(offset: number) {
@@ -19,12 +26,13 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
 
   function select() {
     const index = active()
+
     if (index === finishIndex) finish()
     else props.preferences.toggleSection(SECTION_DEFINITIONS[index].name)
   }
 
   const unregister = props.api.keymap.registerLayer({
-    mode: "modal",
+    mode: 'modal',
     priority: 1000,
     commands: [
       {
@@ -45,23 +53,31 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
       },
     ],
     bindings: [
-      { key: "up", cmd: `${PLUGIN_ID}.wizard.previous` },
-      { key: "down", cmd: `${PLUGIN_ID}.wizard.next` },
-      { key: "tab", cmd: `${PLUGIN_ID}.wizard.next` },
-      { key: "space", cmd: `${PLUGIN_ID}.wizard.select` },
-      { key: "return", cmd: `${PLUGIN_ID}.wizard.select` },
+      { key: 'up', cmd: `${PLUGIN_ID}.wizard.previous` },
+      { key: 'down', cmd: `${PLUGIN_ID}.wizard.next` },
+      { key: 'tab', cmd: `${PLUGIN_ID}.wizard.next` },
+      { key: 'space', cmd: `${PLUGIN_ID}.wizard.select` },
+      { key: 'return', cmd: `${PLUGIN_ID}.wizard.select` },
     ],
   })
+
   onCleanup(unregister)
 
   return (
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
       <box flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={theme().text}>
-          Welcome to Pretty Sidebar
+          {icons.icon('help')} Welcome to OpenCode Navigator
         </text>
-        <text fg={theme().textMuted} onMouseDown={finish}>
-          esc
+        <text
+          fg={theme().textMuted}
+          onMouseDown={(event) => event.stopPropagation()}
+          onMouseUp={(event) => {
+            event.stopPropagation()
+            finish()
+          }}
+        >
+          {icons.key('esc')}
         </text>
       </box>
       <text fg={theme().textMuted} wrapMode="word">
@@ -70,16 +86,16 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
       <box flexDirection="row" gap={2}>
         <text fg={theme().textMuted}>Toggle: {props.preferences.toggleKey()}</text>
         <text fg={theme().textMuted}>Focus: {props.preferences.focusKey()}</text>
-        <text fg={theme().textMuted}>
-          LSP icons: {props.preferences.lspIconStyle() === "text" ? "text badges" : "Nerd Font"}
-        </text>
+        <text fg={theme().textMuted}>Icons: {icons.style() === 'text' ? 'Text fallback' : 'Nerd Font'}</text>
       </box>
       <text fg={theme().textMuted} wrapMode="word">
-        Focus the sidebar to navigate with arrows or j/k, activate with enter, and leave with escape.
+        Focus the sidebar to navigate with {icons.key('up/down')} or j/k, activate with {icons.key('enter')}, and leave
+        with {icons.key('esc')}.
       </text>
       <For each={SECTION_DEFINITIONS}>
         {(section, index) => {
           const selected = () => active() === index()
+
           return (
             <box
               flexDirection="row"
@@ -91,9 +107,11 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
               onMouseDown={() => props.preferences.toggleSection(section.name)}
             >
               <text flexShrink={0} fg={props.preferences.sections()[section.name] ? theme().accent : theme().textMuted}>
-                {props.preferences.sections()[section.name] ? "☑" : "☐"}
+                {icons.icon(props.preferences.sections()[section.name] ? 'checked' : 'unchecked')}
               </text>
-              <text fg={selected() ? theme().text : theme().textMuted}>{section.label}</text>
+              <text fg={selected() ? theme().text : theme().textMuted}>
+                {icons.section(section.name)} {section.label}
+              </text>
             </box>
           )
         }}
@@ -104,9 +122,15 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
           paddingRight={2}
           backgroundColor={active() === finishIndex ? theme().primary : undefined}
           onMouseOver={() => setActive(finishIndex)}
-          onMouseDown={finish}
+          onMouseDown={(event) => event.stopPropagation()}
+          onMouseUp={(event) => {
+            event.stopPropagation()
+            finish()
+          }}
         >
-          <text fg={active() === finishIndex ? theme().selectedListItemText : theme().textMuted}>Finish</text>
+          <text fg={active() === finishIndex ? theme().selectedListItemText : theme().textMuted}>
+            {icons.icon('done')} Finish
+          </text>
         </box>
       </box>
     </box>
@@ -114,11 +138,13 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
 }
 
 export function openFirstRunWizard(api: TuiPluginApi, preferences: PreferencesController) {
-  api.ui.dialog.replace(() => <FirstRunWizard api={api} preferences={preferences} />)
+  createDialogStack(api, preferences.lspIconStyle).open(() => <FirstRunWizard api={api} preferences={preferences} />)
 }
 
 export async function showFirstRunWizard(api: TuiPluginApi, preferences: PreferencesController) {
   if (!(await preferences.claimFirstRun())) return false
+
   openFirstRunWizard(api, preferences)
+
   return true
 }

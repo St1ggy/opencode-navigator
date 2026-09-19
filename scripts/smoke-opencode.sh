@@ -43,6 +43,7 @@ cat >"$config" <<JSON
       {
         "persist_mcp": false,
         "focus_key": "ctrl+shift+f",
+        "search_key": "alt+y",
         "toggle_key": "ctrl+shift+b"
       }
     ]
@@ -80,7 +81,7 @@ bun --eval '
   try {
     const result = await client.session.create({
       directory: process.env.OPENCODE_SMOKE_WORKSPACE,
-      title: "Pretty Sidebar PTY smoke",
+      title: "OpenCode Navigator PTY smoke",
     })
     if (!result.data?.id) throw new Error("OpenCode did not create a smoke session")
     await Bun.write(process.env.OPENCODE_SMOKE_SESSION_FILE, result.data.id)
@@ -92,7 +93,7 @@ export OPENCODE_SMOKE_SESSION_ID="$(<"$session_file")"
 
 expect <<'EXPECT'
   log_user 0
-  log_file -noappend $env(OPENCODE_SMOKE_TRANSCRIPT)
+  log_file -a -noappend $env(OPENCODE_SMOKE_TRANSCRIPT)
   set timeout 20
   spawn -noecho opencode $env(OPENCODE_SMOKE_WORKSPACE) --session $env(OPENCODE_SMOKE_SESSION_ID) --print-logs --log-level DEBUG
   stty rows 40 columns 120
@@ -126,6 +127,41 @@ expect <<'EXPECT'
       timeout {}
     }
   }
+  after 500
+  send -- "\033"
+  after 200
+  send -- "\033y"
+  set timeout 10
+  expect {
+    -re {Search Everything} {}
+    timeout { puts stderr "Search Everything did not open via its shortcut"; exit 1 }
+    eof { puts stderr "OpenCode exited while opening Search Everything"; exit 1 }
+  }
+  expect {
+    -re {Search skills, subagents, MCP, actions} {}
+    timeout { puts stderr "Search input did not finish rendering"; exit 1 }
+    eof { puts stderr "OpenCode exited while rendering search input"; exit 1 }
+  }
+  after 150
+  send -- "\t\t\t"
+  expect {
+    -re {Rename} {}
+    timeout { puts stderr "Search Everything did not switch to the Actions tab"; exit 1 }
+    eof { puts stderr "OpenCode exited while switching search tabs"; exit 1 }
+  }
+  send -- "zzzznomatch"
+  expect {
+    -re {zzzznomatch} {}
+    timeout { puts stderr "Search Everything did not accept the search query"; exit 1 }
+    eof { puts stderr "OpenCode exited while entering a search query"; exit 1 }
+  }
+  expect {
+    -re {No matching results} {}
+    timeout { puts stderr "Search Everything did not filter its results"; exit 1 }
+    eof { puts stderr "OpenCode exited while searching"; exit 1 }
+  }
+  send -- "\033"
+  after 200
   send -- "\003"
   after 200
   send -- "\003"
@@ -149,7 +185,7 @@ if ! grep -Eq '"onboardingCompleted"[[:space:]]*:[[:space:]]*true' "$marker"; th
   exit 1
 fi
 
-if grep -Eqi 'failed to load.*opencode-pretty-sidebar|error.*dist/tui\.js' "$plain_transcript"; then
+if grep -Eqi 'failed to load.*opencode-navigator|error.*dist/tui\.js' "$plain_transcript"; then
   printf 'OpenCode reported a sidebar plugin load error.\n' >&2
   printf 'Transcript: %s\n' "$plain_transcript" >&2
   exit 1

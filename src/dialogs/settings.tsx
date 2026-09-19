@@ -1,452 +1,489 @@
-import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { type ScrollBoxRenderable, TextAttributes } from "@opentui/core"
-import { useTerminalDimensions } from "@opentui/solid"
-import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
-import { PLUGIN_ID, SECTION_DEFINITIONS } from "../constants"
-import type { PreferencesController } from "../controllers/preferences"
-import { SIDEBAR_SECTIONS, type SidebarSection } from "../state"
-import { openFirstRunWizard } from "./first-run"
-import { QuickActionsDialog } from "./quick-actions"
+import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
+import { useTerminalDimensions } from '@opentui/solid'
+import { For, Show, createEffect, createMemo, onCleanup, onMount } from 'solid-js'
+
+import { DEFAULT_SEARCH_KEY, PLUGIN_ID, SECTION_DEFINITIONS } from '../constants'
+import { useIcons } from '../icons/context'
+import { SIDEBAR_SECTIONS, type SidebarSection } from '../state'
+
+import { createDialogStack, useDialogScroll, useDialogState, useDialogs } from './context'
+import { FirstRunWizard } from './first-run'
+import { QuickActionsDialog } from './quick-actions'
+
+import type { PreferencesController } from '../controllers/preferences'
+import type { SettingsTab } from '../icons/ui'
+import type { TuiDialogSelectProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
+
+function PresetActionsMenu(props: { api: TuiPluginApi } & TuiDialogSelectProps<string>) {
+  const [current, setCurrent] = useDialogState('action', props.options[0]?.value ?? '')
+
+  return (
+    <props.api.ui.DialogSelect
+      {...props}
+      current={current()}
+      onMove={(option) => setCurrent(option.value)}
+      onSelect={(option) => {
+        setCurrent(option.value)
+        props.onSelect?.(option)
+      }}
+    />
+  )
+}
 
 export function SettingsDialog(props: { api: TuiPluginApi; preferences: PreferencesController; activeValue?: string }) {
   let body: ScrollBoxRenderable | undefined
   const theme = () => props.api.theme.current
+  const icons = useIcons()
+  const dialogs = useDialogs(props.api)
+  const scroll = useDialogScroll()
   const dimensions = useTerminalDimensions()
   const bodyHeight = createMemo(() => Math.max(4, Math.floor(dimensions().height * 0.75) - 10))
   const groups = createMemo(() => [
     {
-      id: "scope",
-      tab: "Scope",
-      title: "Preference scope",
+      id: 'scope',
+      tab: 'Scope',
+      title: 'Preference scope',
       options: [
         {
-          title: `${props.preferences.preferenceScope() === "global" ? "●" : "○"} Global`,
-          value: "scope:global",
-          description: "applies to every worktree",
+          title: `${icons.icon(props.preferences.preferenceScope() === 'global' ? 'radioOn' : 'radioOff')} Global`,
+          value: 'scope:global',
+          description: 'applies to every worktree',
         },
         {
-          title: `${props.preferences.preferenceScope() === "worktree" ? "●" : "○"} Current worktree`,
-          value: "scope:worktree",
+          title: `${icons.icon(props.preferences.preferenceScope() === 'worktree' ? 'radioOn' : 'radioOff')} Current worktree`,
+          value: 'scope:worktree',
           description: props.preferences.canUseWorktreeScope()
             ? props.preferences.preferenceScopeLabel()
-            : "unavailable outside a worktree",
+            : 'unavailable outside a worktree',
         },
       ],
     },
     {
-      id: "presets",
-      tab: "Presets",
-      title: "Layout presets",
+      id: 'presets',
+      tab: 'Presets',
+      title: 'Layout presets',
       options: [
         ...Object.keys(props.preferences.layoutPresets())
           .sort((left, right) => left.localeCompare(right))
           .map((name) => ({
-            title: `◇ ${name}`,
+            title: `${icons.icon('presets')} ${name}`,
             value: `preset:custom:${encodeURIComponent(name)}`,
-            description: "enter to apply or edit",
+            description: 'enter to apply or edit',
           })),
         {
-          title: "+ Save as…",
-          value: "save_preset",
-          description: "create a preset from the current layout",
+          title: `${icons.icon('add')} Save as…`,
+          value: 'save_preset',
+          description: 'create a preset from the current layout',
         },
       ],
     },
     {
-      id: "sections",
-      tab: "Sections",
-      title: "Sections & order",
+      id: 'sections',
+      tab: 'Sections',
+      title: 'Sections & order',
       options: props.preferences.selectedSectionOrder().map((name, index) => {
         const section = SECTION_DEFINITIONS.find((candidate) => candidate.name === name)!
+
         return {
-          title: `${props.preferences.selectedSections()[section.name] ? "☑" : "☐"} ${index + 1}. ${section.label}`,
+          title: `${icons.icon(props.preferences.selectedSections()[section.name] ? 'checked' : 'unchecked')} ${index + 1}. ${icons.section(section.name)} ${section.label}`,
           value: section.name,
-          description: props.preferences.selectedSections()[section.name] ? "visible" : "hidden",
+          description: props.preferences.selectedSections()[section.name] ? 'visible' : 'hidden',
         }
       }),
     },
     {
-      id: "behavior",
-      tab: "Behavior",
-      title: "Behavior",
+      id: 'behavior',
+      tab: 'Behavior',
+      title: 'Behavior',
       options: [
         {
-          title: `${props.preferences.selectedPersistMcp() ? "☑" : "☐"} Remember MCP states`,
-          value: "persist_mcp",
-          description: props.preferences.selectedPersistMcp() ? "on" : "off",
+          title: `${icons.icon(props.preferences.selectedPersistMcp() ? 'checked' : 'unchecked')} Remember MCP states`,
+          value: 'persist_mcp',
+          description: props.preferences.selectedPersistMcp() ? 'on' : 'off',
         },
         {
-          title: "LSP icon style",
-          value: "lsp_icon_style",
-          description: props.preferences.selectedLspIconStyle() === "nerd" ? "Nerd Font" : "text badges",
+          title: `${icons.icon('settings')} Icon style`,
+          value: 'lsp_icon_style',
+          description: props.preferences.selectedLspIconStyle() === 'nerd' ? 'Nerd Font' : 'Text fallback',
         },
         {
-          title: "Sidebar shortcut",
-          value: "toggle_key",
+          title: `${icons.icon('sections')} Sidebar shortcut`,
+          value: 'toggle_key',
           description: props.preferences.selectedToggleKey(),
         },
         {
-          title: "Focus shortcut",
-          value: "focus_key",
+          title: `${icons.icon('selected')} Focus shortcut`,
+          value: 'focus_key',
           description: props.preferences.selectedFocusKey(),
+        },
+        {
+          title: `${icons.icon('search')} Search Everything shortcut`,
+          value: 'search_key',
+          description: props.preferences.selectedSearchKey?.() ?? DEFAULT_SEARCH_KEY,
         },
       ],
     },
     {
-      id: "defaults",
-      tab: "Defaults",
-      title: "Defaults & help",
+      id: 'defaults',
+      tab: 'Defaults',
+      title: 'Defaults & help',
       options: [
         {
-          title: "↓ Save current layout as default",
-          value: "save_layout",
+          title: `${icons.icon('save')} Save current layout as default`,
+          value: 'save_layout',
           description: `${SIDEBAR_SECTIONS.filter((name) => props.preferences.selectedSections()[name]).length} visible · ${
             SIDEBAR_SECTIONS.filter((name) => props.preferences.selectedExpanded()[name]).length
           } expanded`,
         },
         {
-          title: "↺ Restore configured layout",
-          value: "reset_sections",
-          description: "visibility and expansion",
+          title: `${icons.icon('reset')} Restore configured layout`,
+          value: 'reset_sections',
+          description: 'visibility and expansion',
         },
         {
-          title: "↺ Restore configured behavior",
-          value: "reset_settings",
-          description: "MCP memory, icons, shortcuts, limits, actions",
+          title: `${icons.icon('reset')} Restore configured behavior`,
+          value: 'reset_settings',
+          description: 'MCP memory, icons, shortcuts, limits, actions',
         },
         {
-          title: "↺ Clear remembered MCP states",
-          value: "reset_mcp",
+          title: `${icons.icon('reset')} Clear remembered MCP states`,
+          value: 'reset_mcp',
           description: `scope: ${props.preferences.preferenceScopeLabel()}`,
         },
         {
-          title: "↺ Show skill confirmations again",
-          value: "reset_skills",
+          title: `${icons.icon('reset')} Show skill confirmations again`,
+          value: 'reset_skills',
           description: `${props.preferences.skippedSkillCount()} skipped`,
         },
         {
-          title: "? Open quick setup guide",
-          value: "wizard",
-          description: "tips and section settings",
+          title: `${icons.icon('help')} Open quick setup guide`,
+          value: 'wizard',
+          description: 'tips and section settings',
         },
       ],
     },
   ])
   const orderedGroups = createMemo(() =>
-    ["sections", "scope", "presets", "behavior", "defaults"].map((id) => groups().find((group) => group.id === id)!),
+    ['sections', 'scope', 'presets', 'behavior', 'defaults'].map((id) => groups().find((group) => group.id === id)!),
   )
   const initialGroup = orderedGroups().find((group) =>
     group.options.some((option) => option.value === props.activeValue),
   )
-  const [activeGroup, setActiveGroup] = createSignal(initialGroup?.id ?? orderedGroups()[0].id)
+  const [activeGroup, setActiveGroup] = useDialogState('tab', initialGroup?.id ?? orderedGroups()[0].id)
   const options = createMemo(() => orderedGroups().find((group) => group.id === activeGroup())?.options ?? [])
   const optionId = (value: string) => `${PLUGIN_ID}.settings.${value}`
   const initialActive = options().findIndex((option) => option.value === props.activeValue)
-  const [active, setActive] = createSignal(Math.max(0, initialActive))
+  const [active, setActive] = useDialogState('selection', Math.max(0, initialActive))
+
+  createEffect(() => {
+    if (active() >= options().length) setActive(Math.max(0, options().length - 1))
+  })
   const contentHeight = createMemo(() => Math.min(bodyHeight(), Math.max(1, options().length * 2 - 1)))
   const footerHint = createMemo(() => {
-    const common = "tab switch · ↑/↓ navigate"
-    if (activeGroup() === "sections")
-      return `${common} · enter toggle · l item limit${options()[active()]?.value === "quick_actions" ? " · a actions" : ""} · ←/→ or shift+↑/↓ reorder`
-    if (activeGroup() === "presets") return `${common} · enter manage`
-    if (activeGroup() === "behavior") return `${common} · enter change`
-    if (activeGroup() === "defaults") return `${common} · enter run`
-    return `${common} · enter select`
+    const common = `${icons.key('tab')} switch · ${icons.key('up/down')} navigate`
+
+    if (activeGroup() === 'sections')
+      return `${common} · ${icons.key('enter')} toggle · l item limit${options()[active()]?.value === 'quick_actions' ? ' · a actions' : ''} · ${icons.key('left/right')} or ${icons.key('shift+up/down')} reorder`
+
+    if (activeGroup() === 'presets') return `${common} · ${icons.key('enter')} manage`
+
+    if (activeGroup() === 'behavior') return `${common} · ${icons.key('enter')} change`
+
+    if (activeGroup() === 'defaults') return `${common} · ${icons.key('enter')} run`
+
+    return `${common} · ${icons.key('enter')} select`
   })
 
   onMount(() => {
     queueMicrotask(() => {
       const option = options()[active()]
+
       if (option) body?.scrollChildIntoView(optionId(option.value))
     })
   })
 
   function move(offset: number) {
     const next = (active() + offset + options().length) % options().length
+
     setActive(next)
     const option = options()[next]
+
     if (option) body?.scrollChildIntoView(optionId(option.value))
   }
 
   function switchGroup(offset: number) {
     const index = orderedGroups().findIndex((group) => group.id === activeGroup())
     const group = orderedGroups()[(index + offset + orderedGroups().length) % orderedGroups().length]
+
     setActiveGroup(group.id)
     setActive(0)
     queueMicrotask(() => {
       const option = options()[0]
+
       if (option) body?.scrollChildIntoView(optionId(option.value))
     })
   }
 
   function reorder(value: string | undefined, direction: -1 | 1) {
     if (!value || !SIDEBAR_SECTIONS.includes(value as SidebarSection)) return
+
     props.preferences.moveSelectedSection(value as SidebarSection, direction)
     queueMicrotask(() => {
       const next = options().findIndex((candidate) => candidate.value === value)
-      if (next < 0) return
+
+      if (next === -1) return
+
       setActive(next)
       body?.scrollChildIntoView(optionId(value))
     })
   }
 
-  function openPresetPrompt(value = "", renameFrom?: string) {
-    props.api.ui.dialog.replace(() => (
-      <props.api.ui.DialogPrompt
-        title={renameFrom ? "Rename layout preset" : "Save layout preset"}
-        description={() => (
-          <text fg={theme().textMuted}>Save the current visible, expanded, and ordered sections.</text>
-        )}
-        placeholder="Preset name"
-        value={value}
-        onConfirm={(input) => {
-          try {
-            const name = renameFrom
-              ? props.preferences.renameLayoutPreset(renameFrom, input)
-              : props.preferences.saveLayoutPreset(input)
-            openSettings(props.api, props.preferences, `preset:custom:${encodeURIComponent(name)}`)
-            props.api.ui.toast({
-              variant: "success",
-              title: "Layout presets",
-              message: renameFrom ? `Renamed to ${name}` : `Saved ${name}`,
-              duration: 3000,
-            })
-          } catch (error) {
-            props.api.ui.toast({
-              variant: "error",
-              title: "Layout presets",
-              message: error instanceof Error ? error.message : "Could not save the preset",
-              duration: 4000,
-            })
-            openPresetPrompt(input, renameFrom)
-          }
-        }}
-        onCancel={() =>
-          openSettings(
-            props.api,
-            props.preferences,
-            renameFrom ? `preset:custom:${encodeURIComponent(renameFrom)}` : "save_preset",
-          )
-        }
-      />
-    ))
-    props.api.ui.dialog.setSize("medium")
+  function openPresetPrompt(value = '', renameFrom?: string) {
+    dialogs.prompt({
+      title: renameFrom ? 'Rename layout preset' : 'Save layout preset',
+      description: () => <text fg={theme().textMuted}>Save the current visible, expanded, and ordered sections.</text>,
+      placeholder: 'Preset name',
+      value,
+      onConfirm(input) {
+        const name = renameFrom
+          ? props.preferences.renameLayoutPreset(renameFrom, input)
+          : props.preferences.saveLayoutPreset(input)
+
+        dialogs.back()
+
+        if (renameFrom) dialogs.back()
+
+        props.api.ui.toast({
+          variant: 'success',
+          title: 'Layout presets',
+          message: renameFrom ? `Renamed to ${name}` : `Saved ${name}`,
+          duration: 3000,
+        })
+      },
+    })
   }
 
   function applyPreset(name: string) {
     const layout = props.preferences.layoutPresets()[name]
+
     if (!layout) return
+
     props.preferences.applyLayoutPreset(layout)
-    openSettings(props.api, props.preferences, `preset:custom:${encodeURIComponent(name)}`)
+    dialogs.back()
     props.api.ui.toast({
-      variant: "success",
-      title: "Layout presets",
+      variant: 'success',
+      title: 'Layout presets',
       message: `${name} applied to ${props.preferences.preferenceScopeLabel()}`,
       duration: 3000,
     })
   }
 
   function openPresetActions(name: string) {
-    props.api.ui.dialog.replace(() => (
-      <props.api.ui.DialogSelect
+    dialogs.open(() => (
+      <PresetActionsMenu
+        api={props.api}
         title={name}
         skipFilter
         options={[
-          { title: "Apply", value: "apply", description: "use this layout in the selected scope" },
-          { title: "Update from current", value: "update", description: "replace the saved layout" },
-          { title: "Rename…", value: "rename", description: "change the preset name" },
-          { title: "Delete", value: "delete", description: "remove this preset" },
+          {
+            title: `${icons.icon('done')} Apply`,
+            value: 'apply',
+            description: 'use this layout in the selected scope',
+          },
+          {
+            title: `${icons.icon('save')} Update from current`,
+            value: 'update',
+            description: 'replace the saved layout',
+          },
+          { title: `${icons.icon('edit')} Rename…`, value: 'rename', description: 'change the preset name' },
+          { title: `${icons.icon('delete')} Delete`, value: 'delete', description: 'remove this preset' },
         ]}
         onSelect={(option) => {
-          if (option.value === "apply") {
+          if (option.value === 'apply') {
             applyPreset(name)
+
             return
           }
-          if (option.value === "update") {
+
+          if (option.value === 'update') {
             props.preferences.updateLayoutPreset(name)
-            openSettings(props.api, props.preferences, `preset:custom:${encodeURIComponent(name)}`)
+            dialogs.back()
             props.api.ui.toast({
-              variant: "success",
-              title: "Layout presets",
+              variant: 'success',
+              title: 'Layout presets',
               message: `Updated ${name}`,
               duration: 3000,
             })
+
             return
           }
-          if (option.value === "rename") {
+
+          if (option.value === 'rename') {
             openPresetPrompt(name, name)
+
             return
           }
+
           props.preferences.deleteLayoutPreset(name)
-          openSettings(props.api, props.preferences, "save_preset")
+          dialogs.back()
         }}
       />
     ))
-    props.api.ui.dialog.setSize("medium")
   }
 
-  function openLimitPrompt(
-    section: SidebarSection,
-    value = String(props.preferences.selectedSectionItemLimit(section)),
-  ) {
-    props.api.ui.dialog.replace(() => (
-      <props.api.ui.DialogPrompt
-        title={`${SECTION_DEFINITIONS.find((item) => item.name === section)!.label} item limit`}
-        description={() => <text fg={theme().textMuted}>Visible items before Show all. Enter 0 for All.</text>}
-        value={value}
-        onConfirm={(input) => {
-          try {
-            if (!/^\d+$/.test(input.trim())) throw new Error("Enter a non-negative whole number (0 for All)")
-            props.preferences.setSectionItemLimit(section, Number(input))
-            openSettings(props.api, props.preferences, section)
-          } catch (error) {
-            props.api.ui.toast({
-              variant: "error",
-              title: "List limit",
-              message: error instanceof Error ? error.message : "Invalid limit",
-              duration: 4000,
-            })
-            openLimitPrompt(section, input)
-          }
-        }}
-        onCancel={() => openSettings(props.api, props.preferences, section)}
-      />
-    ))
-    props.api.ui.dialog.setSize("medium")
+  function openLimitPrompt(section: SidebarSection) {
+    const index = options().findIndex((option) => option.value === section)
+
+    if (index !== -1) setActive(index)
+
+    dialogs.prompt({
+      title: `${SECTION_DEFINITIONS.find((item) => item.name === section)!.label} item limit`,
+      description: () => <text fg={theme().textMuted}>Visible items before Show all. Enter 0 for All.</text>,
+      value: String(props.preferences.selectedSectionItemLimit(section)),
+      onConfirm(input) {
+        if (!/^\d+$/.test(input.trim())) throw new Error('Enter a non-negative whole number (0 for All)')
+
+        props.preferences.setSectionItemLimit(section, Number(input))
+        dialogs.back()
+      },
+    })
   }
 
   function select(value = options()[active()]?.value) {
     if (!value) return
-    if (value === "scope:global" || value === "scope:worktree") {
-      props.preferences.setPreferenceScope(value === "scope:global" ? "global" : "worktree")
+
+    const index = options().findIndex((option) => option.value === value)
+
+    if (index !== -1) setActive(index)
+
+    if (value === 'scope:global' || value === 'scope:worktree') {
+      props.preferences.setPreferenceScope(value === 'scope:global' ? 'global' : 'worktree')
+
       return
     }
-    if (value.startsWith("preset:")) {
-      const prefix = "preset:custom:"
+
+    if (value.startsWith('preset:')) {
+      const prefix = 'preset:custom:'
+
       if (value.startsWith(prefix)) openPresetActions(decodeURIComponent(value.slice(prefix.length)))
+
       return
     }
-    if (value === "save_preset") {
+
+    if (value === 'save_preset') {
       openPresetPrompt()
+
       return
     }
-    if (value === "save_layout") {
+
+    if (value === 'save_layout') {
       void props.preferences
         .saveLayoutAsDefault()
         .then(() => {
           props.api.ui.toast({
-            variant: "success",
-            title: "Sidebar settings",
-            message: "Current layout saved as default",
+            variant: 'success',
+            title: 'Navigator settings',
+            message: 'Current layout saved as default',
             duration: 3000,
           })
         })
         .catch((error) => {
           props.api.ui.toast({
-            variant: "error",
-            title: "Sidebar settings",
-            message: error instanceof Error ? error.message : "Failed to save the default layout",
+            variant: 'error',
+            title: 'Navigator settings',
+            message: error instanceof Error ? error.message : 'Failed to save the default layout',
             duration: 5000,
           })
         })
+
       return
     }
-    if (value === "reset_sections") {
+
+    if (value === 'reset_sections') {
       props.preferences.resetSections()
+
       return
     }
-    if (value === "persist_mcp") {
+
+    if (value === 'persist_mcp') {
       props.preferences.toggleMcpPersistence()
+
       return
     }
-    if (value === "lsp_icon_style") {
+
+    if (value === 'lsp_icon_style') {
       props.preferences.toggleLspIconStyle()
+
       return
     }
-    if (value === "toggle_key") {
-      props.api.ui.dialog.replace(() => (
-        <props.api.ui.DialogPrompt
-          title="Sidebar shortcut"
-          description={() => <text fg={theme().textMuted}>Use OpenCode key syntax, for example alt+s.</text>}
-          value={props.preferences.selectedToggleKey()}
-          onConfirm={(input) => {
-            try {
-              props.preferences.setToggleKey(input)
-              openSettings(props.api, props.preferences, "toggle_key")
-            } catch (error) {
-              props.api.ui.toast({
-                variant: "error",
-                title: "Sidebar shortcut",
-                message: error instanceof Error ? error.message : "Invalid keybinding",
-                duration: 4000,
-              })
-              openSettings(props.api, props.preferences, "toggle_key")
-            }
-          }}
-          onCancel={() => openSettings(props.api, props.preferences, "toggle_key")}
-        />
-      ))
-      props.api.ui.dialog.setSize("medium")
+
+    if (value === 'toggle_key' || value === 'focus_key' || value === 'search_key') {
+      const bindings = {
+        toggle_key: {
+          title: 'Sidebar shortcut',
+          get: props.preferences.selectedToggleKey,
+          set: props.preferences.setToggleKey,
+        },
+        focus_key: {
+          title: 'Focus shortcut',
+          get: props.preferences.selectedFocusKey,
+          set: props.preferences.setFocusKey,
+        },
+        search_key: {
+          title: 'Search Everything shortcut',
+          get: props.preferences.selectedSearchKey,
+          set: props.preferences.setSearchKey,
+        },
+      }
+      const binding = bindings[value]
+
+      dialogs.prompt({
+        title: binding.title,
+        description: () => <text fg={theme().textMuted}>Use OpenCode key syntax, for example alt+s.</text>,
+        value: binding.get(),
+        onConfirm(input) {
+          binding.set(input)
+          dialogs.back()
+        },
+      })
+
       return
     }
-    if (value === "focus_key") {
-      props.api.ui.dialog.replace(() => (
-        <props.api.ui.DialogPrompt
-          title="Focus shortcut"
-          description={() => <text fg={theme().textMuted}>Use OpenCode key syntax, for example alt+f.</text>}
-          value={props.preferences.selectedFocusKey()}
-          onConfirm={(input) => {
-            try {
-              props.preferences.setFocusKey(input)
-              openSettings(props.api, props.preferences, "focus_key")
-            } catch (error) {
-              props.api.ui.toast({
-                variant: "error",
-                title: "Focus shortcut",
-                message: error instanceof Error ? error.message : "Invalid keybinding",
-                duration: 4000,
-              })
-              openSettings(props.api, props.preferences, "focus_key")
-            }
-          }}
-          onCancel={() => openSettings(props.api, props.preferences, "focus_key")}
-        />
-      ))
-      props.api.ui.dialog.setSize("medium")
-      return
-    }
-    if (value === "reset_settings") {
+
+    if (value === 'reset_settings') {
       props.preferences.resetPluginSettings()
+
       return
     }
-    if (value === "reset_mcp") {
+
+    if (value === 'reset_mcp') {
       props.preferences.resetMcpStates()
+
       return
     }
-    if (value === "reset_skills") {
+
+    if (value === 'reset_skills') {
       props.preferences.resetSkillConfirmations()
+
       return
     }
-    if (value === "wizard") {
-      openFirstRunWizard(props.api, props.preferences)
+
+    if (value === 'wizard') {
+      dialogs.open(() => <FirstRunWizard api={props.api} preferences={props.preferences} />)
+
       return
     }
+
     props.preferences.toggleSelectedSection(value as SidebarSection)
   }
 
   function openQuickActions() {
-    props.api.ui.dialog.replace(() => (
-      <QuickActionsDialog
-        api={props.api}
-        preferences={props.preferences}
-        onBack={() => openSettings(props.api, props.preferences, "quick_actions")}
-      />
-    ))
-    props.api.ui.dialog.setSize("medium")
+    setActive(options().findIndex((option) => option.value === 'quick_actions'))
+    dialogs.open(() => <QuickActionsDialog api={props.api} preferences={props.preferences} />)
   }
 
   const unregister = props.api.keymap.registerLayer({
-    mode: "modal",
+    mode: 'modal',
     priority: 1000,
     commands: [
       { name: `${PLUGIN_ID}.settings.previous`, run: () => move(-1) },
@@ -455,14 +492,15 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       {
         name: `${PLUGIN_ID}.settings.quick-actions`,
         run: () => {
-          if (activeGroup() === "sections" && options()[active()]?.value === "quick_actions") openQuickActions()
+          if (activeGroup() === 'sections' && options()[active()]?.value === 'quick_actions') openQuickActions()
         },
       },
       {
         name: `${PLUGIN_ID}.settings.item-limit`,
         run: () => {
           const section = options()[active()]?.value as SidebarSection
-          if (activeGroup() === "sections" && SIDEBAR_SECTIONS.includes(section)) openLimitPrompt(section)
+
+          if (activeGroup() === 'sections' && SIDEBAR_SECTIONS.includes(section)) openLimitPrompt(section)
         },
       },
       { name: `${PLUGIN_ID}.settings.previous-tab`, run: () => switchGroup(-1) },
@@ -471,30 +509,38 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
       { name: `${PLUGIN_ID}.settings.move-down`, run: () => reorder(options()[active()]?.value, 1) },
     ],
     bindings: [
-      { key: "up", cmd: `${PLUGIN_ID}.settings.previous` },
-      { key: "down", cmd: `${PLUGIN_ID}.settings.next` },
-      { key: "tab", cmd: `${PLUGIN_ID}.settings.next-tab` },
-      { key: "shift+tab", cmd: `${PLUGIN_ID}.settings.previous-tab` },
-      { key: "space", cmd: `${PLUGIN_ID}.settings.select` },
-      { key: "return", cmd: `${PLUGIN_ID}.settings.select` },
-      { key: "l", cmd: `${PLUGIN_ID}.settings.item-limit` },
-      { key: "a", cmd: `${PLUGIN_ID}.settings.quick-actions` },
-      { key: "left", cmd: `${PLUGIN_ID}.settings.move-up` },
-      { key: "right", cmd: `${PLUGIN_ID}.settings.move-down` },
-      { key: "shift+up", cmd: `${PLUGIN_ID}.settings.move-up` },
-      { key: "shift+down", cmd: `${PLUGIN_ID}.settings.move-down` },
+      { key: 'up', cmd: `${PLUGIN_ID}.settings.previous` },
+      { key: 'down', cmd: `${PLUGIN_ID}.settings.next` },
+      { key: 'tab', cmd: `${PLUGIN_ID}.settings.next-tab` },
+      { key: 'shift+tab', cmd: `${PLUGIN_ID}.settings.previous-tab` },
+      { key: 'space', cmd: `${PLUGIN_ID}.settings.select` },
+      { key: 'return', cmd: `${PLUGIN_ID}.settings.select` },
+      { key: 'l', cmd: `${PLUGIN_ID}.settings.item-limit` },
+      { key: 'a', cmd: `${PLUGIN_ID}.settings.quick-actions` },
+      { key: 'left', cmd: `${PLUGIN_ID}.settings.move-up` },
+      { key: 'right', cmd: `${PLUGIN_ID}.settings.move-down` },
+      { key: 'shift+up', cmd: `${PLUGIN_ID}.settings.move-up` },
+      { key: 'shift+down', cmd: `${PLUGIN_ID}.settings.move-down` },
     ],
   })
+
   onCleanup(unregister)
 
   return (
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
       <box flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={theme().text}>
-          Sidebar settings
+          {icons.icon('settings')} Navigator settings
         </text>
-        <text fg={theme().textMuted} onMouseDown={() => props.api.ui.dialog.clear()}>
-          esc
+        <text
+          fg={theme().textMuted}
+          onMouseDown={(event) => event.stopPropagation()}
+          onMouseUp={(event) => {
+            event.stopPropagation()
+            dialogs.back()
+          }}
+        >
+          {icons.key('esc')}
         </text>
       </box>
       <text fg={theme().textMuted}>Adjust sections and behavior. Changes apply immediately.</text>
@@ -514,14 +560,19 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                 attributes={activeGroup() === group.id ? TextAttributes.BOLD : undefined}
                 fg={activeGroup() === group.id ? theme().accent : theme().textMuted}
               >
-                {group.tab}
+                {icons.tab(group.id as SettingsTab)} {group.tab}
               </text>
             </box>
           )}
         </For>
       </box>
       <scrollbox
-        ref={(node) => (body = node)}
+        ref={(node) => {
+          body = node
+          scroll.ref(node)
+        }}
+        renderBefore={scroll.restore}
+        renderAfter={scroll.save}
         height={contentHeight()}
         scrollX={false}
         verticalScrollbarOptions={{ visible: true }}
@@ -532,6 +583,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
             {(option) => {
               const index = () => options().findIndex((candidate) => candidate.value === option.value)
               const selected = () => active() === index()
+
               return (
                 <box
                   id={optionId(option.value)}
@@ -541,7 +593,11 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                   paddingRight={1}
                   backgroundColor={selected() ? theme().backgroundElement : undefined}
                   onMouseOver={() => setActive(index())}
-                  onMouseDown={() => select(option.value)}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onMouseUp={(event) => {
+                    event.stopPropagation()
+                    select(option.value)
+                  }}
                 >
                   <text flexShrink={0} attributes={selected() ? TextAttributes.BOLD : undefined} fg={theme().text}>
                     {option.title}
@@ -551,7 +607,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                   </text>
                   <Show when={SIDEBAR_SECTIONS.includes(option.value as SidebarSection)}>
                     <box flexDirection="row" flexShrink={0} gap={1}>
-                      <Show when={option.value === "quick_actions"}>
+                      <Show when={option.value === 'quick_actions'}>
                         <text
                           fg={theme().accent}
                           onMouseDown={(event) => event.stopPropagation()}
@@ -560,7 +616,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                             openQuickActions()
                           }}
                         >
-                          Actions
+                          {icons.icon('actions')} Actions
                         </text>
                       </Show>
                       <text
@@ -571,7 +627,8 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                           openLimitPrompt(option.value as SidebarSection)
                         }}
                       >
-                        Items: {props.preferences.selectedSectionItemLimit?.(option.value as SidebarSection) || "All"}
+                        {icons.icon('todo')} Items:{' '}
+                        {props.preferences.selectedSectionItemLimit?.(option.value as SidebarSection) || 'All'}
                       </text>
                       <text
                         fg={theme().accent}
@@ -580,7 +637,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                           reorder(option.value, -1)
                         }}
                       >
-                        ↑
+                        {icons.icon('up')}
                       </text>
                       <text
                         fg={theme().accent}
@@ -589,7 +646,7 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
                           reorder(option.value, 1)
                         }}
                       >
-                        ↓
+                        {icons.icon('down')}
                       </text>
                     </box>
                   </Show>
@@ -605,6 +662,8 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
 }
 
 export function openSettings(api: TuiPluginApi, preferences: PreferencesController, activeValue?: string) {
-  api.ui.dialog.replace(() => <SettingsDialog api={api} preferences={preferences} activeValue={activeValue} />)
-  api.ui.dialog.setSize("xlarge")
+  createDialogStack(api, preferences.lspIconStyle).open(
+    () => <SettingsDialog api={api} preferences={preferences} activeValue={activeValue} />,
+    'xlarge',
+  )
 }

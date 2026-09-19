@@ -1,24 +1,37 @@
-import type { TuiPluginApi, TuiSidebarLspItem, TuiSidebarMcpItem } from "@opencode-ai/plugin/tui"
-import { type BoxRenderable, TextAttributes } from "@opentui/core"
-import { createEffect, createMemo, createSignal, For, type JSX, onCleanup, Show, untrack } from "solid-js"
-import { QUICK_ACTIONS } from "../constants"
-import { createListVisibility } from "../controllers/list-visibility"
-import { currentLocation } from "../location"
-import { ListVisibilityControl } from "./list-visibility"
-import { buildTodoView, type TodoViewMode } from "../todo-view"
-import { buildSubagentView, createSubagentClock, formatSubagentDuration, type SubagentViewItem } from "../subagent-view"
-import { matchingMcpPreset, type McpController } from "../controllers/mcp"
-import type { PreferencesController } from "../controllers/preferences"
-import type { SkillController, SkillInfo } from "../controllers/skills"
-import type { SubagentController } from "../controllers/subagents"
-import type { SidebarTodo, TodoController } from "../controllers/todo"
-import { isAbortError, type TargetRequestState } from "../controllers/request-state"
-import { SkillDialog } from "../dialogs/skill"
-import { openMcpPresets } from "../dialogs/mcp-presets"
-import { lspIcon, lspIconName, type LspIconStyle } from "../icons/lsp"
-import { offsetSidebarOrder, type SidebarInteraction, type SidebarOrder } from "../sidebar-interaction"
-import { mcpToggleAction } from "../state"
-import { matchesFilter, Section, SectionFilter, SectionWithHeaderAction, useSidebarItem } from "./common"
+import { type BoxRenderable, TextAttributes } from '@opentui/core'
+import { For, type JSX, Show, createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js'
+
+import { PLUGIN_ID, QUICK_ACTIONS } from '../constants'
+import { createListVisibility } from '../controllers/list-visibility'
+import { type McpController, matchingMcpPreset } from '../controllers/mcp'
+import { type TargetRequestState, isAbortError } from '../controllers/request-state'
+import { useDialogs } from '../dialogs/context'
+import { LspDetailsDialog } from '../dialogs/lsp'
+import { openMcpPresets } from '../dialogs/mcp-presets'
+import { SkillDialog } from '../dialogs/skill'
+import { useIcons } from '../icons/context'
+import { type LspIconStyle, lspIcon, lspIconName } from '../icons/lsp'
+import { currentLocation } from '../location'
+import { type SidebarInteraction, type SidebarOrder, offsetSidebarOrder } from '../sidebar-interaction'
+import { mcpToggleAction } from '../state'
+import {
+  type SubagentViewItem,
+  type SubagentViewMode,
+  buildSubagentView,
+  createSubagentClock,
+  filterSubagentView,
+  formatSubagentDuration,
+} from '../subagent-view'
+import { type TodoViewMode, buildTodoView } from '../todo-view'
+
+import { Section, SectionFilter, SectionWithHeaderAction, matchesFilter, useSidebarItem } from './common'
+import { ListVisibilityControl } from './list-visibility'
+
+import type { PreferencesController } from '../controllers/preferences'
+import type { SkillController, SkillInfo } from '../controllers/skills'
+import type { SubagentController } from '../controllers/subagents'
+import type { SidebarTodo, TodoController } from '../controllers/todo'
+import type { TuiPluginApi, TuiSidebarLspItem, TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
 
 function RequestErrorRow(props: {
   api: TuiPluginApi
@@ -28,13 +41,15 @@ function RequestErrorRow(props: {
   state: TargetRequestState
   onRetry: () => void
 }) {
+  const icons = useIcons()
   const item = useSidebarItem(props.api, props.interaction, {
     id: props.id,
     order: () => props.order,
     disabled: () =>
-      !props.state.error?.retryable || props.state.status === "loading" || props.state.status === "refreshing",
+      !props.state.error?.retryable || props.state.status === 'loading' || props.state.status === 'refreshing',
     activate: props.onRetry,
   })
+
   return (
     <Show when={props.state.error}>
       {(error) => (
@@ -58,11 +73,11 @@ function RequestErrorRow(props: {
             fg={item.focused() ? item.foregroundColor() : props.api.theme.current.error}
             wrapMode="word"
           >
-            {error().message}
+            {icons.icon('error')} {error().message}
           </text>
           <Show when={error().retryable}>
             <text flexShrink={0} fg={item.focused() ? item.foregroundColor() : props.api.theme.current.accent}>
-              Retry
+              {icons.icon('retry')} Retry
             </text>
           </Show>
         </box>
@@ -83,7 +98,9 @@ function SectionRequestBody(props: {
   onRetry: () => void
   children: JSX.Element
 }) {
-  const pending = () => props.state.status === "loading" || props.state.status === "refreshing"
+  const icons = useIcons()
+  const pending = () => props.state.status === 'loading' || props.state.status === 'refreshing'
+
   return (
     <box>
       <RequestErrorRow
@@ -95,33 +112,43 @@ function SectionRequestBody(props: {
         onRetry={props.onRetry}
       />
       <Show when={pending() && !props.hasItems}>
-        <text fg={props.api.theme.current.textMuted}>{props.loading}</text>
+        <text fg={props.api.theme.current.textMuted}>
+          {icons.icon('pending')} {props.loading}
+        </text>
       </Show>
-      <Show when={props.state.status === "refreshing" && props.hasItems}>
-        <text fg={props.api.theme.current.textMuted}>Refreshing…</text>
+      <Show when={props.state.status === 'refreshing' && props.hasItems}>
+        <text fg={props.api.theme.current.textMuted}>{icons.icon('retry')} Refreshing…</text>
       </Show>
       <Show when={props.hasItems}>{props.children}</Show>
-      <Show when={props.state.status === "ready" && !props.hasItems && !props.state.error}>
-        <text fg={props.api.theme.current.textMuted}>{props.empty}</text>
+      <Show when={props.state.status === 'ready' && !props.hasItems && !props.state.error}>
+        <text fg={props.api.theme.current.textMuted}>
+          {icons.icon('info')} {props.empty}
+        </text>
       </Show>
     </box>
   )
 }
 
 function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
+  const icons = useIcons()
   const theme = () => props.api.theme.current
-  const done = () => props.item.status === "completed"
-  const active = () => props.item.status === "in_progress"
-  const cancelled = () => props.item.status === "cancelled"
+  const done = () => props.item.status === 'completed'
+  const active = () => props.item.status === 'in_progress'
+  const cancelled = () => props.item.status === 'cancelled'
   const priorityLabel = () => {
-    if (props.item.priority === "high") return "↑"
-    if (props.item.priority === "medium") return "•"
-    if (props.item.priority === "low") return "↓"
-    return "?"
+    if (props.item.priority === 'high') return icons.icon('up')
+
+    if (props.item.priority === 'medium') return icons.icon('priorityMedium')
+
+    if (props.item.priority === 'low') return icons.icon('down')
+
+    return icons.icon('help')
   }
   const priorityColor = () => {
-    if (props.item.priority === "high") return theme().error
-    if (props.item.priority === "medium") return theme().warning
+    if (props.item.priority === 'high') return theme().error
+
+    if (props.item.priority === 'medium') return theme().warning
+
     return theme().info
   }
 
@@ -131,7 +158,7 @@ function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
         flexShrink={0}
         fg={active() ? theme().warning : done() ? theme().success : cancelled() ? theme().error : theme().textMuted}
       >
-        {done() ? "✓" : active() ? "●" : cancelled() ? "×" : "○"}
+        {icons.icon(done() ? 'done' : active() ? 'busy' : cancelled() ? 'close' : 'idle')}
       </text>
       <text
         flexGrow={1}
@@ -141,7 +168,7 @@ function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
       >
         {props.item.content}
       </text>
-      <Show when={props.item.priority === "high" || props.item.priority === "medium" || props.item.priority === "low"}>
+      <Show when={props.item.priority === 'high' || props.item.priority === 'medium' || props.item.priority === 'low'}>
         <text flexShrink={0} fg={priorityColor()}>
           <b>{priorityLabel()}</b>
         </text>
@@ -158,25 +185,29 @@ export function TodoSection(props: {
   sessionID: string
   order?: number
 }) {
+  const icons = useIcons()
   const list = createMemo(() => props.controller.list(props.sessionID))
-  const [mode, setMode] = createSignal<TodoViewMode>("all")
+  const [mode, setMode] = createSignal<TodoViewMode>('all')
   const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
+
   createEffect(() => {
     targetKey()
-    setMode("all")
+    setMode('all')
   })
   const view = createMemo(() => buildTodoView(list(), mode()))
   const visibility = createListVisibility({
     items: () => view().rows,
-    limit: () => props.preferences.sectionItemLimit?.("todo") ?? 0,
+    limit: () => props.preferences.sectionItemLimit?.('todo') ?? 0,
     resetKey: () => JSON.stringify([targetKey(), mode()]),
   })
   const state = createMemo(() => props.controller.state(props.sessionID))
 
   createEffect(() => {
     const sessionID = props.sessionID
+
     targetKey()
     const deactivate = untrack(() => props.controller.activate?.(sessionID) ?? (() => {}))
+
     onCleanup(deactivate)
     untrack(() => void props.controller.refresh(sessionID).catch(() => {}))
   })
@@ -185,17 +216,18 @@ export function TodoSection(props: {
     <Section
       api={props.api}
       interaction={props.interaction}
-      sectionId="opencode-pretty-sidebar.section.todo"
+      sectionId={`${PLUGIN_ID}.section.todo`}
       order={props.order ?? 100}
       title="TODO"
+      section="todo"
       summary={`${view().counts.completed}/${list().length}`}
       open={props.preferences.expanded().todo}
-      onToggle={() => props.preferences.toggleSectionExpanded("todo")}
+      onToggle={() => props.preferences.toggleSectionExpanded('todo')}
     >
       <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
-        id="opencode-pretty-sidebar.retry.todo"
+        id={`${PLUGIN_ID}.retry.todo`}
         order={[props.order ?? 100, 1]}
         state={state()}
         hasItems={list().length > 0}
@@ -205,14 +237,14 @@ export function TodoSection(props: {
       >
         <box gap={1}>
           <box flexDirection="row" flexWrap="wrap">
-            <For each={["all", "active", "finished"] as const}>
+            <For each={['all', 'active', 'finished'] as const}>
               {(value, index) => (
                 <McpBulkAction
                   api={props.api}
                   interaction={props.interaction}
-                  id={`opencode-pretty-sidebar.todo.filter.${value}`}
+                  id={`${PLUGIN_ID}.todo.filter.${value}`}
                   order={[props.order ?? 100, 2 + index()]}
-                  label={`${mode() === value ? "● " : ""}${value[0].toUpperCase() + value.slice(1)} ${view().counts[value]}`}
+                  label={`${mode() === value ? `${icons.icon('radioOn')} ` : ''}${value[0].toUpperCase() + value.slice(1)} ${view().counts[value]}`}
                   disabled={false}
                   onActivate={() => setMode(value)}
                 />
@@ -223,7 +255,7 @@ export function TodoSection(props: {
             when={view().rows.length > 0}
             fallback={
               <text fg={props.api.theme.current.textMuted}>
-                {mode() === "active" ? "No active tasks" : "No finished tasks"}
+                {mode() === 'active' ? 'No active tasks' : 'No finished tasks'}
               </text>
             }
           >
@@ -261,12 +293,13 @@ function SubagentRow(props: {
   order: SidebarOrder
   onOpen: () => void
 }) {
+  const icons = useIcons()
   const theme = () => props.api.theme.current
-  const retrying = () => props.item.status.type === "retry"
-  const idle = () => props.item.status.type === "idle"
-  const failed = () => props.item.run?.outcome === "error"
-  const cancelled = () => props.item.run?.outcome === "cancelled"
-  const id = () => `opencode-pretty-sidebar.subagent.${props.item.session.id}`
+  const retrying = () => props.item.status.type === 'retry'
+  const idle = () => props.item.status.type === 'idle'
+  const failed = () => props.item.run?.outcome === 'error'
+  const cancelled = () => props.item.run?.outcome === 'cancelled'
+  const id = () => `${PLUGIN_ID}.subagent.${props.item.session.id}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
     order: () => props.order,
@@ -299,7 +332,7 @@ function SubagentRow(props: {
                     : theme().primary
           }
         >
-          {failed() ? "!" : cancelled() ? "×" : retrying() ? "↻" : idle() ? "○" : "●"}
+          {icons.icon(failed() ? 'error' : cancelled() ? 'close' : retrying() ? 'retry' : idle() ? 'idle' : 'busy')}
         </text>
         <text flexGrow={1} fg={row.foregroundColor()} wrapMode="word">
           {props.item.session.title}
@@ -311,21 +344,21 @@ function SubagentRow(props: {
                 props.item.run.finishedAt ?? props.now,
                 props.item.run.startedBeforeObservation,
               )
-            : ""}
+            : ''}
         </text>
       </box>
       <Show when={props.item.run?.errorMessage}>
         <text fg={row.focused() ? row.foregroundColor() : failed() ? theme().error : theme().textMuted} wrapMode="word">
-          {cancelled() ? "Cancelled" : "Error"}: {props.item.run?.errorMessage}
+          {cancelled() ? 'Cancelled' : 'Error'}: {props.item.run?.errorMessage}
         </text>
       </Show>
       <Show when={props.item.unavailable}>
         <text fg={theme().warning}>Worker status unavailable</text>
       </Show>
-      <Show when={props.item.status.type === "retry" ? props.item.status : undefined}>
+      <Show when={props.item.status.type === 'retry' ? props.item.status : undefined}>
         {(status) => (
           <text fg={row.focused() ? row.foregroundColor() : theme().warning} wrapMode="word">
-            Retry #{status().attempt} · {Math.max(0, Math.ceil((status().next - props.now) / 1000))}s ·{" "}
+            Retry #{status().attempt} · {Math.max(0, Math.ceil((status().next - props.now) / 1000))}s ·{' '}
             {status().message}
           </text>
         )}
@@ -345,17 +378,28 @@ export function SubagentSection(props: {
   sessionID: string
   order?: number
 }) {
+  const icons = useIcons()
   const list = createMemo(() => props.controller.list(props.sessionID))
   const recent = createMemo(() => props.controller.recent?.(props.sessionID) ?? [])
   const rows = createMemo(() => buildSubagentView(list(), recent()))
+  const [query, setQuery] = createSignal('')
+  const [mode, setMode] = createSignal<SubagentViewMode>('all')
+  const filtered = createMemo(() => filterSubagentView(rows(), mode(), query()))
+  const parentID = createMemo(() => props.api.state?.session?.get(props.sessionID)?.parentID)
   const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
+
+  createEffect(() => {
+    targetKey()
+    setQuery('')
+    setMode('all')
+  })
   const visibility = createListVisibility({
-    items: rows,
-    limit: () => props.preferences.sectionItemLimit?.("subagents") ?? 0,
-    resetKey: targetKey,
+    items: filtered,
+    limit: () => props.preferences.sectionItemLimit?.('subagents') ?? 0,
+    resetKey: () => JSON.stringify([targetKey(), query(), mode()]),
   })
   const clockKey = createMemo(() =>
-    props.preferences.expanded().subagents && visibility.visible().some((item) => item.status.type !== "idle")
+    props.preferences.expanded().subagents && visibility.visible().some((item) => item.status.type !== 'idle')
       ? targetKey()
       : undefined,
   )
@@ -366,8 +410,10 @@ export function SubagentSection(props: {
 
   createEffect(() => {
     const sessionID = props.sessionID
+
     targetKey()
     const deactivate = untrack(() => props.controller.activate?.(sessionID) ?? (() => {}))
+
     onCleanup(deactivate)
     untrack(() => void props.controller.refresh(sessionID).catch(() => {}))
   })
@@ -376,17 +422,31 @@ export function SubagentSection(props: {
     <Section
       api={props.api}
       interaction={props.interaction}
-      sectionId="opencode-pretty-sidebar.section.subagents"
+      sectionId={`${PLUGIN_ID}.section.subagents`}
       order={props.order ?? 200}
       title="SUBAGENTS"
+      section="subagents"
       summary={`${list().length} active · ${recent().length} recent`}
       open={props.preferences.expanded().subagents}
-      onToggle={() => props.preferences.toggleSectionExpanded("subagents")}
+      onToggle={() => props.preferences.toggleSectionExpanded('subagents')}
     >
+      <Show when={parentID()}>
+        {(id) => (
+          <McpBulkAction
+            api={props.api}
+            interaction={props.interaction}
+            id={`${PLUGIN_ID}.subagents.parent`}
+            order={[props.order ?? 200, 0.5]}
+            label={`${icons.icon('up')} Parent session`}
+            disabled={false}
+            onActivate={() => props.controller.open(id())}
+          />
+        )}
+      </Show>
       <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
-        id="opencode-pretty-sidebar.retry.subagents"
+        id={`${PLUGIN_ID}.retry.subagents`}
         order={[props.order ?? 200, 1]}
         state={state()}
         hasItems={rows().length > 0}
@@ -395,10 +455,38 @@ export function SubagentSection(props: {
         onRetry={() => void props.controller.retry(props.sessionID)}
       >
         <box gap={1}>
+          <SectionFilter
+            api={props.api}
+            interaction={props.interaction}
+            id={`${PLUGIN_ID}.filter.subagents`}
+            order={[props.order ?? 200, 2]}
+            query={query()}
+            placeholder="Filter subagents..."
+            onInput={setQuery}
+          />
+          <box flexDirection="row" flexWrap="wrap">
+            <For each={['all', 'active', 'recent', 'errors'] as const}>
+              {(value, index) => (
+                <McpBulkAction
+                  api={props.api}
+                  interaction={props.interaction}
+                  id={`${PLUGIN_ID}.subagents.filter.${value}`}
+                  order={[props.order ?? 200, 3 + index()]}
+                  label={`${mode() === value ? `${icons.icon('radioOn')} ` : ''}${value[0].toUpperCase() + value.slice(1)}`}
+                  disabled={false}
+                  onActivate={() => setMode(value)}
+                />
+              )}
+            </For>
+          </box>
+          <Show when={filtered().length === 0}>
+            <text fg={props.api.theme.current.textMuted}>No matching subagents</text>
+          </Show>
           <For each={ids()}>
             {(id, index) => {
               const initial = byId().get(id)!
               const item = () => byId().get(id) ?? initial
+
               return (
                 <box gap={1}>
                   <Show when={index() === 0 || visibility.visible()[index() - 1]?.group !== item().group}>
@@ -444,13 +532,15 @@ function SkillRow(props: {
   onDetails: () => void
   onToggleFavorite: () => void
 }) {
+  const icons = useIcons()
   const theme = () => props.api.theme.current
-  const id = () => `opencode-pretty-sidebar.skill.${props.item.location || props.item.name}`
+  const id = () => `${PLUGIN_ID}.skill.${props.item.location || props.item.name}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
     order: () => props.order,
     activate: props.onUse,
   })
+
   function toggleFavorite() {
     props.onToggleFavorite()
     queueMicrotask(() => props.interaction?.select(`${id()}.favorite`))
@@ -482,7 +572,7 @@ function SkillRow(props: {
       onMouseUp={(event) => row.activate(event)}
     >
       <text flexShrink={0} fg={row.focused() ? row.foregroundColor() : theme().accent}>
-        {props.recent ? "◷" : "◆"}
+        {icons.icon(props.recent ? 'recent' : 'skills')}
       </text>
       <text flexGrow={1} fg={row.foregroundColor()} wrapMode="word">
         {props.item.name}
@@ -500,7 +590,7 @@ function SkillRow(props: {
           details.activate(event)
         }}
       >
-        <text fg={details.foregroundColor()}>i</text>
+        <text fg={details.foregroundColor()}>{icons.icon('info')}</text>
       </box>
       <box
         ref={(node: BoxRenderable) => favorite.ref(node)}
@@ -515,7 +605,9 @@ function SkillRow(props: {
           favorite.activate(event)
         }}
       >
-        <text fg={favorite.focused() ? favorite.foregroundColor() : theme().warning}>{props.favorite ? "★" : "☆"}</text>
+        <text fg={favorite.focused() ? favorite.foregroundColor() : theme().warning}>
+          {icons.icon(props.favorite ? 'favorite' : 'favoriteEmpty')}
+        </text>
       </box>
     </box>
   )
@@ -528,25 +620,29 @@ export function SkillsSection(props: {
   preferences: PreferencesController
   order?: number
 }) {
-  const [query, setQuery] = createSignal("")
+  const dialogs = useDialogs(props.api)
+  const [query, setQuery] = createSignal('')
   const target = createMemo(() => props.controller.target())
   const recent = createMemo(
     () => new Map((props.preferences.recentSkills?.() ?? []).map((location, index) => [location, index])),
   )
+
   function skillGroup(item: SkillInfo) {
-    return props.preferences.isFavoriteSkill?.(item) ? "favorite" : recent().has(item.location) ? "recent" : "other"
+    return props.preferences.isFavoriteSkill?.(item) ? 'favorite' : recent().has(item.location) ? 'recent' : 'other'
   }
   const list = createMemo(() => {
     const favorites = props.preferences.favoriteSkills?.() ?? new Set<string>()
+
     return [...props.controller.list(target())]
       .sort((left, right) => {
-        const leftFavorite = favorites.has(left.location)
-        const rightFavorite = favorites.has(right.location)
+        const isLeftFavorite = favorites.has(left.location)
+        const isRightFavorite = favorites.has(right.location)
+
         return (
-          Number(rightFavorite) - Number(leftFavorite) ||
-          (!leftFavorite
-            ? (recent().get(left.location) ?? Infinity) - (recent().get(right.location) ?? Infinity)
-            : 0) ||
+          Number(isRightFavorite) - Number(isLeftFavorite) ||
+          (isLeftFavorite
+            ? 0
+            : (recent().get(left.location) ?? Infinity) - (recent().get(right.location) ?? Infinity)) ||
           left.name.localeCompare(right.name)
         )
       })
@@ -555,7 +651,7 @@ export function SkillsSection(props: {
   const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name, item.description)))
   const visibility = createListVisibility({
     items: filtered,
-    limit: () => props.preferences.sectionItemLimit?.("skills") ?? 0,
+    limit: () => props.preferences.sectionItemLimit?.('skills') ?? 0,
     resetKey: () => JSON.stringify([target().key, query()]),
   })
   const state = createMemo(() => props.controller.state(target()))
@@ -563,20 +659,23 @@ export function SkillsSection(props: {
   createEffect(() => {
     const current = target()
     const deactivate = untrack(() => props.controller.activate?.(current) ?? (() => {}))
+
     onCleanup(deactivate)
     untrack(() => void props.controller.refresh(current).catch(() => {}))
   })
 
   async function useSkill(item: SkillInfo) {
     try {
-      const inserted = await props.controller.use(target(), item.name)
-      if (inserted) await props.preferences.recordSkillUse?.(item)
-    } catch (cause) {
-      if (isAbortError(cause)) return
+      const isInserted = await props.controller.use(target(), item.name)
+
+      if (isInserted) await props.preferences.recordSkillUse?.(item)
+    } catch (error) {
+      if (isAbortError(error)) return
+
       props.api.ui.toast({
-        variant: "error",
-        title: "Skills",
-        message: cause instanceof Error ? cause.message : `Failed to insert /${item.name}`,
+        variant: 'error',
+        title: 'Skills',
+        message: error instanceof Error ? error.message : `Failed to insert /${item.name}`,
         duration: 5000,
       })
     }
@@ -585,18 +684,21 @@ export function SkillsSection(props: {
   function selectSkill(item: SkillInfo) {
     if (!props.preferences.shouldConfirmSkill(item)) {
       void useSkill(item)
+
       return
     }
+
     showSkillDetails(item)
   }
 
   function showSkillDetails(item: SkillInfo) {
-    props.api.ui.dialog.replace(() => (
+    dialogs.open(() => (
       <SkillDialog
         api={props.api}
         skill={item}
         onAccept={(skipConfirmation) => {
           if (skipConfirmation) props.preferences.skipSkillConfirmation(item)
+
           void useSkill(item)
         }}
       />
@@ -607,17 +709,18 @@ export function SkillsSection(props: {
     <Section
       api={props.api}
       interaction={props.interaction}
-      sectionId="opencode-pretty-sidebar.section.skills"
+      sectionId={`${PLUGIN_ID}.section.skills`}
       order={props.order ?? 300}
       title="SKILLS"
-      summary={`${list().length}`}
+      section="skills"
+      summary={String(list().length)}
       open={props.preferences.expanded().skills}
-      onToggle={() => props.preferences.toggleSectionExpanded("skills")}
+      onToggle={() => props.preferences.toggleSectionExpanded('skills')}
     >
       <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
-        id="opencode-pretty-sidebar.retry.skills"
+        id={`${PLUGIN_ID}.retry.skills`}
         order={[props.order ?? 300, 1]}
         state={state()}
         hasItems={list().length > 0}
@@ -629,7 +732,7 @@ export function SkillsSection(props: {
           <SectionFilter
             api={props.api}
             interaction={props.interaction}
-            id="opencode-pretty-sidebar.filter.skills"
+            id={`${PLUGIN_ID}.filter.skills`}
             order={[props.order ?? 300, 2]}
             query={query()}
             placeholder="Filter skills..."
@@ -678,12 +781,14 @@ function QuickActionRow(props: {
   action: (typeof QUICK_ACTIONS)[number]
   order: SidebarOrder
 }) {
+  const icons = useIcons()
   const theme = () => props.api.theme.current
   const shortcut = createMemo(() => {
     const bindings = props.api.keymap.getCommandBindings({
-      visibility: "registered",
+      visibility: 'registered',
       commands: [props.action.command],
     })
+
     return props.api.keys.formatBindings(bindings.get(props.action.command))
   })
 
@@ -691,15 +796,17 @@ function QuickActionRow(props: {
     const result = props.interaction
       ? props.interaction.dispatchFromReturnTarget(props.action.command)
       : props.api.keymap.dispatchCommand(props.action.command)
+
     if (result.ok) return
+
     props.api.ui.toast({
-      variant: "warning",
+      variant: 'warning',
       title: props.action.label,
       message: `Command is ${result.reason}`,
       duration: 3000,
     })
   }
-  const id = () => `opencode-pretty-sidebar.quick-action.${props.action.command}`
+  const id = () => `${PLUGIN_ID}.quick-action.${props.action.command}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
     order: () => props.order,
@@ -720,7 +827,7 @@ function QuickActionRow(props: {
       onMouseDown={(event) => row.activate(event)}
     >
       <text flexShrink={0} fg={row.focused() ? row.foregroundColor() : theme().accent}>
-        {props.action.icon}
+        {icons.action(props.action.command)}
       </text>
       <text flexGrow={1} fg={row.foregroundColor()}>
         {props.action.label}
@@ -745,24 +852,27 @@ export function QuickActionsSection(props: {
   const actions = createMemo(() =>
     (props.preferences.quickActionOrder?.() ?? QUICK_ACTIONS.map((action) => action.command)).flatMap((id) => {
       const action = QUICK_ACTIONS.find((candidate) => candidate.command === id)
+
       return action && props.preferences.quickActionVisible?.(id) !== false ? [{ ...action }] : []
     }),
   )
   const visibility = createListVisibility({
     items: actions,
-    limit: () => props.preferences.sectionItemLimit?.("quick_actions") ?? 0,
+    limit: () => props.preferences.sectionItemLimit?.('quick_actions') ?? 0,
     resetKey: () => currentLocation(props.api).key,
   })
+
   return (
     <Section
       api={props.api}
       interaction={props.interaction}
-      sectionId="opencode-pretty-sidebar.section.quick_actions"
+      sectionId={`${PLUGIN_ID}.section.quick_actions`}
       order={props.order ?? 400}
       title="QUICK ACTIONS"
-      summary={`${actions().length}`}
+      section="quick_actions"
+      summary={String(actions().length)}
       open={props.preferences.expanded().quick_actions}
-      onToggle={() => props.preferences.toggleSectionExpanded("quick_actions")}
+      onToggle={() => props.preferences.toggleSectionExpanded('quick_actions')}
     >
       <box>
         <Show when={actions().length === 0}>
@@ -796,15 +906,19 @@ export function LspBadge(props: {
   id: string
   navigationId?: string
   order?: SidebarOrder
-  status: TuiSidebarLspItem["status"]
-  iconStyle: LspIconStyle
+  status: TuiSidebarLspItem['status']
+  iconStyle?: LspIconStyle
+  onOpen?: () => void
 }) {
-  const known = lspIconName(props.id) !== undefined
+  const icons = useIcons()
+  const isKnown = lspIconName(props.id) !== undefined
   const [showName, setShowName] = createSignal(false)
   const statusColor = () =>
-    props.status === "connected" ? props.api.theme.current.success : props.api.theme.current.error
+    props.status === 'connected' ? props.api.theme.current.success : props.api.theme.current.error
 
-  if (!known) {
+  if (!isKnown && !props.onOpen) {
+    // Legacy badges without an action stay noninteractive for their mounted lifetime.
+    // eslint-disable-next-line solid/components-return-once
     return (
       <text flexShrink={1} fg={statusColor()} wrapMode="none">
         {props.id}
@@ -816,9 +930,9 @@ export function LspBadge(props: {
     props.api,
     props.interaction,
     {
-      id: props.navigationId ?? `opencode-pretty-sidebar.lsp.${props.id}`,
+      id: props.navigationId ?? `${PLUGIN_ID}.lsp.${props.id}`,
       order: () => props.order ?? 0,
-      activate: () => setShowName((value) => !value),
+      activate: () => (props.onOpen ? props.onOpen() : setShowName((value) => !value)),
     },
     statusColor,
   )
@@ -826,7 +940,7 @@ export function LspBadge(props: {
   return (
     <box
       ref={(node: BoxRenderable) => item.ref(node)}
-      id={props.navigationId ?? `opencode-pretty-sidebar.lsp.${props.id}`}
+      id={props.navigationId ?? `${PLUGIN_ID}.lsp.${props.id}`}
       flexDirection="row"
       gap={1}
       flexShrink={0}
@@ -835,10 +949,19 @@ export function LspBadge(props: {
       backgroundColor={item.backgroundColor()}
       onMouseOver={item.onMouseOver}
       onMouseOut={item.onMouseOut}
-      onMouseDown={(event) => item.activate(event)}
+      onMouseDown={(event) => {
+        event.stopPropagation()
+
+        if (!props.onOpen) item.activate(event)
+      }}
+      onMouseUp={(event) => {
+        event.stopPropagation()
+
+        if (props.onOpen) item.activate(event)
+      }}
     >
       <text flexShrink={0} fg={item.foregroundColor()}>
-        {lspIcon(props.id, props.iconStyle)}
+        {lspIcon(props.id, props.iconStyle ?? icons.style())}
       </text>
       <Show when={showName()}>
         <text
@@ -855,36 +978,44 @@ export function LspBadge(props: {
 
 export function LspSection(props: {
   api: TuiPluginApi
-  iconStyle: LspIconStyle
   preferences: PreferencesController
   interaction?: SidebarInteraction
   order?: number
 }) {
-  const list = createMemo(() => props.api.state.lsp())
+  const dialogs = useDialogs(props.api)
+  const list = createMemo(() =>
+    [...props.api.state.lsp()].sort(
+      (a, b) =>
+        Number(b.status === 'error') - Number(a.status === 'error') ||
+        a.id.localeCompare(b.id) ||
+        a.root.localeCompare(b.root),
+    ),
+  )
   const visibility = createListVisibility({
     items: list,
-    limit: () => props.preferences.sectionItemLimit?.("lsp") ?? 0,
+    limit: () => props.preferences.sectionItemLimit?.('lsp') ?? 0,
     resetKey: () => currentLocation(props.api).key,
   })
-  const connected = createMemo(() => list().filter((item) => item.status === "connected").length)
-  const disabled = createMemo(() => !props.api.state.config.lsp)
+  const connected = createMemo(() => list().filter((item) => item.status === 'connected').length)
+  const disabled = createMemo(() => props.api.state.config.lsp === false)
 
   return (
     <Section
       api={props.api}
       interaction={props.interaction}
-      sectionId="opencode-pretty-sidebar.section.lsp"
+      sectionId={`${PLUGIN_ID}.section.lsp`}
       order={props.order ?? 500}
       title="LSP"
+      section="lsp"
       summary={`${connected()}/${list().length}`}
       open={props.preferences.expanded().lsp}
-      onToggle={() => props.preferences.toggleSectionExpanded("lsp")}
+      onToggle={() => props.preferences.toggleSectionExpanded('lsp')}
     >
       <Show
         when={list().length > 0}
         fallback={
           <text fg={props.api.theme.current.textMuted}>
-            {disabled() ? "LSP is disabled" : "Activates as files are read"}
+            {disabled() ? 'LSP is disabled' : 'Activates as files are read'}
           </text>
         }
       >
@@ -895,10 +1026,12 @@ export function LspSection(props: {
                 api={props.api}
                 interaction={props.interaction}
                 id={item.id}
-                navigationId={`opencode-pretty-sidebar.lsp.${item.id}.${item.root}`}
+                navigationId={`${PLUGIN_ID}.lsp.${item.id}.${item.root}`}
                 order={[props.order ?? 500, 10 + index() * 2]}
                 status={item.status}
-                iconStyle={props.iconStyle}
+                onOpen={() => {
+                  dialogs.open(() => <LspDetailsDialog api={props.api} server={item} />)
+                }}
               />
             )}
           </For>
@@ -917,15 +1050,18 @@ export function LspSection(props: {
 
 function mcpColor(api: TuiPluginApi, status: string) {
   const theme = api.theme.current
-  if (status === "connected") return theme.success
-  if (status === "failed" || status === "needs_client_registration") return theme.error
-  if (status === "needs_auth") return theme.warning
+
+  if (status === 'connected') return theme.success
+
+  if (status === 'failed' || status === 'needs_client_registration') return theme.error
+
+  if (status === 'needs_auth') return theme.warning
+
   return theme.textMuted
 }
 
 function mcpToggle(status: string, busy: boolean) {
-  if (busy || status === "pending") return "◍"
-  return status === "connected" ? "◉" : "○"
+  return busy || status === 'pending' ? 'pending' : status === 'connected' ? 'connected' : 'disconnected'
 }
 
 function McpRow(props: {
@@ -937,17 +1073,31 @@ function McpRow(props: {
   disabled: boolean
   onToggle: () => void
   onRetry: () => void
+  favorite: boolean
+  favoriteDisabled: boolean
+  separator: boolean
+  onToggleFavorite: () => void
 }) {
+  const icons = useIcons()
   const theme = () => props.api.theme.current
-  const busy = () => props.state.status === "loading" || props.state.status === "refreshing"
+  const busy = () => props.state.status === 'loading' || props.state.status === 'refreshing'
   const error = () => props.state.error
   const disabled = () => props.disabled || busy()
-  const id = () => `opencode-pretty-sidebar.mcp.${props.item.name}`
+  const id = () => `${PLUGIN_ID}.mcp.${props.item.name}`
   const row = useSidebarItem(props.api, props.interaction, {
     id: id(),
     order: () => props.order,
     disabled,
     activate: props.onToggle,
+  })
+  const star = useSidebarItem(props.api, props.interaction, {
+    id: `${id()}.favorite`,
+    order: () => offsetSidebarOrder(props.order, 0.25),
+    disabled: () => props.favoriteDisabled,
+    activate: () => {
+      props.onToggleFavorite()
+      queueMicrotask(() => props.interaction?.select(`${id()}.favorite`))
+    },
   })
 
   return (
@@ -959,6 +1109,7 @@ function McpRow(props: {
       paddingRight={1}
       paddingTop={props.item.error || error() ? 1 : 0}
       paddingBottom={props.item.error || error() ? 1 : 0}
+      marginTop={props.separator ? 1 : 0}
       onMouseOver={row.onMouseOver}
       onMouseOut={row.onMouseOut}
       onMouseDown={(event) => row.activate(event)}
@@ -968,7 +1119,7 @@ function McpRow(props: {
           fg={
             row.focused() || disabled()
               ? row.foregroundColor()
-              : props.item.status === "connected"
+              : props.item.status === 'connected'
                 ? theme().text
                 : theme().textMuted
           }
@@ -976,9 +1127,27 @@ function McpRow(props: {
         >
           {props.item.name}
         </text>
-        <text flexShrink={0} fg={row.focused() ? row.foregroundColor() : mcpColor(props.api, props.item.status)}>
-          <b>{mcpToggle(props.item.status, busy())}</b>
-        </text>
+        <box flexDirection="row" flexShrink={0} gap={1}>
+          <text fg={row.focused() ? row.foregroundColor() : mcpColor(props.api, props.item.status)}>
+            <b>{icons.icon(mcpToggle(props.item.status, busy()))}</b>
+          </text>
+          <box
+            ref={star.ref}
+            id={`${id()}.favorite`}
+            backgroundColor={star.backgroundColor()}
+            onMouseOver={star.onMouseOver}
+            onMouseOut={star.onMouseOut}
+            onMouseDown={(event) => event.stopPropagation()}
+            onMouseUp={(event) => {
+              event.stopPropagation()
+              star.activate(event)
+            }}
+          >
+            <text fg={star.focused() || props.favoriteDisabled ? star.foregroundColor() : theme().warning}>
+              {icons.icon(props.favorite ? 'favorite' : 'favoriteEmpty')}
+            </text>
+          </box>
+        </box>
       </box>
       <Show when={props.item.error}>
         <text fg={row.focused() ? row.foregroundColor() : theme().error} wrapMode="word">
@@ -1012,6 +1181,7 @@ function McpBulkAction(props: {
     disabled: () => props.disabled,
     activate: props.onActivate,
   })
+
   return (
     <box
       ref={(node: BoxRenderable) => item.ref(node)}
@@ -1035,42 +1205,51 @@ export function McpSection(props: {
   preferences: PreferencesController
   order?: number
 }) {
-  const [query, setQuery] = createSignal("")
+  const icons = useIcons()
+  const [query, setQuery] = createSignal('')
   const target = createMemo(() => props.controller.target())
-  const list = createMemo(() => props.controller.list(target()))
+  const favorites = createMemo(() => props.preferences.favoriteMcpServers?.() ?? new Set<string>())
+  const list = createMemo(() =>
+    [...props.controller.list(target())]
+      .sort((a, b) => Number(favorites().has(b.name)) - Number(favorites().has(a.name)) || a.name.localeCompare(b.name))
+      .map((item) => ({ ...item })),
+  )
   const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name)))
   const visibility = createListVisibility({
     items: filtered,
-    limit: () => props.preferences.sectionItemLimit?.("mcp") ?? 0,
+    limit: () => props.preferences.sectionItemLimit?.('mcp') ?? 0,
     resetKey: () => JSON.stringify([target().key, query()]),
   })
-  const active = createMemo(() => list().filter((item) => item.status === "connected").length)
+  const active = createMemo(() => list().filter((item) => item.status === 'connected').length)
   const state = createMemo(() => props.controller.state(target()))
   const bulk = createMemo(
     () =>
       props.controller.bulkState?.(target()) ?? {
-        action: "connect" as const,
-        status: "idle" as const,
+        action: 'connect' as const,
+        status: 'idle' as const,
         completed: 0,
         total: 0,
         failed: [],
       },
   )
-  const bulkRunning = createMemo(() => bulk().status === "running")
-  const mutationRunning = createMemo(() => props.controller.mutating?.(target()) === true)
-  const connectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === "connect").length)
-  const disconnectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === "disconnect").length)
+  const bulkRunning = createMemo(() => bulk().status === 'running')
+  const mutationRunning = createMemo(() => props.controller.mutating?.(target()))
+  const connectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === 'connect').length)
+  const disconnectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === 'disconnect').length)
   const errors = createMemo(
     () =>
       list().filter(
         (item) =>
-          item.status === "failed" || item.status === "needs_auth" || item.status === "needs_client_registration",
+          item.status === 'failed' || item.status === 'needs_auth' || item.status === 'needs_client_registration',
       ).length,
   )
-  const summary = createMemo(() => `${active()}/${list().length}${errors() ? ` · ${errors()}!` : ""}`)
+  const summary = createMemo(
+    () => `${active()}/${list().length}${errors() ? ` · ${errors()} ${icons.icon('error')}` : ''}`,
+  )
   const presetName = createMemo(() => {
     const presets = props.preferences.mcpPresets?.() ?? {}
     const selected = props.controller.selectedPreset?.(target())
+
     return selected && Object.hasOwn(presets, selected) ? selected : matchingMcpPreset(list(), presets)
   })
 
@@ -1082,24 +1261,25 @@ export function McpSection(props: {
     <SectionWithHeaderAction
       api={props.api}
       interaction={props.interaction}
-      sectionId="opencode-pretty-sidebar.section.mcp"
+      sectionId={`${PLUGIN_ID}.section.mcp`}
       order={props.order ?? 600}
       title="MCP"
+      section="mcp"
       summary={summary()}
       headerAction={{
-        id: "opencode-pretty-sidebar.mcp.presets",
+        id: `${PLUGIN_ID}.mcp.presets`,
         order: [props.order ?? 600, 0.5],
-        label: () => (presetName() ? `Preset: ${presetName()}` : "Preset"),
+        label: () => `${icons.icon('presets')} ${presetName() ? `Preset: ${presetName()}` : 'Preset'}`,
         disabled: () => bulkRunning() || mutationRunning() || props.preferences.ready?.() === false,
         onActivate: () => openMcpPresets(props.api, props.controller, props.preferences),
       }}
       open={props.preferences.expanded().mcp}
-      onToggle={() => props.preferences.toggleSectionExpanded("mcp")}
+      onToggle={() => props.preferences.toggleSectionExpanded('mcp')}
     >
       <SectionRequestBody
         api={props.api}
         interaction={props.interaction}
-        id="opencode-pretty-sidebar.retry.mcp"
+        id={`${PLUGIN_ID}.retry.mcp`}
         order={[props.order ?? 600, 1]}
         state={state()}
         hasItems={list().length > 0}
@@ -1108,43 +1288,43 @@ export function McpSection(props: {
         onRetry={() => void props.controller.retry(target())}
       >
         <box>
-          <box flexDirection="row" gap={1} paddingBottom={bulkRunning() || bulk().status === "error" ? 1 : 0}>
+          <box flexDirection="row" gap={1} paddingBottom={bulkRunning() || bulk().status === 'error' ? 1 : 0}>
             <McpBulkAction
               api={props.api}
               interaction={props.interaction}
-              id="opencode-pretty-sidebar.mcp.connect-all"
+              id={`${PLUGIN_ID}.mcp.connect-all`}
               order={[props.order ?? 600, 2]}
-              label="Connect all"
+              label={`${icons.icon('connected')} Connect all`}
               disabled={bulkRunning() || mutationRunning() || connectable() === 0}
               onActivate={() => void props.controller.connectAll(target())}
             />
             <McpBulkAction
               api={props.api}
               interaction={props.interaction}
-              id="opencode-pretty-sidebar.mcp.disconnect-all"
+              id={`${PLUGIN_ID}.mcp.disconnect-all`}
               order={[props.order ?? 600, 3]}
-              label="Disconnect all"
+              label={`${icons.icon('disconnected')} Disconnect all`}
               disabled={bulkRunning() || mutationRunning() || disconnectable() === 0}
               onActivate={() => void props.controller.disconnectAll(target())}
             />
           </box>
           <Show when={bulkRunning()}>
             <text fg={props.api.theme.current.textMuted}>
-              {bulk().action === "connect"
-                ? "Connecting"
-                : bulk().action === "disconnect"
-                  ? "Disconnecting"
-                  : `Applying ${bulk().preset}`}{" "}
+              {bulk().action === 'connect'
+                ? 'Connecting'
+                : bulk().action === 'disconnect'
+                  ? 'Disconnecting'
+                  : `Applying ${bulk().preset}`}{' '}
               {bulk().completed}/{bulk().total}…
             </text>
           </Show>
-          <Show when={bulk().status === "error"}>
+          <Show when={bulk().status === 'error'}>
             <McpBulkAction
               api={props.api}
               interaction={props.interaction}
-              id="opencode-pretty-sidebar.mcp.retry-all"
+              id={`${PLUGIN_ID}.mcp.retry-all`}
               order={[props.order ?? 600, 4]}
-              label={`Retry ${bulk().failed.length} failed`}
+              label={`${icons.icon('retry')} Retry ${bulk().failed.length} failed`}
               disabled={false}
               onActivate={() => void props.controller.retryBulk(target())}
             />
@@ -1152,7 +1332,7 @@ export function McpSection(props: {
           <SectionFilter
             api={props.api}
             interaction={props.interaction}
-            id="opencode-pretty-sidebar.filter.mcp"
+            id={`${PLUGIN_ID}.filter.mcp`}
             order={[props.order ?? 600, 5]}
             query={query()}
             placeholder="Filter MCP..."
@@ -1174,6 +1354,14 @@ export function McpSection(props: {
                     disabled={bulkRunning()}
                     onToggle={() => void toggle(item.name)}
                     onRetry={() => void props.controller.retryServer(item.name, target())?.catch(() => {})}
+                    favorite={favorites().has(item.name)}
+                    favoriteDisabled={props.preferences.ready?.() === false}
+                    separator={
+                      index() > 0 &&
+                      favorites().has(visibility.visible()[index() - 1].name) &&
+                      !favorites().has(item.name)
+                    }
+                    onToggleFavorite={() => props.preferences.toggleFavoriteMcpServer?.(item.name)}
                   />
                 )}
               </For>

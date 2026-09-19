@@ -1,25 +1,27 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "opencode-pretty-sidebar",
+  "name": "opencode-navigator",
   "version": "0.10.0",
-  "description": "A focused, interactive sidebar for the OpenCode TUI",
+  "description": "Search, navigate, and manage OpenCode sessions from the TUI",
   "type": "module",
   "packageManager": "bun@1.4.0",
   "license": "MIT",
   "author": "St1ggy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/St1ggy/opencode-pretty-sidebar.git"
+    "url": "git+https://github.com/St1ggy/opencode-navigator.git"
   },
-  "homepage": "https://github.com/St1ggy/opencode-pretty-sidebar#readme",
+  "homepage": "https://github.com/St1ggy/opencode-navigator#readme",
   "bugs": {
-    "url": "https://github.com/St1ggy/opencode-pretty-sidebar/issues"
+    "url": "https://github.com/St1ggy/opencode-navigator/issues"
   },
   "keywords": [
     "opencode",
     "opencode-plugin",
     "tui",
     "sidebar",
+    "search",
+    "navigator",
     "skills",
     "mcp"
   ],

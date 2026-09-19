@@ -1,12 +1,14 @@
-import { expect, test } from "bun:test"
-import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { ScrollBoxRenderable, type Renderable, type RGBA } from "@opentui/core"
-import { sidebarInteractiveColors } from "../src/components/common"
-import { createSidebarInteraction, isEffectivelyVisible } from "../src/sidebar-interaction"
+import { type RGBA, type Renderable, ScrollBoxRenderable } from '@opentui/core'
+import { expect, test } from 'bun:test'
+
+import { sidebarInteractiveColors } from '../src/components/common'
+import { createSidebarInteraction, isEffectivelyVisible } from '../src/sidebar-interaction'
+
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 function testApi() {
-  const layers: Array<Record<string, unknown>> = []
-  const dispatched: Array<{ command: string; options?: unknown }> = []
+  const layers: Record<string, unknown>[] = []
+  const dispatched: { command: string; options?: unknown }[] = []
   const renderer = {
     currentFocusedRenderable: null as Renderable | null,
     on: () => renderer,
@@ -14,19 +16,22 @@ function testApi() {
   }
   const api = {
     renderer,
-    route: { current: { name: "session", params: { sessionID: "session" } } },
+    route: { current: { name: 'session', params: { sessionID: 'session' } } },
     keymap: {
       registerLayer(layer: Record<string, unknown>) {
         layers.push(layer)
+
         return () => {}
       },
       dispatchCommand(command: string, options?: unknown) {
         dispatched.push({ command, options })
+
         return { ok: true as const }
       },
     },
     ui: { dialog: { replace: () => {}, setSize: () => {} } },
   } as unknown as TuiPluginApi
+
   return { api, renderer, layers, dispatched }
 }
 
@@ -43,100 +48,109 @@ function renderable(
     focused: false,
     focus() {
       const previous = renderer.currentFocusedRenderable as unknown as { focused: boolean } | null
+
       if (previous) previous.focused = false
+
       value.focused = true
       renderer.currentFocusedRenderable = value as unknown as Renderable
     },
     blur() {
       value.focused = false
+
       if (renderer.currentFocusedRenderable === (value as unknown as Renderable))
         renderer.currentFocusedRenderable = null
     },
   }
+
   return value as unknown as Renderable
 }
 
-test("interaction orders, wraps, activates, blocks disabled items, and falls back after unmount", () => {
+test('interaction orders, wraps, activates, blocks disabled items, and falls back after unmount', () => {
   const { api, renderer } = testApi()
   const interaction = createSidebarInteraction(api)
-  const outside = renderable(renderer, "outside", renderable(renderer, "app"))
-  const root = renderable(renderer, "sidebar", renderable(renderer, "host"))
+  const outside = renderable(renderer, 'outside', renderable(renderer, 'app'))
+  const root = renderable(renderer, 'sidebar', renderable(renderer, 'host'))
   const actions: string[] = []
+
   interaction.setContentRoot(root)
   const unregisterB = interaction.register({
-    id: "b",
+    id: 'b',
     order: 20,
-    renderable: renderable(renderer, "b", root),
-    activate: () => actions.push("b"),
+    renderable: renderable(renderer, 'b', root),
+    activate: () => actions.push('b'),
   })
+
   interaction.register({
-    id: "a",
+    id: 'a',
     order: 10,
-    renderable: renderable(renderer, "a", root),
-    activate: () => actions.push("a"),
+    renderable: renderable(renderer, 'a', root),
+    activate: () => actions.push('a'),
   })
   interaction.register({
-    id: "disabled",
+    id: 'disabled',
     order: 30,
-    renderable: renderable(renderer, "disabled", root),
+    renderable: renderable(renderer, 'disabled', root),
     disabled: () => true,
-    activate: () => actions.push("disabled"),
+    activate: () => actions.push('disabled'),
   })
 
   outside.focus()
   interaction.focus(outside)
-  expect(interaction.selectedId()).toBe("a")
+  expect(interaction.selectedId()).toBe('a')
   interaction.move(-1)
-  expect(interaction.selectedId()).toBe("disabled")
+  expect(interaction.selectedId()).toBe('disabled')
   expect(interaction.activate()).toBe(false)
   interaction.move(1)
   interaction.move(1)
-  expect(interaction.selectedId()).toBe("b")
+  expect(interaction.selectedId()).toBe('b')
   expect(interaction.activate()).toBe(true)
-  expect(actions).toEqual(["b"])
+  expect(actions).toEqual(['b'])
 
   unregisterB()
-  expect(interaction.selectedId()).toBe("disabled")
+  expect(interaction.selectedId()).toBe('disabled')
   expect(interaction.leave()).toBe(true)
   expect(renderer.currentFocusedRenderable).toBe(outside)
 })
 
-test("interaction reevaluates dynamic row order after a section move", () => {
+test('interaction reevaluates dynamic row order after a section move', () => {
   const { api, renderer } = testApi()
   const interaction = createSidebarInteraction(api)
-  const root = renderable(renderer, "sidebar", renderable(renderer, "host"))
+  const root = renderable(renderer, 'sidebar', renderable(renderer, 'host'))
   let firstOrder = 100
   let secondOrder = 200
+
   interaction.setContentRoot(root)
   interaction.register({
-    id: "first-row",
+    id: 'first-row',
     order: () => firstOrder,
-    renderable: renderable(renderer, "first-row", root),
+    renderable: renderable(renderer, 'first-row', root),
     activate: () => {},
   })
   interaction.register({
-    id: "second-row",
+    id: 'second-row',
     order: () => secondOrder,
-    renderable: renderable(renderer, "second-row", root),
+    renderable: renderable(renderer, 'second-row', root),
     activate: () => {},
   })
 
-  expect(interaction.available().map((item) => item.id)).toEqual(["first-row", "second-row"])
+  expect(interaction.available().map((item) => item.id)).toEqual(['first-row', 'second-row'])
   firstOrder = 200
   secondOrder = 100
-  expect(interaction.available().map((item) => item.id)).toEqual(["second-row", "first-row"])
+  expect(interaction.available().map((item) => item.id)).toEqual(['second-row', 'first-row'])
 })
 
-test("500 rows and their actions stay inside their section navigation order", () => {
+test('500 rows and their actions stay inside their section navigation order', () => {
   const { api, renderer } = testApi()
   const interaction = createSidebarInteraction(api)
   let base = 100
+
   for (let index = 0; index < 500; index++) {
     for (const [suffix, offset] of [
-      ["", 0],
-      [".star", 0.5],
+      ['', 0],
+      ['.star', 0.5],
     ] as const) {
       const id = `row-${index}${suffix}`
+
       interaction.register({
         id,
         order: () => [base, 10 + index * 2 + offset],
@@ -145,83 +159,89 @@ test("500 rows and their actions stay inside their section navigation order", ()
       })
     }
   }
-  interaction.register({ id: "next-section", order: 200, renderable: renderable(renderer, "next"), activate() {} })
+  interaction.register({ id: 'next-section', order: 200, renderable: renderable(renderer, 'next'), activate() {} })
   const ids = interaction.available().map((item) => item.id)
-  expect(ids.slice(0, 2)).toEqual(["row-0", "row-0.star"])
-  expect(ids.slice(-3)).toEqual(["row-499", "row-499.star", "next-section"])
+
+  expect(ids.slice(0, 2)).toEqual(['row-0', 'row-0.star'])
+  expect(ids.slice(-3)).toEqual(['row-499', 'row-499.star', 'next-section'])
   base = 300
-  expect(interaction.available()[0].id).toBe("next-section")
+  expect(interaction.available()[0].id).toBe('next-section')
   interaction.dispose()
 })
 
-test("interaction defers hidden focus, supports direct sections, and passes return context to commands", async () => {
+test('interaction defers hidden focus, supports direct sections, and passes return context to commands', async () => {
   const { api, renderer, dispatched } = testApi()
   const interaction = createSidebarInteraction(api)
-  const host = renderable(renderer, "host")
-  const outside = renderable(renderer, "outside", host)
-  const root = renderable(renderer, "sidebar", host)
+  const host = renderable(renderer, 'host')
+  const outside = renderable(renderer, 'outside', host)
+  const root = renderable(renderer, 'sidebar', host)
+
   ;(root as unknown as { visible: boolean }).visible = false
   interaction.setContentRoot(root)
   interaction.register({
-    id: "opencode-pretty-sidebar.section.skills",
+    id: 'opencode-navigator.section.skills',
     order: 300,
-    renderable: renderable(renderer, "skills", root),
+    renderable: renderable(renderer, 'skills', root),
     activate: () => {},
   })
 
   outside.focus()
-  expect(interaction.focusSection("skills", outside)).toBe(false)
+  expect(interaction.focusSection('skills', outside)).toBe(false)
   expect(interaction.pendingFocus()).toBe(true)
-  expect(dispatched[0].command).toBe("session.sidebar.toggle")
+  expect(dispatched[0].command).toBe('session.sidebar.toggle')
   ;(root as unknown as { visible: boolean }).visible = true
   expect(interaction.fulfillPendingFocus()).toBe(true)
-  expect(interaction.selectedId()).toBe("opencode-pretty-sidebar.section.skills")
+  expect(interaction.selectedId()).toBe('opencode-navigator.section.skills')
 
-  const todo = renderable(renderer, "todo", root)
+  const todo = renderable(renderer, 'todo', root)
+
   interaction.register({
-    id: "opencode-pretty-sidebar.section.todo",
+    id: 'opencode-navigator.section.todo',
     order: 100,
     renderable: todo,
     activate: () => {},
   })
-  const direct = interaction.baseCommands().find((command) => command.name.endsWith(".focus.todo"))
+  const direct = interaction.baseCommands().find((command) => command.name.endsWith('.focus.todo'))
+
   direct?.run()
   await Bun.sleep(60)
-  expect(interaction.selectedId()).toBe("opencode-pretty-sidebar.section.todo")
+  expect(interaction.selectedId()).toBe('opencode-navigator.section.todo')
 
   ;(todo as unknown as { visible: boolean }).visible = false
-  interaction.focusSection("todo", outside)
-  expect(interaction.selectedId()).toBe("opencode-pretty-sidebar.section.skills")
+  interaction.focusSection('todo', outside)
+  expect(interaction.selectedId()).toBe('opencode-navigator.section.skills')
 
-  interaction.dispatchFromReturnTarget("session.rename")
+  interaction.dispatchFromReturnTarget('session.rename')
   expect(dispatched.at(-1)).toEqual({
-    command: "session.rename",
+    command: 'session.rename',
     options: { focused: outside, target: outside },
   })
 })
 
-test("selection scrolls through the nearest ScrollBox ancestor", () => {
+test('selection scrolls through the nearest ScrollBox ancestor', () => {
   const { api, renderer } = testApi()
   const interaction = createSidebarInteraction(api)
   const calls: string[] = []
   const scroll = {
-    id: "scroll",
+    id: 'scroll',
     parent: null,
     visible: true,
     isDestroyed: false,
     scrollChildIntoView: (id: string) => calls.push(id),
   } as unknown as Renderable
-  Object.setPrototypeOf(scroll, ScrollBoxRenderable.prototype)
-  const row = renderable(renderer, "row", scroll)
-  interaction.register({ id: "row", order: 1, renderable: row, activate: () => {} })
 
-  expect(interaction.select("row")).toBe(true)
-  expect(calls).toEqual(["row"])
+  Object.setPrototypeOf(scroll, ScrollBoxRenderable.prototype)
+  const row = renderable(renderer, 'row', scroll)
+
+  interaction.register({ id: 'row', order: 1, renderable: row, activate: () => {} })
+
+  expect(interaction.select('row')).toBe(true)
+  expect(calls).toEqual(['row'])
   ;(scroll as unknown as { visible: boolean }).visible = false
   expect(isEffectivelyVisible(row)).toBe(false)
 })
 
-test("shared interactive colors prioritize enabled focus, hover, and disabled muting", () => {
+test('shared interactive colors prioritize enabled focus, hover, and disabled muting', () => {
   const primary = {} as RGBA
   const selected = {} as RGBA
   const hover = {} as RGBA
@@ -235,7 +255,7 @@ test("shared interactive colors prioritize enabled focus, hover, and disabled mu
     backgroundPanel: panel,
     text,
     textMuted: muted,
-  } as unknown as TuiPluginApi["theme"]["current"]
+  } as unknown as TuiPluginApi['theme']['current']
 
   expect(sidebarInteractiveColors(theme, { focused: true, hovered: true, disabled: false })).toEqual({
     backgroundColor: primary,

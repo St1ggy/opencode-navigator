@@ -1,18 +1,20 @@
-import { SIDEBAR_SECTIONS, type SectionVisibility, type SidebarSection } from "./state"
 import {
-  parseQuickActionOrder,
-  parseQuickActionVisibility,
   type QuickActionId,
   type QuickActionVisibility,
-} from "./quick-actions"
+  parseQuickActionOrder,
+  parseQuickActionVisibility,
+} from './quick-actions'
+import { SIDEBAR_SECTIONS, type SectionVisibility, type SidebarSection } from './state'
 
 export type SectionItemLimits = Partial<Record<SidebarSection, number>>
 
 export type PluginSettings = {
   toggleKey: string
   focusKey: string
+  searchKey: string
   persistMcp: boolean
-  lspIconStyle: "nerd" | "text"
+  // Legacy persisted key; the style now controls every Navigator icon.
+  lspIconStyle: 'nerd' | 'text'
   sectionItemLimits: SectionItemLimits
   quickActionOrder: QuickActionId[]
   quickActionVisibility: QuickActionVisibility
@@ -24,7 +26,7 @@ export type SectionLayoutDefault = {
   order?: SidebarSection[]
 }
 
-export type DesiredMcpState = "enabled" | "disabled"
+export type DesiredMcpState = 'enabled' | 'disabled'
 export type DesiredMcpStates = Record<string, DesiredMcpState>
 export type LayoutPresets = Record<string, SectionLayoutDefault>
 export type McpPresets = Record<string, DesiredMcpStates>
@@ -44,6 +46,7 @@ export type PreferencesDocument = {
     layoutPresets?: LayoutPresets
     mcpPresets?: McpPresets
     favoriteSkills?: string[]
+    favoriteMcpServers?: string[]
     recentSkills?: string[]
   }
 }
@@ -65,94 +68,119 @@ export type ScopedPreferences = {
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return
+
   return value as Record<string, unknown>
 }
 
 export function parseSectionPreferences(value: unknown): Partial<SectionVisibility> {
   const input = record(value)
+
   if (!input) return {}
+
   return Object.fromEntries(
-    SIDEBAR_SECTIONS.flatMap((name) => (typeof input[name] === "boolean" ? [[name, input[name]]] : [])),
+    SIDEBAR_SECTIONS.flatMap((name) => (typeof input[name] === 'boolean' ? [[name, input[name]]] : [])),
   ) as Partial<SectionVisibility>
 }
 
 export function parseSectionOrder(value: unknown): SidebarSection[] | undefined {
   if (!Array.isArray(value)) return
+
   const seen = new Set<SidebarSection>()
   const order: SidebarSection[] = []
+
   for (const candidate of value) {
     if (!SIDEBAR_SECTIONS.includes(candidate as SidebarSection) || seen.has(candidate as SidebarSection)) continue
+
     seen.add(candidate as SidebarSection)
     order.push(candidate as SidebarSection)
   }
   for (const section of SIDEBAR_SECTIONS) {
     if (!seen.has(section)) order.push(section)
   }
+
   return order
 }
 
 export function parseSectionItemLimits(value: unknown): SectionItemLimits {
   const input = record(value)
+
   if (!input) return {}
+
   return Object.fromEntries(
     SIDEBAR_SECTIONS.flatMap((section) => {
       const limit = input[section]
-      return typeof limit === "number" && Number.isSafeInteger(limit) && limit >= 0 ? [[section, limit]] : []
+
+      return typeof limit === 'number' && Number.isSafeInteger(limit) && limit >= 0 ? [[section, limit]] : []
     }),
   )
 }
 
 export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
   const input = record(value)
+
   if (!input) return {}
+
   return {
-    ...(typeof input.toggleKey === "string" && input.toggleKey.trim() ? { toggleKey: input.toggleKey.trim() } : {}),
-    ...(typeof input.focusKey === "string" && input.focusKey.trim() ? { focusKey: input.focusKey.trim() } : {}),
-    ...(typeof input.persistMcp === "boolean" ? { persistMcp: input.persistMcp } : {}),
-    ...(input.lspIconStyle === "nerd" || input.lspIconStyle === "text" ? { lspIconStyle: input.lspIconStyle } : {}),
-    ...(Object.keys(parseSectionItemLimits(input.sectionItemLimits)).length
-      ? { sectionItemLimits: parseSectionItemLimits(input.sectionItemLimits) }
-      : {}),
-    ...(parseQuickActionOrder(input.quickActionOrder)
-      ? { quickActionOrder: parseQuickActionOrder(input.quickActionOrder) }
-      : {}),
-    ...(Object.keys(parseQuickActionVisibility(input.quickActionVisibility)).length
-      ? { quickActionVisibility: parseQuickActionVisibility(input.quickActionVisibility) }
-      : {}),
+    ...(typeof input.toggleKey === 'string' && input.toggleKey.trim() && { toggleKey: input.toggleKey.trim() }),
+    ...(typeof input.focusKey === 'string' && input.focusKey.trim() && { focusKey: input.focusKey.trim() }),
+    ...(typeof input.searchKey === 'string' && input.searchKey.trim() && { searchKey: input.searchKey.trim() }),
+    ...(typeof input.persistMcp === 'boolean' && { persistMcp: input.persistMcp }),
+    ...((input.lspIconStyle === 'nerd' || input.lspIconStyle === 'text') && { lspIconStyle: input.lspIconStyle }),
+    ...(Object.keys(parseSectionItemLimits(input.sectionItemLimits)).length > 0 && {
+      sectionItemLimits: parseSectionItemLimits(input.sectionItemLimits),
+    }),
+    ...(parseQuickActionOrder(input.quickActionOrder) && {
+      quickActionOrder: parseQuickActionOrder(input.quickActionOrder),
+    }),
+    ...(Object.keys(parseQuickActionVisibility(input.quickActionVisibility)).length > 0 && {
+      quickActionVisibility: parseQuickActionVisibility(input.quickActionVisibility),
+    }),
   }
 }
 
 export function parseSectionLayout(value: unknown): SectionLayoutDefault | undefined {
   const input = record(value)
+
   if (!input) return
+
   const sections = parseSectionPreferences(input.sections)
   const expanded = parseSectionPreferences(input.expanded)
   const order = parseSectionOrder(input.order)
+
   if (Object.keys(sections).length === 0 && Object.keys(expanded).length === 0 && !order) return
-  return { sections, expanded, ...(order ? { order } : {}) }
+
+  return { sections, expanded, ...(order && { order }) }
 }
 
 export function parseLayoutPresets(value: unknown): LayoutPresets {
   const input = record(value)
+
   if (!input) return {}
+
   const presets: LayoutPresets = {}
-  for (const [candidate, value] of Object.entries(input).sort(([left], [right]) => left.localeCompare(right))) {
+  const entries = Object.entries(input).sort(([left], [right]) => left.localeCompare(right))
+
+  for (const [candidate, preset] of entries) {
     const name = candidate.trim().slice(0, 64)
-    const layout = parseSectionLayout(value)
+    const layout = parseSectionLayout(preset)
+
     if (name && layout && Object.keys(presets).length < 50) presets[name] = layout
   }
+
   return presets
 }
 
 export function parseDesiredMcpStates(value: unknown): DesiredMcpStates {
   const input = record(value)
+
   if (!input) return {}
+
   return Object.fromEntries(
     Object.entries(input)
       .filter(
         (entry): entry is [string, DesiredMcpState] =>
-          Boolean(entry[0]) && (entry[1] === "enabled" || entry[1] === "disabled"),
+          Boolean(entry[0]) && (entry[1] === 'enabled' || entry[1] === 'disabled'),
       )
       .sort(([left], [right]) => left.localeCompare(right)),
   )
@@ -160,29 +188,37 @@ export function parseDesiredMcpStates(value: unknown): DesiredMcpStates {
 
 export function parseMcpPresets(value: unknown): McpPresets {
   const input = record(value)
+
   if (!input) return {}
+
   const presets: McpPresets = {}
   const names = new Set<string>()
-  for (const [candidate, value] of Object.entries(input).sort(([left], [right]) => left.localeCompare(right))) {
+  const entries = Object.entries(input).sort(([left], [right]) => left.localeCompare(right))
+
+  for (const [candidate, preset] of entries) {
     const name = candidate.trim().slice(0, 64)
-    const states = parseDesiredMcpStates(value)
+    const states = parseDesiredMcpStates(preset)
     const key = name.toLocaleLowerCase()
+
     if (name && !names.has(key) && Object.keys(states).length > 0 && Object.keys(presets).length < 50) {
       names.add(key)
       presets[name] = states
     }
   }
+
   return presets
 }
 
 function parseStringList(value: unknown) {
   if (!Array.isArray(value)) return
-  return [...new Set(value.filter((item): item is string => typeof item === "string" && item.length > 0))].sort()
+
+  return [...new Set(value.filter((item): item is string => typeof item === 'string' && item.length > 0))].sort()
 }
 
 export function parseRecentSkills(value: unknown): string[] {
   if (!Array.isArray(value)) return []
-  return [...new Set(value.filter((item): item is string => typeof item === "string" && item.length > 0))].slice(0, 10)
+
+  return [...new Set(value.filter((item): item is string => typeof item === 'string' && item.length > 0))].slice(0, 10)
 }
 
 export function emptyPreferencesDocument(): PreferencesDocument {
@@ -195,27 +231,30 @@ export function emptyPreferencesDocument(): PreferencesDocument {
 
 export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   const input = record(value)
-  if (!input) throw new Error("Invalid preferences document")
+
+  if (!input) throw new Error('Invalid preferences document')
 
   const globalInput = record(input.global)
   const behavior = parsePluginSettings(globalInput?.behavior)
   const layout = parseSectionLayout(globalInput?.layout)
   const globalMcp = parseDesiredMcpStates(globalInput?.mcp)
   const worktreesInput = record(input.worktrees)
-  const worktrees: PreferencesDocument["worktrees"] = {}
-  for (const [scope, candidate] of Object.entries(worktreesInput ?? {}).sort(([left], [right]) =>
-    left.localeCompare(right),
-  )) {
+  const worktrees: PreferencesDocument['worktrees'] = {}
+  const entries = Object.entries(worktreesInput ?? {}).sort(([left], [right]) => left.localeCompare(right))
+
+  for (const [scope, candidate] of entries) {
     if (!scope) continue
+
     const candidateInput = record(candidate)
     const scopedBehavior = parsePluginSettings(candidateInput?.behavior)
     const scopedLayout = parseSectionLayout(candidateInput?.layout)
     const mcp = parseDesiredMcpStates(candidateInput?.mcp)
+
     if (Object.keys(scopedBehavior).length > 0 || scopedLayout || Object.keys(mcp).length > 0) {
       worktrees[scope] = {
-        ...(Object.keys(scopedBehavior).length > 0 ? { behavior: scopedBehavior } : {}),
-        ...(scopedLayout ? { layout: scopedLayout } : {}),
-        ...(Object.keys(mcp).length > 0 ? { mcp } : {}),
+        ...(Object.keys(scopedBehavior).length > 0 && { behavior: scopedBehavior }),
+        ...(scopedLayout && { layout: scopedLayout }),
+        ...(Object.keys(mcp).length > 0 && { mcp }),
       }
     }
   }
@@ -224,36 +263,39 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   const layoutPresets = parseLayoutPresets(userInput?.layoutPresets)
   const mcpPresets = parseMcpPresets(userInput?.mcpPresets)
   const favoriteSkills = parseStringList(userInput?.favoriteSkills)
+  const favoriteMcpServers = parseStringList(userInput?.favoriteMcpServers)
   const recentSkills = parseRecentSkills(userInput?.recentSkills)
 
   return {
     global: {
-      ...(Object.keys(behavior).length > 0 ? { behavior } : {}),
-      ...(layout ? { layout } : {}),
-      ...(Object.keys(globalMcp).length > 0 ? { mcp: globalMcp } : {}),
+      ...(Object.keys(behavior).length > 0 && { behavior }),
+      ...(layout && { layout }),
+      ...(Object.keys(globalMcp).length > 0 && { mcp: globalMcp }),
     },
     worktrees,
     user: {
-      ...(skippedSkillConfirmations ? { skippedSkillConfirmations } : {}),
-      ...(typeof userInput?.onboardingCompleted === "boolean"
-        ? { onboardingCompleted: userInput.onboardingCompleted }
-        : {}),
-      ...(Object.keys(layoutPresets).length > 0 ? { layoutPresets } : {}),
-      ...(Object.keys(mcpPresets).length > 0 ? { mcpPresets } : {}),
-      ...(favoriteSkills ? { favoriteSkills } : {}),
-      ...(recentSkills.length ? { recentSkills } : {}),
+      ...(skippedSkillConfirmations && { skippedSkillConfirmations }),
+      ...(typeof userInput?.onboardingCompleted === 'boolean' && {
+        onboardingCompleted: userInput.onboardingCompleted,
+      }),
+      ...(Object.keys(layoutPresets).length > 0 && { layoutPresets }),
+      ...(Object.keys(mcpPresets).length > 0 && { mcpPresets }),
+      ...(favoriteSkills && { favoriteSkills }),
+      ...(favoriteMcpServers?.length && { favoriteMcpServers }),
+      ...(recentSkills.length > 0 && { recentSkills }),
     },
   }
 }
 
 function parseValues(value: PreferenceValues | undefined): PreferenceValues {
   if (!value) return {}
+
   return {
     behavior: parsePluginSettings(value.behavior),
     layout: {
       sections: parseSectionPreferences(value.layout?.sections),
       expanded: parseSectionPreferences(value.layout?.expanded),
-      ...(parseSectionOrder(value.layout?.order) ? { order: parseSectionOrder(value.layout?.order) } : {}),
+      ...(parseSectionOrder(value.layout?.order) && { order: parseSectionOrder(value.layout?.order) }),
     },
     desiredMcpStates: parseDesiredMcpStates(value.desiredMcpStates),
   }
@@ -281,17 +323,21 @@ export function resolvePreferences(input: {
   for (const layer of layers) {
     const sectionItemLimits = { ...behavior.sectionItemLimits, ...layer.behavior?.sectionItemLimits }
     const quickActionVisibility = { ...behavior.quickActionVisibility, ...layer.behavior?.quickActionVisibility }
+
     Object.assign(behavior, layer.behavior)
     behavior.sectionItemLimits = sectionItemLimits
     behavior.quickActionVisibility = quickActionVisibility
     Object.assign(sections, layer.layout?.sections)
     Object.assign(expanded, layer.layout?.expanded)
+
     if (layer.layout?.order?.length) order = [...layer.layout.order]
+
     Object.assign(desiredMcpStates, layer.desiredMcpStates)
   }
+
   return { behavior, layout: { sections, expanded, order }, desiredMcpStates }
 }
 
 export function preferencesScope(path: { worktree?: string; directory?: string }) {
-  return path.worktree || path.directory || "global"
+  return path.worktree || path.directory || 'global'
 }

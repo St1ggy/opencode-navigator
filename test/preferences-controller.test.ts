@@ -1,23 +1,26 @@
-import { expect, test } from "bun:test"
-import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { mkdtemp, rm } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { DEFAULT_SECTION_EXPANSION } from "../src/constants"
-import { createPreferencesController } from "../src/controllers/preferences"
-import { createPreferencesStore, type PreferencesStore } from "../src/preferences-store"
-import type { SectionVisibility } from "../src/state"
-import { showFirstRunWizard } from "../src/tui"
-import { pluginConfig } from "../src/config"
-import { QUICK_ACTION_IDS } from "../src/quick-actions"
+import { expect, test } from 'bun:test'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import { pluginConfig } from '../src/config'
+import { DEFAULT_SECTION_EXPANSION } from '../src/constants'
+import { createPreferencesController } from '../src/controllers/preferences'
+import { type PreferencesStore, createPreferencesStore } from '../src/preferences-store'
+import { QUICK_ACTION_IDS } from '../src/quick-actions'
+import { showFirstRunWizard } from '../src/tui'
+
+import type { SectionVisibility } from '../src/state'
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 function pluginDefaults(sections: SectionVisibility) {
   return {
     sections,
-    toggleKey: "ctrl+shift+b",
-    focusKey: "ctrl+shift+f",
+    toggleKey: 'ctrl+shift+b',
+    focusKey: 'ctrl+shift+f',
+    searchKey: 'ctrl+shift+k',
     persistMcp: true,
-    lspIconStyle: "nerd" as const,
+    lspIconStyle: 'nerd' as const,
     sectionItemLimits: {},
     quickActionOrder: [...QUICK_ACTION_IDS],
     quickActionVisibility: {},
@@ -38,68 +41,74 @@ function memoryStore(): PreferencesStore {
   }
 }
 
-test("persists scoped limits before hydration and restores inherited defaults", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-limits-"))
+test('persists scoped limits before hydration and restores inherited defaults', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-limits-'))
   const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
   const defaults = pluginConfig({ section_item_limits: { todo: 2 } })
+
   try {
     const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
-    controller.setSectionItemLimit("todo", 5)
-    controller.setSectionItemLimit("skills", 7)
+
+    controller.setSectionItemLimit('todo', 5)
+    controller.setSectionItemLimit('skills', 7)
     await controller.load()
-    controller.setActiveScope("/repo")
-    controller.setPreferenceScope("worktree")
-    controller.setSectionItemLimit("todo", 0)
+    controller.setActiveScope('/repo')
+    controller.setPreferenceScope('worktree')
+    controller.setSectionItemLimit('todo', 0)
     await controller.flush()
     const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await restarted.load()
-    restarted.setActiveScope("/repo")
-    restarted.setPreferenceScope("worktree")
-    expect(restarted.sectionItemLimit("todo")).toBe(0)
-    expect(restarted.selectedSectionItemLimit("skills")).toBe(7)
-    expect(() => restarted.setSectionItemLimit("todo", -1)).toThrow("whole number")
+    restarted.setActiveScope('/repo')
+    restarted.setPreferenceScope('worktree')
+    expect(restarted.sectionItemLimit('todo')).toBe(0)
+    expect(restarted.selectedSectionItemLimit('skills')).toBe(7)
+    expect(() => restarted.setSectionItemLimit('todo', -1)).toThrow('whole number')
     restarted.resetPluginSettings()
-    expect(restarted.sectionItemLimit("todo")).toBe(5)
-    restarted.setPreferenceScope("global")
+    expect(restarted.sectionItemLimit('todo')).toBe(5)
+    restarted.setPreferenceScope('global')
     restarted.resetPluginSettings()
-    expect(restarted.sectionItemLimit("todo")).toBe(2)
-    expect(restarted.sectionItemLimit("skills")).toBe(0)
+    expect(restarted.sectionItemLimit('todo')).toBe(2)
+    expect(restarted.sectionItemLimit('skills')).toBe(0)
     await restarted.flush()
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("quick action settings persist per scope with leaf-wise inheritance and reset", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-actions-"))
+test('quick action settings persist per scope with leaf-wise inheritance and reset', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-actions-'))
   const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+
   try {
     const controller = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+
     await controller.load()
-    controller.toggleQuickAction("session.rename")
-    controller.moveQuickAction("session.export", -1)
-    controller.setActiveScope("/repo")
-    controller.setPreferenceScope("worktree")
-    controller.toggleQuickAction("session.timeline")
+    controller.toggleQuickAction('session.rename')
+    controller.moveQuickAction('session.export', -1)
+    controller.setActiveScope('/repo')
+    controller.setPreferenceScope('worktree')
+    controller.toggleQuickAction('session.timeline')
     await controller.flush()
     const restarted = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+
     await restarted.load()
-    restarted.setActiveScope("/repo")
-    restarted.setPreferenceScope("worktree")
-    expect(restarted.quickActionVisible("session.rename")).toBe(false)
-    expect(restarted.quickActionVisible("session.timeline")).toBe(false)
-    expect(restarted.quickActionOrder()[2]).toBe("session.export")
+    restarted.setActiveScope('/repo')
+    restarted.setPreferenceScope('worktree')
+    expect(restarted.quickActionVisible('session.rename')).toBe(false)
+    expect(restarted.quickActionVisible('session.timeline')).toBe(false)
+    expect(restarted.quickActionOrder()[2]).toBe('session.export')
     restarted.resetPluginSettings()
-    expect(restarted.quickActionVisible("session.rename")).toBe(false)
-    expect(restarted.quickActionVisible("session.timeline")).toBe(true)
+    expect(restarted.quickActionVisible('session.rename')).toBe(false)
+    expect(restarted.quickActionVisible('session.timeline')).toBe(true)
     await restarted.flush()
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("persists section visibility and skipped skill confirmations", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('persists section visibility and skipped skill confirmations', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const values = new Map<string, unknown>()
   const api = {
     kv: {
@@ -116,19 +125,20 @@ test("persists section visibility and skipped skill confirmations", async () => 
     lsp: true,
     mcp: false,
   }
-  const review = { name: "review", location: "/skills/review", content: "", description: "Review code" }
-  const commit = { name: "commit", location: "/skills/commit", content: "", description: "Create commits" }
+  const review = { name: 'review', location: '/skills/review', content: '', description: 'Review code' }
+  const commit = { name: 'commit', location: '/skills/commit', content: '', description: 'Create commits' }
 
   try {
     const controller = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
+
     await controller.load()
     expect(controller.sections()).toEqual(defaults)
     expect(controller.shouldConfirmSkill(review)).toBe(true)
     expect(controller.shouldConfirmSkill(commit)).toBe(true)
 
-    controller.toggleSection("lsp")
+    controller.toggleSection('lsp')
     expect(controller.sections().lsp).toBe(false)
-    controller.toggleSectionExpanded("skills")
+    controller.toggleSectionExpanded('skills')
     expect(controller.expanded().skills).toBe(true)
     controller.skipSkillConfirmation(review)
     controller.skipSkillConfirmation(commit)
@@ -137,13 +147,15 @@ test("persists section visibility and skipped skill confirmations", async () => 
     await controller.flush()
 
     const restarted = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
+
     await restarted.load()
     expect(restarted.sections()).toEqual({ ...defaults, lsp: false })
     expect(restarted.expanded()).toEqual({ ...DEFAULT_SECTION_EXPANSION, skills: true })
 
-    controller.toggleSection("todo")
-    controller.toggleSectionExpanded("skills")
+    controller.toggleSection('todo')
+    controller.toggleSectionExpanded('skills')
     const unchanged = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
+
     await unchanged.load()
     expect(unchanged.sections()).toEqual({ ...defaults, lsp: false })
     expect(unchanged.expanded()).toEqual({ ...DEFAULT_SECTION_EXPANSION, skills: true })
@@ -158,6 +170,7 @@ test("persists section visibility and skipped skill confirmations", async () => 
 
     const configured = { ...defaults, mcp: true }
     const reset = createPreferencesController(api, pluginDefaults(configured), createPreferencesStore(directory))
+
     await reset.load()
     expect(reset.sections()).toEqual(configured)
     expect(reset.expanded()).toEqual(DEFAULT_SECTION_EXPANSION)
@@ -166,14 +179,14 @@ test("persists section visibility and skipped skill confirmations", async () => 
   }
 })
 
-test("merges interactions made before storage hydration with saved preferences", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
-  let ready = false
+test('merges interactions made before storage hydration with saved preferences', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
+  let isReady = false
   const values = new Map<string, unknown>()
   const api = {
     kv: {
       get ready() {
-        return ready
+        return isReady
       },
       get: (key: string) => values.get(key),
       set: (key: string, value: unknown) => values.set(key, value),
@@ -187,17 +200,19 @@ test("merges interactions made before storage hydration with saved preferences",
     lsp: true,
     mcp: true,
   }
-  const commit = { name: "commit", location: "/skills/commit", content: "" }
-  const review = { name: "review", location: "/skills/review", content: "" }
+  const commit = { name: 'commit', location: '/skills/commit', content: '' }
+  const review = { name: 'review', location: '/skills/review', content: '' }
 
   try {
     const controller = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
-    controller.toggleSection("skills")
-    controller.toggleSection("lsp")
-    controller.setFocusKey("alt+f")
+
+    controller.toggleSection('skills')
+    controller.toggleSection('lsp')
+    controller.setFocusKey('alt+f')
+    controller.setSearchKey('alt+y')
     controller.skipSkillConfirmation(review)
     controller.skipSkillConfirmation(commit)
-    ready = true
+    isReady = true
     await controller.load()
     await controller.saveLayoutAsDefault()
     await controller.flush()
@@ -205,26 +220,28 @@ test("merges interactions made before storage hydration with saved preferences",
     expect(controller.sections()).toEqual({ ...defaults, skills: false, lsp: false })
     expect(controller.shouldConfirmSkill(review)).toBe(false)
     expect(controller.shouldConfirmSkill(commit)).toBe(false)
-    expect(controller.focusKey()).toBe("alt+f")
+    expect(controller.focusKey()).toBe('alt+f')
 
     const restarted = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
+
     await restarted.load()
     expect(restarted.sections()).toEqual({ ...defaults, skills: false, lsp: false })
-    expect(restarted.focusKey()).toBe("alt+f")
+    expect(restarted.focusKey()).toBe('alt+f')
+    expect(restarted.searchKey()).toBe('alt+y')
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("saves a default layout before storage hydration", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
-  let ready = false
+test('saves a default layout before storage hydration', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
+  let isReady = false
   const api = {
     kv: {
       get ready() {
-        return ready
+        return isReady
       },
-      get: () => undefined,
+      get: () => {},
       set: () => {},
     },
   } as unknown as TuiPluginApi
@@ -239,13 +256,15 @@ test("saves a default layout before storage hydration", async () => {
 
   try {
     const controller = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
-    controller.toggleSection("lsp")
-    controller.toggleSectionExpanded("skills")
+
+    controller.toggleSection('lsp')
+    controller.toggleSectionExpanded('skills')
     await controller.saveLayoutAsDefault()
     await controller.flush()
 
-    ready = true
+    isReady = true
     const restarted = createPreferencesController(api, pluginDefaults(defaults), createPreferencesStore(directory))
+
     await restarted.load()
     expect(restarted.sections().lsp).toBe(false)
     expect(restarted.expanded().skills).toBe(true)
@@ -254,15 +273,15 @@ test("saves a default layout before storage hydration", async () => {
   }
 })
 
-test("preserves resets made before storage hydration", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
-  let ready = false
+test('preserves resets made before storage hydration', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
+  let isReady = false
   const api = {
     kv: {
       get ready() {
-        return ready
+        return isReady
       },
-      get: () => undefined,
+      get: () => {},
       set: () => {},
     },
   } as unknown as TuiPluginApi
@@ -277,15 +296,17 @@ test("preserves resets made before storage hydration", async () => {
 
   try {
     const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
-    controller.setFocusKey("alt+f")
+
+    controller.setFocusKey('alt+f')
     controller.resetPluginSettings()
     controller.resetSections()
     controller.resetSkillConfirmations()
-    ready = true
+    isReady = true
     await controller.load()
     await controller.flush()
 
     const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await restarted.load()
     expect(restarted.sections()).toEqual(defaults.sections)
     expect(restarted.focusKey()).toBe(defaults.focusKey)
@@ -295,13 +316,14 @@ test("preserves resets made before storage hydration", async () => {
   }
 })
 
-test("persists behavior settings and restores configured defaults", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('persists behavior settings and restores configured defaults', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const api = {
-    kv: { ready: true, get: () => undefined, set: () => {} },
+    kv: { ready: true, get: () => {}, set: () => {} },
     keymap: {
       parseKeySequence: (value: string) => {
-        if (!value.trim()) throw new Error("invalid")
+        if (!value.trim()) throw new Error('invalid')
+
         return [value]
       },
     },
@@ -317,41 +339,44 @@ test("persists behavior settings and restores configured defaults", async () => 
 
   try {
     const controller = createPreferencesController(api, pluginDefaults(sections), createPreferencesStore(directory))
+
     await controller.load()
-    controller.setToggleKey("alt+s")
-    controller.setFocusKey("alt+f")
+    controller.setToggleKey('alt+s')
+    controller.setFocusKey('alt+f')
     controller.toggleMcpPersistence()
     controller.toggleLspIconStyle()
-    expect(() => controller.setToggleKey(" ")).toThrow("Enter a valid OpenCode keybinding")
+    expect(() => controller.setToggleKey(' ')).toThrow('Enter a valid OpenCode keybinding')
     await controller.flush()
 
     const changedDefaults = {
       ...pluginDefaults(sections),
-      toggleKey: "ctrl+b",
+      toggleKey: 'ctrl+b',
     }
     const restarted = createPreferencesController(api, changedDefaults, createPreferencesStore(directory))
+
     await restarted.load()
-    expect(restarted.toggleKey()).toBe("alt+s")
-    expect(restarted.focusKey()).toBe("alt+f")
+    expect(restarted.toggleKey()).toBe('alt+s')
+    expect(restarted.focusKey()).toBe('alt+f')
     expect(restarted.persistMcp()).toBe(false)
-    expect(restarted.lspIconStyle()).toBe("text")
+    expect(restarted.lspIconStyle()).toBe('text')
 
     restarted.resetPluginSettings()
     await restarted.flush()
 
     const reset = createPreferencesController(api, changedDefaults, createPreferencesStore(directory))
+
     await reset.load()
-    expect(reset.toggleKey()).toBe("ctrl+b")
-    expect(reset.focusKey()).toBe("ctrl+shift+f")
+    expect(reset.toggleKey()).toBe('ctrl+b')
+    expect(reset.focusKey()).toBe('ctrl+shift+f')
     expect(reset.persistMcp()).toBe(true)
-    expect(reset.lspIconStyle()).toBe("nerd")
+    expect(reset.lspIconStyle()).toBe('nerd')
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("resolves worktree overrides, section order, and scoped resets", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('resolves worktree overrides, section order, and scoped resets', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const api = {
     keymap: { parseKeySequence: (value: string) => [value] },
     ui: { toast: () => {} },
@@ -367,43 +392,44 @@ test("resolves worktree overrides, section order, and scoped resets", async () =
 
   try {
     const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await controller.load()
-    controller.setFocusKey("alt+g")
-    controller.setDesiredMcpState("global", "wiki", "enabled")
-    controller.setActiveScope("/repo-a")
-    controller.setPreferenceScope("worktree")
-    controller.setFocusKey("alt+w")
-    controller.toggleSection("mcp")
-    controller.moveSection("mcp", -1)
+    controller.setFocusKey('alt+g')
+    controller.setDesiredMcpState('global', 'wiki', 'enabled')
+    controller.setActiveScope('/repo-a')
+    controller.setPreferenceScope('worktree')
+    controller.setFocusKey('alt+w')
+    controller.toggleSection('mcp')
+    controller.moveSection('mcp', -1)
     await controller.saveLayoutAsDefault()
-    controller.setDesiredMcpState("/repo-a", "wiki", "disabled")
+    controller.setDesiredMcpState('/repo-a', 'wiki', 'disabled')
     await controller.flush()
 
-    controller.setActiveScope("/repo-b")
-    expect(controller.focusKey()).toBe("alt+g")
+    controller.setActiveScope('/repo-b')
+    expect(controller.focusKey()).toBe('alt+g')
     expect(controller.sections().mcp).toBe(true)
-    expect(controller.desiredMcpState("/repo-b", "wiki")).toBe("enabled")
+    expect(controller.desiredMcpState('/repo-b', 'wiki')).toBe('enabled')
 
-    controller.setActiveScope("/repo-a")
-    expect(controller.focusKey()).toBe("alt+w")
+    controller.setActiveScope('/repo-a')
+    expect(controller.focusKey()).toBe('alt+w')
     expect(controller.sections().mcp).toBe(false)
-    expect(controller.sectionOrder().indexOf("mcp")).toBe(4)
-    expect(controller.desiredMcpState("/repo-a", "wiki")).toBe("disabled")
+    expect(controller.sectionOrder().indexOf('mcp')).toBe(4)
+    expect(controller.desiredMcpState('/repo-a', 'wiki')).toBe('disabled')
 
     controller.resetSections()
     controller.resetPluginSettings()
     controller.resetMcpStates()
     await controller.flush()
-    expect(controller.focusKey()).toBe("alt+g")
+    expect(controller.focusKey()).toBe('alt+g')
     expect(controller.sections().mcp).toBe(true)
-    expect(controller.desiredMcpState("/repo-a", "wiki")).toBe("enabled")
+    expect(controller.desiredMcpState('/repo-a', 'wiki')).toBe('enabled')
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("saves the active worktree session layout when global scope is selected", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('saves the active worktree session layout when global scope is selected', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
   const defaults = pluginDefaults({
     todo: true,
@@ -413,22 +439,24 @@ test("saves the active worktree session layout when global scope is selected", a
     lsp: true,
     mcp: true,
   })
+
   try {
     const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await controller.load()
-    controller.setActiveScope("/repo-a")
-    controller.toggleSelectedSection("lsp")
+    controller.setActiveScope('/repo-a')
+    controller.toggleSelectedSection('lsp')
     expect(controller.sections().lsp).toBe(false)
     await controller.saveLayoutAsDefault()
-    controller.setActiveScope("/repo-b")
+    controller.setActiveScope('/repo-b')
     expect(controller.sections().lsp).toBe(false)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("creates, applies, updates, renames, deletes, and persists layout presets", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('creates, applies, updates, renames, deletes, and persists layout presets', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
   const defaults = pluginDefaults({
     todo: true,
@@ -438,38 +466,42 @@ test("creates, applies, updates, renames, deletes, and persists layout presets",
     lsp: true,
     mcp: true,
   })
+
   try {
     const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await controller.load()
     expect(controller.layoutPresets()).toEqual({})
 
-    controller.setActiveScope("/repo-a")
-    controller.setPreferenceScope("worktree")
-    controller.toggleSelectedSection("lsp")
-    controller.moveSelectedSection("mcp", -1)
-    expect(controller.saveLayoutPreset(" Focus ")).toBe("Focus")
-    expect(() => controller.saveLayoutPreset("focus")).toThrow("already exists")
+    controller.setActiveScope('/repo-a')
+    controller.setPreferenceScope('worktree')
+    controller.toggleSelectedSection('lsp')
+    controller.moveSelectedSection('mcp', -1)
+    expect(controller.saveLayoutPreset(' Focus ')).toBe('Focus')
+    expect(() => controller.saveLayoutPreset('focus')).toThrow('already exists')
 
-    controller.toggleSelectedSection("lsp")
+    controller.toggleSelectedSection('lsp')
     controller.applyLayoutPreset(controller.layoutPresets().Focus)
     expect(controller.selectedSections().lsp).toBe(false)
-    expect(controller.selectedSectionOrder().indexOf("mcp")).toBe(4)
+    expect(controller.selectedSectionOrder().indexOf('mcp')).toBe(4)
 
-    controller.toggleSelectedSection("skills")
-    expect(controller.updateLayoutPreset("Focus")).toBe(true)
-    expect(controller.renameLayoutPreset("Focus", "Deep work")).toBe("Deep work")
+    controller.toggleSelectedSection('skills')
+    expect(controller.updateLayoutPreset('Focus')).toBe(true)
+    expect(controller.renameLayoutPreset('Focus', 'Deep work')).toBe('Deep work')
     expect(controller.layoutPresets().Focus).toBeUndefined()
-    expect(controller.layoutPresets()["Deep work"].sections.skills).toBe(false)
+    expect(controller.layoutPresets()['Deep work'].sections.skills).toBe(false)
     await controller.flush()
 
     const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await restarted.load()
-    expect(Object.keys(restarted.layoutPresets())).toEqual(["Deep work"])
-    expect(restarted.deleteLayoutPreset("Deep work")).toBe(true)
-    expect(restarted.deleteLayoutPreset("Deep work")).toBe(false)
+    expect(Object.keys(restarted.layoutPresets())).toEqual(['Deep work'])
+    expect(restarted.deleteLayoutPreset('Deep work')).toBe(true)
+    expect(restarted.deleteLayoutPreset('Deep work')).toBe(false)
     await restarted.flush()
 
     const cleared = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await cleared.load()
     expect(cleared.layoutPresets()).toEqual({})
   } finally {
@@ -477,8 +509,8 @@ test("creates, applies, updates, renames, deletes, and persists layout presets",
   }
 })
 
-test("manages user-wide MCP presets and favorite skills", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('manages user-wide MCP presets and favorite skills', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
   const defaults = pluginDefaults({
     todo: true,
@@ -488,43 +520,51 @@ test("manages user-wide MCP presets and favorite skills", async () => {
     lsp: true,
     mcp: true,
   })
-  const review = { name: "review", location: "/skills/review", content: "" }
+  const review = { name: 'review', location: '/skills/review', content: '' }
+
   try {
     const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await controller.load()
-    expect(controller.saveMcpPreset(" Work ", { wiki: "disabled", context7: "enabled" })).toBe("Work")
-    expect(() => controller.saveMcpPreset("work", { wiki: "enabled" })).toThrow("already exists")
+    expect(controller.saveMcpPreset(' Work ', { wiki: 'disabled', context7: 'enabled' })).toBe('Work')
+    expect(() => controller.saveMcpPreset('work', { wiki: 'enabled' })).toThrow('already exists')
     controller.toggleFavoriteSkill(review)
+    controller.toggleFavoriteMcpServer('wiki')
     await controller.recordSkillUse(review)
     expect(controller.isFavoriteSkill(review)).toBe(true)
-    expect(controller.updateMcpPreset("Work", { wiki: "enabled" })).toBe(true)
-    expect(controller.renameMcpPreset("Work", "Review")).toBe("Review")
-    controller.setActiveScope("/another-worktree")
-    expect(controller.mcpPresets()).toEqual({ Review: { wiki: "enabled" } })
+    expect(controller.updateMcpPreset('Work', { wiki: 'enabled' })).toBe(true)
+    expect(controller.renameMcpPreset('Work', 'Review')).toBe('Review')
+    controller.setActiveScope('/another-worktree')
+    expect(controller.mcpPresets()).toEqual({ Review: { wiki: 'enabled' } })
     expect(controller.isFavoriteSkill(review)).toBe(true)
     await controller.flush()
 
     const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await restarted.load()
-    expect(restarted.mcpPresets()).toEqual({ Review: { wiki: "enabled" } })
+    expect(restarted.mcpPresets()).toEqual({ Review: { wiki: 'enabled' } })
     expect(restarted.isFavoriteSkill(review)).toBe(true)
+    expect(restarted.favoriteMcpServers().has('wiki')).toBe(true)
+    restarted.toggleFavoriteMcpServer('wiki')
     expect(restarted.recentSkills()).toEqual([review.location])
-    expect(restarted.deleteMcpPreset("Review")).toBe(true)
+    expect(restarted.deleteMcpPreset('Review')).toBe(true)
     restarted.toggleFavoriteSkill(review)
     await restarted.flush()
 
     const cleared = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await cleared.load()
     expect(cleared.mcpPresets()).toEqual({})
     expect(cleared.isFavoriteSkill(review)).toBe(false)
+    expect(cleared.favoriteMcpServers().size).toBe(0)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("defers favorite toggles and MCP preset editing until hydration", async () => {
+test('defers favorite toggles and MCP preset editing until hydration', async () => {
   let finish!: () => void
-  const review = { name: "review", location: "/skills/review", content: "" }
+  const review = { name: 'review', location: '/skills/review', content: '' }
   const store: PreferencesStore = {
     load: () =>
       new Promise((resolve) => {
@@ -545,7 +585,7 @@ test("defers favorite toggles and MCP preset editing until hydration", async () 
   const controller = createPreferencesController(api, defaults, store)
 
   controller.toggleFavoriteSkill(review)
-  expect(() => controller.saveMcpPreset("Work", { wiki: "enabled" })).toThrow("still loading")
+  expect(() => controller.saveMcpPreset('Work', { wiki: 'enabled' })).toThrow('still loading')
   finish()
   await controller.load()
   await Promise.resolve()
@@ -553,8 +593,8 @@ test("defers favorite toggles and MCP preset editing until hydration", async () 
   expect(controller.isFavoriteSkill(review)).toBe(false)
 })
 
-test("reconciles conflicting MCP preset saves from independent controllers", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('reconciles conflicting MCP preset saves from independent controllers', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const toasts: string[] = []
   const api = {
     ui: { toast: (toast: { message: string }) => toasts.push(toast.message) },
@@ -567,24 +607,27 @@ test("reconciles conflicting MCP preset saves from independent controllers", asy
     lsp: true,
     mcp: true,
   })
+
   try {
     const first = createPreferencesController(api, defaults, createPreferencesStore(directory))
     const second = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     await Promise.all([first.load(), second.load()])
-    first.saveMcpPreset("Focus", { wiki: "enabled" })
-    second.saveMcpPreset("focus", { wiki: "disabled" })
+    first.saveMcpPreset('Focus', { wiki: 'enabled' })
+    second.saveMcpPreset('focus', { wiki: 'disabled' })
     await Promise.all([first.flush(), second.flush()])
 
     const persisted = (await createPreferencesStore(directory).load()).user.mcpPresets ?? {}
+
     expect(first.mcpPresets()).toEqual(persisted)
     expect(second.mcpPresets()).toEqual(persisted)
-    expect(toasts).toContain("Preset changed in another OpenCode instance; reloaded saved presets")
+    expect(toasts).toContain('Preset changed in another OpenCode instance; reloaded saved presets')
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 })
 
-test("opens the setup wizard only once after preference hydration", async () => {
+test('opens the setup wizard only once after preference hydration', async () => {
   const values = new Map<string, unknown>()
   let opened = 0
   const api = {
@@ -596,6 +639,7 @@ test("opens the setup wizard only once after preference hydration", async () => 
     ui: {
       dialog: {
         replace: () => opened++,
+        setSize() {},
       },
     },
   } as unknown as TuiPluginApi
@@ -616,14 +660,14 @@ test("opens the setup wizard only once after preference hydration", async () => 
   expect(opened).toBe(1)
 })
 
-test("persists onboarding completion across controller restarts without changing KV", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pretty-sidebar-preferences-"))
+test('persists onboarding completion across controller restarts without changing KV', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const values = new Map<string, unknown>()
   let opened = 0
   const api = {
     state: { path: {} },
     kv: { ready: true, get: (key: string) => values.get(key), set: () => {} },
-    ui: { dialog: { replace: () => opened++ }, toast: () => {} },
+    ui: { dialog: { replace: () => opened++, setSize() {} }, toast: () => {} },
   } as unknown as TuiPluginApi
   const defaults = pluginDefaults({
     todo: true,
@@ -636,9 +680,11 @@ test("persists onboarding completion across controller restarts without changing
 
   try {
     const first = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     expect(await showFirstRunWizard(api, first)).toBe(true)
     await first.flush()
     const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
     expect(await showFirstRunWizard(api, restarted)).toBe(false)
     expect(opened).toBe(1)
     expect(values.size).toBe(0)

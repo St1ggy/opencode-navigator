@@ -1,24 +1,43 @@
-import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
-import { TextAttributes } from "@opentui/core"
+import { TextAttributes } from '@opentui/core'
+import { Index } from 'solid-js'
+
+import { useIcons } from '../icons/context'
+
+import { createDialogStack } from './context'
+
+import type { IconStyle } from '../icons/ui'
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function KeyboardHelpDialog(props: { api: TuiPluginApi }) {
+  const icons = useIcons()
   const theme = () => props.api.theme.current
+  const hints = () => [
+    `${icons.key('up')}/k and ${icons.key('down')}/j move · ${icons.key('enter')} activates`,
+    `${icons.key('enter')} on a filter starts typing · ${icons.key('esc')} returns`,
+    `Todo: ${icons.key('enter')} on All / Active / Finished changes the view`,
+    'Show all / Show less expands or limits the filtered list',
+    `Skills: ${icons.icon('info')} opens source · ${icons.icon('recent')} marks recent skills`,
+    `Search Everything: shortcut in Settings ${icons.icon('right')} Behavior`,
+    `Search: type · ${icons.key('up/down')} results · ${icons.key('tab/shift+tab')} tabs · ${icons.key('enter')} run`,
+    `${icons.key('esc')} leaves the sidebar · ${icons.key('?')} opens this help`,
+  ]
+
   return (
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
       <text attributes={TextAttributes.BOLD} fg={theme().text}>
-        Sidebar keyboard help
+        {icons.icon('help')} Navigator keyboard help
       </text>
-      <text fg={theme().textMuted}>↑/k and ↓/j move · enter activates</text>
-      <text fg={theme().textMuted}>enter on a filter starts typing · esc returns</text>
-      <text fg={theme().textMuted}>Todo: enter on All / Active / Finished changes the view</text>
-      <text fg={theme().textMuted}>Show all / Show less expands or limits the filtered list</text>
-      <text fg={theme().textMuted}>Skills: activate the i control for source · ◷ marks recent</text>
-      <text fg={theme().textMuted}>esc leaves the sidebar · ? opens this help</text>
+      <Index each={hints()}>
+        {(hint) => (
+          <text fg={theme().textMuted} wrapMode="word">
+            {hint()}
+          </text>
+        )}
+      </Index>
     </box>
   )
 }
 
-export function openKeyboardHelp(api: TuiPluginApi) {
-  api.ui.dialog.replace(() => <KeyboardHelpDialog api={api} />)
-  api.ui.dialog.setSize("medium")
+export function openKeyboardHelp(api: TuiPluginApi, iconStyle: () => IconStyle = () => 'nerd') {
+  createDialogStack(api, iconStyle).open(() => <KeyboardHelpDialog api={api} />)
 }
