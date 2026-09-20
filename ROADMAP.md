@@ -24,6 +24,7 @@ verification workflow before expanding the product surface.
 
 ### Architecture
 
+- [ ] Fully migrate to the current official FSD specification (v2.1 at the latest documentation check), with explicit slice APIs, controlled imports, and maximally atomic UI components.
 - [x] Separate stateful logic from rendering; Todo, Subagents, Skills, MCP, preferences, and sidebar interaction live outside the section components.
 - [x] Keep `src/tui.tsx` as a composition and export facade, with controllers, components, dialogs, and icons in focused modules.
 - [x] Keep Solid and OpenTUI packages external so the plugin shares OpenCode's reactive runtime.
@@ -52,7 +53,7 @@ verification workflow before expanding the product surface.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
 - [x] Limit the published package to the license, README, bundle, package metadata, and corner font with its installer.
 - [x] Run TypeScript, ESLint with the shared Solid preset, and Prettier checks through `bun run check`.
-- [x] Enforce a 320,000-byte raw bundle budget through `bun run check` and CI.
+- [x] Enforce a 345,000-byte raw bundle budget through `bun run check` and CI.
 
 ### Keyboard Navigation
 
@@ -75,18 +76,21 @@ verification workflow before expanding the product surface.
 ### Presets And Layout
 
 - [x] Start with an empty preset list and allow named layout presets to be saved, applied, updated, renamed, and deleted.
-- [ ] Preview layout presets before applying them.
+- [x] Preview layout visibility, expansion, and position changes before applying; show changed sections first and preserve the preset menu on Cancel/Escape.
 - [~] Configurable section ordering and per-section item limits with Show all / Show less exist; row density remains planned.
 - [x] Save layout defaults globally or for the current worktree using the unified persistence model.
-- [~] Named MCP state presets support save, apply, update, rename, delete, per-server progress, and partial-failure retry; change previews remain planned.
+- [x] Named MCP state presets support save, change previews, apply, update, rename, delete, per-server progress, and partial-failure retry.
+- [x] Keep previews live, distinguish skipped/unchanged servers, block applying during refresh failures or mutations, and guard against stale scopes and deleted presets.
+- [x] Lift preset previews toward the top of the terminal and add icon-led summaries, semantic status labels, and stronger row grouping.
 - [x] Add `Connect all` and `Disconnect all` with per-server progress, partial-failure reporting, and failed-only retry.
 - [ ] Optionally link one layout preset and one MCP preset as a workspace profile.
 
 ### Section Improvements
 
 - [x] Todo: All / Active / Finished filters, status grouping, separate cancelled tasks, and status counts.
+- [x] Give the active Todo filter the same persistent rounded highlight, accent color, and bold treatment as an active Settings tab.
 - [x] Subagents: observed runtime, retry countdown, in-memory recent runs, failure attention, text/status filters, and parent-session navigation.
-- [~] Skills: user-wide favorites, recent items, and source details exist; fuzzy keyboard selection and trusted-skill confirmation settings remain planned.
+- [~] Skills: user-wide favorites, recent items, source details, and fuzzy keyboard selection through Search Everything exist; additional trusted-skill confirmation settings remain planned.
 - [~] Quick Actions: scoped ordering and visibility exist; recent actions, additional registered commands, and route-aware disabled reasons remain planned.
 - [~] LSP: icons/text badges, error-first sorting, and live ID/root/status details exist; diagnostic-specific actions depend on public API support.
 - [~] MCP: filtering, pending rows, error text, individual/bulk connect/disconnect, retry, and user-wide favorites exist; custom grouping remains planned.
@@ -129,10 +133,9 @@ public OpenCode TUI or stable authenticated provider API:
 
 ## Suggested Delivery Order
 
-1. Maintain the completed P0 architecture, persistence, reliability, keyboard, and smoke-test foundation.
-2. Add layout and MCP presets on the unified global/worktree preference model.
-3. Improve existing sections using the shared request and interaction contracts.
-4. Add stable provider and CLI adapters for supported quota information.
-5. Build unified search after section keyboard behavior is consistent.
-6. Add portable project-local profiles after the settings schema has settled.
-7. Finish performance, accessibility, bundle, and release polish for 1.0.
+1. Prepare and execute the full FSD migration, verifying the latest official specification and decomposing the UI into atomic components within the owning slices.
+2. Preserve the completed persistence, reliability, preset-preview, keyboard, and smoke-test foundation during that migration.
+3. Complete the remaining section improvements and Search Everything history/provider support.
+4. Add portable project-local profiles after the settings schema has settled.
+5. Add provider and CLI adapters only where stable supported quota APIs are available.
+6. Finish performance, accessibility, bundle, and release polish for 1.0.
