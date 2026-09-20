@@ -33,7 +33,7 @@
     "LICENSE"
   ],
   "bin": {
-    "opencode-navigator-font": "./scripts/install-font.mjs"
+    "opencode-navigator-font": "scripts/install-font.mjs"
   },
   "exports": {
     "./tui": {
