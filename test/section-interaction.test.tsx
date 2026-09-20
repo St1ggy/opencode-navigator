@@ -1,4 +1,5 @@
 /** @jsxImportSource @opentui/solid */
+import { RGBA } from '@opentui/core'
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { batch, createSignal } from 'solid-js'
@@ -158,11 +159,23 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
     await setup.mockMouse.click(lines[row].indexOf(label), row)
     await setup.flush()
   }
+  function expectTabStyle(label: string, foreground: string, background: string) {
+    const lines = setup.captureCharFrame().split('\n')
+    const y = lines.findIndex((line) => line.includes(label))
+    const x = lines[y].indexOf(label)
+    const buffer = setup.renderer.currentRenderBuffer
+    const offset = (y * buffer.width + x) * 4
+
+    expect(new RGBA(buffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex(foreground))).toBe(true)
+    expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex(background))).toBe(true)
+  }
   try {
     await setup.flush()
+    expectTabStyle('All 4', sidebarTheme.accent, sidebarTheme.backgroundElement)
     expect(setup.captureCharFrame()).toContain('running-task')
     expect(setup.captureCharFrame()).not.toContain('pending-task')
     await click('Finished 2')
+    expectTabStyle('Finished 2', sidebarTheme.accent, sidebarTheme.backgroundElement)
     expect(setup.captureCharFrame()).toContain('done-task')
     expect(setup.captureCharFrame()).not.toContain('Cancelled')
     await click('Show all')
@@ -888,7 +901,7 @@ test('the built settings dialog saves the current layout as default', async () =
 
     try {
       await presetMenu.flush()
-      for (const label of ['Apply', 'Update from current', 'Rename', 'Delete']) {
+      for (const label of ['Preview & apply', 'Update from current', 'Rename', 'Delete']) {
         expect(presetMenu.captureCharFrame()).toContain(label)
       }
       layer?.commands.find((command) => command.name.endsWith('.next'))?.run()

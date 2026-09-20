@@ -27,6 +27,7 @@ import { type TodoViewMode, buildTodoView } from '../todo-view'
 import { Section, SectionFilter, SectionWithHeaderAction, matchesFilter, useSidebarItem } from './common'
 import { ListVisibilityControl } from './list-visibility'
 import { SelectionBox } from './selection-box'
+import { TodoFilterTab } from './todo-filter-tab'
 
 import type { PreferencesController } from '../controllers/preferences'
 import type { SkillController, SkillInfo } from '../controllers/skills'
@@ -189,7 +190,6 @@ export function TodoSection(props: {
   sessionID: string
   order?: number
 }) {
-  const icons = useIcons()
   const list = createMemo(() => props.controller.list(props.sessionID))
   const [mode, setMode] = createSignal<TodoViewMode>('all')
   const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
@@ -243,13 +243,14 @@ export function TodoSection(props: {
           <box flexDirection="row" flexWrap="wrap">
             <For each={['all', 'active', 'finished'] as const}>
               {(value, index) => (
-                <McpBulkAction
+                <TodoFilterTab
                   api={props.api}
                   interaction={props.interaction}
                   id={`${PLUGIN_ID}.todo.filter.${value}`}
                   order={[props.order ?? 100, 2 + index()]}
-                  label={`${mode() === value ? `${icons.icon('radioOn')} ` : ''}${value[0].toUpperCase() + value.slice(1)} ${view().counts[value]}`}
-                  disabled={false}
+                  label={value[0].toUpperCase() + value.slice(1)}
+                  count={view().counts[value]}
+                  selected={mode() === value}
                   onActivate={() => setMode(value)}
                 />
               )}

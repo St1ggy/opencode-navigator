@@ -9,6 +9,7 @@ import { QUICK_ACTIONS } from '../src/constants'
 import { createPreferencesController } from '../src/controllers/preferences'
 import { FirstRunWizard } from '../src/dialogs/first-run'
 import { KeyboardHelpDialog } from '../src/dialogs/keyboard-help'
+import { LayoutPresetPreview } from '../src/dialogs/layout-preset-preview'
 import { LspDetailsDialog } from '../src/dialogs/lsp'
 import { McpPresetMenu } from '../src/dialogs/mcp-presets'
 import { QuickActionsDialog } from '../src/dialogs/quick-actions'
@@ -94,6 +95,7 @@ test('switching the shared icon preference updates every section and dialog with
   })
 
   await preferences.load()
+  preferences.saveLayoutPreset('Icons')
   const target = () => ({ key: 'test', routing: { directory: '/repo' }, scope: '/repo' })
   const state = () => ({ status: 'ready' as const })
   const skill = { name: 'review', location: '/skills/review', description: 'Review code', content: '' }
@@ -191,6 +193,14 @@ test('switching the shared icon preference updates every section and dialog with
           options={[{ title: 'Save', value: 'save', description: 'Save states', icon: 'save' }]}
           onSelect={() => {}}
         />
+      ),
+    },
+    {
+      name: 'preset preview',
+      render: () => (
+        <box paddingTop={10}>
+          <LayoutPresetPreview api={api} preferences={preferences} name="Icons" />
+        </box>
       ),
     },
   ]

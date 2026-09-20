@@ -2,6 +2,7 @@ import { createSignal } from 'solid-js'
 
 import { currentLocation } from '../location'
 import { type DesiredMcpStates, type McpPresets, preferencesScope } from '../preferences-schema'
+import { mcpPresetPreview } from '../preset-preview'
 import { mcpToggleAction } from '../state'
 
 import { createRequestState, isAbortError, retryBackgroundRefresh } from './request-state'
@@ -495,17 +496,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     applyPreset(name: string, states: Record<string, 'enabled' | 'disabled'>, current = target()) {
       if (mutating(current)) return
 
-      const items = new Map(list(current).map((item) => [item.name, item]))
-      const changes = Object.entries(states).flatMap(([server, desired]) => {
-        const item = items.get(server)
-        const action = item && mcpToggleAction(item.status)
-
-        if ((desired === 'enabled' && action === 'connect') || (desired === 'disabled' && action === 'disconnect')) {
-          return [{ name: server, action }]
-        }
-
-        return []
-      })
+      const { changes } = mcpPresetPreview(list(current), states)
 
       if (persist()) {
         if (preferences.setDesiredMcpStates) preferences.setDesiredMcpStates(current.scope, states)

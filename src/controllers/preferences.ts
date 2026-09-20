@@ -12,7 +12,6 @@ import {
   type SectionLayoutDefault,
   emptyPreferencesDocument,
   parseRecentSkills,
-  parseSectionLayout,
   resolvePreferences,
 } from '../preferences-schema'
 import {
@@ -21,6 +20,7 @@ import {
   type PreferencesUpdate,
   applyPreferencesUpdate,
 } from '../preferences-store'
+import { layoutPresetPreview } from '../preset-preview'
 import { SIDEBAR_SECTIONS, type SidebarSection } from '../state'
 
 import type { PluginConfig } from '../config'
@@ -422,6 +422,7 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
     },
     ready,
     preferenceScope,
+    selectedScopeKey: () => targetKey(selectedTarget()),
     canUseWorktreeScope: () => activeTarget().kind === 'worktree',
     preferenceScopeLabel: () => {
       const target = activeTarget()
@@ -493,18 +494,12 @@ export function createPreferencesController(api: TuiPluginApi, defaults: PluginC
       swap(order, index, destination)
       setSelectedSessionLayout({ ...layout, order })
     },
+    previewLayoutPreset(preset: SectionLayoutDefault) {
+      return layoutPresetPreview(selectedLayoutResolved().layout, preset)
+    },
     applyLayoutPreset(preset: SectionLayoutDefault) {
       void load()
-      const current = selectedLayoutResolved().layout
-      const parsed = parseSectionLayout(preset)
-
-      if (!parsed) throw new Error('Invalid layout preset')
-
-      setSelectedSessionLayout({
-        sections: { ...current.sections, ...parsed.sections },
-        expanded: { ...current.expanded, ...parsed.expanded },
-        order: parsed.order ?? current.order,
-      })
+      setSelectedSessionLayout(layoutPresetPreview(selectedLayoutResolved().layout, preset).next)
     },
     saveLayoutPreset(value: string) {
       void load()

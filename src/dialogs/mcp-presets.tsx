@@ -6,6 +6,7 @@ import { PLUGIN_ID } from '../constants'
 import { useIcons } from '../icons/context'
 
 import { createDialogStack, useDialogScroll, useDialogState, useDialogs } from './context'
+import { McpPresetPreview } from './mcp-preset-preview'
 
 import type { McpController } from '../controllers/mcp'
 import type { PreferencesController } from '../controllers/preferences'
@@ -126,7 +127,12 @@ export function PresetMenu(props: {
 }
 
 export function openMcpPresets(api: TuiPluginApi, controller: McpController, preferences: PreferencesController) {
-  const dialogs = createDialogStack(api, preferences.lspIconStyle)
+  const target = controller.target()
+  const dialogs = createDialogStack(api, preferences.lspIconStyle, () => {
+    const current = controller.target()
+
+    return current.key === target.key && current.scope === target.scope
+  })
 
   function notify(message: string) {
     api.ui.toast({ variant: 'success', title: 'MCP presets', message, duration: 3000 })
@@ -159,18 +165,22 @@ export function openMcpPresets(api: TuiPluginApi, controller: McpController, pre
         api={api}
         title={name}
         options={[
-          { title: 'Apply', value: 'apply', description: 'match the saved server states', icon: 'done' },
+          {
+            title: 'Preview & apply',
+            value: 'apply',
+            description: 'review server changes before applying',
+            icon: 'info',
+          },
           { title: 'Update from current', value: 'update', description: 'replace the saved states', icon: 'save' },
           { title: 'Rename', value: 'rename', description: 'change the preset name', icon: 'edit' },
           { title: 'Delete', value: 'delete', description: 'remove this preset', icon: 'delete' },
         ]}
         onSelect={(option) => {
           if (option.value === 'apply') {
-            const preset = preferences.mcpPresets()[name]
-
-            dialogs.close()
-
-            if (preset) void controller.applyPreset(name, preset)
+            dialogs.open(
+              () => <McpPresetPreview api={api} controller={controller} preferences={preferences} name={name} />,
+              'large',
+            )
 
             return
           }

@@ -9,6 +9,7 @@ import { SIDEBAR_SECTIONS, type SidebarSection } from '../state'
 
 import { createDialogStack, useDialogScroll, useDialogState, useDialogs } from './context'
 import { FirstRunWizard } from './first-run'
+import { LayoutPresetPreview } from './layout-preset-preview'
 import { PresetMenu } from './mcp-presets'
 import { QuickActionsDialog } from './quick-actions'
 
@@ -249,21 +250,6 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
     })
   }
 
-  function applyPreset(name: string) {
-    const layout = props.preferences.layoutPresets()[name]
-
-    if (!layout) return
-
-    props.preferences.applyLayoutPreset(layout)
-    dialogs.back()
-    props.api.ui.toast({
-      variant: 'success',
-      title: 'Layout presets',
-      message: `${name} applied to ${props.preferences.preferenceScopeLabel()}`,
-      duration: 3000,
-    })
-  }
-
   function openPresetActions(name: string) {
     dialogs.open(() => (
       <PresetMenu
@@ -271,9 +257,9 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
         title={name}
         options={[
           {
-            title: `${icons.icon('done')} Apply`,
+            title: `${icons.icon('info')} Preview & apply`,
             value: 'apply',
-            description: 'use this layout in the selected scope',
+            description: 'review visibility, expansion and order changes',
           },
           {
             title: `${icons.icon('save')} Update from current`,
@@ -285,7 +271,10 @@ export function SettingsDialog(props: { api: TuiPluginApi; preferences: Preferen
         ]}
         onSelect={(option) => {
           if (option.value === 'apply') {
-            applyPreset(name)
+            dialogs.open(
+              () => <LayoutPresetPreview api={props.api} preferences={props.preferences} name={name} />,
+              'large',
+            )
 
             return
           }

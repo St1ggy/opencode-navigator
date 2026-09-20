@@ -5,8 +5,8 @@ if (!(await bundle.exists())) {
   process.exit(1)
 }
 
-// Includes shared dialog navigation; the TUI bundle intentionally remains unminified.
-const MAX_BUNDLE_BYTES = 320_000
+// Includes icon-led preset previews and persistent section tabs; the TUI bundle stays unminified.
+const MAX_BUNDLE_BYTES = 345_000
 const size = bundle.size
 
 console.log(`dist/tui.js: ${size.toLocaleString('en-US')} bytes (budget: ${MAX_BUNDLE_BYTES.toLocaleString('en-US')})`)
