@@ -1,4 +1,5 @@
 /** @jsxImportSource @opentui/solid */
+import { RGBA } from '@opentui/core'
 import { createDefaultOpenTuiKeymap } from '@opentui/keymap/opentui'
 import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
@@ -434,24 +435,41 @@ test('filter enter takes real focus, j/k type, and two escapes return then leave
   }
 
   const setup = await testRender(() => <Harness />, { width: 30, height: 2 })
+  const expectTextColor = (text: string, color: string) => {
+    const lines = setup.captureCharFrame().split('\n')
+    const y = lines.findIndex((line) => line.includes(text))
+    const x = lines[y].indexOf(text)
+    const buffer = setup.renderer.currentRenderBuffer
+    const offset = (y * buffer.width + x) * 4
+
+    expect(new RGBA(buffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex(color))).toBe(true)
+  }
 
   try {
     await setup.flush()
     await Promise.resolve()
     interaction.focus(null)
+    await setup.flush()
+    expectTextColor('Filter...', theme.selectedListItemText)
     setup.mockInput.pressEnter()
     expect(api.renderer.currentFocusedRenderable?.id).not.toBe(root?.id)
     await setup.mockInput.typeText('jk')
     expect(query()).toBe('jk')
+    await setup.flush()
+    expectTextColor('jk', theme.selectedListItemText)
     expect(interaction.selectedId()).toBe('filter')
 
     setup.mockInput.pressEscape()
+    await Bun.sleep(60)
     await setup.flush()
     expect(api.renderer.currentFocusedRenderable?.id).toBe(root?.id)
     setup.mockInput.pressEscape()
     await Bun.sleep(60)
     await setup.flush()
     expect(api.renderer.currentFocusedRenderable).toBeNull()
+    setQuery('')
+    await setup.flush()
+    expectTextColor('Filter...', theme.textMuted)
   } finally {
     setup.renderer.destroy()
   }

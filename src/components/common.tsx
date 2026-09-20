@@ -228,6 +228,10 @@ export function SectionFilter(props: {
     },
   })
 
+  const highlighted = () => item.focused() || inputFocused()
+  const textColor = () => (highlighted() ? theme().selectedListItemText : theme().text)
+  const mutedColor = () => (highlighted() ? theme().selectedListItemText : theme().textMuted)
+
   function leaveInput(event?: { preventDefault(): void; stopPropagation(): void }) {
     event?.preventDefault()
     event?.stopPropagation()
@@ -246,12 +250,12 @@ export function SectionFilter(props: {
       gap={1}
       paddingLeft={1}
       paddingRight={1}
-      backgroundColor={item.backgroundColor()}
+      backgroundColor={highlighted() ? theme().primary : item.backgroundColor()}
       onMouseOver={item.onMouseOver}
       onMouseOut={item.onMouseOut}
       onMouseDown={(event) => item.activate(event)}
     >
-      <text flexShrink={0} fg={item.focused() || inputFocused() ? item.foregroundColor() : theme().textMuted}>
+      <text flexShrink={0} fg={mutedColor()}>
         {icons.icon('search')}
       </text>
       <input
@@ -265,13 +269,15 @@ export function SectionFilter(props: {
         flexGrow={1}
         value={props.query}
         placeholder={props.placeholder}
-        placeholderColor={theme().textMuted}
-        textColor={theme().text}
-        focusedTextColor={theme().text}
+        placeholderColor={mutedColor()}
+        textColor={textColor()}
+        focusedTextColor={textColor()}
         backgroundColor="transparent"
         focusedBackgroundColor="transparent"
-        cursorColor={theme().accent}
+        cursorColor={highlighted() ? theme().selectedListItemText : theme().accent}
         focused={inputFocused()}
+        on:focused={() => setInputFocused(true)}
+        on:blurred={() => setInputFocused(false)}
         onInput={props.onInput}
         onSubmit={() => leaveInput()}
         onKeyDown={(event) => {
@@ -281,7 +287,7 @@ export function SectionFilter(props: {
         }}
       />
       <Show when={props.query}>
-        <text flexShrink={0} fg={theme().textMuted} onMouseDown={() => props.onInput('')}>
+        <text flexShrink={0} fg={mutedColor()} onMouseDown={() => props.onInput('')}>
           {icons.icon('close')}
         </text>
       </Show>
