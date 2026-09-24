@@ -1,0 +1,85 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release-screenshots
+  cancel-in-progress: false
+
+jobs:
+  screenshots:
+    name: Refresh screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Capture deterministic screenshots
+        run: bun run screenshots
+      - name: Verify screenshot reproducibility
+        run: bun run screenshots:verify
+      - name: Create and merge screenshot pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add --all -- ':(glob)screenshots/*.png'
+          if git diff --cached --quiet; then
+            echo 'Screenshots already match the release sources.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          branch="automation/release-screenshots-${GITHUB_RUN_ID}"
+          git config user.name 'opencode-navigator-screenshot-bot'
+          git config user.email 'opencode-navigator-screenshot-bot@users.noreply.github.com'
+          git switch --create "$branch"
+          git commit --message 'Refresh release screenshots'
+          head_sha="$(git rev-parse HEAD)"
+          git push --set-upstream origin "$branch"
+
+          pr_url="$(gh pr create \
+            --base main \
+            --head "$branch" \
+            --title 'docs: refresh release screenshots' \
+            --body 'Automated deterministic screenshot refresh from the Prepare Release workflow.')"
+          gh workflow run ci.yml --ref "$branch"
+
+          ci_run_id=
+          for _ in {1..60}; do
+            ci_run_id="$(gh run list \
+              --workflow ci.yml \
+              --branch "$branch" \
+              --event workflow_dispatch \
+              --commit "$head_sha" \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty')"
+            [[ -n "$ci_run_id" ]] && break
+            sleep 5
+          done
+
+          if [[ -z "$ci_run_id" ]]; then
+            echo 'Timed out waiting for the screenshot pull request CI run.' >&2
+            exit 1
+          fi
+
+          gh run watch "$ci_run_id" --exit-status
+          gh pr merge "$pr_url" \
+            --squash \
+            --delete-branch \
+            --match-head-commit "$head_sha"
+
+          printf 'Screenshot PR: %s\n' "$pr_url" >> "$GITHUB_STEP_SUMMARY"
