@@ -5,12 +5,17 @@ import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { For, batch, createSignal, onCleanup } from 'solid-js'
 
-import { SectionFilter, useSidebarItem } from '../src/components/common'
-import { ListVisibilityControl } from '../src/components/list-visibility'
-import { SubagentSection, TodoSection } from '../src/components/sections'
-import { SidebarFocusBinding } from '../src/components/sidebar'
 import { createListVisibility } from '../src/controllers/list-visibility'
-import { type SidebarInteraction, createSidebarInteraction } from '../src/sidebar-interaction'
+import {
+  ListVisibilityControl,
+  SectionFilter,
+  SidebarFocusBinding,
+  type SidebarInteraction,
+  SubagentSection,
+  TodoSection,
+  createSidebarInteraction,
+  useSidebarItem,
+} from '../src/pages/session-sidebar'
 
 import type { PreferencesController } from '../src/controllers/preferences'
 import type { SubagentController } from '../src/controllers/subagents'
@@ -78,7 +83,7 @@ test('Todo modes activate through real sidebar keyboard navigation', async () =>
     setup.mockInput.pressEnter()
     await setup.flush()
     expect(setup.captureCharFrame()).toContain('No active tasks')
-    setup.mockInput.pressArrow('down')
+    setup.mockInput.pressArrow('right')
     setup.mockInput.pressEnter()
     await setup.flush()
     expect(setup.captureCharFrame()).toContain('Completed')
@@ -185,7 +190,7 @@ test('list footer expands with Enter, collapses with mouse, and returns focus wh
     const visibility = createListVisibility({ items, limit: () => 1, resetKey: () => 'test' })
     const heading = useSidebarItem(api, interaction, {
       id: 'opencode-navigator.section.skills',
-      order: 100,
+      position: { section: 1, row: 0, column: 0 },
       activate() {},
     })
 
@@ -199,7 +204,8 @@ test('list footer expands with Enter, collapses with mouse, and returns focus wh
           api={api}
           interaction={interaction}
           section="skills"
-          order={100}
+          navigationSection={1}
+          row={1}
           visibility={visibility}
         />
       </box>
@@ -298,15 +304,15 @@ test('palette focus commands are disabled while a dialog is open', () => {
   }
 })
 
-test('real key input wraps arrows and j/k, activates, isolates other focus, and selects before mouse activation', async () => {
+test('real key input navigates visual rows and controls directionally', async () => {
   let interaction!: SidebarInteraction
   let modal: BoxRenderable | undefined
   const activated: string[] = []
 
-  function Row(props: { id: string; order: number; disabled?: boolean }) {
+  function Row(props: { id: string; row: number; column: number; disabled?: boolean }) {
     const item = useSidebarItem(api, interaction, {
       id: props.id,
-      order: props.order,
+      position: { section: 1, row: props.row, column: props.column },
       disabled: () => props.disabled === true,
       activate: () => activated.push(`${props.id}:${interaction.selectedId()}`),
     })
@@ -348,9 +354,11 @@ test('real key input wraps arrows and j/k, activates, isolates other focus, and 
             if (event.name === 'escape' && !event.defaultPrevented) interaction.leave()
           }}
         >
-          <Row id="a" order={1} />
-          <Row id="b" order={2} />
-          <Row id="disabled" order={3} disabled />
+          <Row id="a" row={1} column={0} />
+          <Row id="a.action" row={1} column={1} />
+          <Row id="b" row={2} column={0} />
+          <Row id="b.action" row={2} column={1} />
+          <Row id="disabled" row={3} column={0} disabled />
         </box>
         <box ref={(node: BoxRenderable) => (modal = node)} focusable>
           <text>modal</text>
@@ -366,11 +374,17 @@ test('real key input wraps arrows and j/k, activates, isolates other focus, and 
     await Promise.resolve()
     interaction.focus(null)
     expect(interaction.selectedId()).toBe('a')
-    setup.mockInput.pressArrow('up')
-    expect(interaction.selectedId()).toBe('disabled')
+    setup.mockInput.pressArrow('left')
+    expect(interaction.selectedId()).toBe('a.action')
+    setup.mockInput.pressArrow('down')
+    expect(interaction.selectedId()).toBe('b.action')
     setup.mockInput.pressKey('j')
-    expect(interaction.selectedId()).toBe('a')
+    expect(interaction.selectedId()).toBe('disabled')
     setup.mockInput.pressKey('k')
+    expect(interaction.selectedId()).toBe('b.action')
+    setup.mockInput.pressArrow('right')
+    expect(interaction.selectedId()).toBe('b')
+    setup.mockInput.pressArrow('down')
     expect(interaction.selectedId()).toBe('disabled')
     setup.mockInput.pressEnter()
     expect(activated).toEqual([])
@@ -425,7 +439,7 @@ test('filter enter takes real focus, j/k type, and two escapes return then leave
           api={api}
           interaction={interaction}
           id="filter"
-          order={1}
+          position={{ section: 1, row: 0, column: 0 }}
           query={query()}
           placeholder="Filter..."
           onInput={setQuery}

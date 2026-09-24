@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-for command in expect opencode; do
+for command in expect; do
   if ! command -v "$command" >/dev/null 2>&1; then
     printf 'Missing required command: %s\n' "$command" >&2
     exit 1
@@ -25,7 +25,32 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
-mkdir -p "$temporary/cache" "$temporary/config" "$temporary/data" "$temporary/home" "$temporary/state" "$temporary/workspace"
+mkdir -p "$temporary/bin" "$temporary/cache" "$temporary/config" "$temporary/data" "$temporary/home" "$temporary/state" "$temporary/workspace"
+
+opencode_bin="${OPENCODE_SMOKE_BIN:-$(command -v opencode || true)}"
+if [[ -z "$opencode_bin" || ! -x "$opencode_bin" ]]; then
+  printf 'Missing OpenCode executable. Set OPENCODE_SMOKE_BIN to an OpenCode 1.x binary.\n' >&2
+  exit 1
+fi
+
+opencode_version="$($opencode_bin --version 2>/dev/null || true)"
+if [[ "$opencode_version" == 1.* ]]; then
+  ln -s "$opencode_bin" "$temporary/bin/opencode"
+else
+  if ! command -v npm >/dev/null 2>&1; then
+    printf 'OpenCode 1.x is required for this compatibility smoke. Set OPENCODE_SMOKE_BIN explicitly.\n' >&2
+    exit 1
+  fi
+
+  npm install --prefix "$temporary/opencode-v1" --no-package-lock --no-save --silent opencode-ai@1.18.31
+  ln -s "$temporary/opencode-v1/node_modules/.bin/opencode" "$temporary/bin/opencode"
+fi
+
+export PATH="$temporary/bin:$PATH"
+if [[ "$(opencode --version 2>/dev/null || true)" != 1.* ]]; then
+  printf 'OpenCode 1.x compatibility smoke could not resolve a 1.x executable.\n' >&2
+  exit 1
+fi
 
 plugin_url="file://$plugin"
 config="$temporary/tui.json"
@@ -127,7 +152,8 @@ expect <<'EXPECT'
       timeout {}
     }
   }
-  after 500
+  # Preferences can be persisted before the app slot finishes registering keymaps.
+  after 1000
   send -- "\033"
   after 200
   send -- "\033y"
@@ -159,6 +185,14 @@ expect <<'EXPECT'
     -re {No matching results} {}
     timeout { puts stderr "Search Everything did not filter its results"; exit 1 }
     eof { puts stderr "OpenCode exited while searching"; exit 1 }
+  }
+  send -- "\033"
+  after 200
+  send -- "\033\[44;5u"
+  expect {
+    -re {Navigator settings} {}
+    timeout { puts stderr "Navigator Settings did not open via Ctrl+,"; exit 1 }
+    eof { puts stderr "OpenCode exited while opening Navigator Settings"; exit 1 }
   }
   send -- "\033"
   after 200

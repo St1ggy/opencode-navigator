@@ -15,12 +15,19 @@ import {
   openSettings,
   // @ts-expect-error The package intentionally publishes JavaScript without declarations.
 } from '../dist/tui.js'
-import { LspSection, QuickActionsSection, SubagentSection, TodoSection } from '../src/components/sections'
 import { pluginConfig } from '../src/config'
 import { createPreferencesController } from '../src/controllers/preferences'
 import { McpPresetMenu } from '../src/dialogs/mcp-presets'
 import { IconProvider } from '../src/icons/context'
 import { keyHint, sectionIcon, settingsTabIcon, uiIcon } from '../src/icons/ui'
+import {
+  LspSection,
+  QuickActionsSection,
+  SectionBoundary,
+  SubagentSection,
+  TodoSection,
+} from '../src/pages/session-sidebar'
+import { TodoRow } from '../src/pages/session-sidebar/ui/todo-row'
 
 import type { PreferencesController } from '../src/controllers/preferences'
 import type { SubagentController } from '../src/controllers/subagents'
@@ -93,7 +100,7 @@ test('Subagents show observed duration, retry, errors and recent under one limit
 
   try {
     await setup.flush()
-    expect(setup.captureCharFrame()).toContain('≥2m 03s')
+    expect(setup.captureCharFrame()).toContain(`${uiIcon('recent')} 2m 03s`)
     expect(setup.captureCharFrame()).toContain('Retry #2 · 0s')
     expect(setup.captureCharFrame()).not.toContain('Earlier worker')
     let lines = setup.captureCharFrame().split('\n')
@@ -122,6 +129,31 @@ test('Subagents show observed duration, retry, errors and recent under one limit
     expect(setup.captureCharFrame()).toContain('0 active · 1 recent')
     expect(setup.captureCharFrame()).toContain('Error: failed')
     expect(setup.captureCharFrame()).not.toContain('No subagents')
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('Todo priority indicators share one right-aligned slot', async () => {
+  const api = { theme: { current: sidebarTheme } } as unknown as TuiPluginApi
+  const setup = await testRender(
+    () => (
+      <box width={30}>
+        <TodoRow api={api} item={{ content: 'High', status: 'pending', priority: 'high' }} />
+        <TodoRow api={api} item={{ content: 'Medium', status: 'pending', priority: 'medium' }} />
+        <TodoRow api={api} item={{ content: 'Low', status: 'pending', priority: 'low' }} />
+      </box>
+    ),
+    { width: 30, height: 3 },
+  )
+
+  try {
+    await setup.flush()
+    const lines = setup.captureCharFrame().split('\n')
+
+    expect(lines.find((line) => line.includes('High'))?.indexOf(uiIcon('up'))).toBe(29)
+    expect(lines.find((line) => line.includes('Medium'))?.indexOf(uiIcon('priorityMedium'))).toBe(29)
+    expect(lines.find((line) => line.includes('Low'))?.indexOf(uiIcon('down'))).toBe(29)
   } finally {
     setup.renderer.destroy()
   }
@@ -165,13 +197,25 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
     const x = lines[y].indexOf(label)
     const buffer = setup.renderer.currentRenderBuffer
     const offset = (y * buffer.width + x) * 4
+    const countOffset = (y * buffer.width + x + label.length - 1) * 4
 
     expect(new RGBA(buffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex(foreground))).toBe(true)
     expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex(background))).toBe(true)
+    expect(
+      new RGBA(buffer.buffers.fg.slice(countOffset, countOffset + 4)).equals(RGBA.fromHex(sidebarTheme.textMuted)),
+    ).toBe(true)
   }
   try {
     await setup.flush()
     expectTabStyle('All 4', sidebarTheme.accent, sidebarTheme.backgroundElement)
+    const tabRow =
+      setup
+        .captureCharFrame()
+        .split('\n')
+        .find((line) => line.includes('All 4')) ?? ''
+
+    expect(tabRow).not.toContain(uiIcon('radioOn'))
+    expect(tabRow).not.toContain(uiIcon('radioOff'))
     expect(setup.captureCharFrame()).toContain('running-task')
     expect(setup.captureCharFrame()).not.toContain('pending-task')
     await click('Finished 2')
@@ -188,7 +232,7 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
     expect(setup.captureCharFrame()).toContain('No active tasks')
     setSessionID('two')
     await setup.flush()
-    expect(setup.captureCharFrame()).toContain(`${uiIcon('radioOn')} All 1`)
+    expect(setup.captureCharFrame()).toContain('All 1')
     expect(setup.captureCharFrame()).toContain('done-task')
   } finally {
     setup.renderer.destroy()
@@ -198,9 +242,10 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
 test('LSP and Quick Actions respect per-section limits and show all', async () => {
   const api = {
     theme: { current: sidebarTheme },
-    route: { current: { name: 'home' } },
+    route: { current: { name: 'session', params: { sessionID: 'one' } } },
     state: {
       path: { directory: '/repo' },
+      session: { get: () => ({ directory: '/repo' }) },
       config: { lsp: true },
       lsp: () => [
         { id: 'typescript', root: '/repo', status: 'connected' },
@@ -224,7 +269,7 @@ test('LSP and Quick Actions respect per-section limits and show all', async () =
     ),
     () => <QuickActionsSection api={api} preferences={preferences} />,
   ]) {
-    const setup = await testRender(component, { width: 50, height: 14 })
+    const setup = await testRender(component, { width: 50, height: 25 })
 
     try {
       await setup.renderOnce()
@@ -249,6 +294,8 @@ test('the built sidebar remains reactive and toggles on mouse down', async () =>
         accent: '#ff9e64',
         text: '#c0caf5',
         textMuted: '#a9b1d6',
+        backgroundPanel: '#16161e',
+        backgroundElement: '#292e42',
       },
     },
   } as unknown as TuiPluginApi
@@ -271,6 +318,45 @@ test('the built sidebar remains reactive and toggles on mouse down', async () =>
     await setup.mockMouse.pressDown(1, 0)
     await setup.renderOnce()
     expect(setup.captureCharFrame()).toContain('content')
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('section boundaries add a subtle divider only between adjacent sections', async () => {
+  const border = RGBA.fromHex('#3b4261')
+  const panel = RGBA.fromHex('#16161e')
+  const api = { theme: { current: { borderSubtle: border, backgroundPanel: panel } } } as unknown as TuiPluginApi
+  const setup = await testRender(
+    () => (
+      <box>
+        <SectionBoundary api={api} divided>
+          <text>first</text>
+        </SectionBoundary>
+        <SectionBoundary api={api} divided={false}>
+          <text>last</text>
+        </SectionBoundary>
+      </box>
+    ),
+    { width: 20, height: 5 },
+  )
+
+  try {
+    await setup.renderOnce()
+    const frame = setup.captureCharFrame()
+
+    expect(frame).toContain('first')
+    expect(frame).toContain('last')
+    const lines = frame.split('\n')
+    const divider = lines.findIndex((line) => /─{10}/.test(line))
+
+    expect(lines.filter((line) => /─{10}/.test(line))).toHaveLength(1)
+    const foreground = setup.renderer.currentRenderBuffer.buffers.fg
+    const offset = (divider * 20 + 10) * 4
+    const color = new RGBA(foreground.slice(offset, offset + 4))
+
+    expect(color.equals(border)).toBe(false)
+    expect(color.equals(panel)).toBe(false)
   } finally {
     setup.renderer.destroy()
   }
@@ -322,6 +408,8 @@ test('the built first-run wizard explains controls and changes section settings'
         text: '#c0caf5',
         textMuted: '#a9b1d6',
         backgroundElement: '#292e42',
+        backgroundPanel: '#16161e',
+        borderSubtle: '#3b4261',
         primary: '#7aa2f7',
         selectedListItemText: '#16161e',
       },
@@ -351,10 +439,31 @@ test('the built first-run wizard explains controls and changes section settings'
 
   try {
     await setup.renderOnce()
-    expect(setup.captureCharFrame()).toContain('Welcome to OpenCode Navigator')
+    expect(setup.captureCharFrame()).toContain('Navigator setup')
+    expect(setup.captureCharFrame()).toContain('A control center that stays compact')
+    expect(setup.captureCharFrame()).toContain('Progressive disclosure')
     expect(setup.captureCharFrame()).toContain('Toggle: ctrl+shift+b')
     expect(setup.captureCharFrame()).toContain('Focus: ctrl+shift+f')
     expect(setup.captureCharFrame()).toContain('Icons: Nerd Font')
+    layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain('Stay oriented while agents work')
+    expect(setup.captureCharFrame()).toContain('Todo filters')
+    layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain('Find anything and launch Skills safely')
+    layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain('Run actions and check language tools')
+    layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain('Control MCP without losing context')
+    layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain('Make Navigator fit each workspace')
+    layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
+    await setup.renderOnce()
+    expect(setup.captureCharFrame()).toContain('Choose your sidebar sections')
     layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
     await setup.renderOnce()
     expect(sections().todo).toBe(false)
@@ -462,7 +571,7 @@ test('the built Skills section keeps favorites first and toggles them independen
 
     expect(lines[reviewLine + 1].trim()).toBe('')
     expect(lines[reviewLine + 2]).toContain('commit')
-    await setup.mockMouse.click(lines[reviewLine].indexOf(uiIcon('favorite')), reviewLine)
+    await setup.mockMouse.click(lines[reviewLine].indexOf(uiIcon('bookmark')), reviewLine)
     await setup.renderOnce()
     expect(favorites().has('/skills/review'), setup.captureCharFrame()).toBe(false)
     expect(setup.captureCharFrame().indexOf('commit')).toBeLessThan(setup.captureCharFrame().indexOf('review-code'))
@@ -557,7 +666,8 @@ test('the built MCP section opens its preset selector from the header', async ()
     await setup.renderOnce()
     const line = setup.captureCharFrame().split('\n', 1)[0]
 
-    expect(line).toContain('Preset: Work')
+    expect(line).toContain('Work')
+    expect(line).not.toContain('Preset:')
     await setup.mockMouse.pressDown(line.indexOf('Work'), 0)
     expect(opened).toBe(0)
     expect(toggled).toBe(0)
@@ -566,10 +676,11 @@ test('the built MCP section opens its preset selector from the header', async ()
     expect(toggled).toBe(0)
     setSelectedPreset(undefined)
     await setup.renderOnce()
-    expect(setup.captureCharFrame()).toContain('Preset: Work')
+    expect(setup.captureCharFrame()).toContain('Work')
+    expect(setup.captureCharFrame()).not.toContain('Preset:')
     setStatus('disabled')
     await setup.renderOnce()
-    expect(setup.captureCharFrame()).not.toContain('Preset: Work')
+    expect(setup.captureCharFrame()).not.toContain('Work')
     expect(setup.captureCharFrame()).toContain('Preset')
   } finally {
     setup.renderer.destroy()
@@ -745,6 +856,8 @@ test('the built settings dialog saves the current layout as default', async () =
   let saved = 0
   let mcpToggles = 0
   let iconToggles = 0
+  let cornerToggles = 0
+  let densityToggles = 0
   let prompt: { onConfirm: (value: string) => void } | undefined
   let replacement: (() => unknown) | undefined
   const savedPresets: string[] = []
@@ -795,8 +908,12 @@ test('the built settings dialog saves the current layout as default', async () =
     setPreferenceScope: () => {},
     persistMcp: () => true,
     selectedPersistMcp: () => true,
+    cornerFont: () => true,
+    selectedCornerFont: () => true,
     lspIconStyle: () => 'nerd',
     selectedLspIconStyle: () => 'nerd',
+    rowDensity: () => 'compact',
+    selectedRowDensity: () => 'compact',
     toggleKey: () => 'ctrl+shift+b',
     selectedToggleKey: () => 'ctrl+shift+b',
     focusKey: () => 'ctrl+shift+f',
@@ -809,7 +926,9 @@ test('the built settings dialog saves the current layout as default', async () =
     toggleSection: () => {},
     toggleSelectedSection: () => {},
     toggleMcpPersistence: () => mcpToggles++,
+    toggleCornerFont: () => cornerToggles++,
     toggleLspIconStyle: () => iconToggles++,
+    toggleRowDensity: () => densityToggles++,
     setToggleKey: () => {},
     setFocusKey: () => {},
     resetSections: () => {},
@@ -926,6 +1045,12 @@ test('the built settings dialog saves the current layout as default', async () =
     next?.run()
     select?.run()
     expect(iconToggles).toBe(1)
+    next?.run()
+    select?.run()
+    expect(cornerToggles).toBe(1)
+    next?.run()
+    select?.run()
+    expect(densityToggles).toBe(1)
     nextTab?.run()
     await setup.flush()
     const defaultFrame = setup.captureCharFrame()
@@ -1050,12 +1175,14 @@ test('the sidebar shortcut binding follows runtime settings', async () => {
   const api = {
     route: { current: { name: 'session' } },
     keymap: {
-      registerLayer: (layer: { bindings: { key: string }[] }) => {
-        const key = layer.bindings[0].key
+      registerLayer: (layer: { bindings?: { key: string }[] }) => {
+        const key = layer.bindings?.[0]?.key
 
-        registered.push(key)
+        if (key) registered.push(key)
 
-        return () => disposed.push(key)
+        return () => {
+          if (key) disposed.push(key)
+        }
       },
       dispatchCommand: () => ({ ok: true }),
     },

@@ -1,8 +1,7 @@
 import { type RGBA, type Renderable, ScrollBoxRenderable } from '@opentui/core'
 import { expect, test } from 'bun:test'
 
-import { sidebarInteractiveColors } from '../src/components/common'
-import { createSidebarInteraction, isEffectivelyVisible } from '../src/sidebar-interaction'
+import { createSidebarInteraction, isEffectivelyVisible, sidebarInteractiveColors } from '../src/pages/session-sidebar'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -65,7 +64,7 @@ function renderable(
   return value as unknown as Renderable
 }
 
-test('interaction orders, wraps, activates, blocks disabled items, and falls back after unmount', () => {
+test('interaction orders rows, wraps vertically, activates, blocks disabled items, and falls back after unmount', () => {
   const { api, renderer } = testApi()
   const interaction = createSidebarInteraction(api)
   const outside = renderable(renderer, 'outside', renderable(renderer, 'app'))
@@ -75,20 +74,20 @@ test('interaction orders, wraps, activates, blocks disabled items, and falls bac
   interaction.setContentRoot(root)
   const unregisterB = interaction.register({
     id: 'b',
-    order: 20,
+    position: { section: 1, row: 2, column: 0 },
     renderable: renderable(renderer, 'b', root),
     activate: () => actions.push('b'),
   })
 
   interaction.register({
     id: 'a',
-    order: 10,
+    position: { section: 1, row: 1, column: 0 },
     renderable: renderable(renderer, 'a', root),
     activate: () => actions.push('a'),
   })
   interaction.register({
     id: 'disabled',
-    order: 30,
+    position: { section: 1, row: 3, column: 0 },
     renderable: renderable(renderer, 'disabled', root),
     disabled: () => true,
     activate: () => actions.push('disabled'),
@@ -112,61 +111,97 @@ test('interaction orders, wraps, activates, blocks disabled items, and falls bac
   expect(renderer.currentFocusedRenderable).toBe(outside)
 })
 
-test('interaction reevaluates dynamic row order after a section move', () => {
+test('interaction reevaluates dynamic positions after a section move', () => {
   const { api, renderer } = testApi()
   const interaction = createSidebarInteraction(api)
   const root = renderable(renderer, 'sidebar', renderable(renderer, 'host'))
-  let firstOrder = 100
-  let secondOrder = 200
+  let firstSection = 1
+  let secondSection = 2
 
   interaction.setContentRoot(root)
   interaction.register({
     id: 'first-row',
-    order: () => firstOrder,
+    position: () => ({ section: firstSection, row: 0, column: 0 }),
     renderable: renderable(renderer, 'first-row', root),
     activate: () => {},
   })
   interaction.register({
     id: 'second-row',
-    order: () => secondOrder,
+    position: () => ({ section: secondSection, row: 0, column: 0 }),
     renderable: renderable(renderer, 'second-row', root),
     activate: () => {},
   })
 
   expect(interaction.available().map((item) => item.id)).toEqual(['first-row', 'second-row'])
-  firstOrder = 200
-  secondOrder = 100
+  firstSection = 2
+  secondSection = 1
   expect(interaction.available().map((item) => item.id)).toEqual(['second-row', 'first-row'])
 })
 
-test('500 rows and their actions stay inside their section navigation order', () => {
+test('500 rows and their controls stay inside their navigation section', () => {
   const { api, renderer } = testApi()
   const interaction = createSidebarInteraction(api)
-  let base = 100
+  let section = 1
 
   for (let index = 0; index < 500; index++) {
-    for (const [suffix, offset] of [
+    for (const [suffix, column] of [
       ['', 0],
-      ['.star', 0.5],
+      ['.star', 1],
     ] as const) {
       const id = `row-${index}${suffix}`
 
       interaction.register({
         id,
-        order: () => [base, 10 + index * 2 + offset],
+        position: () => ({ section, row: 10 + index, column }),
         renderable: renderable(renderer, id),
         activate() {},
       })
     }
   }
-  interaction.register({ id: 'next-section', order: 200, renderable: renderable(renderer, 'next'), activate() {} })
+  interaction.register({
+    id: 'next-section',
+    position: { section: 2, row: 0, column: 0 },
+    renderable: renderable(renderer, 'next'),
+    activate() {},
+  })
   const ids = interaction.available().map((item) => item.id)
 
   expect(ids.slice(0, 2)).toEqual(['row-0', 'row-0.star'])
   expect(ids.slice(-3)).toEqual(['row-499', 'row-499.star', 'next-section'])
-  base = 300
+  section = 3
   expect(interaction.available()[0].id).toBe('next-section')
   interaction.dispose()
+})
+
+test('horizontal movement stays on a row and vertical movement preserves the nearest column', () => {
+  const { api, renderer } = testApi()
+  const interaction = createSidebarInteraction(api)
+
+  for (const [id, row, column] of [
+    ['first-main', 1, 0],
+    ['first-favorite', 1, 2],
+    ['second-main', 2, 0],
+    ['second-details', 2, 1],
+    ['third-main', 3, 0],
+    ['third-favorite', 3, 2],
+  ] as const) {
+    interaction.register({
+      id,
+      position: { section: 1, row, column },
+      renderable: renderable(renderer, id),
+      activate() {},
+    })
+  }
+
+  interaction.select('first-favorite')
+  interaction.move(1)
+  expect(interaction.selectedId()).toBe('second-details')
+  interaction.move(1)
+  expect(interaction.selectedId()).toBe('third-favorite')
+  interaction.moveHorizontal(1)
+  expect(interaction.selectedId()).toBe('third-main')
+  interaction.moveHorizontal(-1)
+  expect(interaction.selectedId()).toBe('third-favorite')
 })
 
 test('interaction defers hidden focus, supports direct sections, and passes return context to commands', async () => {
@@ -180,7 +215,7 @@ test('interaction defers hidden focus, supports direct sections, and passes retu
   interaction.setContentRoot(root)
   interaction.register({
     id: 'opencode-navigator.section.skills',
-    order: 300,
+    position: { section: 3, row: 0, column: 0 },
     renderable: renderable(renderer, 'skills', root),
     activate: () => {},
   })
@@ -197,7 +232,7 @@ test('interaction defers hidden focus, supports direct sections, and passes retu
 
   interaction.register({
     id: 'opencode-navigator.section.todo',
-    order: 100,
+    position: { section: 1, row: 0, column: 0 },
     renderable: todo,
     activate: () => {},
   })
@@ -233,7 +268,12 @@ test('selection scrolls through the nearest ScrollBox ancestor', () => {
   Object.setPrototypeOf(scroll, ScrollBoxRenderable.prototype)
   const row = renderable(renderer, 'row', scroll)
 
-  interaction.register({ id: 'row', order: 1, renderable: row, activate: () => {} })
+  interaction.register({
+    id: 'row',
+    position: { section: 1, row: 0, column: 0 },
+    renderable: row,
+    activate: () => {},
+  })
 
   expect(interaction.select('row')).toBe(true)
   expect(calls).toEqual(['row'])

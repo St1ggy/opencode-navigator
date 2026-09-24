@@ -28,3 +28,17 @@ test('defaults to unlimited lists and sanitizes per-section limits', () => {
       .sectionItemLimits,
   ).toEqual({ todo: 0, skills: 5 })
 })
+
+test('row density defaults to compact and accepts comfortable spacing', () => {
+  expect(pluginConfig(undefined).rowDensity).toBe('compact')
+  expect(pluginConfig({ row_density: 'comfortable' }).rowDensity).toBe('comfortable')
+  expect(pluginConfig({ row_density: 'dense' }).rowDensity).toBe('compact')
+})
+
+test('corner font defaults on and can be disabled independently of Nerd Font icons', () => {
+  expect(pluginConfig(undefined).cornerFont).toBe(true)
+  expect(pluginConfig({ corner_font: false, icon_style: 'nerd' })).toMatchObject({
+    cornerFont: false,
+    lspIconStyle: 'nerd',
+  })
+})

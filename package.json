@@ -4,7 +4,7 @@
   "version": "0.12.0",
   "description": "Search, navigate, and manage OpenCode sessions from the TUI",
   "type": "module",
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.2",
   "license": "MIT",
   "author": "St1ggy",
   "repository": {
@@ -58,6 +58,8 @@
     "lint:eslint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix && bun run format",
     "prepublishOnly": "bun run check",
+    "screenshots": "bash scripts/capture-screenshots.sh",
+    "screenshots:verify": "bash scripts/capture-screenshots.sh --verify",
     "test": "bun run build && bun test --preload @opentui/solid/preload",
     "test:e2e": "bun run build && bash scripts/smoke-opencode.sh",
     "typecheck": "tsc --noEmit",
@@ -65,14 +67,32 @@
   },
   "peerDependencies": {
     "@opencode-ai/plugin": ">=1.18.30",
+    "@opencode/plugin": ">=2.0.11",
     "@opentui/core": ">=0.4.5",
-    "@opentui/keymap": ">=0.4.5",
     "@opentui/solid": ">=0.4.5",
     "solid-js": ">=1.9.12"
+  },
+  "peerDependenciesMeta": {
+    "@opencode-ai/plugin": {
+      "optional": true
+    },
+    "@opencode/plugin": {
+      "optional": true
+    },
+    "@opentui/core": {
+      "optional": true
+    },
+    "@opentui/solid": {
+      "optional": true
+    },
+    "solid-js": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@opencode-ai/plugin": "1.18.30",
     "@opencode-ai/sdk": "1.18.30",
+    "@opencode/plugin": "2.0.11",
     "@opentui/core": "0.4.5",
     "@opentui/keymap": "0.4.5",
     "@opentui/solid": "0.4.5",

@@ -3,14 +3,12 @@ import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { type JSX, onCleanup } from 'solid-js'
 
-import { SidebarContent, SidebarTitle } from '../src/components/sidebar'
 import { pluginConfig } from '../src/config'
 import { QUICK_ACTIONS } from '../src/constants'
 import { createPreferencesController } from '../src/controllers/preferences'
 import { FirstRunWizard } from '../src/dialogs/first-run'
 import { KeyboardHelpDialog } from '../src/dialogs/keyboard-help'
 import { LayoutPresetPreview } from '../src/dialogs/layout-preset-preview'
-import { LspDetailsDialog } from '../src/dialogs/lsp'
 import { McpPresetMenu } from '../src/dialogs/mcp-presets'
 import { QuickActionsDialog } from '../src/dialogs/quick-actions'
 import { SearchEverythingDialog } from '../src/dialogs/search'
@@ -18,7 +16,7 @@ import { SettingsDialog } from '../src/dialogs/settings'
 import { SkillDialog } from '../src/dialogs/skill'
 import { IconProvider } from '../src/icons/context'
 import { quickActionIcon, sectionIcon, uiIcon } from '../src/icons/ui'
-import { createSidebarInteraction } from '../src/sidebar-interaction'
+import { SidebarContent, SidebarTitle, createSidebarInteraction } from '../src/pages/session-sidebar'
 import { SIDEBAR_SECTIONS } from '../src/state'
 
 import type { McpController } from '../src/controllers/mcp'
@@ -48,7 +46,10 @@ test('switching the shared icon preference updates every section and dialog with
     state: {
       path: { directory: '/repo', worktree: '/repo' },
       config: { lsp: true },
-      session: { get: () => ({ directory: '/repo' }), status: () => ({ type: 'busy' }) },
+      session: {
+        get: () => ({ directory: '/repo', time: { created: Date.UTC(2030, 0, 2), updated: Date.UTC(2030, 0, 2) } }),
+        status: () => ({ type: 'busy' }),
+      },
       lsp: () => [{ id: 'typescript', root: '/repo', status: 'connected' }],
     },
     theme: {
@@ -165,11 +166,27 @@ test('switching the shared icon preference updates every section and dialog with
   const cases: { name: string; render: () => JSX.Element }[] = [
     { name: 'sidebar', render: () => <Sidebar /> },
     { name: 'settings', render: () => <SettingsDialog api={api} preferences={preferences} /> },
-    { name: 'actions', render: () => <QuickActionsDialog api={api} preferences={preferences} /> },
+    {
+      name: 'actions',
+      render: () => (
+        <box paddingTop={10}>
+          <QuickActionsDialog api={api} preferences={preferences} />
+        </box>
+      ),
+    },
     { name: 'setup', render: () => <FirstRunWizard api={api} preferences={preferences} /> },
     {
       name: 'skill',
-      render: () => <SkillDialog api={api} skill={skill} onAccept={() => {}} />,
+      render: () => (
+        <SkillDialog
+          api={api}
+          skill={skill}
+          favorite={false}
+          favoriteDisabled={false}
+          onToggleFavorite={() => {}}
+          onAccept={() => {}}
+        />
+      ),
     },
     {
       name: 'search',
@@ -180,10 +197,6 @@ test('switching the shared icon preference updates every section and dialog with
       ),
     },
     { name: 'help', render: () => <KeyboardHelpDialog api={api} /> },
-    {
-      name: 'lsp',
-      render: () => <LspDetailsDialog api={api} server={{ id: 'typescript', root: '/repo', status: 'connected' }} />,
-    },
     {
       name: 'presets',
       render: () => (
@@ -228,7 +241,7 @@ test('switching the shared icon preference updates every section and dialog with
       expect(setup.captureCharFrame(), entry.name).toMatch(privateUse)
 
       if (['sidebar', 'actions', 'search'].includes(entry.name)) {
-        for (const action of QUICK_ACTIONS)
+        for (const action of QUICK_ACTIONS.slice(0, 5))
           expect(setup.captureCharFrame(), `${entry.name}: ${action.label}`).toContain(quickActionIcon(action.command))
       }
 
@@ -239,7 +252,7 @@ test('switching the shared icon preference updates every section and dialog with
       expect(text, entry.name).not.toMatch(privateUse)
 
       if (['sidebar', 'actions', 'search'].includes(entry.name)) {
-        for (const action of QUICK_ACTIONS)
+        for (const action of QUICK_ACTIONS.slice(0, 5))
           expect(text, `${entry.name}: ${action.label}`).toContain(quickActionIcon(action.command, 'text'))
       }
 

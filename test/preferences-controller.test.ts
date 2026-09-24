@@ -10,7 +10,7 @@ import { type PreferencesStore, createPreferencesStore } from '../src/preference
 import { QUICK_ACTION_IDS } from '../src/quick-actions'
 import { showFirstRunWizard } from '../src/tui'
 
-import type { SectionVisibility } from '../src/state'
+import type { SectionVisibility, SidebarSection } from '../src/state'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 function pluginDefaults(sections: SectionVisibility) {
@@ -20,7 +20,9 @@ function pluginDefaults(sections: SectionVisibility) {
     focusKey: 'ctrl+shift+f',
     searchKey: 'ctrl+shift+k',
     persistMcp: true,
+    cornerFont: true,
     lspIconStyle: 'nerd' as const,
+    rowDensity: 'compact' as const,
     sectionItemLimits: {},
     quickActionOrder: [...QUICK_ACTION_IDS],
     quickActionVisibility: {},
@@ -76,6 +78,89 @@ test('persists scoped limits before hydration and restores inherited defaults', 
   }
 })
 
+test('row density updates immediately with scoped inheritance and reset', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-density-'))
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+  const defaults = pluginConfig(undefined)
+
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
+    await controller.load()
+    expect(controller.rowDensity()).toBe('compact')
+    controller.toggleRowDensity()
+    expect(controller.rowDensity()).toBe('comfortable')
+    controller.setActiveScope('/repo')
+    controller.setPreferenceScope('worktree')
+    expect(controller.selectedRowDensity()).toBe('comfortable')
+    controller.toggleRowDensity()
+    expect(controller.rowDensity()).toBe('compact')
+    await controller.flush()
+
+    const restarted = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
+    await restarted.load()
+    restarted.setActiveScope('/repo')
+    restarted.setPreferenceScope('worktree')
+    expect(restarted.rowDensity()).toBe('compact')
+    restarted.resetPluginSettings()
+    expect(restarted.rowDensity()).toBe('comfortable')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('exports and imports portable settings only after a validated preview', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-portable-controller-'))
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+
+  try {
+    const store = createPreferencesStore(directory)
+    const controller = createPreferencesController(api, pluginConfig(undefined), store)
+
+    await controller.load()
+    controller.setActiveScope('/repo')
+    controller.setPreferenceScope('worktree')
+    controller.toggleSelectedSection('todo')
+    const exported = JSON.parse(controller.exportPortableSettings())
+
+    expect(exported.format).toBe('opencode-navigator/settings')
+    expect(exported.layout.sections.todo).toBe(false)
+    expect(JSON.stringify(exported)).not.toContain('/repo')
+    expect(
+      controller.previewPortableSettings(
+        JSON.stringify({ format: 'opencode-navigator/settings', version: 1, layout: {} }),
+      ).layoutChanged,
+    ).toBe(true)
+    const preview = controller.previewPortableSettings(
+      JSON.stringify({
+        format: 'opencode-navigator/settings',
+        version: 1,
+        layout: { sections: { todo: true }, expanded: { mcp: true } },
+        mcp: { wiki: 'disabled' },
+        future: true,
+      }),
+    )
+
+    expect(preview.layoutChanged).toBe(true)
+    expect(preview.mcpChanged).toBe(true)
+    expect(preview.unsupported).toEqual(['/future'])
+    expect(controller.selectedSections().todo).toBe(false)
+    await controller.applyPortableSettings(preview)
+    expect(controller.selectedSections().todo).toBe(true)
+    expect(controller.selectedExpanded().mcp).toBe(true)
+    expect(controller.desiredMcpState('/repo', 'wiki')).toBe('disabled')
+    const stale = controller.previewPortableSettings(
+      JSON.stringify({ format: 'opencode-navigator/settings', version: 1, mcp: { wiki: 'enabled' } }),
+    )
+
+    await store.update({ target: { kind: 'worktree', key: '/repo' }, mcp: { name: 'context7', state: 'enabled' } })
+    await expect(controller.applyPortableSettings(stale)).rejects.toThrow('Settings changed after this preview')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('quick action settings persist per scope with leaf-wise inheritance and reset', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-actions-'))
   const api = { ui: { toast() {} } } as unknown as TuiPluginApi
@@ -102,6 +187,30 @@ test('quick action settings persist per scope with leaf-wise inheritance and res
     expect(restarted.quickActionVisible('session.rename')).toBe(false)
     expect(restarted.quickActionVisible('session.timeline')).toBe(true)
     await restarted.flush()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('Quick Action favorites are user-wide and independent of scoped order', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-action-favorites-'))
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+
+  try {
+    const controller = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+
+    await controller.load()
+    controller.setActiveScope('/repo')
+    controller.setPreferenceScope('worktree')
+    controller.moveQuickAction('session.export', -1)
+    controller.toggleFavoriteQuickAction('session.export')
+    await controller.flush()
+
+    const restarted = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+
+    await restarted.load()
+    expect(restarted.favoriteQuickActions()).toEqual(new Set(['session.export']))
+    expect(restarted.quickActionOrder()[0]).toBe('session.rename')
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -143,6 +252,10 @@ test('persists section visibility and skipped skill confirmations', async () => 
     controller.skipSkillConfirmation(review)
     controller.skipSkillConfirmation(commit)
     expect(controller.skippedSkillCount()).toBe(2)
+    expect(controller.trustedSkillLocations()).toEqual(['/skills/commit', '/skills/review'])
+    controller.revokeSkillConfirmation(review.location)
+    expect(controller.shouldConfirmSkill(review)).toBe(true)
+    expect(controller.shouldConfirmSkill(commit)).toBe(false)
     await controller.saveLayoutAsDefault()
     await controller.flush()
 
@@ -177,6 +290,34 @@ test('persists section visibility and skipped skill confirmations', async () => 
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
+})
+
+test('visibility toggles preserve the effective section order in global and worktree scopes', async () => {
+  const order: SidebarSection[] = ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp']
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+  const store: PreferencesStore = {
+    async load() {
+      return {
+        global: { layout: { sections: { mcp: false }, expanded: {}, order: [...order] } },
+        worktrees: { '/repo': { layout: { sections: { skills: false }, expanded: {} } } },
+        user: {},
+      }
+    },
+    async update() {},
+    async flush() {},
+  }
+  const controller = createPreferencesController(api, pluginConfig(undefined), store)
+
+  await controller.load()
+  controller.toggleSelectedSection('mcp')
+  expect(controller.selectedSectionOrder()).toEqual(order)
+  expect(controller.selectedSections().mcp).toBe(true)
+
+  controller.setActiveScope('/repo')
+  controller.setPreferenceScope('worktree')
+  controller.toggleSelectedSection('skills')
+  expect(controller.selectedSectionOrder()).toEqual(order)
+  expect(controller.selectedSections().skills).toBe(true)
 })
 
 test('merges interactions made before storage hydration with saved preferences', async () => {
@@ -455,6 +596,51 @@ test('saves the active worktree session layout when global scope is selected', a
   }
 })
 
+test('applies a global visibility edit through an unrelated worktree expansion override', async () => {
+  const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: false,
+  })
+  const controller = createPreferencesController(api, defaults, memoryStore())
+
+  await controller.load()
+  controller.setActiveScope('/repo-a')
+  controller.toggleSectionExpanded('skills')
+  controller.toggleSelectedSection('mcp')
+
+  expect(controller.expanded().skills).toBe(true)
+  expect(controller.sections().mcp).toBe(true)
+})
+
+test('keeps an explicit worktree visibility override over Global', async () => {
+  const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const defaults = pluginDefaults({
+    todo: true,
+    subagents: true,
+    skills: true,
+    quick_actions: true,
+    lsp: true,
+    mcp: false,
+  })
+  const controller = createPreferencesController(api, defaults, memoryStore())
+
+  await controller.load()
+  controller.setActiveScope('/repo-a')
+  controller.setPreferenceScope('worktree')
+  controller.toggleSelectedSection('mcp')
+  controller.setPreferenceScope('global')
+  controller.toggleSelectedSection('mcp')
+  controller.toggleSelectedSection('mcp')
+
+  expect(controller.selectedSections().mcp).toBe(false)
+  expect(controller.sections().mcp).toBe(true)
+})
+
 test('creates, applies, updates, renames, deletes, and persists layout presets', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-preferences-'))
   const api = { ui: { toast: () => {} } } as unknown as TuiPluginApi
@@ -527,15 +713,22 @@ test('manages user-wide MCP presets and favorite skills', async () => {
 
     await controller.load()
     expect(controller.saveMcpPreset(' Work ', { wiki: 'disabled', context7: 'enabled' })).toBe('Work')
+    controller.saveLayoutPreset('Focus')
+    controller.linkWorkspaceProfile('Focus', 'Work')
+    expect(controller.workspaceProfiles()).toEqual({ Focus: 'Work' })
+    expect(controller.renameLayoutPreset('Focus', 'Review layout')).toBe('Review layout')
     expect(() => controller.saveMcpPreset('work', { wiki: 'enabled' })).toThrow('already exists')
     controller.toggleFavoriteSkill(review)
     controller.toggleFavoriteMcpServer('wiki')
+    controller.setMcpServerGroup('wiki', ' Docs ')
     await controller.recordSkillUse(review)
     expect(controller.isFavoriteSkill(review)).toBe(true)
     expect(controller.updateMcpPreset('Work', { wiki: 'enabled' })).toBe(true)
     expect(controller.renameMcpPreset('Work', 'Review')).toBe('Review')
+    expect(controller.workspaceProfiles()).toEqual({ 'Review layout': 'Review' })
     controller.setActiveScope('/another-worktree')
     expect(controller.mcpPresets()).toEqual({ Review: { wiki: 'enabled' } })
+    expect(controller.mcpServerGroups().wiki).toBe('Docs')
     expect(controller.isFavoriteSkill(review)).toBe(true)
     await controller.flush()
 
@@ -543,11 +736,15 @@ test('manages user-wide MCP presets and favorite skills', async () => {
 
     await restarted.load()
     expect(restarted.mcpPresets()).toEqual({ Review: { wiki: 'enabled' } })
+    expect(restarted.workspaceProfiles()).toEqual({ 'Review layout': 'Review' })
     expect(restarted.isFavoriteSkill(review)).toBe(true)
     expect(restarted.favoriteMcpServers().has('wiki')).toBe(true)
+    expect(restarted.mcpServerGroups().wiki).toBe('Docs')
+    restarted.setMcpServerGroup('wiki')
     restarted.toggleFavoriteMcpServer('wiki')
     expect(restarted.recentSkills()).toEqual([review.location])
     expect(restarted.deleteMcpPreset('Review')).toBe(true)
+    expect(restarted.workspaceProfiles()).toEqual({})
     restarted.toggleFavoriteSkill(review)
     await restarted.flush()
 
@@ -557,6 +754,7 @@ test('manages user-wide MCP presets and favorite skills', async () => {
     expect(cleared.mcpPresets()).toEqual({})
     expect(cleared.isFavoriteSkill(review)).toBe(false)
     expect(cleared.favoriteMcpServers().size).toBe(0)
+    expect(cleared.mcpServerGroups()).toEqual({})
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

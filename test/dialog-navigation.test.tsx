@@ -238,6 +238,44 @@ test('settings preserve their tab through nested preset actions, rename cancella
   }
 })
 
+test('portable settings preview skipped fields and apply only after confirmation', async () => {
+  const h = await harness()
+
+  try {
+    openSettings(h.api, h.preferences, 'import_settings')
+    await h.flush()
+    h.mockInput.pressEnter()
+    await h.flush()
+    expect(h.prompt().title).toBe('Import portable settings')
+    h.prompt().onConfirm?.(
+      JSON.stringify({
+        format: 'opencode-navigator/settings',
+        version: 1,
+        layout: { sections: { todo: false }, expanded: { mcp: true } },
+        mcp: { wiki: 'disabled' },
+        future: true,
+      }),
+    )
+    await h.flush()
+    const preview = h.captureCharFrame()
+
+    expect(preview).toContain('Settings import preview')
+    expect(preview).toContain('Layout · CHANGED')
+    expect(preview).toContain('Unsupported field · SKIPPED')
+    expect(preview).toContain('/future')
+    expect(h.preferences.selectedSections().todo).toBe(true)
+    for (let index = 0; index < 3; index++) h.mockInput.pressArrow('down')
+    h.mockInput.pressEnter()
+    await Promise.resolve()
+    await h.flush()
+    expect(h.preferences.selectedSections().todo).toBe(false)
+    expect(h.preferences.desiredMcpState('global', 'wiki')).toBe('disabled')
+    expect(h.captureCharFrame()).toContain('Navigator settings')
+  } finally {
+    h.renderer.destroy()
+  }
+})
+
 test('MCP rename cancellation returns through actions to the preset list', async () => {
   const h = await harness()
   const controller = { target: () => ({ key: 'repo' }) } as McpController
@@ -305,6 +343,88 @@ test('layout presets are previewed without mutation and only applied after confi
     expect(h.preferences.selectedSections().mcp).toBe(false)
     expect(h.captureCharFrame()).toContain('Navigator settings')
     expect(h.size()).toBe('xlarge')
+  } finally {
+    h.renderer.destroy()
+  }
+})
+
+test('workspace profiles preview and apply linked layout and MCP presets together', async () => {
+  const h = await harness()
+  const calls: string[] = []
+  const target = { key: 'repo', scope: '/repo', routing: { directory: '/repo' } }
+  const controller = {
+    target: () => target,
+    list: () => [{ name: 'wiki', status: 'disabled' }],
+    state: () => ({ status: 'ready' }),
+    mutating: () => false,
+    persist: () => false,
+    refresh: async () => [],
+    applyPreset: async (name: string) => {
+      calls.push(name)
+    },
+  } as unknown as McpController
+
+  try {
+    h.preferences.toggleSelectedSection('mcp')
+    h.preferences.saveLayoutPreset('Focus')
+    h.preferences.toggleSelectedSection('mcp')
+    h.preferences.saveMcpPreset('Work', { wiki: 'enabled' })
+    h.preferences.linkWorkspaceProfile('Focus', 'Work')
+    openSettings(h.api, h.preferences, 'preset:custom:Focus', controller)
+    await h.flush()
+    h.mockInput.pressEnter()
+    await h.flush()
+    h.mockInput.pressEnter()
+    await h.flush()
+    const frame = h.captureCharFrame()
+
+    expect(frame).toContain('Workspace profile: Focus')
+    expect(frame).toContain('visible -> hidden')
+    expect(h.preferences.selectedSections().mcp).toBe(true)
+    expect(calls).toEqual([])
+    for (let index = 0; index < 8; index++) h.mockInput.pressArrow('down')
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('CONNECT')
+    await h.escape()
+    expect(h.captureCharFrame()).toContain('profile · Work')
+    h.mockInput.pressEnter()
+    await h.flush()
+    h.mockInput.pressEnter()
+    await h.flush()
+    expect(h.preferences.selectedSections().mcp).toBe(false)
+    expect(calls).toEqual(['Work'])
+    expect(h.modal()).toBeUndefined()
+  } finally {
+    h.renderer.destroy()
+  }
+})
+
+test('layout preset actions link and unlink an MCP preset through the profile prompt', async () => {
+  const h = await harness()
+  const controller = { target: () => ({ key: 'repo' }) } as McpController
+
+  try {
+    h.preferences.saveLayoutPreset('Focus')
+    h.preferences.saveMcpPreset('Work', { wiki: 'enabled' })
+    openSettings(h.api, h.preferences, 'preset:custom:Focus', controller)
+    await h.flush()
+    h.mockInput.pressEnter()
+    await h.flush()
+    for (let index = 0; index < 3; index++) h.mockInput.pressArrow('down')
+    h.mockInput.pressEnter()
+    await h.flush()
+    expect(h.prompt().title).toBe('Link MCP · Focus')
+    h.prompt().onConfirm?.('Work')
+    await h.flush()
+    expect(h.preferences.workspaceProfiles()).toEqual({ Focus: 'Work' })
+    expect(h.captureCharFrame()).toContain('profile · Work')
+    h.mockInput.pressEnter()
+    await h.flush()
+    for (let index = 0; index < 3; index++) h.mockInput.pressArrow('down')
+    h.mockInput.pressEnter()
+    await h.flush()
+    h.prompt().onConfirm?.('')
+    expect(h.preferences.workspaceProfiles()).toEqual({})
   } finally {
     h.renderer.destroy()
   }

@@ -7,14 +7,17 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { onCleanup } from 'solid-js'
 
-import { useSidebarItem } from '../src/components/common'
 import { SearchBinding } from '../src/components/search-binding'
-import { SidebarFocusBinding, SidebarToggleBinding } from '../src/components/sidebar'
 import { pluginConfig } from '../src/config'
 import { LEGACY_PLUGIN_ID, PLUGIN_ID } from '../src/constants'
 import { createPreferencesController } from '../src/controllers/preferences'
+import {
+  SidebarFocusBinding,
+  SidebarToggleBinding,
+  createSidebarInteraction,
+  useSidebarItem,
+} from '../src/pages/session-sidebar'
 import { createPreferencesStore } from '../src/preferences-store'
-import { createSidebarInteraction } from '../src/sidebar-interaction'
 
 import type { SearchServices } from '../src/dialogs/search'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -42,6 +45,7 @@ test('Navigator reads and updates the existing Pretty Sidebar preferences file',
           onboardingCompleted: true,
           favoriteSkills: ['/skills/review'],
           favoriteMcpServers: ['wiki'],
+          favoriteQuickActions: ['session.export'],
           recentSkills: ['/z', '/a'],
           mcpPresets: { Work: { wiki: 'enabled' } },
           layoutPresets: { Focus: { sections: { skills: false }, expanded: {} } },
@@ -63,6 +67,7 @@ test('Navigator reads and updates the existing Pretty Sidebar preferences file',
     expect(preferences.quickActionVisible('session.export')).toBe(false)
     expect(preferences.favoriteSkills().has('/skills/review')).toBe(true)
     expect(preferences.favoriteMcpServers().has('wiki')).toBe(true)
+    expect(preferences.favoriteQuickActions().has('session.export')).toBe(true)
     expect(preferences.recentSkills()).toEqual(['/z', '/a'])
     expect(preferences.mcpPresets().Work).toEqual({ wiki: 'enabled' })
     expect(preferences.layoutPresets().Focus.sections.skills).toBe(false)
@@ -117,7 +122,11 @@ test('legacy toggle, focus-section and search commands forward to Navigator', as
       update: async () => {},
       flush: async () => {},
     })
-    const item = useSidebarItem(api, interaction, { id: `${PLUGIN_ID}.section.skills`, order: 300, activate() {} })
+    const item = useSidebarItem(api, interaction, {
+      id: `${PLUGIN_ID}.section.skills`,
+      position: { section: 3, row: 0, column: 0 },
+      activate() {},
+    })
     const services = { api, preferences } as SearchServices
 
     return (

@@ -38,6 +38,44 @@ test('stores and clears the default layout', async () => {
   }
 })
 
+test('atomically replaces imported scope settings and rejects a stale preview', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-portable-'))
+  const target = { kind: 'worktree' as const, key: '/repo' }
+  const layout = { sections: { todo: false }, expanded: { mcp: true } }
+
+  try {
+    const store = createPreferencesStore(directory)
+
+    await store.update({
+      target,
+      layout: { sections: { skills: false }, expanded: {} },
+      mcp: { states: { old: 'enabled' } },
+    })
+    const current = await store.load()
+    const expectedScope = JSON.stringify({
+      layout: current.worktrees['/repo'].layout,
+      mcp: current.worktrees['/repo'].mcp,
+    })
+
+    await store.update({
+      target,
+      expectedScope,
+      layout,
+      clearLayout: true,
+      mcp: { states: { wiki: 'disabled' } },
+      clearMcp: true,
+    })
+    expect((await store.load()).worktrees['/repo']).toEqual({ layout, mcp: { wiki: 'disabled' } })
+    await store.update({ target, mcp: { name: 'context7', state: 'enabled' } })
+    await expect(
+      store.update({ target, expectedScope, mcp: { states: { wiki: 'enabled' } }, clearMcp: true }),
+    ).rejects.toThrow('Settings changed after this preview')
+    expect((await store.load()).worktrees['/repo'].mcp).toEqual({ context7: 'enabled', wiki: 'disabled' })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('stores and clears user layout presets', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-store-'))
   const layout = {
@@ -156,6 +194,25 @@ test('merges concurrent favorite skill toggles', async () => {
   }
 })
 
+test('merges concurrent trusted skill changes and supports individual revocation', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-trusted-skills-'))
+
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+
+    await Promise.all([
+      first.update({ user: { skillConfirmation: { location: '/skills/review', skipped: true } } }),
+      second.update({ user: { skillConfirmation: { location: '/skills/commit', skipped: true } } }),
+    ])
+    expect((await first.load()).user.skippedSkillConfirmations).toEqual(['/skills/commit', '/skills/review'])
+    await second.update({ user: { skillConfirmation: { location: '/skills/review', skipped: false } } })
+    expect((await first.load()).user.skippedSkillConfirmations).toEqual(['/skills/commit'])
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('concurrent MCP favorite deltas preserve independent names', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-mcp-favorites-'))
 
@@ -170,6 +227,25 @@ test('concurrent MCP favorite deltas preserve independent names', async () => {
     expect((await first.load()).user.favoriteMcpServers).toEqual(['context7', 'wiki'])
     await first.update({ user: { favoriteMcpServer: { name: 'wiki', favorite: false } } })
     expect((await second.load()).user.favoriteMcpServers).toEqual(['context7'])
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('concurrent Quick Action favorite deltas preserve independent actions', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-action-favorites-'))
+
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+
+    await Promise.all([
+      first.update({ user: { favoriteQuickAction: { id: 'session.rename', favorite: true } } }),
+      second.update({ user: { favoriteQuickAction: { id: 'session.export', favorite: true } } }),
+    ])
+    expect((await first.load()).user.favoriteQuickActions).toEqual(['session.rename', 'session.export'])
+    await first.update({ user: { favoriteQuickAction: { id: 'session.rename', favorite: false } } })
+    expect((await second.load()).user.favoriteQuickActions).toEqual(['session.export'])
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -192,6 +268,47 @@ test('recent skills merge concurrent uses, deduplicate, and retain the latest te
     expect(recent[0]).toBe('/8')
     expect(new Set(recent).size).toBe(10)
     expect(recent).not.toContain('/0')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('recent quick actions merge concurrent successful uses and retain the latest ten', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-recent-actions-'))
+
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+
+    await Promise.all([
+      first.update({ user: { recentQuickAction: 'session.rename' } }),
+      second.update({ user: { recentQuickAction: 'session.export' } }),
+    ])
+    expect((await first.load()).user.recentQuickActions?.slice().sort()).toEqual(['session.export', 'session.rename'])
+    await first.update({ user: { recentQuickAction: 'session.rename' } })
+    expect((await second.load()).user.recentQuickActions?.[0]).toBe('session.rename')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('MCP group assignments merge concurrently and can be removed without dropping absent servers', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-mcp-groups-'))
+
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+
+    await Promise.all([
+      first.update({ user: { mcpServerGroup: { name: 'wiki', group: ' Docs ' } } }),
+      second.update({ user: { mcpServerGroup: { name: 'absent-server', group: 'docs' } } }),
+    ])
+    const groups = (await first.load()).user.mcpServerGroups!
+
+    expect(groups.wiki.toLocaleLowerCase()).toBe('docs')
+    expect(groups['absent-server']).toBe(groups.wiki)
+    await second.update({ user: { mcpServerGroup: { name: 'wiki' } } })
+    expect((await first.load()).user.mcpServerGroups).toEqual({ 'absent-server': groups.wiki })
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -237,6 +354,27 @@ test('keeps concurrent MCP preset operations case-insensitive and rename-safe', 
     expect(Object.keys(presets).filter((name) => name.toLocaleLowerCase() === 'focus')).toHaveLength(1)
     expect(presets.Review).toBeDefined()
     expect(presets.Work).toBeUndefined()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('workspace profile links follow preset renames and are removed with either preset', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-profiles-'))
+
+  try {
+    const store = createPreferencesStore(directory)
+    const layout = { sections: { mcp: true }, expanded: {} }
+
+    await store.update({ user: { layoutPreset: { name: 'Focus', layout } } })
+    await store.update({ user: { mcpPreset: { operation: 'save', name: 'Work', states: { wiki: 'enabled' } } } })
+    await store.update({ user: { workspaceProfile: { layout: 'Focus', mcp: 'Work' } } })
+    expect((await store.load()).user.workspaceProfiles).toEqual({ Focus: 'Work' })
+    await store.update({ user: { layoutPreset: { name: 'Review', previousName: 'Focus', layout } } })
+    await store.update({ user: { mcpPreset: { operation: 'rename', name: 'Docs', previousName: 'Work' } } })
+    expect((await store.load()).user.workspaceProfiles).toEqual({ Review: 'Docs' })
+    await store.update({ user: { mcpPreset: { operation: 'delete', name: 'Docs' } } })
+    expect((await store.load()).user.workspaceProfiles).toBeUndefined()
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

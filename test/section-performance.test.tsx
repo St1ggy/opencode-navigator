@@ -3,7 +3,7 @@ import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { type JSX, createSignal } from 'solid-js'
 
-import { McpSection, SkillsSection, SubagentSection, TodoSection } from '../src/components/sections'
+import { McpSection, SkillsSection, SubagentSection, TodoSection } from '../src/pages/session-sidebar'
 
 import type { McpController } from '../src/controllers/mcp'
 import type { PreferencesController } from '../src/controllers/preferences'

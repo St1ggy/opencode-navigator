@@ -16,7 +16,9 @@ const builtIns = {
     focusKey: 'ctrl+shift+f',
     searchKey: 'ctrl+shift+k',
     persistMcp: true,
+    cornerFont: true,
     lspIconStyle: 'nerd' as const,
+    rowDensity: 'compact' as const,
     sectionItemLimits: {},
     quickActionOrder: [...QUICK_ACTION_IDS],
     quickActionVisibility: {},
@@ -58,7 +60,9 @@ describe('preferences schema', () => {
             toggleKey: ' alt+s ',
             focusKey: ' ',
             persistMcp: false,
+            cornerFont: false,
             lspIconStyle: 'invalid',
+            rowDensity: 'comfortable',
             unknown: true,
           },
           layout: {
@@ -70,7 +74,7 @@ describe('preferences schema', () => {
         },
         worktrees: {
           '/repo': {
-            behavior: { focusKey: 'alt+w' },
+            behavior: { focusKey: 'alt+w', rowDensity: 'compact' },
             layout: { sections: { mcp: false }, expanded: {}, order: ['skills', 'todo'] },
             mcp: { wiki: 'disabled', context7: 'enabled', bad: 'maybe' },
           },
@@ -93,13 +97,16 @@ describe('preferences schema', () => {
           },
           favoriteSkills: ['/skills/review', 42, '/skills/review', '/skills/commit'],
           favoriteMcpServers: ['wiki', 42, 'wiki', '', 'context7'],
+          favoriteQuickActions: ['session.export', 'unknown', 'session.rename', 'session.export'],
+          mcpServerGroups: { wiki: ' Docs ', context7: '', ' ': 'Invalid', invalid: 42 },
+          workspaceProfiles: { ' Focus ': ' Work ', Empty: '', Invalid: 42 },
           unknown: true,
         },
         unknown: true,
       }),
     ).toEqual({
       global: {
-        behavior: { toggleKey: 'alt+s', persistMcp: false },
+        behavior: { toggleKey: 'alt+s', persistMcp: false, cornerFont: false, rowDensity: 'comfortable' },
         layout: {
           sections: { todo: false },
           expanded: { skills: true },
@@ -109,7 +116,7 @@ describe('preferences schema', () => {
       },
       worktrees: {
         '/repo': {
-          behavior: { focusKey: 'alt+w' },
+          behavior: { focusKey: 'alt+w', rowDensity: 'compact' },
           layout: {
             sections: { mcp: false },
             expanded: {},
@@ -131,6 +138,9 @@ describe('preferences schema', () => {
         mcpPresets: { Work: { context7: 'enabled', wiki: 'disabled' } },
         favoriteSkills: ['/skills/commit', '/skills/review'],
         favoriteMcpServers: ['context7', 'wiki'],
+        favoriteQuickActions: ['session.rename', 'session.export'],
+        mcpServerGroups: { wiki: 'Docs' },
+        workspaceProfiles: { Focus: 'Work' },
       },
     } satisfies PreferencesDocument)
   })
@@ -145,6 +155,29 @@ describe('preferences schema', () => {
       '/z',
       '/a',
     ])
+  })
+
+  test('recent quick actions preserve valid IDs in recency order', () => {
+    expect(
+      parsePreferencesDocument({
+        user: { recentQuickActions: ['session.export', 'unknown', 'session.rename', 'session.export'] },
+      }).user.recentQuickActions,
+    ).toEqual(['session.export', 'session.rename'])
+  })
+
+  test('sanitizes MCP group assignments while preserving exact server names', () => {
+    expect(
+      parsePreferencesDocument({
+        user: { mcpServerGroups: { 'review server': ' Review ', 'review-server': 'x'.repeat(100) } },
+      }).user.mcpServerGroups,
+    ).toEqual({ 'review server': 'Review', 'review-server': 'x'.repeat(64) })
+  })
+
+  test('sanitizes workspace profile links without requiring referenced presets to exist', () => {
+    expect(
+      parsePreferencesDocument({ user: { workspaceProfiles: { ' Focus ': ' Docs ', Empty: '', Invalid: 42 } } }).user
+        .workspaceProfiles,
+    ).toEqual({ Focus: 'Docs' })
   })
 
   test('merges list limits leaf-wise and allows explicit unlimited overrides', () => {
@@ -181,7 +214,7 @@ describe('preferences schema', () => {
           desiredMcpStates: { wiki: 'enabled', optionOnly: 'disabled' },
         },
         global: {
-          behavior: { persistMcp: false },
+          behavior: { persistMcp: false, rowDensity: 'comfortable' },
           layout: { sections: { lsp: true }, expanded: { skills: true } },
           desiredMcpStates: { wiki: 'disabled' },
         },
@@ -202,7 +235,9 @@ describe('preferences schema', () => {
         focusKey: 'ctrl+w',
         searchKey: 'ctrl+shift+k',
         persistMcp: false,
+        cornerFont: true,
         lspIconStyle: 'nerd',
+        rowDensity: 'comfortable',
         sectionItemLimits: {},
         quickActionOrder: [...QUICK_ACTION_IDS],
         quickActionVisibility: {},

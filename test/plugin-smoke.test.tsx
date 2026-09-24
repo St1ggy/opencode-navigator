@@ -161,8 +161,10 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
       { width: 50, height: 40 },
     )
     await sidebar.flush()
-    await Bun.sleep(20)
-    await sidebar.flush()
+    for (let attempt = 0; attempt < 20 && requestSignals.length < 5; attempt++) {
+      await Bun.sleep(10)
+      await sidebar.flush()
+    }
 
     const frame = sidebar.captureCharFrame()
 

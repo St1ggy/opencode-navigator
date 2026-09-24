@@ -4,14 +4,15 @@ import { createRoot, createSignal } from 'solid-js'
 import {
   type SubagentViewItem,
   buildSubagentView,
+  countSubagentView,
   createSubagentClock,
   filterSubagentView,
   formatSubagentDuration,
 } from '../src/subagent-view'
 
-test('subagent duration formats observed, approximate, frozen, and negative values', () => {
+test('subagent duration formats observed, frozen, and negative values', () => {
   expect(formatSubagentDuration(0, 12_999)).toBe('12s')
-  expect(formatSubagentDuration(0, 123_000, true)).toBe('≥2m 03s')
+  expect(formatSubagentDuration(0, 123_000)).toBe('2m 03s')
   expect(formatSubagentDuration(0, 3_720_000)).toBe('1h 02m')
   expect(formatSubagentDuration(100, 0)).toBe('0s')
 })
@@ -42,6 +43,8 @@ test('subagent view prioritizes attention and keeps recent behind active', () =>
   expect(filterSubagentView(rows, 'recent', 'NEW').map((row) => row.session.id)).toEqual(['new'])
   expect(filterSubagentView(rows, 'errors', '').map((row) => row.session.id)).toEqual(['error'])
   expect(filterSubagentView(rows, 'all', 'absent')).toEqual([])
+  expect(countSubagentView(rows, '')).toEqual({ all: 5, active: 3, recent: 2, errors: 1 })
+  expect(countSubagentView(rows, 'new')).toEqual({ all: 1, active: 0, recent: 1, errors: 0 })
 })
 
 test('subagent clock stops when hidden and on disposal', async () => {

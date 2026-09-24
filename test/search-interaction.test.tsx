@@ -9,13 +9,14 @@ import { pluginConfig } from '../src/config'
 import { SEARCH_COMMAND } from '../src/constants'
 import { type PreferencesController, createPreferencesController } from '../src/controllers/preferences'
 import { sectionIcon } from '../src/icons/ui'
+import { QUICK_ACTION_IDS } from '../src/quick-actions'
 import { SEARCH_GROUPS, type SearchGroup, searchContext } from '../src/search'
 
 import type { McpController } from '../src/controllers/mcp'
 import type { SkillController } from '../src/controllers/skills'
 import type { SubagentController } from '../src/controllers/subagents'
 import type { SearchServices } from '../src/dialogs/search'
-import type { SidebarInteraction } from '../src/sidebar-interaction'
+import type { SidebarInteraction } from '../src/pages/session-sidebar'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { InputRenderable } from '@opentui/core'
 
@@ -203,7 +204,7 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
     expect(frame).toContain(`${sectionIcon('skills')} Skills (2)`)
     expect(frame).toContain(`${sectionIcon('subagents')} Subagents (1)`)
     expect(frame).toContain(`${sectionIcon('mcp')} MCP (1)`)
-    expect(frame).toContain(`${sectionIcon('quick_actions')} Actions (5)`)
+    expect(frame).toContain(`${sectionIcon('quick_actions')} Actions (${QUICK_ACTION_IDS.length})`)
     expect(frame).not.toContain('Worker task')
     setup.mockInput.pressTab()
     setup.mockInput.pressEnter()

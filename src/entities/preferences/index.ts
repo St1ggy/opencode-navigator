@@ -1,0 +1,6 @@
+export * from './model/controller'
+export * from './model/configured-defaults'
+export * from './model/portable-settings'
+export * from './model/schema'
+export { applyPreferencesUpdate, createPreferencesStore } from './model/store'
+export type { PreferenceTarget, PreferencesStore, PreferencesUpdate } from './model/store'

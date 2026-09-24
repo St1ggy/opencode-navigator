@@ -17,6 +17,7 @@ test('Search Everything ranks fuzzy matches within groups and searches source pa
     favoriteSkills: new Set(['/skills/favorite/SKILL.md']),
     recentSkills: [],
     favoriteMcp: new Set(),
+    mcpGroups: { 'review-mcp': 'Knowledge' },
     hasSession: true,
     mcpBusy: false,
   })
@@ -25,6 +26,7 @@ test('Search Everything ranks fuzzy matches within groups and searches source pa
   expect(searchResults(candidates, 'review').map((item) => item.title)).toEqual(['review', 'review-code', 'review-mcp'])
   expect(searchResults(candidates, 'rvwcd')[0].title).toBe('review-code')
   expect(searchResults(candidates, 'review-code SKILL.md').map((item) => item.title)).toEqual(['review-code'])
+  expect(searchResults(candidates, 'knowledge').map((item) => item.title)).toEqual(['review-mcp'])
   expect(searchResults(candidates, 'nothinghere')).toEqual([])
   const groupOrder = searchResults(candidates, '').map((item) => SEARCH_GROUPS.indexOf(item.group))
 
@@ -42,12 +44,19 @@ test('search candidates expose reasons for disabled actions without hiding resul
     favoriteMcp: new Set(),
     hasSession: false,
     mcpBusy: true,
+    actionLabel: (action) => (action.command === 'permission.mode' ? 'Enable auto-approve permissions' : action.label),
   })
 
   expect(candidates.find((item) => item.group === 'MCP')?.disabled).toBe('MCP operation in progress')
-  expect(
-    candidates.filter((item) => item.group === 'Actions').every((item) => item.disabled === 'Requires an open session'),
-  ).toBe(true)
+  const actions = candidates.filter((item) => item.group === 'Actions')
+
+  expect(actions.find((item) => item.id === 'action:session.list')?.disabled).toBeUndefined()
+  expect(actions.find((item) => item.id === 'action:session.new')?.disabled).toBeUndefined()
+  expect(actions.find((item) => item.id === 'action:permission.mode')?.disabled).toBeUndefined()
+  expect(actions.find((item) => item.id === 'action:permission.mode')?.title).toBe('Enable auto-approve permissions')
+  expect(actions.filter((item) => item.disabled).every((item) => item.disabled === 'Requires an open session')).toBe(
+    true,
+  )
 })
 
 test('fuzzy search remains bounded on large source lists', () => {
@@ -71,4 +80,25 @@ test('fuzzy search remains bounded on large source lists', () => {
 
   expect(searchResults(candidates, 'skill999')[0].title).toBe('skill-999')
   expect(performance.now() - start).toBeLessThan(1000)
+})
+
+test('favorite quick actions lead in configured order without usage-based sorting', () => {
+  const candidates = buildSearchCandidates({
+    skills: [],
+    subagents: [],
+    mcp: [],
+    actionOrder: ['session.rename', 'session.timeline', 'session.export'],
+    favoriteQuickActions: new Set(['session.timeline', 'session.rename']),
+    favoriteSkills: new Set(),
+    recentSkills: [],
+    favoriteMcp: new Set(),
+    hasSession: true,
+    mcpBusy: false,
+  })
+
+  expect(candidates.filter((item) => item.group === 'Actions').map((item) => item.command)).toEqual([
+    'session.rename',
+    'session.timeline',
+    'session.export',
+  ])
 })

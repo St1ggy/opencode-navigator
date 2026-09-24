@@ -35,7 +35,14 @@ export default [
     },
   },
   {
-    files: ['src/components/**/*.tsx', 'src/dialogs/**/*.tsx'],
+    files: [
+      'src/components/**/*.tsx',
+      'src/dialogs/**/*.tsx',
+      'src/entities/*/ui/**/*.tsx',
+      'src/features/**/*.tsx',
+      'src/pages/**/*.tsx',
+      'src/shared/**/*.tsx',
+    ],
     rules: {
       // Compact terminal presentation branches stay close to their JSX.
       'sonarjs/no-nested-conditional': 'off',
@@ -45,7 +52,7 @@ export default [
     },
   },
   {
-    files: ['src/components/sections.tsx'],
+    files: ['src/pages/session-sidebar/**/*.tsx'],
     rules: {
       // Legacy hosts/facades can omit capabilities typed as required by the current SDK.
       // Keep false distinct from undefined; the type-based autofix loses that distinction.
@@ -53,14 +60,29 @@ export default [
     },
   },
   {
-    files: ['src/controllers/**/*.ts', 'src/preferences-store.ts'],
+    files: [
+      'src/controllers/**/*.ts',
+      'src/entities/*/model/controller.ts',
+      'src/entities/preferences/model/store.ts',
+      'src/features/*/model/**/*.{ts,tsx}',
+      'src/preferences-store.ts',
+    ],
     rules: {
       // Controller-private helpers remain next to the lifetime they serve.
       'unicorn/consistent-function-scoping': 'off',
     },
   },
   {
-    files: ['src/components/**/*.tsx', 'src/dialogs/**/*.tsx', 'src/controllers/**/*.ts', 'src/sidebar-interaction.ts'],
+    files: [
+      'src/components/**/*.tsx',
+      'src/dialogs/**/*.tsx',
+      'src/pages/**/*.{ts,tsx}',
+      'src/shared/**/*.{ts,tsx}',
+      'src/entities/**/*.{ts,tsx}',
+      'src/features/**/*.{ts,tsx}',
+      'src/controllers/**/*.ts',
+      'src/sidebar-interaction.ts',
+    ],
     rules: {
       // Host APIs/IDs are stable per mount. Keymap, renderer and request callbacks read
       // signals imperatively; the analyzer does not model these ownership boundaries.
@@ -88,5 +110,18 @@ export default [
   {
     files: ['build.ts', 'scripts/**/*.{ts,mjs}'],
     rules: { 'no-console': 'off', 'unicorn/no-process-exit': 'off' },
+  },
+  {
+    files: ['screenshots/harness/*.mjs'],
+    rules: {
+      // The fixture runs inside an isolated container with a container-only bundle path
+      // and deterministic files under /tmp. Scene dispatch remains grouped by capture.
+      'import-x/extensions': 'off',
+      'import-x/no-unresolved': 'off',
+      'sonarjs/no-nested-conditional': 'off',
+      'sonarjs/publicly-writable-directories': 'off',
+      'unicorn/consistent-function-scoping': 'off',
+      'unicorn/prefer-else-if': 'off',
+    },
   },
 ]

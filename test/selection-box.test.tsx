@@ -4,9 +4,9 @@ import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { createSignal } from 'solid-js'
 
-import { SelectionBox } from '../src/components/selection-box'
 import { IconProvider } from '../src/icons/context'
 import { type IconStyle, uiIcon } from '../src/icons/ui'
+import { SelectionBox } from '../src/shared/ui'
 
 test('rounded selections preserve layout, clicks, backdrop colors and live text fallback', async () => {
   const [style, setStyle] = createSignal<IconStyle>('nerd')
@@ -87,6 +87,30 @@ test('rounded selections preserve layout, clicks, backdrop colors and live text 
     expect(before).toBeGreaterThan(0)
     expect(after).toBe(before)
     expect(bindings).toBe(1)
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('icon-only selections occupy one content cell between two rounded caps', async () => {
+  let control!: BoxRenderable
+  const setup = await testRender(
+    () => (
+      <IconProvider style={() => 'nerd'}>
+        <box flexDirection="row">
+          <SelectionBox ref={(node) => (control = node)} iconOnly backgroundColor="#abcdef">
+            <text>*</text>
+          </SelectionBox>
+        </box>
+      </IconProvider>
+    ),
+    { width: 10, height: 1 },
+  )
+
+  try {
+    await setup.flush()
+    expect(control.width).toBe(3)
+    expect(setup.captureCharFrame()).toContain(`${uiIcon('selectionLeft')}*${uiIcon('selectionRight')}`)
   } finally {
     setup.renderer.destroy()
   }
@@ -181,6 +205,38 @@ test('two-line selections keep a continuous background under all corner masks', 
       expect(frame).toContain(uiIcon(corner))
     }
     expect(frame).toContain('Description')
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('corner-font fallback keeps Nerd icons and single-line caps but makes multiline selections rectangular', async () => {
+  const [corners, setCorners] = createSignal(true)
+  const setup = await testRender(
+    () => (
+      <IconProvider style={() => 'nerd'} multilineCorners={corners}>
+        <SelectionBox width={18} height={2} backgroundColor="#292e42">
+          <text>Multiline</text>
+          <text>{uiIcon('settings')}</text>
+        </SelectionBox>
+        <SelectionBox width={9} height={1} backgroundColor="#abcdef">
+          <text>Single</text>
+        </SelectionBox>
+      </IconProvider>
+    ),
+    { width: 22, height: 4 },
+  )
+
+  try {
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain(uiIcon('selectionTopLeft'))
+    setCorners(false)
+    await setup.flush()
+    const frame = setup.captureCharFrame()
+
+    expect(frame).not.toContain(uiIcon('selectionTopLeft'))
+    expect(frame).toContain(uiIcon('settings'))
+    expect(frame).toContain(uiIcon('selectionLeft'))
   } finally {
     setup.renderer.destroy()
   }
