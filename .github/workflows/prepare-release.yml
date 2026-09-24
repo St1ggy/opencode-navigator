@@ -15,15 +15,12 @@ concurrency:
 jobs:
   screenshots:
     name: Refresh screenshots
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: main
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
