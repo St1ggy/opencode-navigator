@@ -164,7 +164,8 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options) => {
   const versionStatus = createVersionStatus(api, __NAVIGATOR_VERSION__)
 
   api.slots.register({
-    order: 200,
+    // OpenCode 1.x uses the lowest order as the single-winner footer.
+    order: 90,
     slots: {
       sidebar_footer(_context, props) {
         return (

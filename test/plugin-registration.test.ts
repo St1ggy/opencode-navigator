@@ -60,7 +60,7 @@ test('the built plugin registers its lifecycle and sidebar slots', async () => {
       'installation.update-available',
     ])
     expect(rendererSubscriptions).toEqual(['focused_renderable'])
-    expect(registrations.map((registration) => registration.order)).toEqual([100, 200])
+    expect(registrations.map((registration) => registration.order)).toEqual([100, 90])
     expect(registrations.map((registration) => Object.keys(registration.slots))).toEqual([
       ['app', 'sidebar_title', 'sidebar_content'],
       ['sidebar_footer'],
