@@ -44,6 +44,8 @@ function compactSpacing(
 ): { value: string; consumed: number } | undefined {
   if (state !== 'code') return
 
+  if (source[index] === '\n' && '({[,:'.includes(result.at(-1) ?? '')) return { value: '', consumed: 0 }
+
   if (source[index] === ' ' && result.endsWith(',')) return { value: '', consumed: 0 }
 
   if (source[index] === ' ' && ('({[:'.includes(result.at(-1) ?? '') || ')}],:'.includes(source[index + 1] ?? '')))
@@ -58,6 +60,29 @@ function compactSpacing(
   return undefined
 }
 
+function compactComment(source: string, index: number, state: ScannerState) {
+  if (state !== 'code' || source[index] !== '/') return
+
+  if (source[index + 1] === '/') {
+    const start = index
+
+    while (source[index] !== '\n' && index < source.length) index++
+
+    return { consumed: index - start, value: '\n', lineStart: true }
+  }
+
+  if (source[index + 1] !== '*') return
+
+  const start = index
+
+  index += 2
+  while (index < source.length && !(source[index] === '*' && source[index + 1] === '/')) index++
+
+  const multiline = source.slice(start, index).includes('\n')
+
+  return { consumed: index + 1 - start, value: multiline ? '\n' : ' ', lineStart: multiline }
+}
+
 function stripGeneratedIndentation(source: string) {
   let state: ScannerState = 'code'
   let escaped = false
@@ -68,8 +93,12 @@ function stripGeneratedIndentation(source: string) {
     const character = source[index]
     const next = source[index + 1]
 
-    if (lineStart && state === 'code' && (source.startsWith('// src/', index) || source.startsWith('// @bun', index))) {
-      while (source[index] !== '\n' && index < source.length) index++
+    const comment = compactComment(source, index, state)
+
+    if (comment) {
+      result += comment.value
+      index += comment.consumed
+      lineStart = comment.lineStart
 
       continue
     }
@@ -129,6 +158,9 @@ const result = await Bun.build({
     'solid-js',
   ],
   plugins: [solidPlugin],
+  define: {
+    __NAVIGATOR_VERSION__: JSON.stringify(((await Bun.file('package.json').json()) as { version: string }).version),
+  },
 })
 
 if (!result.success) {

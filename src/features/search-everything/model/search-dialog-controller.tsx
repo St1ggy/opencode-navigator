@@ -2,7 +2,12 @@ import { type InputRenderable, RGBA, type Renderable, type ScrollBoxRenderable, 
 import { useTerminalDimensions } from '@opentui/solid'
 import { batch, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 
-import { QUICK_ACTION_IDS, quickActionDisabledReason, quickActionLabel } from '../../../entities/quick-action'
+import {
+  QUICK_ACTION_IDS,
+  createQuickActionRevision,
+  quickActionDisabledReason,
+  quickActionLabel,
+} from '../../../entities/quick-action'
 import { type SkillController, SkillDialog, type SkillInfo } from '../../../entities/skill'
 import { type SubagentController, buildSubagentView } from '../../../entities/subagent'
 import { PLUGIN_ID } from '../../../shared/config'
@@ -44,6 +49,7 @@ export function createSearchDialogController(props: SearchServices & { returnTar
   const [refreshing, setRefreshing] = createSignal(false)
   const theme = () => props.api.theme.current
   const icons = useIcons()
+  const commandRevision = createQuickActionRevision(props.api)
   const dialogs = useDialogs(props.api)
   const resultColors = createMemo(() => {
     const background = parseColor(theme().backgroundPanel)
@@ -61,8 +67,10 @@ export function createSearchDialogController(props: SearchServices & { returnTar
   let isDisposed = false
   let refreshGeneration = 0
   const sameContext = () => searchContext(props.api).key === context.key
-  const candidates = createMemo(() =>
-    buildSearchCandidates({
+  const candidates = createMemo(() => {
+    commandRevision()
+
+    return buildSearchCandidates({
       skills: props.skills.list(skillTarget),
       subagents: context.sessionID
         ? buildSubagentView(props.subagents.list(context.sessionID), props.subagents.recent(context.sessionID))
@@ -78,8 +86,8 @@ export function createSearchDialogController(props: SearchServices & { returnTar
       mcpBusy: props.mcp.mutating(mcpTarget) || props.mcp.bulkState(mcpTarget).status === 'running',
       actionDisabledReason: (action) => quickActionDisabledReason(props.api, action),
       actionLabel: (action) => quickActionLabel(props.api, action),
-    }),
-  )
+    })
+  })
   const matches = createMemo(() => searchResults(candidates(), query()))
   const results = createMemo(() => matches().filter((item) => item.group === activeTab()))
   // Query/tab changes start a new view; background data updates retain row identities.

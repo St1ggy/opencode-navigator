@@ -12,10 +12,12 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { JSX } from '@opentui/solid'
 
 type SlotRegistration = {
+  order: number
   slots: {
-    app: () => JSX.Element
-    sidebar_title: (context: unknown, props: { session_id: string; title: string }) => JSX.Element
-    sidebar_content: (context: unknown, props: { session_id: string }) => JSX.Element
+    app?: () => JSX.Element
+    sidebar_title?: (context: unknown, props: { session_id: string; title: string }) => JSX.Element
+    sidebar_content?: (context: unknown, props: { session_id: string }) => JSX.Element
+    sidebar_footer?: (context: unknown, props: { session_id: string }) => JSX.Element
   }
 }
 
@@ -46,7 +48,12 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
   const lifecycle = new AbortController()
   const disposers: (() => void | Promise<void>)[] = []
   const requestSignals: AbortSignal[] = []
-  let registration: SlotRegistration | undefined
+  const registrations: SlotRegistration[] = []
+  const originalFetch = globalThis.fetch
+
+  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.14.0' })), {
+    preconnect() {},
+  })
 
   function pending(_input: unknown, options?: { signal?: AbortSignal }) {
     const signal = options?.signal
@@ -125,12 +132,13 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
       },
       slots: {
         register(value: SlotRegistration) {
-          registration = value
+          registrations.push(value)
 
           return 'opencode-navigator'
         },
       },
       theme: { current: theme },
+      app: { version: '1.18.30' },
       ui: {
         toast: () => {},
         dialog: { replace: () => {}, setSize: () => {}, clear: () => {} },
@@ -146,16 +154,17 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
   try {
     await bootstrap.renderOnce()
     await plugin.tui(api, {})
-    expect(registration).toBeDefined()
+    expect(registrations).toHaveLength(2)
 
-    const slots = registration!.slots
+    const slots = Object.assign({}, ...registrations.map((registration) => registration.slots))
 
     sidebar = await testRender(
       () => (
         <box>
-          {slots.app()}
-          {slots.sidebar_title({}, { session_id: 'session', title: 'Smoke session' })}
-          {slots.sidebar_content({}, { session_id: 'session' })}
+          {slots.app?.()}
+          {slots.sidebar_title?.({}, { session_id: 'session', title: 'Smoke session' })}
+          {slots.sidebar_content?.({}, { session_id: 'session' })}
+          {slots.sidebar_footer?.({}, { session_id: 'session' })}
         </box>
       ),
       { width: 50, height: 40 },
@@ -180,6 +189,7 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
     expect(frame).toContain('MCP')
     expect(frame).toContain(`${sectionIcon('mcp')} MCP`)
     expect(frame).toContain(`${sectionIcon('subagents')} SUBAGENTS`)
+    expect(frame).toContain('OpenCode 1.18.30 | Navigator 0.14.0')
     expect(requestSignals.length).toBeGreaterThanOrEqual(5)
 
     lifecycle.abort()
@@ -187,6 +197,7 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
     await Promise.resolve()
     expect(requestSignals.every((signal) => signal.aborted)).toBe(true)
   } finally {
+    globalThis.fetch = originalFetch
     sidebar?.renderer.destroy()
     bootstrap.renderer.destroy()
     await rm(stateDirectory, { recursive: true, force: true })

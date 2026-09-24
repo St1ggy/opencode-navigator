@@ -221,12 +221,15 @@ const plugin = {
     })
     const event = new Proxy(api.event, {
       get(target, property) {
-        if (property !== 'on' || SCENE !== 'subagents-errors') return Reflect.get(target, property, target)
+        if (property !== 'on') return Reflect.get(target, property, target)
 
         return (eventType, callback) => {
           const unsubscribe = target.on(eventType, callback)
 
-          if (eventType === 'session.error')
+          if (eventType === 'installation.update-available')
+            setTimeout(() => callback({ properties: { version: '999.0.0' } }), 100)
+
+          if (SCENE === 'subagents-errors' && eventType === 'session.error')
             setTimeout(
               () =>
                 callback({
@@ -238,7 +241,7 @@ const plugin = {
               900,
             )
 
-          if (eventType === 'session.idle')
+          if (SCENE === 'subagents-errors' && eventType === 'session.idle')
             setTimeout(() => callback({ properties: { sessionID: 'session-worker-review' } }), 1000)
 
           return unsubscribe
@@ -246,11 +249,26 @@ const plugin = {
       },
     })
 
-    await navigator.tui(
-      new Proxy(api, { get: (target, property) => ({ state, client, event })[property] ?? target[property] }),
-      options,
-      meta,
-    )
+    const originalFetch = globalThis.fetch
+
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      writable: true,
+      value: (input, init) =>
+        String(input) === 'https://registry.npmjs.org/opencode-navigator/latest'
+          ? Promise.resolve(Response.json({ version: '999.0.0' }))
+          : originalFetch(input, init),
+    })
+
+    try {
+      await navigator.tui(
+        new Proxy(api, { get: (target, property) => ({ state, client, event })[property] ?? target[property] }),
+        options,
+        meta,
+      )
+    } finally {
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: originalFetch })
+    }
     setTimeout(() => {
       const dispatch = (command) => api.keymap.dispatchCommand(command)
       const later = (delay, command) => setTimeout(() => dispatch(command), delay)

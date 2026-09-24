@@ -112,6 +112,7 @@ verification workflow before expanding the product surface.
 - [x] Skills: user-wide favorites, recent items, source details, fuzzy keyboard selection through Search Everything, and trusted-skill confirmation management.
 - [x] Replace Skill star/info row actions with the MCP-style bookmark control and expose the same bookmark in the Skill confirmation dialog.
 - [x] Quick Actions: keep scoped ordering and visibility, add user-wide bookmarks with favorites first in configured order, remove usage-based ordering, retain independent hiding for every action, and preserve the explicit argument-free host-command allowlist including the global auto-approve toggle and route-aware disabled reasons.
+- [x] Refresh the auto-approve Quick Action label reactively in the sidebar and Search Everything after `permission.mode` changes.
 - [x] Add `Ctrl+,` as the direct Navigator Settings shortcut and separate bookmarked Quick Actions from the remaining visible actions.
 - [~] LSP: icons/text badges, error-first sorting, and in-place server-label toggling exist; diagnostic-specific actions depend on public API support.
 - [x] Remove the LSP root/status details modal because the host may report an empty root.
@@ -121,6 +122,7 @@ verification workflow before expanding the product surface.
 - [x] Add consistent single-row spacing above and below every sidebar section filter.
 - [x] Introduce first-run capabilities in six focused slides, then configure visible sections on the seventh and final slide.
 - [x] Keep nested icon controls centered in three cells and use a footprint-compatible dotted pending indicator.
+- [x] Show OpenCode and Navigator versions in the OpenCode 1.x sidebar footer with independent update indicators while preserving the path and branch line.
 
 ### Agents And Limits
 

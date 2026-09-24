@@ -62,7 +62,10 @@ test('quick action availability distinguishes routes, unsupported commands, and 
 test('Quick Actions settings change live visibility and ordering and keep selection on the moved action', async () => {
   let commands: { name: string; run: () => void }[] = []
   let back = 0
+  let autoApprove = false
   const dispatched: string[] = []
+  const keymapStateListeners = new Set<() => void>()
+  const autoApproveTitle = () => `${autoApprove ? 'Disable' : 'Enable'} auto-approve permissions`
   const api = {
     theme: {
       current: {
@@ -82,8 +85,24 @@ test('Quick Actions settings change live visibility and ordering and keep select
         return () => {}
       },
       getCommandBindings: () => new Map(),
+      getCommands: () =>
+        QUICK_ACTIONS.map((action) => ({
+          name: action.command,
+          title: action.command === 'permission.mode' ? autoApproveTitle() : action.label,
+          run() {},
+        })),
+      on: (name: string, listener: () => void) => {
+        if (name === 'state') keymapStateListeners.add(listener)
+
+        return () => keymapStateListeners.delete(listener)
+      },
       dispatchCommand: (id: string) => {
         dispatched.push(id)
+
+        if (id === 'permission.mode') {
+          autoApprove = !autoApprove
+          for (const listener of keymapStateListeners) listener()
+        }
 
         return { ok: true }
       },
@@ -150,10 +169,16 @@ test('Quick Actions settings change live visibility and ordering and keep select
 
     await sidebar.mockMouse.click(lines[row].indexOf('Timeline'), row)
     expect(dispatched).toEqual(['session.timeline'])
-    const autoApproveRow = comfortable.findIndex((line) => line.includes('Auto-approve permissions'))
+    const autoApproveRow = comfortable.findIndex((line) => line.includes('Enable auto-approve permissions'))
 
-    await sidebar.mockMouse.click(comfortable[autoApproveRow].indexOf('Auto-approve permissions'), autoApproveRow)
+    await sidebar.mockMouse.click(
+      comfortable[autoApproveRow].indexOf('Enable auto-approve permissions'),
+      autoApproveRow,
+    )
+    await sidebar.flush()
     expect(dispatched).toEqual(['session.timeline', 'permission.mode'])
+    expect(sidebar.captureCharFrame()).toContain('Disable auto-approve permissions')
+    expect(sidebar.captureCharFrame()).not.toContain('Enable auto-approve permissions')
     expect(preferences.recentQuickActions()).toEqual([])
 
     const favoriteFrame = sidebar.captureCharFrame().split('\n')

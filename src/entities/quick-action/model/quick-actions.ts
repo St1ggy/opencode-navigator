@@ -1,3 +1,5 @@
+import { createSignal, onCleanup } from 'solid-js'
+
 import { QUICK_ACTION_IDS, type QuickActionId } from '../../../shared/config'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -40,6 +42,15 @@ export function quickActionLabel(api: TuiPluginApi, action: QuickAction) {
     .find((candidate) => candidate.name === action.command)
 
   return typeof command?.title === 'string' ? command.title : action.label
+}
+
+export function createQuickActionRevision(api: TuiPluginApi) {
+  const [revision, setRevision] = createSignal(0)
+  const unsubscribe = api.keymap.on?.('state', () => setRevision((value) => value + 1))
+
+  if (unsubscribe) onCleanup(unsubscribe)
+
+  return revision
 }
 
 export function orderQuickActionIds(order: readonly QuickActionId[], favorites: ReadonlySet<QuickActionId>) {

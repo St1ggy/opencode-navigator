@@ -7,6 +7,7 @@ import { createTodoController } from '../entities/todo'
 import { openKeyboardHelp } from '../features/keyboard-help'
 import { SearchBinding } from '../features/search-everything'
 import { SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
+import { VersionFooter, createVersionStatus } from '../features/version-footer'
 import {
   FirstRunWizardPersistence,
   McpPersistence,
@@ -147,7 +148,7 @@ async function setupNavigator(
 }
 
 export const setupOpenCodeV1: TuiPlugin = async (api, options) => {
-  await setupNavigator(api, options, async () => {
+  const { preferences } = await setupNavigator(api, options, async () => {
     if (!api.client?.file?.read || !api.state.path.worktree) return
 
     const result = await api.client.file.read({ directory: api.state.path.worktree, path: '.opencode/navigator.json' })
@@ -159,6 +160,25 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options) => {
     }
 
     return result.data?.type === 'text' ? result.data.content : undefined
+  })
+  const versionStatus = createVersionStatus(api, __NAVIGATOR_VERSION__)
+
+  api.slots.register({
+    order: 200,
+    slots: {
+      sidebar_footer(_context, props) {
+        return (
+          <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
+            <VersionFooter
+              api={api}
+              sessionID={props.session_id}
+              navigatorVersion={__NAVIGATOR_VERSION__}
+              status={versionStatus}
+            />
+          </IconProvider>
+        )
+      },
+    },
   })
 }
 

@@ -59,6 +59,7 @@
 - Mark subagent durations that began before observation with the Nerd Font clock icon and a readable text-mode fallback instead of the greater-than-or-equal sign.
 - Keep the Todo section visible under OpenCode 2.x. When the host exposes no supported Todo API, show that limitation explicitly instead of hiding the section or reconstructing tasks from unsupported internals.
 - Preserve Navigator's established colors and compact spacing across OpenCode 1.x and 2.x adapters as closely as the public host slots and semantic theme tokens allow.
+- In OpenCode 1.x, keep the path and branch footer line and render `OpenCode <version> | Navigator <version>` below it. Show a separate update icon immediately after the OpenCode version when the host reports an OpenCode update and immediately after the Navigator version when npm reports a newer Navigator release. Keep update checks quiet on failure. Implement the combined version footer for OpenCode 1.x before extending it to OpenCode 2.x.
 - The configured sidebar shortcut (default `Ctrl+Shift+B`) opens a temporary shortcut mode instead of toggling immediately: `h` toggles sidebar visibility, while `t`, `a`, `s`, `q`, `l`, and `m` focus Todo, Subagents, Skills, Quick Actions, LSP, and MCP through the existing commands.
 - Keep `Ctrl+,` as the direct Navigator Settings shortcut and show it in keyboard help.
 - In sidebar keyboard navigation, Left/Right move among interactive controls on one visual row, while Up/Down and `j`/`k` move between visual rows. Tabs and nested row controls must use horizontal navigation.
@@ -68,6 +69,7 @@
 - Search Everything has Skills, Subagents, MCP, and Actions tabs with a shared query and per-tab selection/scroll preservation.
 - Keep Search Everything limited to its current four built-in providers. Do not add persistent search history or configurable/custom result providers.
 - Keep Quick Actions on an explicit allowlist of argument-free host commands, including the global `permission.mode` auto-approve toggle. Quick Action bookmarks are user-wide and use the same compact filled/outlined control as Skills and MCP; bookmarked actions lead in configured order in the sidebar and Search Everything. Never reorder actions by usage. Keep per-action visibility independent so any action, including a bookmarked one, can be hidden from the sidebar; unavailable actions remain visible with route-aware reasons.
+- Refresh the `permission.mode` Quick Action label reactively in both the sidebar and Search Everything when auto-approve changes, without requiring a dialog reopen or another preference update.
 - Separate bookmarked Quick Actions from the remaining visible actions with the same single-row gap used by Skills and MCP favorites.
 - Search full source lists independently of sidebar visibility and item limits. Background updates must preserve row identity, selection, scroll, and cached results.
 - Enabling or disabling MCP from Search Everything must not close the dialog, including on failure. Keep the query and current view in place.
@@ -136,7 +138,7 @@
 
 - Publish as `opencode-navigator`. The legacy `opencode-pretty-sidebar` package is deprecated with migration guidance; retain existing published versions.
 - Support both the established OpenCode 1.x host beginning at 1.18.30 and OpenCode 2.x. Keep host-version differences behind explicit adapters or capability checks so adding 2.x support does not break the existing 1.x integration.
-- Keep the locally installed OpenCode on the latest 1.x release (currently 1.18.31) until the user explicitly requests another upgrade. Preserve the shared 1.x-compatible server configuration and separate `tui.json` and `cli.json` client configurations so 2.x remains ready for a future user-requested upgrade.
+- Keep the locally installed OpenCode on the latest 1.x release (currently 1.18.32) until the user explicitly requests another upgrade. Preserve the shared 1.x-compatible server configuration and separate `tui.json` and `cli.json` client configurations so 2.x remains ready for a future user-requested upgrade.
 - Retain compatibility with the established preferences directory/lock and legacy command aliases.
 - Include font installation and migration instructions in releases when relevant. Verify the npm version, GitHub release, and CI outcomes before reporting publication as complete.
 - Before publishing a GitHub Release, run the manual `Prepare Release` workflow and verify that its screenshot pull request passes CI and is merged.

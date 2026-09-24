@@ -2,6 +2,7 @@ import { For, Show, createMemo } from 'solid-js'
 
 import {
   QUICK_ACTIONS,
+  createQuickActionRevision,
   orderQuickActionIds,
   quickActionDisabledReason,
   quickActionLabel,
@@ -25,8 +26,11 @@ export function QuickActionsSection(props: {
   interaction?: SidebarInteraction
   navigationSection?: number
 }) {
-  const actions = createMemo(() =>
-    orderQuickActionIds(
+  const commandRevision = createQuickActionRevision(props.api)
+  const actions = createMemo(() => {
+    commandRevision()
+
+    return orderQuickActionIds(
       props.preferences.quickActionOrder?.() ?? QUICK_ACTIONS.map((action) => action.command),
       props.preferences.favoriteQuickActions?.() ?? new Set(),
     ).flatMap((id) => {
@@ -41,8 +45,8 @@ export function QuickActionsSection(props: {
             },
           ]
         : []
-    }),
-  )
+    })
+  })
   const visibility = createListVisibility({
     items: actions,
     limit: () => props.preferences.sectionItemLimit?.('quick_actions') ?? 0,
