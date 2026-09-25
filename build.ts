@@ -145,6 +145,31 @@ function stripGeneratedIndentation(source: string) {
     .replaceAll(/^return \{/gm, 'return{')
 }
 
+function consolidateNamedImports(source: string) {
+  const imports = new Map<string, string[]>()
+  const pattern = /^import \{(.+)\} from (['"].+['"])$/gm
+
+  for (const match of source.matchAll(pattern)) {
+    const [, names, module] = match
+    const current = imports.get(module) ?? []
+
+    current.push(names)
+    imports.set(module, current)
+  }
+
+  const emitted = new Set<string>()
+
+  return source.replaceAll(pattern, (_statement, _names: string, module: string) => {
+    if (emitted.has(module)) return ''
+
+    emitted.add(module)
+    const names = imports.get(module) ?? []
+    const specifiers = names.join(',')
+
+    return `import {${specifiers}} from ${module}`
+  })
+}
+
 const result = await Bun.build({
   entrypoints: ['src/tui.tsx'],
   outdir: 'dist',
@@ -170,5 +195,11 @@ if (!result.success) {
 }
 
 for (const output of result.outputs) {
-  if (output.kind === 'entry-point') await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
+  if (output.kind !== 'entry-point') continue
+
+  const text = await output.text()
+  const compacted = stripGeneratedIndentation(text)
+  const bundled = consolidateNamedImports(compacted)
+
+  await Bun.write(output.path, bundled)
 }
