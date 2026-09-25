@@ -116,7 +116,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
   let context!: Plugin.Context
   const originalFetch = globalThis.fetch
 
-  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.14.0' })), {
+  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.15.0' })), {
     preconnect() {},
   })
 
@@ -263,7 +263,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
 
     footer = await testRender(() => footerClaim.render({ sessionID: session.id }), { width: 50, height: 4 })
     await footer.renderOnce()
-    expect(footer.captureCharFrame()).toContain('Navigator 0.14.0')
+    expect(footer.captureCharFrame()).toContain('Navigator 0.15.0')
 
     await cleanup()
     expect(slotCleanups).toEqual(['sidebar.footer', 'sidebar.content', 'app'])

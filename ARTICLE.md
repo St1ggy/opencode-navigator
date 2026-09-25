@@ -160,7 +160,7 @@ That setup is not free. It requires Docker with Linux ARM64 support, and pixel-l
 
 ## Installation
 
-The current OpenCode Navigator version at the time of writing is `0.14.0`. It supports OpenCode `1.18.30` and later, including OpenCode 2.x.
+The current OpenCode Navigator version at the time of writing is `0.15.0`. It supports OpenCode `1.18.30` and later, including OpenCode 2.x.
 
 To install it for all projects:
 

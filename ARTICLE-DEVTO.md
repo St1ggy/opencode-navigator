@@ -144,7 +144,7 @@ Screenshots are documentation, but in this project they are also rendering regre
 
 ## Installation
 
-OpenCode Navigator 0.14.0 supports OpenCode 1.18.30 and newer, including OpenCode 2.x.
+OpenCode Navigator 0.15.0 supports OpenCode 1.18.30 and newer, including OpenCode 2.x.
 
 ### OpenCode 1.x
 
@@ -224,6 +224,6 @@ I would rather state those boundaries plainly than add controls that pretend the
 
 Navigator now covers the sidebar workflow I wanted: monitor current work, find hidden or limited items quickly, and keep configuration close to the controls it affects. That workflow is personal, though. Some people never touch a mouse. Some have two MCP servers; others have fifty. Some do not use Todo at all.
 
-The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and version 0.14.0 is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [37-state screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
+The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and version 0.15.0 is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [37-state screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
 
 If you try it, I'd like to know what still feels hard to reach, which section you'd remove, and what breaks with your terminal, theme, or configuration. Bugs and feature requests are welcome in [GitHub Issues](https://github.com/St1ggy/opencode-navigator/issues), or tell me in the comments how you use OpenCode's sidebar.

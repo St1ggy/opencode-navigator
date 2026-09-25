@@ -35,8 +35,8 @@ test('version status tracks OpenCode events and the Navigator registry release',
     },
     lifecycle: { onDispose: (dispose: () => void) => disposers.push(dispose) },
   } as unknown as TuiPluginApi
-  const request = Object.assign(() => Promise.resolve(Response.json({ version: '0.15.0' })), { preconnect() {} })
-  const status = createVersionStatus(api, '0.14.0', request)
+  const request = Object.assign(() => Promise.resolve(Response.json({ version: '0.16.0' })), { preconnect() {} })
+  const status = createVersionStatus(api, '0.15.0', request)
 
   await Bun.sleep(0)
   onUpdate?.({ properties: { version: '1.19.0' } })
@@ -63,7 +63,7 @@ test('footer preserves path and branch and places each update icon by its versio
         <VersionFooter
           api={api}
           sessionID="session"
-          navigatorVersion="0.14.0"
+          navigatorVersion="0.15.0"
           status={{ openCodeUpdate: () => true, navigatorUpdate: () => true }}
         />
       </IconProvider>
@@ -76,7 +76,7 @@ test('footer preserves path and branch and places each update icon by its versio
     const frame = view.captureCharFrame()
 
     expect(frame).toContain('/workspace/project:main')
-    expect(frame).toContain('OpenCode 1.18.31^ | Navigator 0.14.0^')
+    expect(frame).toContain('OpenCode 1.18.31^ | Navigator 0.15.0^')
   } finally {
     view.renderer.destroy()
   }

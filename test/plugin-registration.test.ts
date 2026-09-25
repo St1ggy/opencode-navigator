@@ -11,7 +11,7 @@ test('the built plugin registers its lifecycle and sidebar slots', async () => {
   const registrations: { order: number; slots: Record<string, unknown> }[] = []
   const originalFetch = globalThis.fetch
 
-  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.14.0' })), {
+  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.15.0' })), {
     preconnect() {},
   })
   const api = {

@@ -51,7 +51,7 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
   const registrations: SlotRegistration[] = []
   const originalFetch = globalThis.fetch
 
-  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.14.0' })), {
+  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.15.0' })), {
     preconnect() {},
   })
 
@@ -189,7 +189,7 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
     expect(frame).toContain('MCP')
     expect(frame).toContain(`${sectionIcon('mcp')} MCP`)
     expect(frame).toContain(`${sectionIcon('subagents')} SUBAGENTS`)
-    expect(frame).toContain('OpenCode 1.18.30 | Navigator 0.14.0')
+    expect(frame).toContain('OpenCode 1.18.30 | Navigator 0.15.0')
     expect(requestSignals.length).toBeGreaterThanOrEqual(5)
 
     lifecycle.abort()
