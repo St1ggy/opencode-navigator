@@ -2,7 +2,7 @@
 import { onCleanup, onMount } from 'solid-js'
 
 import type { Plugin } from '@opencode/plugin/tui'
-import type { TuiDialogPromptProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { TuiDialogConfirmProps, TuiDialogPromptProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function createV2UI(context: Plugin.Context) {
   let dialogOpen = false
@@ -29,7 +29,26 @@ export function createV2UI(context: Plugin.Context) {
     return <box />
   }
 
+  function DialogConfirm(props: TuiDialogConfirmProps) {
+    let active = true
+
+    onCleanup(() => {
+      active = false
+    })
+    onMount(async () => {
+      const confirmed = await context.ui.dialog.confirm({ title: props.title, message: props.message })
+
+      if (!active) return
+
+      if (confirmed) props.onConfirm?.()
+      else props.onCancel?.()
+    })
+
+    return <box />
+  }
+
   return {
+    DialogConfirm,
     DialogPrompt,
     toast: (input: Parameters<TuiPluginApi['ui']['toast']>[0]) => context.ui.toast.show(input),
     dialog: {

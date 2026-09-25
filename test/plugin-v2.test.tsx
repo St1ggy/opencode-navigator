@@ -126,7 +126,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     context = {
       options: {},
       location: { directory: '/workspace' },
-      app: { version: '2.0.11', channel: 'stable' },
+      app: { version: '2.0.16', channel: 'stable' },
       renderer: Object.assign(renderer, {
         on(name: string) {
           rendererSubscriptions.push(name)
@@ -261,9 +261,12 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
 
     const footerClaim = claims.find((claim) => claim.append === 'sidebar.footer')!
 
-    footer = await testRender(() => footerClaim.render({ sessionID: session.id }), { width: 50, height: 4 })
+    footer = await testRender(() => footerClaim.render({ sessionID: session.id }), { width: 38, height: 4 })
     await footer.renderOnce()
-    expect(footer.captureCharFrame()).toContain('Navigator 0.15.0')
+    const footerFrame = footer.captureCharFrame()
+
+    expect(footerFrame).toContain('OpenCode 2.0.16 | Navigator 0.15.0')
+    expect(footerFrame).toContain('\u{EAF8}')
 
     await cleanup()
     expect(slotCleanups).toEqual(['sidebar.footer', 'sidebar.content', 'app'])

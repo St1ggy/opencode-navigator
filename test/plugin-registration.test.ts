@@ -28,6 +28,7 @@ test('the built plugin registers its lifecycle and sidebar slots', async () => {
         disposers.push(dispose)
       },
     },
+    keymap: { registerLayer: () => () => {} },
     renderer: {
       currentFocusedRenderable: null,
       on(name: string) {

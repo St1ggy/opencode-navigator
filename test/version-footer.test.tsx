@@ -41,13 +41,14 @@ test('version status tracks OpenCode events and the Navigator registry release',
   await Bun.sleep(0)
   onUpdate?.({ properties: { version: '1.19.0' } })
 
-  expect(status.openCodeUpdate()).toBe(true)
-  expect(status.navigatorUpdate()).toBe(true)
+  expect(status.openCodeUpdate()).toBe('1.19.0')
+  expect(status.navigatorUpdate()).toBe('0.16.0')
 
   for (const dispose of disposers) dispose()
 })
 
 test('footer preserves path and branch and places each update icon by its version', async () => {
+  const updates: string[] = []
   const api = {
     app: { version: '1.18.31' },
     state: {
@@ -64,7 +65,9 @@ test('footer preserves path and branch and places each update icon by its versio
           api={api}
           sessionID="session"
           navigatorVersion="0.15.0"
-          status={{ openCodeUpdate: () => true, navigatorUpdate: () => true }}
+          status={{ openCodeUpdate: () => '1.19.0', navigatorUpdate: () => '0.16.0' }}
+          onOpenCodeUpdate={(target) => updates.push(`opencode:${target}`)}
+          onNavigatorUpdate={(target) => updates.push(`navigator:${target}`)}
         />
       </IconProvider>
     ),
@@ -77,6 +80,14 @@ test('footer preserves path and branch and places each update icon by its versio
 
     expect(frame).toContain('/workspace/project:main')
     expect(frame).toContain('OpenCode 1.18.31^ | Navigator 0.15.0^')
+
+    const lines = frame.split('\n')
+    const row = lines.findIndex((line) => line.includes('OpenCode 1.18.31'))
+    const openCodeIcon = lines[row].indexOf('^')
+
+    await view.mockMouse.click(openCodeIcon, row)
+    await view.mockMouse.click(lines[row].indexOf('^', openCodeIcon + 1), row)
+    expect(updates).toEqual(['opencode:1.19.0', 'navigator:0.16.0'])
   } finally {
     view.renderer.destroy()
   }

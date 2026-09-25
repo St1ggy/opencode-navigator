@@ -7,7 +7,12 @@ import { createTodoController } from '../entities/todo'
 import { openKeyboardHelp } from '../features/keyboard-help'
 import { SearchBinding } from '../features/search-everything'
 import { SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
-import { NavigatorVersion, VersionFooter, createVersionStatus } from '../features/version-footer'
+import {
+  VersionFooter,
+  VersionSummary,
+  createVersionStatus,
+  createVersionUpdateActions,
+} from '../features/version-footer'
 import {
   FirstRunWizardPersistence,
   McpPersistence,
@@ -23,9 +28,10 @@ import { IconProvider } from '../shared/ui'
 
 import { loadConfiguredDefaults } from './configured-defaults'
 import { createOpenCodeV2Api } from './opencode-v2'
+import { createOpenCodeV1VersionUpdater, createOpenCodeV2VersionUpdater } from './version-updaters'
 
 import type { Plugin as OpenCodeV2Plugin } from '@opencode/plugin/tui'
-import type { TuiPlugin, TuiPluginModule } from '@opencode-ai/plugin/tui'
+import type { TuiPlugin, TuiPluginMeta, TuiPluginModule } from '@opencode-ai/plugin/tui'
 
 export {
   LspBadge,
@@ -147,7 +153,7 @@ async function setupNavigator(
   return { mcp, preferences }
 }
 
-export const setupOpenCodeV1: TuiPlugin = async (api, options) => {
+export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMeta) => {
   const { preferences } = await setupNavigator(api, options, async () => {
     if (!api.client?.file?.read || !api.state.path.worktree) return
 
@@ -162,6 +168,7 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options) => {
     return result.data?.type === 'text' ? result.data.content : undefined
   })
   const versionStatus = createVersionStatus(api, __NAVIGATOR_VERSION__)
+  const versionUpdates = createVersionUpdateActions(api, versionStatus, createOpenCodeV1VersionUpdater(api, meta))
 
   api.slots.register({
     // OpenCode 1.x uses the lowest order as the single-winner footer.
@@ -175,6 +182,8 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options) => {
               sessionID={props.session_id}
               navigatorVersion={__NAVIGATOR_VERSION__}
               status={versionStatus}
+              onOpenCodeUpdate={versionUpdates.openCode}
+              onNavigatorUpdate={versionUpdates.navigator}
             />
           </IconProvider>
         )
@@ -193,12 +202,19 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
     )
   })
   const versionStatus = createVersionStatus(adapter.api, __NAVIGATOR_VERSION__)
+  const versionUpdates = createVersionUpdateActions(adapter.api, versionStatus, createOpenCodeV2VersionUpdater(context))
   const disposeFooter = context.ui.slot({
     append: 'sidebar.footer',
     render: () => (
       <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
         <box flexDirection="row" justifyContent="space-between">
-          <NavigatorVersion api={adapter.api} navigatorVersion={__NAVIGATOR_VERSION__} status={versionStatus} />
+          <VersionSummary
+            api={adapter.api}
+            navigatorVersion={__NAVIGATOR_VERSION__}
+            status={versionStatus}
+            onOpenCodeUpdate={versionUpdates.openCode}
+            onNavigatorUpdate={versionUpdates.navigator}
+          />
           <SettingsFooterButton api={adapter.api} preferences={preferences} mcp={mcp} />
         </box>
       </IconProvider>

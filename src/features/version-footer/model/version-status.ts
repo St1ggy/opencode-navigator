@@ -7,8 +7,13 @@ const NAVIGATOR_PACKAGE_URL = 'https://registry.npmjs.org/opencode-navigator/lat
 const REQUEST_TIMEOUT_MS = 5000
 
 export type VersionStatus = {
-  openCodeUpdate: Accessor<boolean>
-  navigatorUpdate: Accessor<boolean>
+  openCodeUpdate: Accessor<string | undefined>
+  navigatorUpdate: Accessor<string | undefined>
+}
+
+export type VersionUpdater = {
+  openCode: (target: string) => Promise<void>
+  navigator: (target: string) => Promise<void>
 }
 
 function versionParts(value: string) {
@@ -35,12 +40,14 @@ export function createVersionStatus(
   navigatorVersion: string,
   request: typeof fetch = fetch,
 ): VersionStatus {
-  const [openCodeUpdate, setOpenCodeUpdate] = createSignal(false)
-  const [navigatorUpdate, setNavigatorUpdate] = createSignal(false)
+  const [openCodeUpdate, setOpenCodeUpdate] = createSignal<string>()
+  const [navigatorUpdate, setNavigatorUpdate] = createSignal<string>()
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   const unsubscribe = api.event.on('installation.update-available', (event) => {
-    setOpenCodeUpdate(isNewerVersion(event.properties.version, api.app.version))
+    const version = event.properties.version
+
+    setOpenCodeUpdate(isNewerVersion(version, api.app.version) ? version : undefined)
   })
 
   api.lifecycle.onDispose(() => {
@@ -58,7 +65,8 @@ export function createVersionStatus(
 
       const metadata = (await response.json()) as { version?: unknown }
 
-      if (typeof metadata.version === 'string') setNavigatorUpdate(isNewerVersion(metadata.version, navigatorVersion))
+      if (typeof metadata.version === 'string')
+        setNavigatorUpdate(isNewerVersion(metadata.version, navigatorVersion) ? metadata.version : undefined)
     })
     .catch(() => {})
     .finally(() => clearTimeout(timeout))

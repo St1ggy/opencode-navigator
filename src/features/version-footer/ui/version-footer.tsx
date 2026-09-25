@@ -1,5 +1,4 @@
-/** @jsxImportSource @opentui/solid */
-import { useIcons } from '../../../shared/ui'
+import { VersionSummary } from './version-summary'
 
 import type { VersionStatus } from '../model/version-status'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -18,18 +17,22 @@ export function VersionFooter(props: {
   sessionID: string
   navigatorVersion: string
   status: VersionStatus
+  onOpenCodeUpdate: (target: string) => void
+  onNavigatorUpdate: (target: string) => void
 }) {
   const theme = () => props.api.theme.current
-  const icons = useIcons()
   const path = () => footerPath(props.api, props.sessionID)
-  const versions = () =>
-    `OpenCode ${props.api.app.version}${props.status.openCodeUpdate() ? icons.icon('up') : ''} | ` +
-    `Navigator ${props.navigatorVersion}${props.status.navigatorUpdate() ? icons.icon('up') : ''}`
 
   return (
     <box gap={1}>
       <text fg={theme().text}>{path()}</text>
-      <text fg={theme().textMuted}>{versions()}</text>
+      <VersionSummary
+        api={props.api}
+        navigatorVersion={props.navigatorVersion}
+        status={props.status}
+        onOpenCodeUpdate={props.onOpenCodeUpdate}
+        onNavigatorUpdate={props.onNavigatorUpdate}
+      />
     </box>
   )
 }
