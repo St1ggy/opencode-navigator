@@ -6,6 +6,8 @@ with a configurable sidebar.
 
 ![OpenCode Navigator](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/01-hero-sidebar.png)
 
+See the [changelog](CHANGELOG.md) for release-by-release changes.
+
 ## Features
 
 - Theme-aware session title with the session creation date
@@ -31,7 +33,7 @@ with a configurable sidebar.
 - Copy the selected scope's layout and MCP states as versioned JSON, then validate and preview imports
 - Focus the sidebar with `Ctrl+Shift+F`, then navigate with arrows or `j`/`k`
 - Open sidebar shortcut mode with `Ctrl+Shift+B`; press `h` to toggle the panel
-- Keep OpenCode's compact footer while showing host and Navigator versions with independent update indicators; activate either indicator to confirm an in-place update through the current installation method and scope
+- Keep OpenCode's compact footer while showing host and Navigator versions with independent update indicators; click a version label or its update icon to confirm an in-place update through the current installation method and scope
 
 Todo starts expanded. Subagents, skills, quick actions, LSP, and MCP start
 collapsed. Use `Save current layout as default` in sidebar settings to reuse the

@@ -128,6 +128,8 @@ verification workflow before expanding the product surface.
 - [x] Show OpenCode and Navigator versions in the OpenCode 1.x sidebar footer with independent update indicators while preserving the path and branch line.
 - [x] Show OpenCode and Navigator version/update states with the settings control in the OpenCode 2.x footer without replacing host-owned path/title content.
 - [x] Make both footer update indicators confirm and perform updates through the current installation method and scope.
+- [x] Make each available version's entire label, number, and update icon open its own confirmation dialog.
+- [x] Replace the tiny update arrow with a prominent filled-circle Nerd Font indicator and an ASCII fallback.
 
 ### Agents And Limits
 
@@ -160,6 +162,7 @@ verification workflow before expanding the product surface.
 Schedule these only after the required capability is available through a supported
 public OpenCode TUI or stable authenticated provider API:
 
+- Keep the sidebar session title and creation date fixed above scrolling sections in both hosts; requires a fixed-header slot in OpenCode 1.x and a fixed-title/date slot in OpenCode 2.x.
 - Editing Todo status or priority.
 - Restarting LSP servers or exposing diagnostic counters.
 - Switching agents or models when no public TUI command is available.
