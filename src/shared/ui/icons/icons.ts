@@ -48,6 +48,7 @@ const ICONS = {
   recent: ['\u{EA82}', '~'],
   info: ['\u{EA74}', 'i'],
   search: ['\u{EA6D}', '/'],
+  update: ['\u{F005F}', '^'],
   up: ['\u{EAA1}', '^'],
   down: ['\u{EA9A}', 'v'],
   left: ['\u{EA9B}', '<'],

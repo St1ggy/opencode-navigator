@@ -13,24 +13,24 @@ export function VersionControl(props: {
   const theme = () => props.api.theme.current
 
   return (
-    <box flexDirection="row">
+    <box
+      flexDirection="row"
+      onMouseDown={(event) => {
+        if (props.update) event.stopPropagation()
+      }}
+      onMouseUp={(event) => {
+        const update = props.update
+
+        if (!update) return
+
+        event.stopPropagation()
+        props.onUpdate?.(update)
+      }}
+    >
       <text fg={theme().textMuted}>
         {props.label} {props.version}
       </text>
-      {props.update ? (
-        <text
-          fg={theme().warning}
-          onMouseDown={(event) => event.stopPropagation()}
-          onMouseUp={(event) => {
-            event.stopPropagation()
-            const update = props.update
-
-            if (update) props.onUpdate?.(update)
-          }}
-        >
-          {icons.icon('up')}
-        </text>
-      ) : null}
+      {props.update ? <text fg={theme().warning}>{icons.icon('update')}</text> : null}
     </box>
   )
 }
