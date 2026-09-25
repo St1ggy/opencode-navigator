@@ -85,7 +85,7 @@ verification workflow before expanding the product surface.
 - [x] Verify the migrated global `cli.json` and Navigator package wrapper in the real OpenCode 2.0.16 TUI while retaining the separate OpenCode 1.x `tui.json` configuration.
 - [x] Restore OpenCode 2.x visual parity for Navigator and keep Todo visible with an explicit unsupported-host state when no Todo API is available.
 - [x] Add a separate required real-host OpenCode 2.x PTY smoke while retaining the OpenCode 1.x compatibility smoke.
-- [x] Verify the active local OpenCode 2.x client, its schema-valid `cli.json`, and an independently runnable OpenCode 1.18.32 fallback.
+- [x] Route local `oc` and `opencode` to OpenCode 1.18.32 and `oc2` and `opencode2` to OpenCode 2.0.16; verify both interactive zsh wrappers and executable PATH commands with `--version`.
 
 ## Product Direction
 
@@ -126,7 +126,8 @@ verification workflow before expanding the product surface.
 - [x] Introduce first-run capabilities in six focused slides, then configure visible sections on the seventh and final slide.
 - [x] Keep nested icon controls centered in three cells and use a footprint-compatible dotted pending indicator.
 - [x] Show OpenCode and Navigator versions in the OpenCode 1.x sidebar footer with independent update indicators while preserving the path and branch line.
-- [x] Show Navigator's version/update state and settings control in the OpenCode 2.x footer without replacing host-owned path/title content.
+- [x] Show OpenCode and Navigator version/update states with the settings control in the OpenCode 2.x footer without replacing host-owned path/title content.
+- [x] Make both footer update indicators confirm and perform updates through the current installation method and scope.
 
 ### Agents And Limits
 
