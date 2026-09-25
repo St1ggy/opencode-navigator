@@ -37,7 +37,7 @@ Todo starts expanded. Subagents, skills, quick actions, LSP, and MCP start
 collapsed. Use `Save current layout as default` in sidebar settings to reuse the
 current visible/hidden, expanded/collapsed, and ordering states in new sessions.
 
-Supports OpenCode 1.18.30 and newer, including OpenCode 2.x. OpenCode 2.0.12 does
+Supports OpenCode 1.18.30 and newer, including OpenCode 2.x. OpenCode 2.0.16 does
 not expose Todo or LSP data to TUI plugins. Navigator keeps Todo visible with an
 explicit unsupported-host message and hides LSP on 2.x while retaining Subagents,
 Skills, Quick Actions, MCP, Search, settings, and presets. All interface icons use Nerd Font glyphs by
@@ -143,18 +143,26 @@ opencode plugin --global opencode-navigator
 
 ### OpenCode 2.x
 
-Add Navigator to the `plugins` array in the global `~/.config/opencode/cli.json`:
+Install Navigator through the OpenCode 2 plugin manager:
+
+```sh
+opencode plugin add opencode-navigator
+```
+
+This installs the package and adds it to the `plugins` array in the global
+`~/.config/opencode/cli.json`. The equivalent configuration is:
 
 ```json
 {
-  "$schema": "https://opencode.ai/cli.json",
+  "$schema": "https://opencode.ai/v2/cli.json",
   "plugins": ["opencode-navigator"]
 }
 ```
 
 OpenCode 2.x CLI plugins are global terminal settings; there is no project-local
 `cli.json`. Navigator replaces the `sidebar.content` slot, so no built-in sidebar
-plugin overrides are required.
+plugin overrides are required. OpenCode validates `cli.json` strictly, so keep it
+within the linked schema and restart OpenCode after changing it.
 
 ### Install the corner font
 

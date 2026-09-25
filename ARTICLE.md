@@ -1,180 +1,180 @@
-# Как я переделал боковую панель OpenCode и дошёл до собственного TUI-плагина
+# How I Rebuilt OpenCode's Sidebar and Ended Up Making a TUI Plugin
 
-В какой-то момент правая панель OpenCode перестала помогать мне ориентироваться в сессии. Она исправно показывала контекст, LSP, MCP и Todo, но по мере роста конфигурации полезные строки терялись среди тех, на которые я почти не смотрел. Ярче всего это было заметно по MCP: серверов много, для текущей задачи нужны один-два, а место занимают все.
+At some point, OpenCode's right sidebar stopped helping me navigate a session. It reliably showed context, LSP, MCP, and Todo information, but as my configuration grew, useful lines became lost among things I rarely looked at. MCP made the problem especially obvious: I had many servers, needed one or two for the current task, yet all of them occupied space.
 
-Проблема была не критичной. Ничего не падало, работу можно было продолжать. Просто я по нескольку раз за сессию искал глазами активную задачу, нужный сервер или дочернего агента и каждый раз спотыкался об один и тот же интерфейс. К такой мелочи легко привыкнуть, но внимание она всё равно съедает.
+The problem was not critical. Nothing crashed, and I could keep working. I simply found myself scanning for the active task, the server I needed, or a child agent several times per session, stumbling over the same interface each time. This kind of friction is easy to get used to, but it still consumes attention.
 
-Я решил проверить, можно ли сделать панель, которая отвечает не на вопрос «что вообще подключено к OpenCode», а на более практичный: «что происходит прямо сейчас и куда мне перейти дальше».
+I decided to see whether I could build a sidebar that answered not "what is connected to OpenCode in general?" but a more practical question: "what is happening right now, and where should I go next?"
 
-Так появился OpenCode Navigator, TUI-плагин для поиска, навигации и управления сессией. При этом две главные технические проблемы оказались не в расположении строк: одна пряталась в сборке Solid, другая в записи настроек.
+That experiment became OpenCode Navigator, a TUI plugin for search, navigation, and session management. As it turned out, the two main technical problems had little to do with arranging rows: one was hidden in the Solid build, and the other in preference writes.
 
-![OpenCode Navigator в рабочей сессии](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/01-hero-sidebar.png)
+![OpenCode Navigator in an active session](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/01-hero-sidebar.png)
 
-## Сначала убрать, потом добавить
+## Remove First, Then Add
 
-Первый прототип я строил вокруг простого ограничения: боковая панель не должна превращаться в ещё одну информационную панель. У неё фиксированная ширина, рядом находится основной диалог, и конкурировать с ним за внимание бессмысленно.
+I built the first prototype around a simple constraint: the sidebar must not become yet another information dashboard. Its width is fixed, the main conversation sits beside it, and competing with that conversation for attention makes no sense.
 
-Поэтому я оставил Todo открытым при старте, а Subagents, Skills, Quick Actions, LSP и MCP сделал сворачиваемыми. Любой раздел можно и совсем скрыть. Внизу остаются привычные путь проекта и ветка, а в OpenCode 1.x под ними видны версии OpenCode и Navigator с отдельными значками доступных обновлений. Плагин не запускает отдельный клиент: он встраивается в штатный TUI OpenCode, получает от него тему и состояние, использует его команды и диалоги.
+So Todo starts expanded, while Subagents, Skills, Quick Actions, LSP, and MCP are collapsible. Any section can also be hidden entirely. The familiar project path and branch remain at the bottom. In OpenCode 1.x, they are followed by OpenCode and Navigator versions, each with its own update indicator when an update is available. The plugin does not launch a separate client: it integrates into OpenCode's standard TUI, receives its theme and state from the host, and uses the host's commands and dialogs.
 
-С этого ограничения и вырос весь проект. Каждый раздел должен либо показывать важное с первого взгляда, либо быстро вести к действию. Всё остальное можно свернуть.
+The rest of the project grew from that constraint. Every section should either reveal something important at a glance or lead quickly to an action. Everything else can be collapsed.
 
-## Todo и Subagents: что происходит с задачей
+## Todo and Subagents: What Is Happening to the Task
 
-Во время длинного запроса я чаще всего смотрю на две вещи: какие пункты плана уже выполнены и не застрял ли кто-то из дочерних агентов. Поэтому Todo и Subagents стали верхней частью панели.
+During a long request, I usually watch two things: which plan items are already complete, and whether any child agent has become stuck. That is why Todo and Subagents occupy the top of the sidebar.
 
-У Todo есть представления `All`, `Active` и `Finished`. Активные задачи отделены от завершённых и отменённых, а заголовок всегда показывает общий прогресс.
+Todo has `All`, `Active`, and `Finished` views. Active tasks are separated from completed and cancelled ones, while the heading always shows overall progress.
 
-Приоритеты видны, но изменить их из плагина нельзя: OpenCode не предоставляет TUI-плагинам API для такого изменения. Поэтому состояние доступно только для чтения, без неработающего элемента управления.
+Priorities are visible but cannot be changed from the plugin because OpenCode does not expose an API for TUI plugins to make that change. The state is therefore read-only rather than paired with a control that cannot work.
 
-Subagents собирает активные дочерние сессии, недавние завершения, повторы и ошибки. Нажатие на строку открывает соответствующую сессию.
+Subagents collects active child sessions, recent completions, retries, and errors. Selecting a row opens the corresponding session.
 
-Для работающего агента я показываю время с момента, когда Navigator начал за ним наблюдать. Если агент уже работал при обнаружении, рядом появляется значок часов (`~` в текстовом режиме): точный момент старта неизвестен, и я не стал его угадывать. Статус `Finished` тоже означает только наблюдавшийся переход в idle, а не гарантированный успех; ошибки и отмены отмечаются отдельно. Историю последних десяти наблюдавшихся запусков я храню только в памяти — после выхода из OpenCode она исчезает.
+For a running agent, I show the time since Navigator began observing it. If the agent was already running when discovered, a clock icon appears beside it (`~` in text mode): the exact start time is unknown, and I chose not to invent one. Likewise, `Finished` means only that Navigator observed a transition to idle, not that the task definitely succeeded; errors and cancellations are marked separately. The last ten observed runs live only in memory and disappear when OpenCode exits.
 
-![Todo с фильтром активных задач](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/02-todo-active.png)
+![Todo filtered to active tasks](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/02-todo-active.png)
 
-![Ошибки субагентов](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/05-subagents-errors.png)
+![Subagent errors](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/05-subagents-errors.png)
 
-Локальные события обновляют список сразу, а снимки состояния и статусы отдельных процессов опрашиваются раз в пять секунд. Я добивался, чтобы фоновое обновление не заставляло пустой раздел мигать и не сбрасывало выбранную строку. Иначе панель, за которой я хотел следить одним глазом, сама начинала требовать присмотра.
+Local events update the list immediately, while state snapshots and individual process statuses are polled every five seconds. I worked to keep background refreshes from making an empty section flicker or resetting the selected row. Otherwise, a panel designed for peripheral monitoring would demand attention of its own.
 
-## Skills: короткий список вместо каталога
+## Skills: A Short List Instead of a Catalog
 
-Со Skills возникла обратная задача. Их полезно иметь под рукой, но выводить весь каталог в узкой колонке нет смысла. Я оставил фильтр, лимит строк и явный порядок сортировки.
+Skills posed the opposite problem. They are useful to have close at hand, but printing the entire catalog in a narrow column is pointless. I kept a filter, a row limit, and an explicit sort order.
 
-Избранные Skills идут первыми во всех рабочих областях. Следом показываются последние успешно вставленные команды, максимум десять, затем остальные по алфавиту. И избранное, и история привязаны к источнику Skill, а не только к его короткому имени. Закладка есть и в строке боковой панели, и в окне подтверждения, поэтому для изменения избранного не нужно менять контекст.
+Favorite Skills come first in every workspace. They are followed by up to ten recently inserted commands, then everything else alphabetically. Both favorites and history are tied to the Skill source, not only its short name. The bookmark control appears both in the sidebar row and in the confirmation dialog, so changing favorites does not require switching context.
 
-По нажатию Skill не запускается молча. Сначала открывается диалог с описанием и полным путём к источнику, а после подтверждения команда `/<name>` добавляется в строку ввода. Для знакомого Skill проверку можно отключить флажком, а позже вернуть через настройки. Мне хотелось сохранить быстрый путь для привычных команд, но не превращать неизвестный Skill в кнопку без пояснений.
+Selecting a Skill does not run it silently. A dialog first shows its description and full source path; after confirmation, the `/<name>` command is inserted into the input. For a familiar Skill, that check can be disabled with a checkbox and restored later in settings. I wanted a fast path for trusted commands without turning an unfamiliar Skill into an unexplained button.
 
-![Skills в боковой панели](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/06-skills-sidebar.png)
+![Skills in the sidebar](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/06-skills-sidebar.png)
 
-Лимит строк применяется после фильтрации и сортировки. Поэтому избранные и недавние Skills остаются в коротком списке, а не просто получают значок в полном каталоге.
+The row limit is applied after filtering and sorting. Favorites and recent Skills therefore stay in the short list instead of merely receiving an icon somewhere in a full catalog.
 
-## MCP: причина, с которой всё началось
+## MCP: The Reason This Started
 
-Изначально я собирался поправить только раздел MCP. Хотелось отфильтровать серверы по имени, держать избранные сверху и переключать подключение прямо по строке. В итоге этот кусок интерфейса потянул за собой хранение состояния, пакетные операции и сохранённые наборы.
+Originally, I planned to change only the MCP section. I wanted to filter servers by name, keep favorites at the top, and toggle connections directly from each row. That small interface change ended up requiring state persistence, bulk operations, and saved presets.
 
-У каждого MCP-сервера есть круглый индикатор состояния, похожий на радиокнопку. Нажатие на строку подключает или отключает сервер без дополнительного меню. Команды `Connect all` и `Disconnect all` запускают подходящие изменения параллельно. Если часть операций завершилась ошибкой, успешные изменения сохраняются, а повторить можно только неудачные.
+Each MCP server has a circular status indicator resembling a radio button. Selecting a row connects or disconnects the server without another menu. `Connect all` and `Disconnect all` run the applicable changes in parallel. If some operations fail, successful changes remain in place and only failed ones need to be retried.
 
-Длинный текст ошибки я не оставляю в строке: у сервера с ошибкой появляется отдельная кнопка со значком информации. Она открывает прокручиваемое окно с именем сервера, состоянием и полным текстом, поэтому список сохраняет одинаковую высоту строк.
+I do not leave long error text inside a row. A failed server gets a dedicated information button that opens a scrollable dialog with the server name, status, and full error, keeping every list row the same height.
 
-![Управление MCP в боковой панели](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/08-mcp-sidebar.png)
+![Managing MCP servers in the sidebar](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/08-mcp-sidebar.png)
 
-Состояния можно запоминать глобально или для текущего рабочего дерева. Но порядок запуска я изменить не могу: OpenCode инициализирует включённые MCP-серверы раньше TUI-плагинов. Сервер, сохранённый как выключенный, при старте может ненадолго подключиться, прежде чем Navigator успеет его отключить. Я прямо написал об этом в документации, чтобы настройка не обещала больше, чем способна сделать.
+Desired states can be saved globally or for the current worktree. I cannot change startup order, however: OpenCode initializes enabled MCP servers before TUI plugins. A server saved as disabled may connect briefly at startup before Navigator can disconnect it. I documented that limitation explicitly so the setting does not promise more than it can deliver.
 
-Когда комбинаций стало несколько, появились именованные наборы MCP. Перед ручным применением открывается предварительный просмотр: в нём раздельно показаны будущие подключения, отключения, неизменившиеся и недоступные серверы. Сначала идут реальные изменения. Одного открытия окна недостаточно, нужно нажать `Apply`. Если свежий список серверов получить не удалось или уже идёт другая операция, кнопка недоступна.
+Once I had several combinations, named MCP presets followed. Applying one manually begins with a preview that separates future connections, disconnections, unchanged servers, and unavailable servers, with real changes listed first. Merely opening the preview does nothing; the user must select `Apply`. If Navigator cannot obtain a fresh server list or another operation is already running, that action is disabled.
 
-Набор компоновки можно связать с одним набором MCP. Такой профиль рабочей области по-прежнему применяется только вручную: одно окно показывает изменения обоих наборов, а вход в проект ничего не переключает автоматически. Применение также не превращает выбранную компоновку в новое значение по умолчанию.
+A layout preset can be linked to one MCP preset. This workspace profile is still applied manually: one preview shows changes from both presets, and entering the project never switches anything automatically. Applying it also does not turn the selected layout into the new default.
 
-![Предварительный просмотр набора MCP](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/23-mcp-preset-preview.png)
+![MCP preset preview](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/23-mcp-preset-preview.png)
 
-Сохранённый набор выполняет только необходимые переключения. Серверы, которых нет в текущей области действия, я помечаю как пропущенные, а не успешно изменённые. Это особенно важно, когда один и тот же набор настроек используется в разных рабочих деревьях. Избранное MCP при этом сохраняется отдельно, по имени сервера, и лишь поднимает строку вверх: закладка сама ничего не подключает.
+A saved preset performs only the necessary toggles. Servers absent from the current scope are marked as skipped rather than successfully changed. This matters when the same settings are used across different worktrees. MCP favorites are stored separately by server name and only move a row upward; bookmarking a server never connects it.
 
-Для длинного списка одной закладки оказалось мало. В настройках я добавил пользовательские группы MCP: избранное остаётся первым, затем по алфавиту идут группы и серверы внутри них. Назначения общие для всех рабочих областей и не исчезают, если сервер временно отсутствует в текущем проекте.
+For a long list, bookmarks alone were not enough. I added custom MCP groups in settings: favorites stay first, followed by groups and their servers in alphabetical order. Assignments are shared by all workspaces and remain stored when a server is temporarily absent from the current project.
 
-![Пользовательские группы MCP](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
+![Custom MCP groups](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
 
-## Search Everything: один вход в четыре списка
+## Search Everything: One Entry Point for Four Lists
 
-Как только у разделов появились ограничения по числу строк и возможность скрытия, понадобился способ искать по полным исходным спискам. Так возник Search Everything. Он открывается по `Ctrl+Shift+K` и объединяет четыре вкладки: Skills, Subagents, MCP и Actions.
+As soon as sections gained row limits and could be hidden, I needed a way to search their complete source lists. That became Search Everything. It opens with `Ctrl+Shift+K` and combines four tabs: Skills, Subagents, MCP, and Actions.
 
-Запрос общий для всех вкладок, но выбранная строка и прокрутка сохраняются отдельно. Можно начать с названия Skill, перейти на MCP и вернуться обратно, не теряя позицию. Поиск не зависит от того, виден ли соответствующий раздел в боковой панели и сколько строк разрешено показать в нём. Даже скрытые Quick Actions остаются доступны.
+The query is shared across tabs, but each tab preserves its own selected row and scroll position. You can begin with a Skill name, switch to MCP, and return without losing your place. Search is independent of whether the corresponding sidebar section is visible or how many rows it may show. Even hidden Quick Actions remain available.
 
-![Поиск по Skills](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/09-search-skills.png)
+![Searching Skills](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/09-search-skills.png)
 
-![Переключение MCP из Search Everything](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/11-search-mcp.png)
+![Toggling MCP from Search Everything](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/11-search-mcp.png)
 
-Для MCP это поведение было критично. Подключение меняется прямо в результатах, диалог не закрывается ни после успеха, ни после ошибки, а запрос, выбор и прокрутка остаются на месте. Фоновое обновление тоже не выталкивает на первую строку.
+This behavior was critical for MCP. A connection changes directly in the results, the dialog stays open after both success and failure, and the query, selection, and scroll position remain intact. Background updates do not send the user back to the first row either.
 
-Но при смене сессии или рабочей области поиск закрывается. Здесь сохранить окно было бы ошибкой: продолжать операцию над устаревшей целью опаснее, чем открыть поиск снова.
+Search does close when the session or workspace changes. Preserving the window in that case would be a mistake: continuing an operation against a stale target is more dangerous than reopening search.
 
-## Настройки без редактирования JSON
+## Settings Without Editing JSON
 
-Универсальной боковой панели не существует. В одной сессии важны субагенты, в другой — MCP, а иногда достаточно Todo. Поэтому я сделал видимость, порядок, раскрытие и число строк настраиваемыми отдельно для каждого раздела. Quick Actions тоже можно скрывать и переставлять.
+There is no universal sidebar. One session revolves around subagents, another around MCP, and sometimes Todo is enough. I therefore made visibility, order, expansion, and row count configurable for every section. Quick Actions can also be hidden and reordered.
 
-Navigator работает с явным списком команд OpenCode без аргументов. В него входят `Rename`, `Timeline`, `Copy transcript`, `Export`, `Compact`, переход между сессиями, создание и ответвление сессии, копирование последнего ответа, навигация по сообщениям и системный переключатель автоматического подтверждения разрешений. Нужные действия можно добавить в закладки: они поднимутся вверх в заданном порядке и в боковой панели, и в поиске. Частота запуска на порядок не влияет, а скрыть можно даже действие из избранного. Если команда недоступна на текущем экране или в этой версии OpenCode, строка остаётся на месте и объясняет причину.
+Navigator works with an explicit allowlist of argument-free OpenCode commands. It includes `Rename`, `Timeline`, `Copy transcript`, `Export`, `Compact`, session navigation, creating and forking sessions, copying the last response, message navigation, and the global automatic permission approval toggle. Actions can be bookmarked to place them first, in configured order, both in the sidebar and in search. Usage frequency never changes that order, and even a bookmarked action can be hidden. If a command is unavailable on the current screen or in the installed OpenCode version, its row remains visible and explains why.
 
-![Настройки разделов](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/13-settings-sections.png)
+![Section settings](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/13-settings-sections.png)
 
-Настройки можно менять глобально или только для текущего рабочего дерева. Декларативные значения приходят сразу из трёх мест: словаря `options` плагина, пользовательского `~/.config/.opencode-navigator/settings.json` и проектного `.opencode/navigator.json`. Последний удобно хранить в репозитории. Эти файлы объединяются по полям и задают исходные значения, а сохранённые глобальные настройки, настройки рабочего дерева и временное состояние текущего процесса лежат выше. Сброс убирает только выбранный слой, не копируя в него значение из родительского. Избранное, история, доверенные Skills и другие личные данные в декларативные файлы не попадают.
+Settings can be changed globally or only for the current worktree. Declarative values come from three places at once: the plugin's `options` dictionary, the user-level `~/.config/.opencode-navigator/settings.json`, and the project-level `.opencode/navigator.json`, which is convenient to keep in version control. These files merge field by field to establish defaults, with saved global preferences, worktree preferences, and temporary process state layered above them. Reset removes only the selected layer instead of copying a parent value into it. Favorites, history, trusted Skills, and other private data never enter declarative files.
 
-Для компоновки можно сохранять именованные наборы. Они включают видимость, раскрытие и порядок разделов. Как и у MCP, ручное применение начинается с предварительного просмотра, где показаны будущие позиции и изменения состояния. Само открытие окна не меняет компоновку; `Cancel` и `Escape` возвращают в меню, `Apply` подтверждает изменения. Даже после применения набор не становится новым значением по умолчанию: для этого есть отдельная команда `Save current layout as default`.
+Layouts can be saved as named presets. They contain section visibility, expansion, and order. As with MCP, manual application starts with a preview showing destination positions and state changes. Opening the preview does not alter the layout; `Cancel` and `Escape` return to the menu, while `Apply` confirms the changes. Even then, the preset does not become the default: that requires the separate `Save current layout as default` command.
 
-![Предварительный просмотр компоновки](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/20-layout-preset-preview.png)
+![Layout preset preview](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/20-layout-preset-preview.png)
 
-Компоновку и желаемые состояния MCP для выбранной области можно скопировать как версионированный JSON. Обратная операция не записывает данные сразу: Navigator сначала проверяет вставленный текст и показывает, что изменится, а какие поля будущей версии будут пропущены. Пути рабочих деревьев, сочетания клавиш, избранное и история в переносимый файл не попадают. Применение выполняется одной атомарной записью и отменяется, если за время просмотра пользователь переключил область или другой процесс успел изменить настройки.
+The layout and desired MCP states for the selected scope can be copied as versioned JSON. Import does not write immediately: Navigator first validates the pasted text and previews both the changes and any fields from a future version that will be skipped. Worktree paths, keyboard shortcuts, favorites, and history are excluded from the portable file. Application uses one atomic write and is cancelled if the user changes scope during the preview or another process modifies preferences first.
 
-![Предварительный просмотр импорта настроек](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/34-settings-import-preview.png)
+![Settings import preview](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/34-settings-import-preview.png)
 
-Мышь не обязательна. `Ctrl+Shift+F` переносит фокус в боковую панель. `Up`/`Down` и `j`/`k` двигают его между визуальными строками, `Left`/`Right` перемещают между элементами одной строки, `Enter` активирует выбранное, а `Escape` возвращает фокус назад.
+A mouse is optional. `Ctrl+Shift+F` moves focus into the sidebar. `Up`/`Down` and `j`/`k` move between visual rows, `Left`/`Right` move among controls on one row, `Enter` activates the selection, and `Escape` returns focus.
 
-По `?` открывается памятка. `Ctrl+Shift+B` запускает временный режим быстрых клавиш: `h` переключает видимость панели, а `t`, `a`, `s`, `q`, `l` и `m` переводят фокус к Todo, Subagents, Skills, Quick Actions, LSP и MCP. Сочетания для этого режима, прямого фокуса и поиска можно изменить в настройках, если терминал перехватывает исходный вариант.
+Pressing `?` opens keyboard help. `Ctrl+Shift+B` starts a temporary shortcut mode: `h` toggles sidebar visibility, while `t`, `a`, `s`, `q`, `l`, and `m` focus Todo, Subagents, Skills, Quick Actions, LSP, and MCP. The shortcuts for this mode, direct focus, and search can be changed in settings when the terminal intercepts the defaults.
 
-![Справка по клавиатурному управлению](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/25-keyboard-help.png)
+![Keyboard navigation help](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/25-keyboard-help.png)
 
-При первом запуске семишаговый мастер сначала знакомит с наблюдением за работой, поиском, Skills, Quick Actions, LSP, MCP и настройкой, а в конце предлагает выбрать видимые разделы. Я специально перенёс выбор структуры на последний экран: до него уже понятно, что именно включается и зачем.
+On first launch, a seven-step wizard introduces monitoring, search, Skills, Quick Actions, LSP, MCP, and customization before asking which sections should be visible. I deliberately moved layout selection to the final screen: by then, the user knows what each option enables and why it might matter.
 
-С LSP я сознательно остановился на компактных индикаторах состояния. Нажатие показывает имя сервера на месте, но отдельного окна с корневым каталогом и диагностикой нет: OpenCode может вернуть пустой путь и не отдаёт плагину текст внутренней ошибки. Придумывать детали вместо API я не стал.
+For LSP, I intentionally stopped at compact status indicators. Selecting one reveals the server name in place, but there is no separate dialog for the root directory or diagnostics: OpenCode may return an empty path and does not expose internal error text to the plugin. I chose not to fabricate details the API does not provide.
 
-## Почему для скругления понадобился отдельный шрифт
+## Why Rounded Corners Required a Separate Font
 
-Терминальный интерфейс быстро напоминает: его пиксели состоят из ячеек. Для однострочной кнопки скруглённые концы можно собрать из готовых символов Nerd Font. У многострочного выделения задача другая: нужен сплошной фон и углы, которые вырезают из него четверти круга. Подходящих символов в Nerd Fonts нет.
+A terminal interface quickly reminds you that its pixels are cells. A single-line button can use existing Nerd Font glyphs for rounded ends. Multiline selection is different: it needs a continuous background with corners that cut quarter circles from it. Nerd Fonts do not contain suitable glyphs.
 
-Изменять существующий Nerd Font ради четырёх символов я не хотел. Вместе с пакетом поставляется небольшой резервный шрифт OpenCode Navigator Corners с четырьмя угловыми масками; основной Nerd Font остаётся выбранным в терминале. Дополнительный шрифт нужен только для скруглённых многострочных выделений и устанавливается на машине, которая отображает терминал, даже если сам OpenCode запущен удалённо.
+I did not want to modify an existing Nerd Font for four symbols. The package therefore ships a small fallback font, OpenCode Navigator Corners, containing four corner masks, while the terminal keeps its primary Nerd Font selected. The additional font is needed only for rounded multiline highlights and must be installed on the machine displaying the terminal, even when OpenCode itself runs remotely.
 
-Если дополнительный шрифт не установлен или терминал плохо работает с резервными шрифтами, в `Behavior` можно отдельно отключить `Multiline corner font`. Иконки Nerd Font и скругление однострочных элементов останутся, а многострочные выделения станут прямоугольными без символов-заглушек. Полный `Text fallback` по-прежнему доступен для терминалов без Nerd Font.
+If the additional font is not installed or the terminal handles fallback fonts poorly, `Multiline corner font` can be disabled independently under `Behavior`. Nerd Font icons and rounded single-line controls remain, while multiline highlights become clean rectangles without missing-glyph placeholders. Full `Text fallback` is still available for terminals without a Nerd Font.
 
-![Интерфейс в Text fallback](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/28-text-fallback.png)
+![The interface in Text fallback mode](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/28-text-fallback.png)
 
-Отдельно я сохраняю снимки с Nerd Font, но без установленного шрифта углов и с отключёнными многострочными масками. Так документация показывает поддерживаемый прямоугольный режим без символов-заглушек.
+I also keep screenshots rendered with a Nerd Font but without the corner font installed and with multiline masks disabled. This lets the documentation show the supported rectangular mode rather than a screen full of replacement glyphs.
 
-![Nerd Font без дополнительного шрифта углов](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/35-no-corner-font-layout-preview.png)
+![Nerd Font without the additional corner font](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/35-no-corner-font-layout-preview.png)
 
-## Ошибка на границе двух экземпляров Solid
+## A Bug at the Boundary Between Two Solid Instances
 
-OpenCode Navigator написан на TypeScript/TSX, Solid и OpenTUI. Первые заметные проблемы возникли не в сортировке или обработке клавиш, а на границе между плагином и OpenCode.
+OpenCode Navigator is written in TypeScript/TSX with Solid and OpenTUI. The first serious problems appeared not in sorting or key handling, but at the boundary between the plugin and OpenCode.
 
-Одна из ранних сборок выглядела почти исправной. Я нажимал на строку, обработчик выполнялся, новое значение сохранялось, но интерфейс не обновлялся.
+One early build looked almost correct. I selected a row, the handler ran, and the new value was saved, but the interface did not update.
 
-После перезапуска раздел внезапно оказывался раскрыт. Событие прошло. Данные верны. На экране старое состояние.
+After a restart, the section would suddenly be expanded. The event had fired. The data was correct. The screen still showed stale state.
 
-Причиной оказалась вторая копия Solid внутри собранного файла. Компоненты плагина создавали реактивность не в том экземпляре среды, в котором OpenCode их отрисовывал. Один экземпляр Solid видел изменение сигнала, другой не видел ничего.
+The cause was a second copy of Solid inside the bundle. Plugin components created reactivity in a different runtime instance from the one OpenCode used to render them. One Solid instance saw the signal change; the other saw nothing.
 
-Исправление оказалось коротким, поиск причины занял больше времени. `solid-js`, `@opentui/solid` и остальные пакеты OpenTUI должны оставаться внешними зависимостями и работать в одном экземпляре среды с OpenCode. В `package.json` они объявлены как `peerDependencies`, а итоговый TUI-файл остаётся неминифицированным и не включает их внутрь. Тестировать только исходные компоненты после этого стало явно недостаточно: ошибка возникала именно в собранном артефакте.
+The fix was short, though finding it took much longer. `solid-js`, `@opentui/solid`, and the other OpenTUI packages must remain external and share a single runtime instance with OpenCode. They are declared as `peerDependencies` in `package.json`, and the resulting TUI bundle remains unminified without embedding them. From that point on, testing source components alone was clearly insufficient because the bug existed only in the built artifact.
 
-## Настройки в двух окнах OpenCode
+## Preferences in Two OpenCode Windows
 
-Вторая проблема выглядела скучнее, но грозила потерей данных. Избранное, сохранённые наборы, история использования Skills и остальные настройки лежат в одном JSON-файле в каталоге состояния OpenCode. Пока запущен один процесс, обычной записи хватает; два открытых окна уже могут перезаписать изменения друг друга.
+The second problem looked less interesting but risked data loss. Favorites, saved presets, Skill usage history, and other settings live in one JSON file inside OpenCode's state directory. A normal write is enough while one process runs; two open windows can overwrite each other's changes.
 
-Чтобы два процесса не писали настройки одновременно, я добавил файл блокировки с PID владельца. Захватив блокировку, процесс сначала записывает полный JSON во временный файл, а затем заменяет им основной через `rename`, поэтому читатель не увидит файл наполовину записанным. После аварийного завершения следующий запуск проверяет PID и удаляет устаревшую блокировку.
+To stop two processes from writing preferences simultaneously, I added a lock file containing the owner's PID. After acquiring the lock, the process writes the complete JSON to a temporary file and replaces the main file with `rename`, so readers never see a partially written document. After a crash, the next process checks the PID and removes a stale lock.
 
-Это не распределённая база и не универсальное разрешение конфликтов. Мне нужно было пережить несколько локальных процессов и не оставить повреждённый файл настроек после прерванной записи. Эту задачу механизм решает, большего я ему не приписываю.
+This is not a distributed database or a universal conflict-resolution system. I needed it to handle a few local processes and avoid leaving a corrupted preferences file after an interrupted write. It solves that problem, and I do not claim more for it.
 
-## Тесты, которые нажимают мышкой и фотографируют терминал
+## Tests That Click the Mouse and Photograph the Terminal
 
-После истории с двумя экземплярами Solid я перестал считать модульные тесты достаточной страховкой. Часть тестов сначала собирает итоговый `dist/tui.js`, а затем загружает его в тестовый отрисовщик OpenTUI.
+After the two-Solid-instance bug, I stopped treating unit tests as sufficient protection. Some tests now build the final `dist/tui.js` first and then load it into an OpenTUI test renderer.
 
-Дальше тесты нажимают мышкой, вводят текст в фильтры, проходят по диалогам с клавиатуры и сравнивают итоговый символьный кадр. Есть отдельные проверки длинных списков на 500 строк и загрузки собранного плагина в настоящий OpenCode через PTY.
+The tests click with the mouse, type into filters, navigate dialogs with the keyboard, and compare the resulting character frame. Separate checks cover 500-row lists and loading the built plugin into a real OpenCode process through a PTY.
 
-Снимки экрана тоже стали воспроизводимым тестовым артефактом, а не ручной фотосессией перед выпуском. Docker-образ запускает настоящий Ghostty через виртуальный X11-дисплей и использует закреплённый Nerd Font. В большинстве сцен установлен шрифт углов, а в трёх его намеренно нет. Все задачи, сессии, пути, Skills, серверы, ошибки и сохранённые наборы синтетические. `bun run screenshots:verify` заново отрисовывает 37 сцен во временный каталог и побайтно сравнивает PNG с эталонами.
+Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; three intentionally omit it. Every task, session, path, Skill, server, error, and saved preset is synthetic. `bun run screenshots:verify` renders all 37 scenes again in a temporary directory and compares the PNG files byte for byte with their references.
 
-Бесплатным такой стенд не получился. Ему нужен Docker с поддержкой Linux ARM64, а попиксельное сравнение чувствительно к окружению, поэтому версии Ghostty и шрифтов приходится фиксировать. Зато снимок в README и интерфейс в тесте теперь собираются одним способом.
+That setup is not free. It requires Docker with Linux ARM64 support, and pixel-level comparison is sensitive to the environment, so Ghostty and font versions must be pinned. In return, the README screenshots and the tested interface are now produced by exactly the same process.
 
-## Установка
+## Installation
 
-Актуальная на момент статьи версия OpenCode Navigator: `0.14.0`. Она поддерживает OpenCode `1.18.30` и новее, включая OpenCode 2.x.
+The current OpenCode Navigator version at the time of writing is `0.14.0`. It supports OpenCode `1.18.30` and later, including OpenCode 2.x.
 
-Для установки во все проекты:
+To install it for all projects:
 
 ```sh
 opencode plugin --global opencode-navigator
 ```
 
-Для текущего проекта:
+For the current project:
 
 ```sh
 opencode plugin opencode-navigator
 ```
 
-В OpenCode 1.x команда добавляет пакет в массив `plugin` файла `tui.json`. Чтобы встроенные разделы не дублировали Navigator, их нужно отключить в том же файле:
+In OpenCode 1.x, the command adds the package to the `plugin` array in `tui.json`. To prevent the built-in sections from duplicating Navigator, disable them in the same file:
 
 ```json
 {
@@ -189,29 +189,29 @@ opencode plugin opencode-navigator
 }
 ```
 
-Для проектной установки OpenCode 1.x используется `.opencode/tui.json`, для глобальной — `~/.config/opencode/tui.json`. В OpenCode 2.x TUI-плагины настраиваются глобально в `~/.config/opencode/cli.json`:
+OpenCode 1.x uses `.opencode/tui.json` for a project installation and `~/.config/opencode/tui.json` for a global one. In OpenCode 2.x, install Navigator through the built-in plugin manager: `opencode plugin add opencode-navigator`. The command updates the global `~/.config/opencode/cli.json`; the equivalent configuration is:
 
 ```json
 {
-  "$schema": "https://opencode.ai/cli.json",
+  "$schema": "https://opencode.ai/v2/cli.json",
   "plugins": ["opencode-navigator"]
 }
 ```
 
-OpenCode 2.0.12 пока не отдаёт TUI-плагинам данные Todo и LSP. Поэтому Navigator оставляет Todo на месте с явным сообщением об ограничении хоста, скрывает LSP и сохраняет Subagents, Skills, Quick Actions, MCP, поиск и настройки. После изменения конфигурации OpenCode нужно перезапустить.
+OpenCode 2.0.16 does not yet expose Todo or LSP data to TUI plugins. Navigator therefore keeps Todo visible with an explicit host-limitation message, hides LSP, and preserves Subagents, Skills, Quick Actions, MCP, search, and settings. Restart OpenCode after changing the configuration.
 
-В режиме Nerd Font для скруглённых многострочных выделений установите дополнительный шрифт на машине с терминалом:
+For rounded multiline highlights in Nerd Font mode, install the additional font on the machine running the terminal:
 
 ```sh
 npx --yes --package=opencode-navigator opencode-navigator-font
 ```
 
-Установщику нужны Node.js 20+ и npm. После установки следует полностью закрыть и заново открыть приложение терминала, а не только OpenCode. Основной Nerd Font менять не нужно. Если устанавливать резервный шрифт не хочется, отключите `Settings → Behavior → Multiline corner font`; иконки Nerd Font при этом сохранятся.
+The installer requires Node.js 20+ and npm. After installation, fully quit and reopen the terminal application, not only OpenCode. You do not need to change your primary Nerd Font. If you prefer not to install the fallback font, disable `Settings → Behavior → Multiline corner font`; Nerd Font icons remain enabled.
 
-Исходники и документация находятся на [GitHub](https://github.com/St1ggy/opencode-navigator), пакет опубликован в [npm](https://www.npmjs.com/package/opencode-navigator). В репозитории есть и [галерея всех 37 состояний](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots): фильтры Todo и Subagents, четыре вкладки поиска, настройки, сохранённые наборы, подтверждение Skill, знакомство при первом запуске и текстовый режим.
+The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is published on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains a [gallery of all 37 states](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots): Todo and Subagent filters, all four search tabs, settings, saved presets, Skill confirmation, first-run onboarding, and text mode.
 
-## Что дальше
+## What Comes Next
 
-Navigator вырос из очень личного раздражения, поэтому мне интересно, насколько мои решения совпадут с чужими сценариями. Кто-то работает только с клавиатуры, у кого-то два MCP-сервера, у кого-то десятки. Одним постоянно нужен Todo, другие сразу его скрывают.
+Navigator grew from a very personal irritation, so I am curious how closely my choices match other people's workflows. Some people work entirely from the keyboard; some have two MCP servers, while others have dozens. Some constantly need Todo, while others hide it immediately.
 
-Если попробуете плагин, расскажите в комментариях, что в панели помогает, а что всё ещё приходится искать глазами. Особенно полезны примеры проблем с темами, терминалами, сочетаниями клавиш и резервными шрифтами. Ошибки и предложения можно оставить и в [GitHub Issues](https://github.com/St1ggy/opencode-navigator/issues).
+If you try the plugin, share in the comments what the sidebar makes easier and what you still have to hunt for. Examples involving themes, terminals, keyboard shortcuts, and fallback fonts are especially useful. Bugs and suggestions are also welcome in [GitHub Issues](https://github.com/St1ggy/opencode-navigator/issues).

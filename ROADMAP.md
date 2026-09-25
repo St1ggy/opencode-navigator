@@ -59,8 +59,9 @@ verification workflow before expanding the product surface.
 - [x] Limit the published package to the license, README, bundle, package metadata, and corner font with its installer.
 - [x] Run TypeScript, ESLint with the shared Solid preset, and Prettier checks through `bun run check`.
 - [x] Enforce a 360,000-byte raw bundle budget through `bun run check` and CI.
-- [x] Add verified runtime and package compatibility for both OpenCode 1.18.30+ and OpenCode 2.x, with explicit adapters for host API differences and a real local OpenCode 2.0.12 client smoke.
+- [x] Add verified runtime and package compatibility for both OpenCode 1.18.30+ and OpenCode 2.x, with explicit adapters for host API differences and a real local OpenCode 2.0.16 client smoke.
 - [x] Verify a user-managed 2.x transition with parallel 1.x `tui.json` and 2.x `cli.json` client configurations.
+- [x] Refresh the development SDK/runtime dependencies and compatibility fixtures for OpenCode 1.18.32 and the latest stable OpenCode 2.x.
 
 ### Keyboard Navigation
 
@@ -81,8 +82,10 @@ verification workflow before expanding the product surface.
 - [x] Enforce renderer performance budgets for 500-row Todo, Skills, Subagents, and MCP lists.
 - [x] Add a reproducible Docker/Ghostty screenshot harness with pinned fonts, virtual display capture, and fully synthetic fixtures for every sidebar section and dialog.
 - [x] Keep deterministic layout, MCP, and import previews with Nerd Font icons but rectangular multiline highlights when the additional corner font is disabled.
-- [x] Verify the migrated global `cli.json` and Navigator package wrapper in the real OpenCode 2.0.12 TUI while retaining the separate OpenCode 1.x `tui.json` configuration.
+- [x] Verify the migrated global `cli.json` and Navigator package wrapper in the real OpenCode 2.0.16 TUI while retaining the separate OpenCode 1.x `tui.json` configuration.
 - [x] Restore OpenCode 2.x visual parity for Navigator and keep Todo visible with an explicit unsupported-host state when no Todo API is available.
+- [x] Add a separate required real-host OpenCode 2.x PTY smoke while retaining the OpenCode 1.x compatibility smoke.
+- [x] Verify the active local OpenCode 2.x client, its schema-valid `cli.json`, and an independently runnable OpenCode 1.18.32 fallback.
 
 ## Product Direction
 
@@ -123,6 +126,7 @@ verification workflow before expanding the product surface.
 - [x] Introduce first-run capabilities in six focused slides, then configure visible sections on the seventh and final slide.
 - [x] Keep nested icon controls centered in three cells and use a footprint-compatible dotted pending indicator.
 - [x] Show OpenCode and Navigator versions in the OpenCode 1.x sidebar footer with independent update indicators while preserving the path and branch line.
+- [x] Show Navigator's version/update state and settings control in the OpenCode 2.x footer without replacing host-owned path/title content.
 
 ### Agents And Limits
 
@@ -148,7 +152,7 @@ verification workflow before expanding the product surface.
 - [x] Automate deterministic screenshot capture and merge through the manual pre-release GitHub Actions workflow instead of local agent runs.
 - [ ] Publish a changelog and generated release notes for each version.
 - [x] Cover every product capability with deterministic synthetic screenshots and keep `ARTICLE.md` independent of private `yandex-team` resources and data.
-- [x] Prepare distinct Habr, private Atushka, and English DEV Community articles, complete five human-focused editorial passes for each, and revise the Russian variants to remove unnecessary anglicisms.
+- [x] Prepare distinct English-language Habr and DEV Community articles plus the ignored private Atushka variant, completing five human-focused editorial passes for each.
 
 ## API-Dependent Candidates
 

@@ -179,18 +179,24 @@ Use `.opencode/tui.json` for one project or `~/.config/opencode/tui.json` global
 
 ### OpenCode 2.x
 
-Add Navigator to the `plugins` array in the global `~/.config/opencode/cli.json`:
+Install Navigator through the OpenCode 2 plugin manager:
+
+```sh
+opencode plugin add opencode-navigator
+```
+
+The command updates the `plugins` array in the global `~/.config/opencode/cli.json`. The equivalent configuration is:
 
 ```json
 {
-  "$schema": "https://opencode.ai/cli.json",
+  "$schema": "https://opencode.ai/v2/cli.json",
   "plugins": ["opencode-navigator"]
 }
 ```
 
 OpenCode 2.x has no project-local `cli.json`. Navigator replaces the `sidebar.content` slot, so the built-in sidebar overrides required for OpenCode 1.x are not needed.
 
-OpenCode 2.0.12 does not expose Todo or LSP state to TUI plugins. Navigator keeps
+OpenCode 2.0.16 does not expose Todo or LSP state to TUI plugins. Navigator keeps
 Todo visible with an explicit unsupported-host message and hides LSP while retaining
 Subagents, Skills, Quick Actions, MCP, Search, settings, and presets.
 

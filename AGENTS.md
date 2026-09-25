@@ -59,7 +59,7 @@
 - Mark subagent durations that began before observation with the Nerd Font clock icon and a readable text-mode fallback instead of the greater-than-or-equal sign.
 - Keep the Todo section visible under OpenCode 2.x. When the host exposes no supported Todo API, show that limitation explicitly instead of hiding the section or reconstructing tasks from unsupported internals.
 - Preserve Navigator's established colors and compact spacing across OpenCode 1.x and 2.x adapters as closely as the public host slots and semantic theme tokens allow.
-- In OpenCode 1.x, keep the path and branch footer line and render `OpenCode <version> | Navigator <version>` below it. Show a separate update icon immediately after the OpenCode version when the host reports an OpenCode update and immediately after the Navigator version when npm reports a newer Navigator release. Keep update checks quiet on failure. Implement the combined version footer for OpenCode 1.x before extending it to OpenCode 2.x.
+- In OpenCode 1.x, keep the path and branch footer line and render `OpenCode <version> | Navigator <version>` below it. Show a separate update icon immediately after the OpenCode version when the host reports an OpenCode update and immediately after the Navigator version when npm reports a newer Navigator release. Keep update checks quiet on failure. In OpenCode 2.x, preserve the host-owned path/title footer content and append Navigator's version/update state beside the settings control.
 - The configured sidebar shortcut (default `Ctrl+Shift+B`) opens a temporary shortcut mode instead of toggling immediately: `h` toggles sidebar visibility, while `t`, `a`, `s`, `q`, `l`, and `m` focus Todo, Subagents, Skills, Quick Actions, LSP, and MCP through the existing commands.
 - Keep `Ctrl+,` as the direct Navigator Settings shortcut and show it in keyboard help.
 - In sidebar keyboard navigation, Left/Right move among interactive controls on one visual row, while Up/Down and `j`/`k` move between visual rows. Tabs and nested row controls must use horizontal navigation.
@@ -119,10 +119,10 @@
 - Keep the public screenshot set substantially larger than ten images so each major tab, menu, preview, filter, and interaction state is legible instead of combining unrelated capabilities into a few crowded captures.
 - Keep every dialog's title, context, controls, and scrollable content inside its visible modal surface, and position dialogs consistently toward the upper part of the terminal.
 - Public documentation and screenshots must not depend on private Yandex resources, `yandex-team` URLs, names, paths, or data.
-- Maintain three publication-specific article variants: `ARTICLE.md` for Habr without Yandex work-context references, ignored `ARTICLE-ATUSHKA.md` with relevant internal article references, and `ARTICLE-DEVTO.md` in English for DEV Community.
+- Maintain three publication-specific article variants: English-language `ARTICLE.md` for Habr without Yandex work-context references, ignored `ARTICLE-ATUSHKA.md` with relevant internal article references, and `ARTICLE-DEVTO.md` in English for DEV Community.
 - Keep `ARTICLE-ATUSHKA.md` ignored and out of the public repository and npm package because it intentionally contains internal context and links.
 - After drafting each article variant, complete five explicit editorial passes focused on natural voice, varied rhythm, concrete first-person detail, platform-native tone, and a final read for repetition or artificial phrasing.
-- In the Habr and Atushka variants, prefer natural Russian technical language over unnecessary anglicisms. Retain English only for official product and interface names, protocols, libraries, commands, file names, and terms whose translation would reduce precision; introduce unavoidable terms in Russian context instead of mixing languages sentence by sentence.
+- Every tracked repository file must be English-only and contain no Cyrillic text. The ignored local/internal `ARTICLE-ATUSHKA.md` is exempt and may remain in Russian.
 
 ## Toolchain and verification
 
@@ -138,7 +138,8 @@
 
 - Publish as `opencode-navigator`. The legacy `opencode-pretty-sidebar` package is deprecated with migration guidance; retain existing published versions.
 - Support both the established OpenCode 1.x host beginning at 1.18.30 and OpenCode 2.x. Keep host-version differences behind explicit adapters or capability checks so adding 2.x support does not break the existing 1.x integration.
-- Keep the locally installed OpenCode on the latest 1.x release (currently 1.18.32) until the user explicitly requests another upgrade. Preserve the shared 1.x-compatible server configuration and separate `tui.json` and `cli.json` client configurations so 2.x remains ready for a future user-requested upgrade.
+- Keep the active locally installed OpenCode on the latest stable 2.x release (currently 2.0.16) after the user-requested migration. Preserve an independently runnable OpenCode 1.18.32 fallback, the shared 1.x-compatible server configuration, and separate `tui.json` and `cli.json` client configurations.
+- Continuously verify the minimum supported OpenCode 1.x host and the latest stable OpenCode 2.x host with separate real-host smoke tests; keep 2.x host/runtime dependencies current without dropping the 1.x adapter.
 - Retain compatibility with the established preferences directory/lock and legacy command aliases.
 - Include font installation and migration instructions in releases when relevant. Verify the npm version, GitHub release, and CI outcomes before reporting publication as complete.
 - Before publishing a GitHub Release, run the manual `Prepare Release` workflow and verify that its screenshot pull request passes CI and is merged.
