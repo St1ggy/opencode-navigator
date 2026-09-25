@@ -189,7 +189,7 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
     expect(frame).toContain('MCP')
     expect(frame).toContain(`${sectionIcon('mcp')} MCP`)
     expect(frame).toContain(`${sectionIcon('subagents')} SUBAGENTS`)
-    expect(frame).toContain('OpenCode 1.18.30 | Navigator 0.15.0')
+    expect(frame).toMatch(/OpenCode \d+\.\d+\.\d+ \| Navigator \d+\.\d+\.\d+/)
     expect(requestSignals.length).toBeGreaterThanOrEqual(5)
 
     lifecycle.abort()

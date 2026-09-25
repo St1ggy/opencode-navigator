@@ -265,7 +265,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     await footer.renderOnce()
     const footerFrame = footer.captureCharFrame()
 
-    expect(footerFrame).toContain('OpenCode 2.0.16 | Navigator 0.15.0')
+    expect(footerFrame).toMatch(/OpenCode \d+\.\d+\.\d+ \| Navigator \d+\.\d+\.\d+/)
     expect(footerFrame).toContain('\u{EAF8}')
 
     await cleanup()

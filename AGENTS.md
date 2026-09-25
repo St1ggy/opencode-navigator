@@ -131,6 +131,7 @@
 - Do not configure Stylelint while this project has no CSS/SCSS.
 - Keep Solid and OpenTUI external and leave the TUI bundle unminified so it shares the host runtime.
 - Use `bun run check` for tests, type checking, ESLint, bundle budget, and formatting. Render tests require `--preload @opentui/solid/preload`.
+- Keep release-dependent version assertions in smoke and integration tests as semantic-version regexes so routine version bumps do not require test edits. Explicit version literals are appropriate for version-comparison cases and simulated host versions.
 - Run relevant interaction/rendering regressions and `bun run test:e2e` for TUI integration changes. Check font changes with `bun run font:check` and inspect actual glyph geometry and font metrics where relevant.
 - Keep the bundle-size check active with the current 360,000-byte raw limit; account for measured growth when introducing features.
 
