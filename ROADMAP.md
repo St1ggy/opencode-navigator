@@ -153,7 +153,7 @@ verification workflow before expanding the product surface.
 
 - [x] Maintain current screenshots and a complete public gallery linked from the README.
 - [x] Automate deterministic screenshot capture and merge through the manual pre-release GitHub Actions workflow instead of local agent runs.
-- [ ] Publish a changelog and generated release notes for each version.
+- [x] Include `CHANGELOG.md` in npm packages and publish generated GitHub Release notes with upgrade guidance from v0.16.1 onward; earlier releases retain their GitHub Release notes.
 - [x] Cover every product capability with deterministic synthetic screenshots and keep `ARTICLE.md` independent of private `yandex-team` resources and data.
 - [x] Prepare distinct English-language Habr and DEV Community articles plus the ignored private Atushka variant, completing five human-focused editorial passes for each.
 
