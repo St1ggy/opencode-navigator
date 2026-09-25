@@ -7,7 +7,7 @@ import { createTodoController } from '../entities/todo'
 import { openKeyboardHelp } from '../features/keyboard-help'
 import { SearchBinding } from '../features/search-everything'
 import { SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
-import { VersionFooter, createVersionStatus } from '../features/version-footer'
+import { NavigatorVersion, VersionFooter, createVersionStatus } from '../features/version-footer'
 import {
   FirstRunWizardPersistence,
   McpPersistence,
@@ -192,11 +192,15 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
       await context.client.file.read({ location: context.location, path: '.opencode/navigator.json' }),
     )
   })
+  const versionStatus = createVersionStatus(adapter.api, __NAVIGATOR_VERSION__)
   const disposeFooter = context.ui.slot({
     append: 'sidebar.footer',
     render: () => (
       <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
-        <SettingsFooterButton api={adapter.api} preferences={preferences} mcp={mcp} />
+        <box flexDirection="row" justifyContent="space-between">
+          <NavigatorVersion api={adapter.api} navigatorVersion={__NAVIGATOR_VERSION__} status={versionStatus} />
+          <SettingsFooterButton api={adapter.api} preferences={preferences} mcp={mcp} />
+        </box>
       </IconProvider>
     ),
   })

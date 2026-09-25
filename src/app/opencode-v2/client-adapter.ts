@@ -16,6 +16,10 @@ function mcpItem(server: { name: string; status: { status: string; error?: strin
   }
 }
 
+function skillKey(directory: string, name: string) {
+  return `${directory}\0${name}`
+}
+
 export function createV2ClientAdapter(context: Plugin.Context) {
   const skillIDs = new Map<string, string>()
 
@@ -27,8 +31,9 @@ export function createV2ClientAdapter(context: Plugin.Context) {
       app: {
         async skills(input: Routing, options: RequestOptions = {}) {
           const response = await context.client.skill.list(location(input), { signal: options.signal })
+          const directory = input.directory ?? response.location.directory
           const data = response.data.map((skill) => {
-            skillIDs.set(skill.name, skill.id)
+            skillIDs.set(skillKey(directory, skill.name), skill.id)
 
             return {
               name: skill.name,
@@ -45,9 +50,11 @@ export function createV2ClientAdapter(context: Plugin.Context) {
         async appendPrompt(input: Routing & { text: string }, options: RequestOptions = {}) {
           const route = context.ui.router.current()
           const name = /^\/([^\s]+)\s*$/u.exec(input.text)?.[1]
-          const id = name ? skillIDs.get(name) : undefined
+          const directory = input.directory ?? context.location?.directory ?? context.data.location.default().directory
+          const session = route.type === 'session' ? context.data.session.get(route.sessionID) : undefined
+          const id = name ? skillIDs.get(skillKey(directory, name)) : undefined
 
-          if (route.type !== 'session' || !id) return { data: false }
+          if (route.type !== 'session' || session?.location.directory !== directory || !id) return { data: false }
 
           await context.client.session.skill({ sessionID: route.sessionID, id }, { signal: options.signal })
 

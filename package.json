@@ -61,7 +61,9 @@
     "screenshots": "bash scripts/capture-screenshots.sh",
     "screenshots:verify": "bash scripts/capture-screenshots.sh --verify",
     "test": "bun run build && bun test --preload @opentui/solid/preload",
-    "test:e2e": "bun run build && bash scripts/smoke-opencode.sh",
+    "test:e2e": "bun run build && bash scripts/smoke-opencode.sh && bash scripts/smoke-opencode-v2.sh",
+    "test:e2e:v1": "bun run build && bash scripts/smoke-opencode.sh",
+    "test:e2e:v2": "bun run build && bash scripts/smoke-opencode-v2.sh",
     "typecheck": "tsc --noEmit",
     "check": "bun run test && bun run typecheck && bun run lint && bun run bundle:size && bun run format:check"
   },
@@ -90,19 +92,19 @@
     }
   },
   "devDependencies": {
-    "@opencode-ai/plugin": "1.18.30",
-    "@opencode-ai/sdk": "1.18.30",
-    "@opencode/plugin": "2.0.11",
-    "@opentui/core": "0.4.5",
-    "@opentui/keymap": "0.4.5",
-    "@opentui/solid": "0.4.5",
+    "@opencode-ai/plugin": "1.18.32",
+    "@opencode-ai/sdk": "1.18.32",
+    "@opencode/plugin": "2.0.16",
+    "@opentui/core": "0.5.12",
+    "@opentui/keymap": "0.5.12",
+    "@opentui/solid": "0.5.12",
     "@st1ggy/linter-config": "7.3.1",
-    "@types/bun": "1.4.0",
+    "@types/bun": "1.4.2",
     "eslint": "10.8.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-solid": "0.18.0",
     "prettier": "3.9.6",
-    "solid-js": "1.9.12",
+    "solid-js": "1.9.15",
     "typescript": "6.0.3",
     "web-tree-sitter": "0.25.10"
   }

@@ -16,7 +16,8 @@ const SESSION_UPDATE_EVENTS = new Set([
 export function createV2EventAdapter(context: Plugin.Context, sessions: SessionAdapter) {
   return {
     on(name: string, handler: (event: unknown) => void) {
-      return context.data.listen(({ details }) => {
+      let active = true
+      const unsubscribe = context.data.listen(({ details }) => {
         const event = details as { type: string; data: Record<string, unknown> }
 
         if (name === 'server.connected' && event.type === 'server.connected') {
@@ -27,6 +28,14 @@ export function createV2EventAdapter(context: Plugin.Context, sessions: SessionA
 
         if (name === 'mcp.tools.changed' && event.type.startsWith('mcp.')) {
           handler({ type: name, properties: event.data })
+
+          return
+        }
+
+        if (name === 'installation.update-available' && event.type === 'installation.update-available') {
+          if (typeof event.data.version === 'string') {
+            handler({ type: name, properties: { version: event.data.version } })
+          }
 
           return
         }
@@ -50,7 +59,12 @@ export function createV2EventAdapter(context: Plugin.Context, sessions: SessionA
         }
 
         if (name === 'session.idle' && event.type === 'session.idle') {
-          handler({ type: name, properties: { sessionID: event.data.sessionID } })
+          const sessionID = event.data.sessionID
+
+          if (typeof sessionID !== 'string') return
+
+          sessions.setStatus(sessionID, { type: 'idle' })
+          handler({ type: name, properties: { sessionID } })
 
           return
         }
@@ -77,8 +91,28 @@ export function createV2EventAdapter(context: Plugin.Context, sessions: SessionA
         const sessionID = event.data.sessionID
         const info = typeof sessionID === 'string' ? context.data.session.get(sessionID) : undefined
 
-        if (info) handler({ type: name, properties: { info: sessions.normalize(info) } })
+        if (info) {
+          handler({ type: name, properties: { info: sessions.normalize(info) } })
+
+          return
+        }
+
+        if (typeof sessionID !== 'string') return
+
+        void context.data.session
+          .sync(sessionID)
+          .then(() => {
+            const synced = context.data.session.get(sessionID)
+
+            if (active && synced) handler({ type: name, properties: { info: sessions.normalize(synced) } })
+          })
+          .catch(() => {})
       })
+
+      return () => {
+        active = false
+        unsubscribe()
+      }
     },
   } as unknown as LegacyEventBus
 }

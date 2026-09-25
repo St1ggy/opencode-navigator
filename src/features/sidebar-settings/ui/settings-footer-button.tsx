@@ -19,16 +19,14 @@ export function SettingsFooterButton(props: {
   const theme = () => props.api.theme.current
 
   return (
-    <box flexDirection="row" justifyContent="flex-end">
-      <IconControl
-        id={`${PLUGIN_ID}.settings.footer`}
-        icon={icons.icon('settings')}
-        foregroundColor={hovered() ? theme().text : theme().textMuted}
-        backgroundColor={hovered() ? theme().backgroundElement : theme().backgroundPanel}
-        onMouseOver={() => setHovered(true)}
-        onMouseOut={() => setHovered(false)}
-        onMouseUp={() => openSettings(props.api, props.preferences, undefined, props.mcp)}
-      />
-    </box>
+    <IconControl
+      id={`${PLUGIN_ID}.settings.footer`}
+      icon={icons.icon('settings')}
+      foregroundColor={hovered() ? theme().text : theme().textMuted}
+      backgroundColor={hovered() ? theme().backgroundElement : theme().backgroundPanel}
+      onMouseOver={() => setHovered(true)}
+      onMouseOut={() => setHovered(false)}
+      onMouseUp={() => openSettings(props.api, props.preferences, undefined, props.mcp)}
+    />
   )
 }

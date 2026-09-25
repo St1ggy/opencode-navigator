@@ -42,7 +42,7 @@ else
     exit 1
   fi
 
-  npm install --prefix "$temporary/opencode-v1" --no-package-lock --no-save --silent opencode-ai@1.18.31
+  npm install --prefix "$temporary/opencode-v1" --no-package-lock --no-save --silent opencode-ai@1.18.32
   ln -s "$temporary/opencode-v1/node_modules/.bin/opencode" "$temporary/bin/opencode"
 fi
 

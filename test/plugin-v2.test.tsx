@@ -103,6 +103,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
   const claims: Claim[] = []
   const slotCleanups: string[] = []
   const rendererSubscriptions: string[] = []
+  let dialogShows = 0
   const session = {
     id: 'session-v2',
     projectID: 'project',
@@ -113,6 +114,11 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     location: { directory: '/workspace' },
   }
   let context!: Plugin.Context
+  const originalFetch = globalThis.fetch
+
+  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.14.0' })), {
+    preconnect() {},
+  })
 
   function Harness() {
     const renderer = useRenderer()
@@ -185,7 +191,9 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
       storage: {},
       ui: {
         dialog: {
-          show: () => {},
+          show: () => {
+            dialogShows++
+          },
           set: () => {},
           clear: () => {},
           prompt: async () => {},
@@ -207,7 +215,9 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
   }
 
   const bootstrap = await testRender(() => <Harness />, { width: 50, height: 40 })
+  let app: Awaited<ReturnType<typeof testRender>> | undefined
   let sidebar: Awaited<ReturnType<typeof testRender>> | undefined
+  let footer: Awaited<ReturnType<typeof testRender>> | undefined
 
   try {
     await bootstrap.renderOnce()
@@ -220,6 +230,15 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     if (!cleanup) throw new Error('OpenCode 2 setup did not return cleanup')
 
     expect(claims.map((claim) => claim.append ?? claim.replace)).toEqual(['app', 'sidebar.content', 'sidebar.footer'])
+
+    const appClaim = claims.find((claim) => claim.append === 'app')!
+
+    app = await testRender(() => appClaim.render({ sessionID: session.id }), { width: 50, height: 40 })
+    await app.flush()
+    dialogShows = 0
+    bootstrap.renderer.stdin.emit('data', Buffer.from('\u{1B}[44;5u'))
+    await app.renderOnce()
+    expect(dialogShows).toBe(1)
 
     const sidebarClaim = claims.find((claim) => claim.replace === 'sidebar.content')!
 
@@ -240,10 +259,19 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     expect(frame).not.toContain('LSP')
     expect(rendererSubscriptions).toEqual(['focused_renderable'])
 
+    const footerClaim = claims.find((claim) => claim.append === 'sidebar.footer')!
+
+    footer = await testRender(() => footerClaim.render({ sessionID: session.id }), { width: 50, height: 4 })
+    await footer.renderOnce()
+    expect(footer.captureCharFrame()).toContain('Navigator 0.14.0')
+
     await cleanup()
     expect(slotCleanups).toEqual(['sidebar.footer', 'sidebar.content', 'app'])
   } finally {
+    globalThis.fetch = originalFetch
+    footer?.renderer.destroy()
     sidebar?.renderer.destroy()
+    app?.renderer.destroy()
     bootstrap.renderer.destroy()
   }
 })

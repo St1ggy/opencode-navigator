@@ -67,6 +67,20 @@ export function createV2Keymap(context: Plugin.Context) {
     await run(command, input, event)
   }
 
+  const onKeypress = (event: KeyEvent) => {
+    if (event.name !== ',' || !event.ctrl || event.shift || event.meta || event.super || event.hyper) return
+
+    const command = legacyCommand(`${PLUGIN_ID}.settings`)
+
+    if (!command) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    void runV2(command, '', event)
+  }
+
+  context.renderer.keyInput.on('keypress', onKeypress)
+
   function v2Commands(id: number, layer: LegacyLayer) {
     const available = () => layerActive(layer)
     const named = (layer.commands ?? []).map((command) => ({
@@ -79,14 +93,20 @@ export function createV2Keymap(context: Plugin.Context) {
       enabled: () => available() && enabled(command.enabled as Enablement),
       run: (input?: string, event?: KeyEvent) => runV2(command, input, event),
     }))
-    const bindings = (layer.bindings ?? []).map((binding, index) => ({
-      id: `${PLUGIN_ID}.v2-binding.${id}.${index}`,
-      bind: String(binding.key),
-      enabled: available,
-      run: () => {
-        context.keymap.dispatch(String(binding.cmd))
-      },
-    }))
+    const bindings = (layer.bindings ?? []).flatMap((binding, index) =>
+      typeof binding.key === 'string'
+        ? [
+            {
+              id: `${PLUGIN_ID}.v2-binding.${id}.${index}`,
+              bind: binding.key,
+              enabled: available,
+              run: () => {
+                context.keymap.dispatch(String(binding.cmd))
+              },
+            },
+          ]
+        : [],
+    )
 
     return [...named, ...bindings]
   }
@@ -157,5 +177,11 @@ export function createV2Keymap(context: Plugin.Context) {
     },
   } as unknown as LegacyKeymap
 
-  return { keymap, Bridge }
+  return {
+    keymap,
+    Bridge,
+    dispose: () => {
+      context.renderer.keyInput.off('keypress', onKeypress)
+    },
+  }
 }

@@ -46,6 +46,8 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
   const disposers: (() => void | Promise<void>)[] = []
   const currentLocation = context.location ?? context.data.location.default()
   const keymap = createV2Keymap(context)
+
+  disposers.push(keymap.dispose)
   const sessions = createV2SessionAdapter(context)
   const remote = createV2ClientAdapter(context)
   const ui = createV2UI(context)

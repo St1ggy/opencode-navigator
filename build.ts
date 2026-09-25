@@ -53,7 +53,7 @@ function compactSpacing(
 
   if (source.startsWith(' => ', index)) return { value: '=>', consumed: 3 }
 
-  for (const operator of ['===', '!==', '&&', '||', '??', '=']) {
+  for (const operator of ['===', '!==', '&&', '||', '??', '<=', '>=', '=', '<', '>', '?']) {
     if (source.startsWith(` ${operator} `, index)) return { value: operator, consumed: operator.length + 1 }
   }
 
@@ -96,7 +96,8 @@ function stripGeneratedIndentation(source: string) {
     const comment = compactComment(source, index, state)
 
     if (comment) {
-      result += comment.value
+      if (!(lineStart && comment.value === '\n')) result += comment.value
+
       index += comment.consumed
       lineStart = comment.lineStart
 
