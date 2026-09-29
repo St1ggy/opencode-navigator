@@ -243,9 +243,11 @@ commands remain available as aliases for custom keybindings.
 
 ## Develop locally
 
-This repository already contains `.opencode/tui.json`, so starting OpenCode in
-the repository loads `src/tui.tsx` and disables the overlapping built-in
-sidebar blocks.
+OpenCode uses your configured global Navigator installation when opened in this
+repository. Local `.opencode/tui.json` and `.opencode/cli.json` files are ignored
+by Git; keep any host-specific preferences and plugin paths there if needed.
+Rebuilding `dist/tui.js` does not replace the global installation. The PTY
+smoke tests load the working build with isolated temporary configurations.
 
 ```sh
 bun install

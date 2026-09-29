@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.opencode/tui.json
+.opencode/cli.json
 *.tgz
 .DS_Store
 ARTICLE-ATUSHKA.md
