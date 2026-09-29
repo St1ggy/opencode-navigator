@@ -10,7 +10,7 @@ for command in expect; do
 done
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-plugin="$root/dist/tui.js"
+plugin="${OPENCODE_SMOKE_PLUGIN_FILE:-$root/dist/tui.js}"
 if [[ ! -f "$plugin" ]]; then
   printf 'Missing built plugin: %s\n' "$plugin" >&2
   exit 1

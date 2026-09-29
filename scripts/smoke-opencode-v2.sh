@@ -11,6 +11,7 @@ done
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugin="$root/dist/tui.js"
+plugin_package="${OPENCODE_V2_SMOKE_PLUGIN_PACKAGE:-$root/dist}"
 if [[ ! -f "$plugin" ]]; then
   printf 'Missing built plugin: %s\n' "$plugin" >&2
   exit 1
@@ -53,7 +54,7 @@ cat >"$cli_config" <<JSON
   "animations": false,
   "plugins": [
     {
-      "package": "$root/dist",
+      "package": "$plugin_package",
       "options": {
         "persist_mcp": false,
         "focus_key": "ctrl+shift+f",
@@ -162,7 +163,16 @@ expect <<'EXPECT'
   send -- "\033y"
   expect {
     -re {Search Everything} {}
-    timeout { puts stderr "Search Everything did not open in OpenCode 2"; exit 1 }
+    timeout {
+      send -- "\033"
+      after 1000
+      send -- "\033y"
+      expect {
+        -re {Search Everything} {}
+        timeout { puts stderr "Search Everything did not open in OpenCode 2"; exit 1 }
+        eof { puts stderr "OpenCode 2 exited while opening Search Everything"; exit 1 }
+      }
+    }
     eof { puts stderr "OpenCode 2 exited while opening Search Everything"; exit 1 }
   }
   send -- "\033"
