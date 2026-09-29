@@ -67,6 +67,7 @@ cat >"$config" <<JSON
       "$plugin_url",
       {
         "persist_mcp": false,
+        "start_in_chat": true,
         "focus_key": "ctrl+shift+f",
         "search_key": "alt+y",
         "toggle_key": "ctrl+shift+b"
@@ -195,7 +196,16 @@ expect <<'EXPECT'
     eof { puts stderr "OpenCode exited while opening Navigator Settings"; exit 1 }
   }
   send -- "\033"
-  after 200
+  after 1000
+  send -- "\030"
+  after 100
+  send -- "n"
+  set timeout 10
+  expect {
+    -re {New session} {}
+    timeout { puts stderr "New session did not open a chat directly"; exit 1 }
+    eof { puts stderr "OpenCode exited while opening a new chat"; exit 1 }
+  }
   send -- "\003"
   after 200
   send -- "\003"

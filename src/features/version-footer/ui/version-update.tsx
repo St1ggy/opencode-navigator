@@ -5,7 +5,12 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 type UpdateKind = 'openCode' | 'navigator'
 
-export function createVersionUpdateActions(api: TuiPluginApi, status: VersionStatus, updater: VersionUpdater) {
+export function createVersionUpdateActions(
+  api: TuiPluginApi,
+  status: VersionStatus,
+  updater: VersionUpdater,
+  rememberNavigatorVersion?: () => Promise<void>,
+) {
   const busy = new Set<UpdateKind>()
 
   function target(kind: UpdateKind) {
@@ -22,7 +27,11 @@ export function createVersionUpdateActions(api: TuiPluginApi, status: VersionSta
     api.ui.dialog.clear()
     busy.add(kind)
     api.ui.toast({ variant: 'info', title: `Updating ${label(kind)}`, message: `Installing ${version}...` })
-    void updater[kind](version)
+    void (async () => {
+      if (kind === 'navigator') await rememberNavigatorVersion?.()
+
+      await updater[kind](version)
+    })()
       .then(() => {
         api.ui.toast({
           variant: 'success',

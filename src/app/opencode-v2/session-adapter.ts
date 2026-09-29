@@ -57,6 +57,12 @@ export function createV2SessionAdapter(context: Plugin.Context) {
       status,
     },
     client: {
+      async create(input: { directory?: string }, options: RequestOptions = {}) {
+        const directory = input.directory ?? context.location?.directory ?? context.data.location.default().directory
+        const session = await context.client.session.create({ location: { directory } }, { signal: options.signal })
+
+        return { data: normalize(session) }
+      },
       async children(input: { sessionID: string; directory?: string }, options: RequestOptions = {}) {
         const response = await context.client.session.list(
           { parentID: input.sessionID, ...(input.directory && { directory: input.directory }) },

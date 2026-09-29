@@ -13,6 +13,7 @@ import type { BoxRenderable } from '@opentui/core'
 export function QuickActionRow(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
+  onNewSession?: () => boolean
   action: (typeof QUICK_ACTIONS)[number]
   disabled?: string
   favorite: boolean
@@ -33,6 +34,8 @@ export function QuickActionRow(props: {
   })
 
   function run() {
+    if (props.action.command === 'session.new' && props.onNewSession?.()) return
+
     const result = props.interaction
       ? props.interaction.dispatchFromReturnTarget(props.action.command)
       : props.api.keymap.dispatchCommand(props.action.command)

@@ -20,6 +20,7 @@ function pluginDefaults(sections: SectionVisibility) {
     focusKey: 'ctrl+shift+f',
     searchKey: 'ctrl+shift+k',
     persistMcp: true,
+    startInChat: false,
     cornerFont: true,
     lspIconStyle: 'nerd' as const,
     rowDensity: 'compact' as const,

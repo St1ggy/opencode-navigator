@@ -90,6 +90,7 @@ export function createPreferencesController(
       focusKey: defaults.focusKey,
       searchKey: defaults.searchKey,
       persistMcp: defaults.persistMcp,
+      startInChat: defaults.startInChat,
       cornerFont: defaults.cornerFont,
       lspIconStyle: defaults.lspIconStyle,
       rowDensity: defaults.rowDensity,
@@ -435,6 +436,11 @@ export function createPreferencesController(
     focusKey: () => resolved().behavior.focusKey,
     searchKey: () => resolved().behavior.searchKey,
     persistMcp: () => resolved().behavior.persistMcp,
+    startInChatForScope: (scope: string) => {
+      revision()
+
+      return resolveTarget(targetForScope(scope), false).behavior.startInChat
+    },
     cornerFont: () => resolved().behavior.cornerFont,
     lspIconStyle: () => resolved().behavior.lspIconStyle,
     rowDensity: () => resolved().behavior.rowDensity,
@@ -442,6 +448,7 @@ export function createPreferencesController(
     selectedFocusKey: () => selectedResolved().behavior.focusKey,
     selectedSearchKey: () => selectedResolved().behavior.searchKey,
     selectedPersistMcp: () => selectedResolved().behavior.persistMcp,
+    selectedStartInChat: () => selectedResolved().behavior.startInChat,
     selectedCornerFont: () => selectedResolved().behavior.cornerFont,
     selectedLspIconStyle: () => selectedResolved().behavior.lspIconStyle,
     selectedRowDensity: () => selectedResolved().behavior.rowDensity,
@@ -608,6 +615,22 @@ export function createPreferencesController(
       await hydration
       await store.flush()
       await mcpPresetReconciliation
+    },
+    async claimNavigatorUpgrade(version: string) {
+      await load()
+      const previous = document.user.lastNavigatorVersion
+
+      if (previous === version) return
+
+      update({ user: { lastNavigatorVersion: version, ...(previous && { previousNavigatorVersion: previous }) } })
+      await store.flush()
+
+      return previous
+    },
+    async rememberNavigatorVersionBeforeUpdate(version: string) {
+      await load()
+      update({ user: { previousNavigatorVersion: version } })
+      await store.flush()
     },
     toggleSection(name: SidebarSection) {
       void load()
@@ -809,6 +832,10 @@ export function createPreferencesController(
     toggleMcpPersistence() {
       void load()
       update({ target: selectedTarget(), behavior: { persistMcp: !selectedResolved().behavior.persistMcp } })
+    },
+    toggleStartInChat() {
+      void load()
+      update({ target: selectedTarget(), behavior: { startInChat: !selectedResolved().behavior.startInChat } })
     },
     toggleCornerFont() {
       void load()

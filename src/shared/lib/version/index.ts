@@ -1,0 +1,1 @@
+export { isNewerVersion } from './semver'

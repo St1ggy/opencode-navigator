@@ -81,6 +81,11 @@ export function createSettingsGroups(
       title: 'Behavior',
       options: [
         {
+          title: `${icons.icon(preferences.selectedStartInChat() ? 'checked' : 'unchecked')} Start new sessions in chat`,
+          value: 'start_in_chat',
+          description: preferences.selectedStartInChat() ? 'skip Home · on' : 'show Home · off',
+        },
+        {
           title: `${icons.icon(preferences.selectedPersistMcp() ? 'checked' : 'unchecked')} Remember MCP states`,
           value: 'persist_mcp',
           description: preferences.selectedPersistMcp() ? 'on' : 'off',
@@ -145,7 +150,7 @@ export function createSettingsGroups(
         {
           title: `${icons.icon('reset')} Restore configured behavior`,
           value: 'reset_settings',
-          description: 'MCP memory, icons, shortcuts, limits, actions',
+          description: 'startup, MCP memory, icons, shortcuts, limits, actions',
         },
         {
           title: `${icons.icon('reset')} Clear remembered MCP states`,

@@ -37,6 +37,9 @@ test('version updates require confirmation and report restart and update failure
     api,
     { openCodeUpdate: () => '2.0.17', navigatorUpdate: () => '0.16.0' },
     updater,
+    async () => {
+      updated.push('remember current Navigator version')
+    },
   )
 
   actions.openCode('2.0.17')
@@ -49,6 +52,7 @@ test('version updates require confirmation and report restart and update failure
   actions.navigator('0.16.0')
   confirm?.onConfirm?.()
   await Bun.sleep(0)
+  expect(updated.at(-1)).toBe('remember current Navigator version')
   expect(toasts.at(-1)).toMatchObject({
     variant: 'error',
     message: 'Local Navigator installations must be updated from their source path.',

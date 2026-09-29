@@ -31,6 +31,7 @@ export type PluginSettings = {
   focusKey: string
   searchKey: string
   persistMcp: boolean
+  startInChat: boolean
   cornerFont: boolean
   // Legacy persisted key; the style now controls every Navigator icon.
   lspIconStyle: 'nerd' | 'text'

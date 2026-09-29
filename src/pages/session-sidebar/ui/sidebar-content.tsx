@@ -29,6 +29,7 @@ export function SidebarContent(props: {
   preferences: PreferencesController
   interaction: SidebarInteraction
   sessionID: string
+  onNewSession?: () => boolean
 }) {
   const sections = props.preferences.sections
   const visibleSections = createMemo(() =>

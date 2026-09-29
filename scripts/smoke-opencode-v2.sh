@@ -46,6 +46,7 @@ if [[ "$($opencode_bin --version 2>/dev/null || true)" != *2.* ]]; then
 fi
 
 cli_config="$temporary/config/opencode/cli.json"
+export OPENCODE_V2_SMOKE_CONFIG="$cli_config"
 cat >"$cli_config" <<JSON
 {
   "\$schema": "https://opencode.ai/v2/cli.json",
@@ -94,6 +95,7 @@ export OPENCODE_V2_SMOKE_BIN="$opencode_bin"
 export OPENCODE_V2_SMOKE_TRANSCRIPT="$temporary/transcript.log"
 export OPENCODE_V2_SMOKE_WORKSPACE="$temporary/workspace"
 export OPENCODE_V2_SMOKE_MARKER="$temporary/state/opencode/opencode-pretty-sidebar/preferences.json"
+export OPENCODE_V2_SMOKE_TABS="$temporary/state/opencode/latest/tui/tabs.json"
 export TERM=xterm-256color
 export COLORTERM=truecolor
 
@@ -155,6 +157,8 @@ expect <<'EXPECT'
   send -- "\033"
   # OpenCode 2 tears down dialog keymap layers asynchronously.
   after 1000
+  send -- "\033"
+  after 300
   send -- "\033y"
   expect {
     -re {Search Everything} {}
@@ -189,5 +193,68 @@ if grep -Eqi 'failed to load.*opencode-navigator|error.*dist/tui\.js' "$plain_tr
   printf 'Transcript: %s\n' "$plain_transcript" >&2
   exit 1
 fi
+
+bun --eval '
+  const path = process.env.OPENCODE_V2_SMOKE_CONFIG
+  const config = await Bun.file(path).json()
+  config.plugins[0].options.start_in_chat = true
+  await Bun.write(path, JSON.stringify(config))
+'
+export OPENCODE_CLI_CONFIG_CONTENT="$(<"$cli_config")"
+
+export OPENCODE_V2_SMOKE_NEW_TRANSCRIPT="$temporary/new-session.log"
+expect <<'EXPECT'
+  log_user 0
+  log_file -a -noappend $env(OPENCODE_V2_SMOKE_NEW_TRANSCRIPT)
+  set timeout 30
+  spawn -noecho $env(OPENCODE_V2_SMOKE_BIN) $env(OPENCODE_V2_SMOKE_WORKSPACE) --standalone --session $env(OPENCODE_V2_SMOKE_SESSION_ID) --print-logs --log-level debug
+  stty rows 40 columns 120
+  after 100
+  send -- "\033]10;rgb:ffff/ffff/ffff\007"
+  send -- "\033]11;rgb:0000/0000/0000\007"
+  send -- "\033P>|xterm(370)\033\\"
+  send -- "\033P1+r4d73=31\033\\"
+  send -- "\033\[?1016;2\044y\033\[?2027;2\044y\033\[?2031;2\044y"
+  send -- "\033\[?1004;2\044y\033\[?2004;2\044y\033\[?2026;2\044y"
+  send -- "\033\[?0u\033\[?1;2c\033\[4;800;1200t\033\[1;3R\033\[1;3R"
+  send -- "\033]99;i=opentui-notifications:p=0;\007"
+  send -- "\033]1337;Capabilities=\007"
+  expect {
+    -re {OpenCode Navigator 2.x smoke} {}
+    eof { puts stderr "OpenCode 2 exited before rendering the existing session"; exit 1 }
+    timeout { puts stderr "OpenCode 2 did not render the existing session"; exit 1 }
+  }
+  after 1000
+  send -- "\030"
+  after 100
+  send -- "n"
+  set deadline [expr {[clock seconds] + 20}]
+  while {1} {
+    if {[file exists $env(OPENCODE_V2_SMOKE_TABS)]} {
+      set saved [open $env(OPENCODE_V2_SMOKE_TABS) r]
+      set tabs [read $saved]
+      close $saved
+      if {[regexp -all {"title":"New session} $tabs] >= 1} break
+    }
+    if {[clock seconds] >= $deadline} {
+      puts stderr "New session did not open a chat directly in OpenCode 2"
+      exit 1
+    }
+    set timeout 1
+    expect {
+      -re {.+} {}
+      eof { puts stderr "OpenCode 2 exited while opening a new chat"; exit 1 }
+      timeout {}
+    }
+  }
+  send -- "\003"
+  after 200
+  send -- "\003"
+  set timeout 5
+  expect {
+    eof { wait }
+    timeout { close; wait }
+  }
+EXPECT
 
 printf 'OpenCode 2 PTY smoke test passed.\n'

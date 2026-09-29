@@ -855,6 +855,7 @@ test('the built settings dialog saves the current layout as default', async () =
     | undefined
   let saved = 0
   let mcpToggles = 0
+  let startToggles = 0
   let iconToggles = 0
   let cornerToggles = 0
   let densityToggles = 0
@@ -908,6 +909,7 @@ test('the built settings dialog saves the current layout as default', async () =
     setPreferenceScope: () => {},
     persistMcp: () => true,
     selectedPersistMcp: () => true,
+    selectedStartInChat: () => false,
     cornerFont: () => true,
     selectedCornerFont: () => true,
     lspIconStyle: () => 'nerd',
@@ -926,6 +928,7 @@ test('the built settings dialog saves the current layout as default', async () =
     toggleSection: () => {},
     toggleSelectedSection: () => {},
     toggleMcpPersistence: () => mcpToggles++,
+    toggleStartInChat: () => startToggles++,
     toggleCornerFont: () => cornerToggles++,
     toggleLspIconStyle: () => iconToggles++,
     toggleRowDensity: () => densityToggles++,
@@ -1038,8 +1041,12 @@ test('the built settings dialog saves the current layout as default', async () =
 
     nextTab?.run()
     await setup.flush()
+    expect(setup.captureCharFrame()).toContain('Start new sessions in chat')
     expect(setup.captureCharFrame()).toContain('Remember MCP states')
     expect(setup.captureCharFrame()).toContain(`${keyHint('enter')} change`)
+    select?.run()
+    expect(startToggles).toBe(1)
+    next?.run()
     select?.run()
     expect(mcpToggles).toBe(1)
     next?.run()

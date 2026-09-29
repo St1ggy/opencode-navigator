@@ -7,6 +7,8 @@ import { createTodoController } from '../entities/todo'
 import { openKeyboardHelp } from '../features/keyboard-help'
 import { SearchBinding } from '../features/search-everything'
 import { SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
+import { StartupSessionBinding, createStartupSessionController } from '../features/startup-session'
+import { UpgradeNotesBinding } from '../features/upgrade-notes'
 import {
   VersionFooter,
   VersionSummary,
@@ -78,6 +80,7 @@ async function setupNavigator(
   const interaction = createSidebarInteraction(api, () =>
     openKeyboardHelp(api, preferences.lspIconStyle, preferences.cornerFont),
   )
+  const startup = createStartupSessionController(api, preferences)
 
   api.lifecycle.onDispose(() => preferences.flush())
   api.lifecycle.onDispose(() => interaction.dispose())
@@ -107,12 +110,15 @@ async function setupNavigator(
             <SearchBinding
               api={api}
               preferences={preferences}
+              onNewSession={startup.handleNewSession}
               interaction={interaction}
               skills={skills}
               subagents={subagents}
               mcp={mcp}
             />
             <FirstRunWizardPersistence api={api} preferences={preferences} />
+            <StartupSessionBinding api={api} controller={startup} />
+            <UpgradeNotesBinding api={api} preferences={preferences} version={__NAVIGATOR_VERSION__} />
             <McpPersistence api={api} controller={mcp} />
           </IconProvider>
         )
@@ -136,6 +142,7 @@ async function setupNavigator(
           <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
             <SidebarContent
               api={api}
+              onNewSession={startup.handleNewSession}
               mcp={mcp}
               todo={todo}
               subagents={subagents}
@@ -168,7 +175,9 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMe
     return result.data?.type === 'text' ? result.data.content : undefined
   })
   const versionStatus = createVersionStatus(api, __NAVIGATOR_VERSION__)
-  const versionUpdates = createVersionUpdateActions(api, versionStatus, createOpenCodeV1VersionUpdater(api, meta))
+  const versionUpdates = createVersionUpdateActions(api, versionStatus, createOpenCodeV1VersionUpdater(api, meta), () =>
+    preferences.rememberNavigatorVersionBeforeUpdate(__NAVIGATOR_VERSION__),
+  )
 
   api.slots.register({
     // OpenCode 1.x uses the lowest order as the single-winner footer.
@@ -202,7 +211,12 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
     )
   })
   const versionStatus = createVersionStatus(adapter.api, __NAVIGATOR_VERSION__)
-  const versionUpdates = createVersionUpdateActions(adapter.api, versionStatus, createOpenCodeV2VersionUpdater(context))
+  const versionUpdates = createVersionUpdateActions(
+    adapter.api,
+    versionStatus,
+    createOpenCodeV2VersionUpdater(context),
+    () => preferences.rememberNavigatorVersionBeforeUpdate(__NAVIGATOR_VERSION__),
+  )
   const disposeFooter = context.ui.slot({
     append: 'sidebar.footer',
     render: () => (

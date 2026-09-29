@@ -38,6 +38,24 @@ test('stores and clears the default layout', async () => {
   }
 })
 
+test('persists Navigator version history privately across other preference updates', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'navigator-versions-'))
+
+  try {
+    const store = createPreferencesStore(directory)
+
+    await store.update({ user: { lastNavigatorVersion: '0.16.0' } })
+    await store.update({ user: { previousNavigatorVersion: '0.16.0', lastNavigatorVersion: '0.16.1' } })
+    await store.update({ behavior: { persistMcp: false } })
+    expect((await createPreferencesStore(directory).load()).user).toMatchObject({
+      lastNavigatorVersion: '0.16.1',
+      previousNavigatorVersion: '0.16.0',
+    })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('atomically replaces imported scope settings and rejects a stale preview', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-portable-'))
   const target = { kind: 'worktree' as const, key: '/repo' }

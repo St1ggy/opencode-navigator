@@ -64,6 +64,7 @@ test('Quick Actions settings change live visibility and ordering and keep select
   let back = 0
   let autoApprove = false
   const dispatched: string[] = []
+  let directNewSessions = 0
   const keymapStateListeners = new Set<() => void>()
   const autoApproveTitle = () => `${autoApprove ? 'Disable' : 'Enable'} auto-approve permissions`
   const api = {
@@ -142,10 +143,20 @@ test('Quick Actions settings change live visibility and ordering and keep select
   } finally {
     settings.renderer.destroy()
   }
-  const sidebar = await testRender(() => <QuickActionsSection api={api} preferences={preferences} />, {
-    width: 45,
-    height: 40,
-  })
+  const sidebar = await testRender(
+    () => (
+      <QuickActionsSection
+        api={api}
+        preferences={preferences}
+        onNewSession={() => {
+          directNewSessions++
+
+          return true
+        }}
+      />
+    ),
+    { width: 45, height: 40 },
+  )
 
   try {
     await sidebar.flush()
@@ -157,6 +168,11 @@ test('Quick Actions settings change live visibility and ordering and keep select
     const renameRow = lines.findIndex((line) => line.includes('Rename'))
 
     expect(renameRow - row, frame).toBe(1)
+    const newRow = lines.findIndex((line) => line.includes('New session'))
+
+    await sidebar.mockMouse.click(lines[newRow].indexOf('New session'), newRow)
+    expect(directNewSessions).toBe(1)
+    expect(dispatched).toEqual([])
     preferences.toggleRowDensity()
     await sidebar.flush()
     const comfortable = sidebar.captureCharFrame().split('\n')

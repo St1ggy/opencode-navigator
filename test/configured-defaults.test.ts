@@ -20,6 +20,7 @@ test('parses every portable configured setting and excludes private state', () =
     behavior: {
       toggleKey: ' alt+b ',
       persistMcp: false,
+      startInChat: true,
       cornerFont: false,
       rowDensity: 'comfortable',
       sectionItemLimits: { todo: 4, unknown: 1 },
@@ -34,11 +35,14 @@ test('parses every portable configured setting and excludes private state', () =
     favoriteSkills: ['/private/skill'],
     favoriteQuickActions: ['session.rename'],
     onboardingCompleted: true,
+    lastNavigatorVersion: '0.16.0',
+    previousNavigatorVersion: '0.15.0',
   })
 
   expect(configured.behavior).toMatchObject({
     toggleKey: 'alt+b',
     persistMcp: false,
+    startInChat: true,
     cornerFont: false,
     rowDensity: 'comfortable',
     sectionItemLimits: { todo: 4 },
@@ -55,6 +59,8 @@ test('parses every portable configured setting and excludes private state', () =
   expect(configured).not.toHaveProperty('favoriteSkills')
   expect(configured).not.toHaveProperty('favoriteQuickActions')
   expect(configured).not.toHaveProperty('onboardingCompleted')
+  expect(configured).not.toHaveProperty('lastNavigatorVersion')
+  expect(configured).not.toHaveProperty('previousNavigatorVersion')
 })
 
 test('deep-merges configured sources while replacing ordered lists', () => {
@@ -83,14 +89,17 @@ test('deep-merges configured sources while replacing ordered lists', () => {
 test('keeps flat plugin options compatible and gives canonical values precedence', () => {
   const configured = configuredDefaultsFromPluginOptions({
     toggle_key: 'alt+b',
+    start_in_chat: true,
     sections: { todo: false },
-    behavior: { toggleKey: 'ctrl+x', persistMcp: false },
+    behavior: { toggleKey: 'ctrl+x', persistMcp: false, startInChat: false },
     layout: { sections: { todo: true }, expanded: { mcp: true } },
     mcp: { docs: 'enabled' },
   })
 
   expect(configured.behavior?.toggleKey).toBe('ctrl+x')
   expect(configured.behavior?.persistMcp).toBe(false)
+  expect(configured.behavior?.startInChat).toBe(false)
+  expect(configuredDefaultsFromPluginOptions({ start_in_chat: true }).behavior?.startInChat).toBe(true)
   expect(configured.layout?.sections?.todo).toBe(true)
   expect(configured.layout?.expanded?.mcp).toBe(true)
   expect(configured.desiredMcpStates).toEqual({ docs: 'enabled' })
@@ -190,4 +199,37 @@ test('keeps configured defaults below persisted preferences and restores them on
   expect(controller.rowDensity()).toBe('comfortable')
   expect(controller.sections().todo).toBe(false)
   expect(controller.desiredMcpState('global', 'docs')).toBe('enabled')
+})
+
+test('startup chat defaults off and follows global and worktree behavior overrides', async () => {
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+  const store: PreferencesStore = {
+    async load() {
+      return { global: {}, worktrees: {}, user: {} }
+    },
+    async update() {},
+    async flush() {},
+  }
+  const controller = createPreferencesController(
+    api,
+    pluginConfig(undefined),
+    store,
+    parseConfiguredDefaults({ behavior: { startInChat: true } }),
+  )
+
+  expect(pluginConfig(undefined).startInChat).toBe(false)
+  await controller.load()
+  expect(controller.startInChatForScope('/project')).toBe(true)
+  controller.setActiveScope('/project')
+  controller.setPreferenceScope('worktree')
+  controller.toggleStartInChat()
+  expect(controller.selectedStartInChat()).toBe(false)
+  expect(controller.startInChatForScope('/project')).toBe(false)
+  expect(controller.startInChatForScope('/other')).toBe(true)
+  controller.setPreferenceScope('global')
+  controller.toggleStartInChat()
+  expect(controller.startInChatForScope('/other')).toBe(false)
+  controller.setPreferenceScope('worktree')
+  controller.resetPluginSettings()
+  expect(controller.startInChatForScope('/project')).toBe(false)
 })

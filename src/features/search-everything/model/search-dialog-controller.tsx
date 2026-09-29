@@ -22,6 +22,7 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export type SearchServices = {
   api: TuiPluginApi
+  onNewSession?: () => boolean
   preferences: PreferencesController
   skills: SkillController
   subagents: SubagentController
@@ -235,6 +236,9 @@ export function createSearchDialogController(props: SearchServices & { returnTar
         const target = props.returnTarget?.parent && !props.returnTarget.isDestroyed ? props.returnTarget : null
 
         target?.focus()
+
+        if (item.command === 'session.new' && props.onNewSession?.()) break
+
         const result = props.api.keymap.dispatchCommand(item.command, { target, focused: target })
 
         if (!result.ok) report(new Error(`Action is ${result.reason}`))

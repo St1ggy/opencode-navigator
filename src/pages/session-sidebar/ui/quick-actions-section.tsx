@@ -24,6 +24,7 @@ export function QuickActionsSection(props: {
   api: TuiPluginApi
   preferences: PreferencesController
   interaction?: SidebarInteraction
+  onNewSession?: () => boolean
   navigationSection?: number
 }) {
   const commandRevision = createQuickActionRevision(props.api)
@@ -75,6 +76,7 @@ export function QuickActionsSection(props: {
             <QuickActionRow
               api={props.api}
               interaction={props.interaction}
+              onNewSession={props.onNewSession}
               action={action}
               disabled={action.disabled}
               favorite={props.preferences.favoriteQuickActions?.().has(action.command) ?? false}

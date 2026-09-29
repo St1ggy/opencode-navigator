@@ -54,6 +54,8 @@ export type PreferencesDocument = {
   user: {
     skippedSkillConfirmations?: string[]
     onboardingCompleted?: boolean
+    lastNavigatorVersion?: string
+    previousNavigatorVersion?: string
     layoutPresets?: LayoutPresets
     mcpPresets?: McpPresets
     workspaceProfiles?: WorkspaceProfiles
@@ -99,6 +101,7 @@ export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
     ...(typeof input.focusKey === 'string' && input.focusKey.trim() && { focusKey: input.focusKey.trim() }),
     ...(typeof input.searchKey === 'string' && input.searchKey.trim() && { searchKey: input.searchKey.trim() }),
     ...(typeof input.persistMcp === 'boolean' && { persistMcp: input.persistMcp }),
+    ...(typeof input.startInChat === 'boolean' && { startInChat: input.startInChat }),
     ...(typeof input.cornerFont === 'boolean' && { cornerFont: input.cornerFont }),
     ...((input.lspIconStyle === 'nerd' || input.lspIconStyle === 'text') && { lspIconStyle: input.lspIconStyle }),
     ...((input.rowDensity === 'compact' || input.rowDensity === 'comfortable') && {
@@ -291,6 +294,12 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
       ...(skippedSkillConfirmations && { skippedSkillConfirmations }),
       ...(typeof userInput?.onboardingCompleted === 'boolean' && {
         onboardingCompleted: userInput.onboardingCompleted,
+      }),
+      ...(typeof userInput?.lastNavigatorVersion === 'string' && {
+        lastNavigatorVersion: userInput.lastNavigatorVersion,
+      }),
+      ...(typeof userInput?.previousNavigatorVersion === 'string' && {
+        previousNavigatorVersion: userInput.previousNavigatorVersion,
       }),
       ...(Object.keys(layoutPresets).length > 0 && { layoutPresets }),
       ...(Object.keys(mcpPresets).length > 0 && { mcpPresets }),

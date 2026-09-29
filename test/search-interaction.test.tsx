@@ -37,6 +37,7 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
   const opened: string[] = []
   const toggled: string[] = []
   const actions: string[] = []
+  let newSessions = 0
   let actionFocus: string | undefined
   const items = ['alpha', 'review-code'].map((name) => ({
     name,
@@ -112,6 +113,7 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
             actionFocus = renderer.currentFocusedRenderable?.id
           },
         },
+        { name: 'session.new', run: () => actions.push('native-new') },
       ],
     })
     const skills = {
@@ -160,6 +162,11 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
         <input id="prompt" ref={(node) => (prompt = node)} focused />
         <SearchBinding
           api={api}
+          onNewSession={() => {
+            newSessions++
+
+            return true
+          }}
           preferences={preferences}
           skills={skills}
           subagents={subagents}
@@ -289,6 +296,11 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
     await setup.flush()
     expect(actions).toEqual(['export'])
     expect(actionFocus).toBe('prompt')
+    await open('new session', 'Actions')
+    setup.mockInput.pressEnter()
+    await setup.flush()
+    expect(newSessions).toBe(1)
+    expect(actions).toEqual(['export'])
     isFailSkills = true
     await open('rvwcd')
     expect(setup.captureCharFrame()).toContain('Skills: offline')

@@ -85,6 +85,7 @@ export function createV2Keymap(context: Plugin.Context) {
     const available = () => layerActive(layer)
     const named = (layer.commands ?? []).map((command) => ({
       id: command.name,
+      bind: command.name === 'session.new' ? '<leader>n' : undefined,
       title: command.title as string | undefined,
       description: command.desc as string | undefined,
       group: command.category as string | undefined,

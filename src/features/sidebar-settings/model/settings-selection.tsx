@@ -226,6 +226,11 @@ export function createSettingsSelection(input: {
           break
         }
 
+        case 'start_in_chat': {
+          input.preferences.toggleStartInChat()
+          break
+        }
+
         case 'lsp_icon_style': {
           input.preferences.toggleLspIconStyle()
           break

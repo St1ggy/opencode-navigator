@@ -31,6 +31,7 @@ export function pluginConfig(options: Record<string, unknown> | undefined): Plug
         ? options.search_key.trim()
         : DEFAULT_SEARCH_KEY,
     persistMcp: options?.persist_mcp !== false,
+    startInChat: options?.start_in_chat === true,
     cornerFont: options?.corner_font !== false,
     sections: parseSectionVisibility(options?.sections),
     sectionOrder: parseSectionOrder(options?.section_order) ?? [...SIDEBAR_SECTIONS],

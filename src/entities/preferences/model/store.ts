@@ -45,6 +45,8 @@ export type PreferencesUpdate = {
     skillConfirmation?: { location: string; skipped: boolean }
     clearSkillConfirmations?: boolean
     onboardingCompleted?: boolean
+    lastNavigatorVersion?: string
+    previousNavigatorVersion?: string
     layoutPresets?: LayoutPresets
     layoutPreset?: { name: string; layout?: SectionLayoutDefault; previousName?: string }
     mcpPresets?: McpPresets
@@ -321,6 +323,12 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
         skippedSkillConfirmations: [...skippedSkillConfirmations].sort(),
       }),
       ...(typeof onboardingCompleted === 'boolean' && { onboardingCompleted }),
+      ...((update.user?.lastNavigatorVersion ?? current.user.lastNavigatorVersion) && {
+        lastNavigatorVersion: update.user?.lastNavigatorVersion ?? current.user.lastNavigatorVersion,
+      }),
+      ...((update.user?.previousNavigatorVersion ?? current.user.previousNavigatorVersion) && {
+        previousNavigatorVersion: update.user?.previousNavigatorVersion ?? current.user.previousNavigatorVersion,
+      }),
       ...(Object.keys(parsedLayoutPresets).length > 0 && { layoutPresets: parsedLayoutPresets }),
       ...(Object.keys(parsedMcpPresets).length > 0 && { mcpPresets: parsedMcpPresets }),
       ...(Object.keys(workspaceProfiles).length > 0 && {

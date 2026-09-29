@@ -1,10 +1,41 @@
 import { expect, test } from 'bun:test'
 
 import { createOpenCodeV2Api } from '../src/app/opencode-v2'
+import { createV2SessionAdapter } from '../src/app/opencode-v2/session-adapter'
 import { legacyTheme } from '../src/app/opencode-v2/theme-adapter'
 import { hostCapabilityUnavailable, supportsSidebarSection } from '../src/shared/lib/host-capabilities'
 
 import type { Plugin } from '@opencode/plugin/tui'
+
+test('OpenCode 2 session creation uses the requested location and normalizes the host response', async () => {
+  const calls: unknown[] = []
+  const context = {
+    location: { directory: '/current' },
+    app: { version: '2.0.16' },
+    data: { location: { default: () => ({ directory: '/current' }) } },
+    client: {
+      session: {
+        async create(input: unknown) {
+          calls.push(input)
+
+          return {
+            id: 'new-session',
+            projectID: 'project',
+            location: { directory: '/other' },
+            cost: 0,
+            tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+            time: { created: 1, updated: 1 },
+          }
+        },
+      },
+    },
+  } as unknown as Plugin.Context
+
+  const result = await createV2SessionAdapter(context).client.create({ directory: '/other' })
+
+  expect(calls).toEqual([{ location: { directory: '/other' } }])
+  expect(result.data).toMatchObject({ id: 'new-session', directory: '/other' })
+})
 
 test('the OpenCode 2 theme adapter preserves V1 semantic color anchors', () => {
   const theme = {
