@@ -96,6 +96,8 @@ Navigator works with an explicit allowlist of argument-free OpenCode commands. I
 
 Settings can be changed globally or only for the current worktree. Declarative values come from three places at once: the plugin's `options` dictionary, the user-level `~/.config/.opencode-navigator/settings.json`, and the project-level `.opencode/navigator.json`, which is convenient to keep in version control. These files merge field by field to establish defaults, with saved global preferences, worktree preferences, and temporary process state layered above them. Reset removes only the selected layer instead of copying a parent value into it. Favorites, history, trusted Skills, and other private data never enter declarative files.
 
+I kept the new startup option off by default: some days I need Home to browse, but when I am already working, I want New session to open an empty chat with the sidebar. The Behavior switch handles both startup on Home and the New session command without blocking a deliberate trip back to Home. After a Navigator update, the next launch shows only the changelog entries since the version I last ran, even if I updated outside OpenCode.
+
 Layouts can be saved as named presets. They contain section visibility, expansion, and order. As with MCP, manual application starts with a preview showing destination positions and state changes. Opening the preview does not alter the layout; `Cancel` and `Escape` return to the menu, while `Apply` confirms the changes. Even then, the preset does not become the default: that requires the separate `Save current layout as default` command.
 
 ![Layout preset preview](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/20-layout-preset-preview.png)

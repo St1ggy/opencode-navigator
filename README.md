@@ -33,6 +33,7 @@ See the [changelog](CHANGELOG.md) for release-by-release changes.
 - Copy the selected scope's layout and MCP states as versioned JSON, then validate and preview imports
 - Focus the sidebar with `Ctrl+Shift+F`, then navigate with arrows or `j`/`k`
 - Open sidebar shortcut mode with `Ctrl+Shift+B`; press `h` to toggle the panel
+- Optionally open new sessions directly in an empty chat with the sidebar, skipping Home on startup and from New session
 - Keep OpenCode's compact footer while showing host and Navigator versions with independent update indicators; click a version label or its update icon to confirm an in-place update through the current installation method and scope
 
 Todo starts expanded. Subagents, skills, quick actions, LSP, and MCP start
@@ -317,6 +318,7 @@ Navigator plugin tuple:
     "focusKey": "ctrl+shift+f",
     "searchKey": "ctrl+shift+k",
     "persistMcp": true,
+    "startInChat": false,
     "cornerFont": true,
     "lspIconStyle": "nerd",
     "rowDensity": "compact",
@@ -352,13 +354,25 @@ For example, the schema-valid `opencode.json` entry is:
 }
 ```
 
-Behavior keys control shortcuts, MCP persistence, `nerd`/`text` icon style, row
+Behavior keys control the optional start-in-chat flow, shortcuts, MCP persistence, `nerd`/`text` icon style, row
 density, item limits, and Navigator's safe Quick Action allowlist. Unknown values,
 sections, actions, and MCP states are discarded. The previous snake_case tuple
-options (`toggle_key`, `focus_key`, `search_key`, `persist_mcp`, `corner_font`, `icon_style`,
+options (`toggle_key`, `focus_key`, `search_key`, `persist_mcp`, `start_in_chat`, `corner_font`, `icon_style`,
 `lsp_icon_style`, `row_density`, `section_item_limits`, `quick_action_order`,
 `quick_action_visibility`, `sections`, and `section_order`) remain compatible;
 canonical nested fields win when both forms are present.
+
+**Start new sessions in chat** is off by default. Turn it on under **Settings →
+Behavior** to open an empty session directly when starting OpenCode on Home or
+choosing New session. Opening an existing session or explicitly navigating Home
+is unaffected. The setting follows the selected Global or Current worktree scope.
+
+Navigator also records its last observed version in private preferences. On the
+first launch after an update, it shows the release notes between that version
+and the new installation from the bundled [changelog](CHANGELOG.md). Updates
+through Navigator save the previous version before installation; updates made
+outside OpenCode are detected on the next launch. Fresh installations show no
+upgrade dialog, and each updated version is shown once.
 
 Configured files may define behavior, layout, desired MCP states, layout and MCP
 presets, workspace-profile links, and MCP groups. Navigator deliberately ignores
