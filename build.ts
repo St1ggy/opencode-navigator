@@ -46,14 +46,38 @@ function compactSpacing(
 
   if (source[index] === '\n' && '({[,:'.includes(result.at(-1) ?? '')) return { value: '', consumed: 0 }
 
+  if (source[index] === '\n') {
+    let cursor = index + 1
+
+    while (source[cursor] === ' ' || source[cursor] === '\t') cursor++
+
+    if (source[cursor] === ')' || source[cursor] === ']') return { value: '', consumed: cursor - index - 1 }
+
+    if (result.endsWith('}') && (',;}'.includes(source[cursor] ?? '') || source.startsWith('else', cursor)))
+      return { value: '', consumed: cursor - index - 1 }
+  }
+
   if (source[index] === ' ' && result.endsWith(',')) return { value: '', consumed: 0 }
+
+  if (
+    source[index] === ' ' &&
+    source[index + 1] === '(' &&
+    ['if', 'for', 'while', 'switch', 'catch', 'return'].some((keyword) => result.endsWith(keyword))
+  )
+    return { value: '', consumed: 0 }
+
+  if (source[index] === ' ' && source[index + 1] === '{' && !result.endsWith('import'))
+    return { value: '', consumed: 0 }
 
   if (source[index] === ' ' && ('({[:'.includes(result.at(-1) ?? '') || ')}],:'.includes(source[index + 1] ?? '')))
     return { value: '', consumed: 0 }
 
   if (source.startsWith(' => ', index)) return { value: '=>', consumed: 3 }
 
-  for (const operator of ['===', '!==', '&&', '||', '??', '<=', '>=', '=', '<', '>', '?']) {
+  if (source.startsWith(' - ', index) && !result.endsWith('-') && !'-/'.includes(source[index + 3] ?? ''))
+    return { value: '-', consumed: 2 }
+
+  for (const operator of ['===', '!==', '&&', '||', '??', '<=', '>=', '=', '<', '>', '?', '*', '%']) {
     if (source.startsWith(` ${operator} `, index)) return { value: operator, consumed: operator.length + 1 }
   }
 
