@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+## [0.17.0] - 2026-09-29
+
+- Add an opt-in Behavior setting to start a new session directly in chat with the sidebar from Home or New session.
+- Remember the previously installed Navigator version and show the intervening release notes once after an update.
+
 ## [0.16.1] - 2026-09-25
 
 - Make the entire OpenCode or Navigator version label open its own update confirmation when an update is available. The separator and the other version remain inactive.
@@ -14,5 +21,6 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.17.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.15.0...v0.16.0

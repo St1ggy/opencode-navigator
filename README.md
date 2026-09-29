@@ -373,6 +373,8 @@ and the new installation from the bundled [changelog](CHANGELOG.md). Updates
 through Navigator save the previous version before installation; updates made
 outside OpenCode are detected on the next launch. Fresh installations show no
 upgrade dialog, and each updated version is shown once.
+When upgrading from an older version that did not record version history, the
+first launch establishes the baseline for subsequent updates.
 
 Configured files may define behavior, layout, desired MCP states, layout and MCP
 presets, workspace-profile links, and MCP groups. Navigator deliberately ignores
