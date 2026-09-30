@@ -131,6 +131,7 @@ verification workflow before expanding the product surface.
 - [x] Make each available version's entire label, number, and update icon open its own confirmation dialog.
 - [x] Replace the tiny update arrow with a prominent filled-circle Nerd Font indicator and an ASCII fallback.
 - [x] Add an optional scoped Behavior setting to open new sessions directly in chat with the sidebar on startup and via New session, preserving Home navigation and onboarding.
+- [x] Add independent scoped title and creation-date visibility switches in OpenCode 1.x Settings → Sections, keeping unsupported OpenCode 2.x switches out of the UI.
 
 ### Agents And Limits
 
@@ -157,6 +158,8 @@ verification workflow before expanding the product surface.
 - [x] Include `CHANGELOG.md` in npm packages and publish generated GitHub Release notes with upgrade guidance from v0.16.1 onward; earlier releases retain their GitHub Release notes.
 - [x] Decouple both locally configured OpenCode hosts from the repository build by loading Navigator from a pinned local snapshot with its own dependencies and changelog.
 - [x] Ignore project-local OpenCode TUI and CLI config files and stop tracking the old source-plugin override without removing the user's local file.
+- [x] Let confirmed Navigator updates advance a recognized local pinned snapshot without changing its installation source or touching the running version.
+- [x] Remove release-number assertions across all tests and make optional live-update verification follow the published npm version rather than a fixed release.
 - [x] Persist the prior installed Navigator version and show the intervening bundled changelog once after the first launch of an updated plugin.
 - [x] Cover every product capability with deterministic synthetic screenshots and keep `ARTICLE.md` independent of private `yandex-team` resources and data.
 - [x] Prepare distinct English-language Habr and DEV Community articles plus the ignored private Atushka variant, completing five human-focused editorial passes for each.

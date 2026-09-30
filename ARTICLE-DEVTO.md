@@ -100,6 +100,8 @@ The focus, search, and sidebar shortcuts can all be changed at runtime. By defau
 
 Settings cover section visibility, order, item limits, global or current-worktree scope, named layout presets, MCP persistence, icon style, and Quick Action ordering. Behavior changes apply immediately. A seven-step first-run guide introduces the same controls, then lets me choose the visible sections on its final screen.
 
+On OpenCode 1.x, Sections also lets me hide the session title and creation date independently while keeping Settings reachable. OpenCode 2.x renders its own title, so Navigator does not offer switches it cannot honor.
+
 When I am moving between tasks, I want New session to land in an empty chat instead of stopping at Home. Behavior has an opt-in switch for that, scoped globally or per worktree; going Home deliberately still works. On the first launch after an upgrade, Navigator shows only changelog entries newer than the last version I ran.
 
 I can also export the selected scope's effective layout and desired MCP states as deterministic, versioned JSON through the terminal clipboard. On import, Navigator validates the pasted JSON and previews unsupported fields as skipped. Nothing changes until I select `Apply`; then it updates the supported layout and MCP blocks atomically. Worktree paths, shortcuts, favorites, history, and trust choices stay out of the export.

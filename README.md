@@ -27,6 +27,7 @@ See the [changelog](CHANGELOG.md) for release-by-release changes.
 - Organize MCP servers into user-wide custom groups while retaining assignments for servers absent from the current workspace
 - Search Everything in a keyboard-first modal with category tabs and fuzzy results
 - Show or hide each sidebar section independently
+- Hide the session title or its creation date independently in OpenCode 1.x without losing the settings control
 - Configure section visibility and order from the sidebar settings button
 - Separate adjacent sections with quiet theme-aware dividers instead of background cards
 - Save visibility, expansion, and order globally or for the current worktree
@@ -321,6 +322,8 @@ Navigator plugin tuple:
     "searchKey": "ctrl+shift+k",
     "persistMcp": true,
     "startInChat": false,
+    "showSessionTitle": true,
+    "showSessionDate": true,
     "cornerFont": true,
     "lspIconStyle": "nerd",
     "rowDensity": "compact",
@@ -359,7 +362,8 @@ For example, the schema-valid `opencode.json` entry is:
 Behavior keys control the optional start-in-chat flow, shortcuts, MCP persistence, `nerd`/`text` icon style, row
 density, item limits, and Navigator's safe Quick Action allowlist. Unknown values,
 sections, actions, and MCP states are discarded. The previous snake_case tuple
-options (`toggle_key`, `focus_key`, `search_key`, `persist_mcp`, `start_in_chat`, `corner_font`, `icon_style`,
+options (`toggle_key`, `focus_key`, `search_key`, `persist_mcp`, `start_in_chat`, `show_session_title`,
+`show_session_date`, `corner_font`, `icon_style`,
 `lsp_icon_style`, `row_density`, `section_item_limits`, `quick_action_order`,
 `quick_action_visibility`, `sections`, and `section_order`) remain compatible;
 canonical nested fields win when both forms are present.
@@ -377,6 +381,19 @@ outside OpenCode are detected on the next launch. Fresh installations show no
 upgrade dialog, and each updated version is shown once.
 When upgrading from an older version that did not record version history, the
 first launch establishes the baseline for subsequent updates.
+
+In OpenCode 1.x, **Settings → Sections** also has separate switches for the
+session title and creation date. These follow the selected Global or Current
+worktree scope, and hiding both leaves the settings control available. OpenCode
+2.x renders its own title and has no supported visibility slot for these
+switches, so they are omitted there.
+
+For a recognized pinned local Navigator snapshot, a confirmed update downloads
+the next version into a separate snapshot and switches its existing local
+wrapper only after installation succeeds. The OpenCode plugin source in
+`tui.json` or `cli.json` does not change. This update path requires Node.js and
+npm on the machine running OpenCode; restart OpenCode afterward. Unknown local
+sources are left untouched.
 
 Configured files may define behavior, layout, desired MCP states, layout and MCP
 presets, workspace-profile links, and MCP groups. Navigator deliberately ignores
