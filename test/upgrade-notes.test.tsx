@@ -15,7 +15,7 @@ import { pluginConfig } from '../src/shared/config'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { JSX } from 'solid-js'
 
-const versions = { older: '1.2.3', previous: '1.3.0', current: '1.3.1' }
+const versions = { older: '1.2.3', technical: '1.2.4', previous: '1.3.0', current: '1.3.1' }
 const changelog = `# Changelog
 
 ## Unreleased
@@ -29,6 +29,8 @@ const changelog = `# Changelog
 ## [${versions.previous}] - 2026-09-25
 
 - Add version update confirmations.
+
+## [${versions.technical}] - 2026-09-24
 
 ## [${versions.older}] - 2026-09-24
 
@@ -58,6 +60,7 @@ test('changelog includes only shipped entries newer than the previous installed 
     versions.current,
     versions.previous,
   ])
+  expect(changesSince(changelog, versions.older, versions.technical)).toEqual([])
   expect(changesSince(changelog, versions.current, versions.current)).toEqual([])
 })
 
@@ -83,6 +86,35 @@ test('fresh installs only record the current version; installed and external upg
     lastNavigatorVersion: versions.current,
     previousNavigatorVersion: versions.older,
   })
+})
+
+test('technical-only release records its version without opening an empty upgrade dialog', async () => {
+  let opened = 0
+  const api = {
+    ui: { dialog: { open: false, replace: () => opened++ }, toast() {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const saved = preferences(api, { global: {}, worktrees: {}, user: { lastNavigatorVersion: versions.older } })
+  const view = await testRender(
+    () => (
+      <UpgradeNotesBinding
+        api={api}
+        preferences={saved.controller}
+        version={versions.technical}
+        read={async () => changelog}
+      />
+    ),
+    { width: 40, height: 8 },
+  )
+
+  try {
+    await view.flush()
+    await Bun.sleep(0)
+    expect(opened).toBe(0)
+    expect(saved.document().user.lastNavigatorVersion).toBe(versions.technical)
+  } finally {
+    view.renderer.destroy()
+  }
 })
 
 test('updated launches open release notes once and leave first-run onboarding undisturbed', async () => {

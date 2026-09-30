@@ -43,7 +43,7 @@ test('a confirmed pinned update stages a complete new snapshot and only then rep
         await mkdir(join(staging, 'dist'))
         await writeFile(join(staging, 'package.json'), JSON.stringify({ name: 'opencode-navigator', version }))
         await writeFile(join(staging, 'dist', 'tui.js'), 'export default { id: "opencode-navigator" };\n')
-        await writeFile(join(staging, 'CHANGELOG.md'), `## [${version}]\n\n- Update.\n`)
+        await writeFile(join(staging, 'CHANGELOG.md'), `## [${version}]\n\n`)
       },
       async install(staging: string) {
         await mkdir(join(staging, 'node_modules', '@opentui', 'core'), { recursive: true })
@@ -55,7 +55,9 @@ test('a confirmed pinned update stages a complete new snapshot and only then rep
 
     expect(await readFile(wrapper, 'utf8')).toContain(`./releases/v${TARGET_VERSION}/dist/tui.js`)
     expect(await readFile(join(current, 'CHANGELOG.md'), 'utf8')).toContain('Original')
-    expect(await readFile(join(root, 'releases', `v${TARGET_VERSION}`, 'CHANGELOG.md'), 'utf8')).toContain('Update')
+    expect(await readFile(join(root, 'releases', `v${TARGET_VERSION}`, 'CHANGELOG.md'), 'utf8')).toContain(
+      `## [${TARGET_VERSION}]`,
+    )
     expect((await readdir(join(root, 'releases'))).sort()).toEqual([`v${SOURCE_VERSION}`, `v${TARGET_VERSION}`])
   } finally {
     await rm(temporary, { recursive: true, force: true })
