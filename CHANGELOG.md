@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.17.2] - 2026-09-30
+
+- Allow a confirmed Navigator update to advance a recognized local pinned snapshot without replacing its file or directory source.
+- Add separate Global/Worktree visibility switches for the session title and creation date in OpenCode 1.x Settings → Sections.
+- Make test version expectations independent of the current Navigator and OpenCode releases.
+
 ## [0.17.1] - 2026-09-29
 
 - Keep the locally configured Navigator client pinned to a versioned snapshot outside the development checkout, so rebuilding the repository cannot silently change the installed plugin.
@@ -27,6 +33,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.17.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.16.0...v0.16.1
