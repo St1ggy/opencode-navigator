@@ -31,7 +31,6 @@
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
 [0.17.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.2...v0.17.3
-[0.17.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.16.1...v0.17.0

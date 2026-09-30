@@ -161,6 +161,7 @@ verification workflow before expanding the product surface.
 - [x] Let confirmed Navigator updates advance a recognized local pinned snapshot without changing its installation source or touching the running version.
 - [x] Remove release-number assertions across all tests and make optional live-update verification follow the published npm version rather than a fixed release.
 - [x] Persist the prior installed Navigator version and show the intervening bundled changelog once after the first launch of an updated plugin.
+- [x] Restrict changelog and GitHub Release highlights to user-facing changes and exclude technical screenshot pull requests from generated notes.
 - [x] Cover every product capability with deterministic synthetic screenshots and keep `ARTICLE.md` independent of private `yandex-team` resources and data.
 - [x] Prepare distinct English-language Habr and DEV Community articles plus the ignored private Atushka variant, completing five human-focused editorial passes for each.
 
