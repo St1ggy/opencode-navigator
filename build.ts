@@ -188,10 +188,18 @@ function consolidateNamedImports(source: string) {
 
     emitted.add(module)
     const names = imports.get(module) ?? []
-    const specifiers = names.join(',')
+    const specifiers = [...new Set(names.flatMap((value) => value.split(',')))].join(',')
 
     return `import {${specifiers}} from ${module}`
   })
+}
+
+function consolidateGeneratedHelpers(source: string) {
+  // JSX transforms alias the same OpenTUI helper separately in each module.
+  return source.replaceAll(
+    /_\$(?:createComponent|createElement|createTextNode|insertNode|mergeProps|setProp|effect|insert|memo|spread|use)\d{1,3}\b/g,
+    (name) => name.replaceAll(/\d{1,3}$/g, ''),
+  )
 }
 
 const result = await Bun.build({
@@ -223,7 +231,7 @@ for (const output of result.outputs) {
 
   const text = await output.text()
   const compacted = stripGeneratedIndentation(text)
-  const bundled = consolidateNamedImports(compacted)
+  const bundled = consolidateNamedImports(consolidateGeneratedHelpers(compacted))
 
   await Bun.write(output.path, bundled)
 }
