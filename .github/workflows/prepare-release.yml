@@ -6,6 +6,7 @@ on:
 permissions:
   actions: write
   contents: write
+  issues: write
   pull-requests: write
 
 concurrency:
@@ -52,6 +53,7 @@ jobs:
             --head "$branch" \
             --title 'docs: refresh release screenshots' \
             --body 'Automated deterministic screenshot refresh from the Prepare Release workflow.')"
+          gh pr edit "$pr_url" --add-label skip-changelog
           gh workflow run ci.yml --ref "$branch"
 
           ci_run_id=
