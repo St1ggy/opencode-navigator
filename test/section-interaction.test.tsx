@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { RGBA } from '@opentui/core'
+import { RGBA, type ScrollBoxRenderable } from '@opentui/core'
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { batch, createSignal } from 'solid-js'
@@ -863,6 +863,8 @@ test('the built settings dialog saves the current layout as default', async () =
   let replacement: (() => unknown) | undefined
   const savedPresets: string[] = []
   const sectionMoves: [string, number][] = []
+  const [titleVisible, setTitleVisible] = createSignal(true)
+  const [dateVisible, setDateVisible] = createSignal(true)
   let updatedPresets = 0
   const api = {
     theme: { current: sidebarTheme },
@@ -910,6 +912,8 @@ test('the built settings dialog saves the current layout as default', async () =
     persistMcp: () => true,
     selectedPersistMcp: () => true,
     selectedStartInChat: () => false,
+    selectedShowSessionTitle: titleVisible,
+    selectedShowSessionDate: dateVisible,
     cornerFont: () => true,
     selectedCornerFont: () => true,
     lspIconStyle: () => 'nerd',
@@ -929,6 +933,8 @@ test('the built settings dialog saves the current layout as default', async () =
     toggleSelectedSection: () => {},
     toggleMcpPersistence: () => mcpToggles++,
     toggleStartInChat: () => startToggles++,
+    toggleSessionTitleVisibility: () => setTitleVisible((value) => !value),
+    toggleSessionDateVisibility: () => setDateVisible((value) => !value),
     toggleCornerFont: () => cornerToggles++,
     toggleLspIconStyle: () => iconToggles++,
     toggleRowDensity: () => densityToggles++,
@@ -981,6 +987,8 @@ test('the built settings dialog saves the current layout as default', async () =
     expect(initialFrame).toContain('Behavior')
     expect(initialFrame).toContain('Defaults')
     expect(initialFrame).toContain('Todo')
+    expect(initialFrame).toContain('Session title')
+    expect(initialFrame).toContain('Creation date')
     expect(initialFrame).not.toContain('Global')
     expect(initialFrame).not.toContain('Focus')
     expect(initialFrame).not.toContain('Save as…')
@@ -993,6 +1001,12 @@ test('the built settings dialog saves the current layout as default', async () =
     const nextTab = layer?.commands.find((command) => command.name.endsWith('.settings.next-tab'))
     const select = layer?.commands.find((command) => command.name.endsWith('.settings.select'))
 
+    select?.run()
+    expect(titleVisible()).toBe(false)
+    next?.run()
+    select?.run()
+    expect(dateVisible()).toBe(false)
+    next?.run()
     layer?.commands.find((command) => command.name.endsWith('.settings.move-down'))?.run()
     expect(sectionMoves).toEqual([['todo', 1]])
     expect(layer?.bindings.filter((binding) => binding.key === 'left' || binding.key === 'right')).toHaveLength(2)
@@ -1116,7 +1130,7 @@ test('Sections edits limits with L and mouse without toggling visibility and res
   try {
     openSettings(api, preferences)
     await setup.flush()
-    run('next')
+    for (let index = 0; index < 3; index++) run('next')
     run('item-limit')
     await setup.flush()
     expect(prompt?.title).toBe('Subagents item limit')
@@ -1130,9 +1144,14 @@ test('Sections edits limits with L and mouse without toggling visibility and res
     expect(setup.captureCharFrame()).toContain('Items: 5')
     run('select')
     expect(preferences.selectedSections().subagents).toBe(false)
+    const scroll = setup.renderer.root.findDescendantById('opencode-navigator.settings.body') as ScrollBoxRenderable
+
+    scroll.scrollTo(100)
+    await setup.flush()
     const lines = setup.captureCharFrame().split('\n')
     const mcpLine = lines.findIndex((line) => line.includes(`6. ${sectionIcon('mcp')} MCP`))
 
+    expect(mcpLine, lines.join('\n')).toBeGreaterThan(-1)
     await setup.mockMouse.pressDown(lines[mcpLine].indexOf('Items:'), mcpLine)
     expect(preferences.selectedSections().mcp).toBe(true)
     await setup.mockMouse.release(lines[mcpLine].indexOf('Items:'), mcpLine)

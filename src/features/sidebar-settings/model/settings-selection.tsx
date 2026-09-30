@@ -221,6 +221,16 @@ export function createSettingsSelection(input: {
           break
         }
 
+        case 'session_title': {
+          input.preferences.toggleSessionTitleVisibility()
+          break
+        }
+
+        case 'session_date': {
+          input.preferences.toggleSessionDateVisibility()
+          break
+        }
+
         case 'persist_mcp': {
           input.preferences.toggleMcpPersistence()
           break

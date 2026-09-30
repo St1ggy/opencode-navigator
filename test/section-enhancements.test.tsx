@@ -565,7 +565,7 @@ test('sidebar settings uses a three-cell control aligned to the title edge', asy
     register: () => () => {},
     mouseActivate: () => false,
   } as unknown as SidebarInteraction
-  const preferences = {} as PreferencesController
+  const preferences = { showSessionTitle: () => true, showSessionDate: () => true } as PreferencesController
   const setup = await testRender(
     () => (
       <IconProvider style={() => 'nerd'}>
@@ -601,5 +601,57 @@ test('sidebar settings uses a three-cell control aligned to the title edge', asy
     )
   } finally {
     setup.renderer.destroy()
+  }
+})
+
+test('session title and creation date hide independently without removing Settings', async () => {
+  const created = Date.UTC(2030, 0, 2)
+  const [titleVisible, setTitleVisible] = createSignal(true)
+  const [dateVisible, setDateVisible] = createSignal(true)
+  const api = {
+    theme: { current: theme },
+    state: { session: { get: () => ({ time: { created } }) } },
+  } as unknown as TuiPluginApi
+  const interaction = {
+    setTitleRoot() {},
+    ownsFocus: () => false,
+    isSelected: () => false,
+    register: () => () => {},
+    mouseActivate: () => false,
+  } as unknown as SidebarInteraction
+  const preferences = { showSessionTitle: titleVisible, showSessionDate: dateVisible } as PreferencesController
+  const view = await testRender(
+    () => (
+      <IconProvider style={() => 'nerd'}>
+        <SidebarTitle
+          api={api}
+          preferences={preferences}
+          interaction={interaction}
+          sessionID="one"
+          title="Session name"
+        />
+      </IconProvider>
+    ),
+    { width: 42, height: 5 },
+  )
+
+  try {
+    await view.flush()
+    expect(view.captureCharFrame()).toContain('Session name')
+    expect(view.captureCharFrame()).toContain('Created')
+    setTitleVisible(false)
+    await view.flush()
+    expect(view.captureCharFrame()).not.toContain('Session name')
+    expect(view.captureCharFrame()).toContain('Created')
+    setDateVisible(false)
+    await view.flush()
+    expect(view.captureCharFrame()).not.toContain('Created')
+    expect(view.renderer.root.findDescendantById('opencode-navigator.settings')).toBeDefined()
+    setTitleVisible(true)
+    await view.flush()
+    expect(view.captureCharFrame()).toContain('Session name')
+    expect(view.captureCharFrame()).not.toContain('Created')
+  } finally {
+    view.renderer.destroy()
   }
 })

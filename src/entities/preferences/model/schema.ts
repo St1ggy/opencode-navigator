@@ -102,6 +102,8 @@ export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
     ...(typeof input.searchKey === 'string' && input.searchKey.trim() && { searchKey: input.searchKey.trim() }),
     ...(typeof input.persistMcp === 'boolean' && { persistMcp: input.persistMcp }),
     ...(typeof input.startInChat === 'boolean' && { startInChat: input.startInChat }),
+    ...(typeof input.showSessionTitle === 'boolean' && { showSessionTitle: input.showSessionTitle }),
+    ...(typeof input.showSessionDate === 'boolean' && { showSessionDate: input.showSessionDate }),
     ...(typeof input.cornerFont === 'boolean' && { cornerFont: input.cornerFont }),
     ...((input.lspIconStyle === 'nerd' || input.lspIconStyle === 'text') && { lspIconStyle: input.lspIconStyle }),
     ...((input.rowDensity === 'compact' || input.rowDensity === 'comfortable') && {

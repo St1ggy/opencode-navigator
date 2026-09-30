@@ -91,6 +91,8 @@ export function createPreferencesController(
       searchKey: defaults.searchKey,
       persistMcp: defaults.persistMcp,
       startInChat: defaults.startInChat,
+      showSessionTitle: defaults.showSessionTitle,
+      showSessionDate: defaults.showSessionDate,
       cornerFont: defaults.cornerFont,
       lspIconStyle: defaults.lspIconStyle,
       rowDensity: defaults.rowDensity,
@@ -436,6 +438,8 @@ export function createPreferencesController(
     focusKey: () => resolved().behavior.focusKey,
     searchKey: () => resolved().behavior.searchKey,
     persistMcp: () => resolved().behavior.persistMcp,
+    showSessionTitle: () => resolved().behavior.showSessionTitle,
+    showSessionDate: () => resolved().behavior.showSessionDate,
     startInChatForScope: (scope: string) => {
       revision()
 
@@ -449,6 +453,8 @@ export function createPreferencesController(
     selectedSearchKey: () => selectedResolved().behavior.searchKey,
     selectedPersistMcp: () => selectedResolved().behavior.persistMcp,
     selectedStartInChat: () => selectedResolved().behavior.startInChat,
+    selectedShowSessionTitle: () => selectedResolved().behavior.showSessionTitle,
+    selectedShowSessionDate: () => selectedResolved().behavior.showSessionDate,
     selectedCornerFont: () => selectedResolved().behavior.cornerFont,
     selectedLspIconStyle: () => selectedResolved().behavior.lspIconStyle,
     selectedRowDensity: () => selectedResolved().behavior.rowDensity,
@@ -836,6 +842,17 @@ export function createPreferencesController(
     toggleStartInChat() {
       void load()
       update({ target: selectedTarget(), behavior: { startInChat: !selectedResolved().behavior.startInChat } })
+    },
+    toggleSessionTitleVisibility() {
+      void load()
+      update({
+        target: selectedTarget(),
+        behavior: { showSessionTitle: !selectedResolved().behavior.showSessionTitle },
+      })
+    },
+    toggleSessionDateVisibility() {
+      void load()
+      update({ target: selectedTarget(), behavior: { showSessionDate: !selectedResolved().behavior.showSessionDate } })
     },
     toggleCornerFont() {
       void load()

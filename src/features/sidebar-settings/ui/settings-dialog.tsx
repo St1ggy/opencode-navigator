@@ -1,6 +1,7 @@
 import { TextAttributes } from '@opentui/core'
 import { For } from 'solid-js'
 
+import { PLUGIN_ID } from '../../../shared/config'
 import { DialogSurface, Tab, createDialogStack } from '../../../shared/ui'
 import { createSettingsDialogController } from '../model/settings-dialog-controller'
 
@@ -56,6 +57,7 @@ export function SettingsDialog(props: {
         </For>
       </box>
       <scrollbox
+        id={`${PLUGIN_ID}.settings.body`}
         ref={model.setBody}
         renderBefore={model.restoreScroll}
         renderAfter={model.saveScroll}

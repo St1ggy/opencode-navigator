@@ -3,7 +3,10 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 type HostCapability = 'todo' | 'lsp'
 
 export type HostCapabilities = Readonly<
-  Record<HostCapability, boolean> & { unavailable?: Partial<Record<HostCapability, string>> }
+  Record<HostCapability, boolean> & {
+    titleVisibility?: boolean
+    unavailable?: Partial<Record<HostCapability, string>>
+  }
 >
 
 const defaults: HostCapabilities = { todo: true, lsp: true }
@@ -25,4 +28,8 @@ export function supportsSidebarSection(api: TuiPluginApi, section: string) {
   const current = hostCapabilities(api)
 
   return section !== 'todo' && section !== 'lsp' ? true : current[section]
+}
+
+export function supportsTitleVisibility(api: TuiPluginApi) {
+  return hostCapabilities(api).titleVisibility !== false
 }

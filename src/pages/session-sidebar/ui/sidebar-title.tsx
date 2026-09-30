@@ -53,10 +53,14 @@ export function SidebarTitle(props: {
     >
       <box flexDirection="row" justifyContent="space-between" gap={1}>
         <box flexGrow={1}>
-          <text fg={theme().text} wrapMode="word">
-            <b>{props.title}</b>
-          </text>
-          <Show when={created()}>{(value) => <text fg={theme().textMuted}>{value()}</text>}</Show>
+          <Show when={props.preferences.showSessionTitle()}>
+            <text fg={theme().text} wrapMode="word">
+              <b>{props.title}</b>
+            </text>
+          </Show>
+          <Show when={props.preferences.showSessionDate() && created()}>
+            {(value) => <text fg={theme().textMuted}>{value()}</text>}
+          </Show>
         </box>
         <IconControl
           ref={(node: BoxRenderable) => settings.ref(node)}

@@ -35,8 +35,8 @@ test('parses every portable configured setting and excludes private state', () =
     favoriteSkills: ['/private/skill'],
     favoriteQuickActions: ['session.rename'],
     onboardingCompleted: true,
-    lastNavigatorVersion: '0.16.0',
-    previousNavigatorVersion: '0.15.0',
+    lastNavigatorVersion: '1.2.3',
+    previousNavigatorVersion: '1.2.2',
   })
 
   expect(configured.behavior).toMatchObject({
@@ -232,4 +232,37 @@ test('startup chat defaults off and follows global and worktree behavior overrid
   controller.setPreferenceScope('worktree')
   controller.resetPluginSettings()
   expect(controller.startInChatForScope('/project')).toBe(false)
+})
+
+test('title and creation date visibility are independent scoped settings', async () => {
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+  const controller = createPreferencesController(
+    api,
+    pluginConfig(undefined),
+    {
+      async load() {
+        return { global: {}, worktrees: {}, user: {} }
+      },
+      async update() {},
+      async flush() {},
+    },
+    parseConfiguredDefaults({ behavior: { showSessionDate: false } }),
+  )
+
+  await controller.load()
+  expect(controller.showSessionTitle()).toBe(true)
+  expect(controller.showSessionDate()).toBe(false)
+  controller.setActiveScope('/project')
+  controller.setPreferenceScope('worktree')
+  controller.toggleSessionTitleVisibility()
+  controller.toggleSessionDateVisibility()
+  expect(controller.showSessionTitle()).toBe(false)
+  expect(controller.showSessionDate()).toBe(true)
+  controller.setPreferenceScope('global')
+  expect(controller.selectedShowSessionTitle()).toBe(true)
+  expect(controller.selectedShowSessionDate()).toBe(false)
+  controller.setPreferenceScope('worktree')
+  controller.resetPluginSettings()
+  expect(controller.showSessionTitle()).toBe(true)
+  expect(controller.showSessionDate()).toBe(false)
 })

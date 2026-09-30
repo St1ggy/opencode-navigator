@@ -4,6 +4,8 @@ import { SECTION_DEFINITIONS, SIDEBAR_SECTIONS } from '../../../entities/sidebar
 import { DEFAULT_SEARCH_KEY } from '../../../shared/config'
 import { supportsSidebarSection } from '../../../shared/lib/host-capabilities'
 
+import { titleVisibilityOptions } from './title-visibility-options'
+
 import type { PreferencesController } from '../../../entities/preferences'
 import type { useIcons } from '../../../shared/ui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -62,18 +64,21 @@ export function createSettingsGroups(
       id: 'sections',
       tab: 'Sections',
       title: 'Sections & order',
-      options: preferences
-        .selectedSectionOrder()
-        .filter((name) => supportsSidebarSection(api, name))
-        .map((name, index) => {
-          const section = SECTION_DEFINITIONS.find((candidate) => candidate.name === name)!
+      options: [
+        ...titleVisibilityOptions(api, preferences, icons),
+        ...preferences
+          .selectedSectionOrder()
+          .filter((name) => supportsSidebarSection(api, name))
+          .map((name, index) => {
+            const section = SECTION_DEFINITIONS.find((candidate) => candidate.name === name)!
 
-          return {
-            title: `${icons.icon(preferences.selectedSections()[section.name] ? 'checked' : 'unchecked')} ${index + 1}. ${icons.section(section.name)} ${section.label}`,
-            value: section.name,
-            description: preferences.selectedSections()[section.name] ? 'visible' : 'hidden',
-          }
-        }),
+            return {
+              title: `${icons.icon(preferences.selectedSections()[section.name] ? 'checked' : 'unchecked')} ${index + 1}. ${icons.section(section.name)} ${section.label}`,
+              value: section.name,
+              description: preferences.selectedSections()[section.name] ? 'visible' : 'hidden',
+            }
+          }),
+      ],
     },
     {
       id: 'behavior',

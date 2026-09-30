@@ -21,6 +21,8 @@ function pluginDefaults(sections: SectionVisibility) {
     searchKey: 'ctrl+shift+k',
     persistMcp: true,
     startInChat: false,
+    showSessionTitle: true,
+    showSessionDate: true,
     cornerFont: true,
     lspIconStyle: 'nerd' as const,
     rowDensity: 'compact' as const,
