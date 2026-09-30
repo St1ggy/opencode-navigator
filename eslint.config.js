@@ -112,6 +112,11 @@ export default [
     rules: { 'no-console': 'off', 'unicorn/no-process-exit': 'off' },
   },
   {
+    files: ['test/local-snapshot-update.test.ts'],
+    // Node's ESM loader requires the explicit .mjs extension for the standalone updater.
+    rules: { 'import-x/extensions': 'off' },
+  },
+  {
     files: ['screenshots/harness/*.mjs'],
     rules: {
       // The fixture runs inside an isolated container with a container-only bundle path

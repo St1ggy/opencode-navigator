@@ -1,5 +1,6 @@
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, dirname, isAbsolute, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { PLUGIN_ID } from '../shared/config'
 
@@ -27,6 +28,15 @@ const readConfig: ReadConfig = async (path) => {
   const file = Bun.file(path)
 
   return (await file.exists()) ? Bun.JSONC.parse(await file.text()) : undefined
+}
+
+function pinnedUpdate(wrapper: string, target: string, execute: Run) {
+  if (basename(wrapper) !== 'tui.js' || basename(dirname(wrapper)) !== 'opencode-navigator')
+    throw new Error('Unrecognized local Navigator source')
+
+  const installer = fileURLToPath(new URL('../scripts/update-local-snapshot.mjs', import.meta.url))
+
+  return execute(['node', installer, wrapper, target])
 }
 
 function configHasPlugin(value: unknown, spec: string) {
@@ -71,8 +81,13 @@ export function createOpenCodeV1VersionUpdater(
   return {
     openCode: (target) => execute([process.execPath, 'upgrade', target]),
     async navigator(target) {
-      if (meta.source !== 'npm')
-        throw new Error('Local Navigator installations must be updated from their source path.')
+      if (meta.source === 'file') {
+        const wrapper = meta.spec.startsWith('file://') ? fileURLToPath(meta.spec) : meta.spec
+
+        return pinnedUpdate(wrapper, target, execute)
+      }
+
+      if (meta.source !== 'npm') throw new Error('Unrecognized local Navigator source')
 
       const result = await api.plugins.install(`opencode-navigator@${target}`, {
         global: await v1Global(api, meta.spec, read),
@@ -86,12 +101,27 @@ export function createOpenCodeV1VersionUpdater(
 export function createOpenCodeV2VersionUpdater(context: Plugin.Context, execute: Run = run): VersionUpdater {
   return {
     openCode: (target) => execute([process.execPath, 'upgrade', target]),
-    async navigator() {
+    async navigator(target) {
       const response = await context.client.plugin.list(context.location ? { location: context.location } : {})
       const item = response.data.find((plugin) => plugin.id === PLUGIN_ID)
 
-      if (!item || item.source.type !== 'package')
-        throw new Error('Local Navigator installations must be updated from their source path.')
+      if (!item) throw new Error('Navigator is not in the active plugin list')
+
+      if (item.source.type === 'local')
+        return pinnedUpdate(
+          basename(item.source.path) === 'tui.js' ? item.source.path : join(item.source.path, 'tui.js'),
+          target,
+          execute,
+        )
+
+      if (item.source.type !== 'package') throw new Error('Unrecognized local Navigator source')
+
+      if (isAbsolute(item.source.target)) return pinnedUpdate(join(item.source.target, 'tui.js'), target, execute)
+
+      if (item.source.target.startsWith('file://'))
+        return pinnedUpdate(join(fileURLToPath(item.source.target), 'tui.js'), target, execute)
+
+      if (item.source.target.startsWith('.')) throw new Error('Unrecognized local Navigator source')
 
       await context.client.plugin.update({ location: response.location, targets: [item.source.target] })
     },
