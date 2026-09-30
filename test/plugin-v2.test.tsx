@@ -4,6 +4,8 @@ import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { fileURLToPath } from 'node:url'
 
+import packageJSON from '../package.json' with { type: 'json' }
+
 import type { Plugin } from '@opencode/plugin/tui'
 import type { JSX } from '@opentui/solid'
 
@@ -116,7 +118,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
   let context!: Plugin.Context
   const originalFetch = globalThis.fetch
 
-  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.15.0' })), {
+  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: packageJSON.version })), {
     preconnect() {},
   })
 
@@ -126,7 +128,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     context = {
       options: {},
       location: { directory: '/workspace' },
-      app: { version: '2.0.16', channel: 'stable' },
+      app: { version: packageJSON.devDependencies['@opencode/plugin'], channel: 'stable' },
       renderer: Object.assign(renderer, {
         on(name: string) {
           rendererSubscriptions.push(name)

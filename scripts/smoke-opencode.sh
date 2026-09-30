@@ -42,7 +42,8 @@ else
     exit 1
   fi
 
-  npm install --prefix "$temporary/opencode-v1" --no-package-lock --no-save --silent opencode-ai@1.18.32
+  host_version="$(node -p 'require(process.argv[1]).devDependencies["@opencode-ai/plugin"]' "$root/package.json")"
+  npm install --prefix "$temporary/opencode-v1" --no-package-lock --no-save --silent "opencode-ai@$host_version"
   ln -s "$temporary/opencode-v1/node_modules/.bin/opencode" "$temporary/bin/opencode"
 fi
 

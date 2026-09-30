@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test'
 
+import packageJSON from '../package.json' with { type: 'json' }
+
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 test('the built plugin registers its lifecycle and sidebar slots', async () => {
@@ -11,7 +13,7 @@ test('the built plugin registers its lifecycle and sidebar slots', async () => {
   const registrations: { order: number; slots: Record<string, unknown> }[] = []
   const originalFetch = globalThis.fetch
 
-  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: '0.15.0' })), {
+  globalThis.fetch = Object.assign(() => Promise.resolve(Response.json({ version: packageJSON.version })), {
     preconnect() {},
   })
   const api = {

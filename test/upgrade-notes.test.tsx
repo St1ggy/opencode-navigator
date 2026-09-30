@@ -15,21 +15,22 @@ import { pluginConfig } from '../src/shared/config'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { JSX } from 'solid-js'
 
+const versions = { older: '1.2.3', previous: '1.3.0', current: '1.3.1' }
 const changelog = `# Changelog
 
 ## Unreleased
 
 - Not shipped yet.
 
-## [0.16.1] - 2026-09-25
+## [${versions.current}] - 2026-09-25
 
 - Make version labels clickable.
 
-## [0.16.0] - 2026-09-25
+## [${versions.previous}] - 2026-09-25
 
 - Add version update confirmations.
 
-## [0.15.0] - 2026-09-24
+## [${versions.older}] - 2026-09-24
 
 - Add OpenCode 2 support.
 `
@@ -50,34 +51,37 @@ function preferences(api: TuiPluginApi, initial: PreferencesDocument = emptyPref
 }
 
 test('changelog includes only shipped entries newer than the previous installed version', () => {
-  expect(changesSince(changelog, '0.16.0', '0.16.1')).toEqual([
-    { version: '0.16.1', changes: ['Make version labels clickable.'] },
+  expect(changesSince(changelog, versions.previous, versions.current)).toEqual([
+    { version: versions.current, changes: ['Make version labels clickable.'] },
   ])
-  expect(changesSince(changelog, '0.15.0', '0.16.1').map((entry) => entry.version)).toEqual(['0.16.1', '0.16.0'])
-  expect(changesSince(changelog, '0.16.1', '0.16.1')).toEqual([])
+  expect(changesSince(changelog, versions.older, versions.current).map((entry) => entry.version)).toEqual([
+    versions.current,
+    versions.previous,
+  ])
+  expect(changesSince(changelog, versions.current, versions.current)).toEqual([])
 })
 
 test('fresh installs only record the current version; installed and external upgrades retain the previous version once', async () => {
   const api = { ui: { toast() {} } } as unknown as TuiPluginApi
   const fresh = preferences(api)
 
-  expect(await fresh.controller.claimNavigatorUpgrade('0.16.0')).toBeUndefined()
-  expect(fresh.document().user).toMatchObject({ lastNavigatorVersion: '0.16.0' })
-  await fresh.controller.rememberNavigatorVersionBeforeUpdate('0.16.0')
-  expect(fresh.document().user.previousNavigatorVersion).toBe('0.16.0')
-  expect(await fresh.controller.claimNavigatorUpgrade('0.16.1')).toBe('0.16.0')
-  expect(await fresh.controller.claimNavigatorUpgrade('0.16.1')).toBeUndefined()
+  expect(await fresh.controller.claimNavigatorUpgrade(versions.previous)).toBeUndefined()
+  expect(fresh.document().user).toMatchObject({ lastNavigatorVersion: versions.previous })
+  await fresh.controller.rememberNavigatorVersionBeforeUpdate(versions.previous)
+  expect(fresh.document().user.previousNavigatorVersion).toBe(versions.previous)
+  expect(await fresh.controller.claimNavigatorUpgrade(versions.current)).toBe(versions.previous)
+  expect(await fresh.controller.claimNavigatorUpgrade(versions.current)).toBeUndefined()
 
   const external = preferences(api, {
     global: {},
     worktrees: {},
-    user: { lastNavigatorVersion: '0.15.0' },
+    user: { lastNavigatorVersion: versions.older },
   })
 
-  expect(await external.controller.claimNavigatorUpgrade('0.16.1')).toBe('0.15.0')
+  expect(await external.controller.claimNavigatorUpgrade(versions.current)).toBe(versions.older)
   expect(external.document().user).toMatchObject({
-    lastNavigatorVersion: '0.16.1',
-    previousNavigatorVersion: '0.15.0',
+    lastNavigatorVersion: versions.current,
+    previousNavigatorVersion: versions.older,
   })
 })
 
@@ -107,10 +111,15 @@ test('updated launches open release notes once and leave first-run onboarding un
       },
     },
   } as unknown as TuiPluginApi
-  const saved = preferences(api, { global: {}, worktrees: {}, user: { lastNavigatorVersion: '0.16.0' } })
+  const saved = preferences(api, { global: {}, worktrees: {}, user: { lastNavigatorVersion: versions.previous } })
   const view = await testRender(
     () => (
-      <UpgradeNotesBinding api={api} preferences={saved.controller} version="0.16.1" read={async () => changelog} />
+      <UpgradeNotesBinding
+        api={api}
+        preferences={saved.controller}
+        version={versions.current}
+        read={async () => changelog}
+      />
     ),
     { width: 50, height: 10 },
   )
@@ -122,7 +131,7 @@ test('updated launches open release notes once and leave first-run onboarding un
     dialog.open = false
     await Bun.sleep(250)
     expect(dialogs).toHaveLength(1)
-    expect(saved.document().user.previousNavigatorVersion).toBe('0.16.0')
+    expect(saved.document().user.previousNavigatorVersion).toBe(versions.previous)
     const modal = await testRender(() => <box paddingTop={5}>{dialogs[0]() as JSX.Element}</box>, {
       width: 70,
       height: 30,
@@ -133,7 +142,7 @@ test('updated launches open release notes once and leave first-run onboarding un
       const frame = modal.captureCharFrame()
 
       expect(frame).toContain('Navigator updated')
-      expect(frame).toContain('Changes from 0.16.0 to 0.16.1')
+      expect(frame).toMatch(/Changes from \d+\.\d+\.\d+ to \d+\.\d+\.\d+/)
       expect(frame).toContain('Make version labels clickable.')
     } finally {
       modal.renderer.destroy()

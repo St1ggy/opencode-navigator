@@ -37,7 +37,8 @@ if [[ "$opencode_version" != *2.* ]]; then
     exit 1
   fi
 
-  npm install --prefix "$temporary/opencode-v2" --no-package-lock --no-save --silent @opencode/cli@2.0.16
+  host_version="$(node -p 'require(process.argv[1]).devDependencies["@opencode/plugin"]' "$root/package.json")"
+  npm install --prefix "$temporary/opencode-v2" --no-package-lock --no-save --silent "@opencode/cli@$host_version"
   opencode_bin="$temporary/opencode-v2/node_modules/.bin/opencode2"
 fi
 

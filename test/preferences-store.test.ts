@@ -40,16 +40,18 @@ test('stores and clears the default layout', async () => {
 
 test('persists Navigator version history privately across other preference updates', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'navigator-versions-'))
+  const previous = '1.2.3'
+  const installed = '1.2.4'
 
   try {
     const store = createPreferencesStore(directory)
 
-    await store.update({ user: { lastNavigatorVersion: '0.16.0' } })
-    await store.update({ user: { previousNavigatorVersion: '0.16.0', lastNavigatorVersion: '0.16.1' } })
+    await store.update({ user: { lastNavigatorVersion: previous } })
+    await store.update({ user: { previousNavigatorVersion: previous, lastNavigatorVersion: installed } })
     await store.update({ behavior: { persistMcp: false } })
     expect((await createPreferencesStore(directory).load()).user).toMatchObject({
-      lastNavigatorVersion: '0.16.1',
-      previousNavigatorVersion: '0.16.0',
+      lastNavigatorVersion: installed,
+      previousNavigatorVersion: previous,
     })
   } finally {
     await rm(directory, { recursive: true, force: true })

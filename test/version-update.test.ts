@@ -6,6 +6,8 @@ import type { VersionUpdater } from '../src/features/version-footer'
 import type { TuiDialogConfirmProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 test('version updates require confirmation and report restart and update failures', async () => {
+  const hostTarget = '2.1.0'
+  const navigatorTarget = '1.2.4'
   let confirm: TuiDialogConfirmProps | undefined
   const toasts: { variant: string; title?: string; message: string }[] = []
   const updated: string[] = []
@@ -30,31 +32,31 @@ test('version updates require confirmation and report restart and update failure
       updated.push(`opencode:${target}`)
     },
     async navigator() {
-      throw new Error('Local Navigator installations must be updated from their source path.')
+      throw new Error('Package download failed')
     },
   }
   const actions = createVersionUpdateActions(
     api,
-    { openCodeUpdate: () => '2.0.17', navigatorUpdate: () => '0.16.0' },
+    { openCodeUpdate: () => hostTarget, navigatorUpdate: () => navigatorTarget },
     updater,
     async () => {
       updated.push('remember current Navigator version')
     },
   )
 
-  actions.openCode('2.0.17')
+  actions.openCode(hostTarget)
   expect(confirm?.message).toContain('current installation method')
   confirm?.onConfirm?.()
   await Bun.sleep(0)
-  expect(updated).toEqual(['opencode:2.0.17'])
+  expect(updated).toEqual([`opencode:${hostTarget}`])
   expect(toasts.at(-1)).toMatchObject({ variant: 'success', message: expect.stringContaining('Restart OpenCode') })
 
-  actions.navigator('0.16.0')
+  actions.navigator(navigatorTarget)
   confirm?.onConfirm?.()
   await Bun.sleep(0)
   expect(updated.at(-1)).toBe('remember current Navigator version')
   expect(toasts.at(-1)).toMatchObject({
     variant: 'error',
-    message: 'Local Navigator installations must be updated from their source path.',
+    message: 'Package download failed',
   })
 })

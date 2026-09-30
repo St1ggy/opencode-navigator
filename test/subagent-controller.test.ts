@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 
+import packageJSON from '../package.json' with { type: 'json' }
 import { createSubagentController } from '../src/controllers/subagents'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -13,7 +14,7 @@ function session(id: string, parentID: string, created: number): Session {
     directory: '/repo',
     parentID,
     title: `${id} task`,
-    version: '1.18.30',
+    version: packageJSON.devDependencies['@opencode-ai/plugin'],
     time: { created, updated: created },
   }
 }

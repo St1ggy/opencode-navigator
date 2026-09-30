@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 
+import packageJSON from '../package.json' with { type: 'json' }
 import { createOpenCodeV2Api } from '../src/app/opencode-v2'
 import { createV2SessionAdapter } from '../src/app/opencode-v2/session-adapter'
 import { legacyTheme } from '../src/app/opencode-v2/theme-adapter'
@@ -11,7 +12,7 @@ test('OpenCode 2 session creation uses the requested location and normalizes the
   const calls: unknown[] = []
   const context = {
     location: { directory: '/current' },
-    app: { version: '2.0.16' },
+    app: { version: packageJSON.devDependencies['@opencode/plugin'] },
     data: { location: { default: () => ({ directory: '/current' }) } },
     client: {
       session: {
@@ -114,7 +115,7 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
   const context = {
     options: {},
     location: { directory: '/workspace', workspaceID: 'workspace' },
-    app: { version: '2.0.11', channel: 'stable' },
+    app: { version: packageJSON.devDependencies['@opencode/plugin'], channel: 'stable' },
     renderer: { keyInput: { on() {}, off() {} } },
     client: {
       session: {
@@ -218,13 +219,16 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
 })
 
 test('the OpenCode 2 event adapter translates updates and refreshes missing session data', async () => {
+  const hostVersion = packageJSON.devDependencies['@opencode/plugin']
+  const parts = hostVersion.split('.')
+  const announcedVersion = [...parts.slice(0, 2), String(Number(parts[2]) + 1)].join('.')
   const listeners: ((event: { details: unknown }) => void)[] = []
   const sessions = new Map<string, Record<string, unknown>>()
   const synced: string[] = []
   const context = {
     options: {},
     location: { directory: '/workspace', workspaceID: 'workspace' },
-    app: { version: '2.0.16', channel: 'stable' },
+    app: { version: packageJSON.devDependencies['@opencode/plugin'], channel: 'stable' },
     renderer: { keyInput: { on() {}, off() {} } },
     client: {},
     data: {
@@ -281,12 +285,12 @@ test('the OpenCode 2 event adapter translates updates and refreshes missing sess
     for (const listener of listeners) listener({ details })
   }
 
-  emit({ type: 'installation.update-available', data: { version: '2.0.17' } })
+  emit({ type: 'installation.update-available', data: { version: announcedVersion } })
   emit({ type: 'session.idle', data: { sessionID: 'session-v2' } })
   emit({ type: 'session.created', data: { sessionID: 'session-v2' } })
   await Promise.resolve()
 
-  expect(updates).toEqual([{ type: 'installation.update-available', properties: { version: '2.0.17' } }])
+  expect(updates).toEqual([{ type: 'installation.update-available', properties: { version: announcedVersion } }])
   expect(idle).toEqual([{ type: 'session.idle', properties: { sessionID: 'session-v2' } }])
   expect(adapter.api.state.session.status('session-v2')).toEqual({ type: 'idle' })
   expect(synced).toEqual(['session-v2'])
@@ -307,7 +311,7 @@ test('the OpenCode 2 keymap adapter exposes reachable host commands for discover
   const context = {
     options: {},
     location: { directory: '/workspace', workspaceID: 'workspace' },
-    app: { version: '2.0.11', channel: 'stable' },
+    app: { version: packageJSON.devDependencies['@opencode/plugin'], channel: 'stable' },
     renderer: { keyInput: { on() {}, off() {} } },
     client: {},
     data: {
