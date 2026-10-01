@@ -97,7 +97,10 @@ export function QuickActionRow(props: {
       backgroundColor={row.backgroundColor()}
       onMouseOver={row.onMouseOver}
       onMouseOut={row.onMouseOut}
-      onMouseUp={(event) => row.activate(event)}
+      onMouseUp={(event) => {
+        event.stopPropagation()
+        row.activate(event)
+      }}
       leading={
         <text
           flexShrink={0}

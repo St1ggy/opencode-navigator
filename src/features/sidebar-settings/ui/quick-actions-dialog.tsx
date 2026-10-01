@@ -2,7 +2,7 @@ import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
 import { useTerminalDimensions } from '@opentui/solid'
 import { For, createEffect, createMemo, onCleanup } from 'solid-js'
 
-import { QUICK_ACTIONS, type QuickActionId } from '../../../entities/quick-action'
+import { QUICK_ACTIONS, type QuickActionId, quickActionLabel } from '../../../entities/quick-action'
 import { PLUGIN_ID } from '../../../shared/config'
 import { DialogSurface, SelectionBox, useDialogScroll, useDialogState, useDialogs, useIcons } from '../../../shared/ui'
 
@@ -108,7 +108,7 @@ export function QuickActionsDialog(props: { api: TuiPluginApi; preferences: Pref
               >
                 <text flexGrow={1} fg={theme().text}>
                   {icons.icon(props.preferences.selectedQuickActionVisible(action.command) ? 'checked' : 'unchecked')}{' '}
-                  {index() + 1}. {icons.action(action.command)} {action.label}
+                  {index() + 1}. {icons.action(action.command)} {quickActionLabel(props.api, action)}
                 </text>
                 <text
                   fg={theme().accent}

@@ -2,6 +2,7 @@
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 
+import { createV2Keymap } from '../src/app/opencode-v2/keymap-adapter'
 import { pluginConfig } from '../src/config'
 import { createPreferencesController } from '../src/controllers/preferences'
 import { QuickActionsDialog } from '../src/dialogs/quick-actions'
@@ -10,6 +11,7 @@ import { QuickActionsSection } from '../src/pages/session-sidebar'
 import { QuickActionRow } from '../src/pages/session-sidebar/ui/quick-action-row'
 import { QUICK_ACTIONS, QUICK_ACTION_IDS, quickActionDisabledReason, quickActionLabel } from '../src/quick-actions'
 
+import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Renderable } from '@opentui/core'
 
@@ -97,6 +99,59 @@ test('narrow Quick Actions show the complete name and keep unavailable reasons b
   } finally {
     narrow.renderer.destroy()
     wide.renderer.destroy()
+  }
+})
+
+test('OpenCode 2 Permissions Quick Action opens the host Settings dialog with mouse or keyboard', async () => {
+  const dispatched: string[] = []
+  const context = {
+    renderer: { keyInput: { on() {}, off() {} } },
+    keymap: {
+      mode: { current: () => 'base' },
+      commands: () => [{ id: 'opencode.settings', title: 'Open settings', run() {} }],
+      shortcuts: () => [],
+      dispatch: (id: string) => dispatched.push(id),
+    },
+  } as unknown as Plugin.Context
+  const bridged = createV2Keymap(context)
+  const api = {
+    theme: { current: { text: '#ffffff', textMuted: '#888888', accent: '#00ffff', backgroundElement: '#222222' } },
+    route: { current: { name: 'session', params: { sessionID: 'one' } } },
+    keymap: bridged.keymap,
+    keys: { formatBindings: () => '' },
+    ui: { toast() {} },
+  } as unknown as TuiPluginApi
+  const permissions = QUICK_ACTIONS.find((action) => action.command === 'permission.mode')!
+  const sidebar = await testRender(
+    () => (
+      <QuickActionRow
+        api={api}
+        action={{ ...permissions, label: quickActionLabel(api, permissions) }}
+        disabled={quickActionDisabledReason(api, permissions)}
+        favorite={false}
+        favoriteDisabled={false}
+        separator={false}
+        onToggleFavorite={() => {}}
+        position={{ section: 1, row: 1, column: 0 }}
+      />
+    ),
+    { width: 42, height: 6 },
+  )
+
+  try {
+    await sidebar.flush()
+    const lines = sidebar.captureCharFrame().split('\n')
+    const row = lines.findIndex((line) => line.includes('Permissions settings'))
+
+    expect(row).toBeGreaterThan(-1)
+    expect(sidebar.captureCharFrame()).not.toContain('Unavailable')
+    await sidebar.mockMouse.click(lines[row].indexOf('Permissions settings'), row)
+    expect(dispatched).toEqual(['opencode.settings'])
+    expect(api.keymap.dispatchCommand('permission.mode').ok).toBe(true)
+    expect(dispatched).toEqual(['opencode.settings', 'opencode.settings'])
+  } finally {
+    sidebar.renderer.destroy()
+    bridged.dispose()
   }
 })
 

@@ -11,6 +11,8 @@ type LegacyKeymap = TuiPluginApi['keymap']
 type LegacyLayer = Parameters<LegacyKeymap['registerLayer']>[0]
 type LegacyCommand = NonNullable<LegacyLayer['commands']>[number]
 type Enablement = boolean | (() => boolean) | undefined
+const SETTINGS_COMMAND = 'opencode.settings'
+const PERMISSIONS_ACTION = 'permission.mode'
 
 function belongsTo(renderable: Renderable | null | undefined, ancestor: Renderable | null | undefined) {
   if (!renderable || !ancestor) return false
@@ -143,12 +145,14 @@ export function createV2Keymap(context: Plugin.Context) {
       }
     },
     dispatchCommand(name: string, options?: { payload?: unknown }) {
-      const command = context.keymap.commands().find((candidate) => candidate.id === name)
+      const command = context.keymap
+        .commands()
+        .find((candidate) => candidate.id === (name === PERMISSIONS_ACTION ? SETTINGS_COMMAND : name))
 
       if (command) {
         if (!enabled(command.enabled)) return { ok: false, reason: 'disabled', command }
 
-        context.keymap.dispatch(name, typeof options?.payload === 'string' ? options.payload : undefined)
+        context.keymap.dispatch(command.id!, typeof options?.payload === 'string' ? options.payload : undefined)
 
         return { ok: true, command }
       }
@@ -162,13 +166,26 @@ export function createV2Keymap(context: Plugin.Context) {
       return { ok: true, command: fallback }
     },
     getCommands() {
-      return context.keymap.commands().flatMap((command) => {
+      const commands = context.keymap.commands()
+      const result = commands.flatMap((command) => {
         if (!command.id) return []
 
         const name = command.id
 
         return [{ ...command, name, run: () => context.keymap.dispatch(name) }]
-      }) as ReturnType<LegacyKeymap['getCommands']>
+      })
+      const settings = commands.find((command) => command.id === SETTINGS_COMMAND)
+
+      if (settings)
+        result.push({
+          ...settings,
+          id: PERMISSIONS_ACTION,
+          name: PERMISSIONS_ACTION,
+          title: 'Permissions settings',
+          run: () => context.keymap.dispatch(SETTINGS_COMMAND),
+        })
+
+      return result as ReturnType<LegacyKeymap['getCommands']>
     },
     getCommandBindings(input: { commands: readonly string[] }) {
       return new Map(input.commands.map((name) => [name, [...context.keymap.shortcuts(name)]]))

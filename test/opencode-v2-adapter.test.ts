@@ -4,6 +4,7 @@ import packageJSON from '../package.json' with { type: 'json' }
 import { createOpenCodeV2Api } from '../src/app/opencode-v2'
 import { createV2SessionAdapter } from '../src/app/opencode-v2/session-adapter'
 import { legacyTheme } from '../src/app/opencode-v2/theme-adapter'
+import { QUICK_ACTIONS, quickActionDisabledReason, quickActionLabel } from '../src/entities/quick-action'
 import { hostCapabilityUnavailable, supportsSidebarSection } from '../src/shared/lib/host-capabilities'
 
 import type { Plugin } from '@opencode/plugin/tui'
@@ -321,7 +322,10 @@ test('the OpenCode 2 keymap adapter exposes reachable host commands for discover
     },
     keymap: {
       mode: { current: () => 'base', push: () => () => {} },
-      commands: () => [{ id: 'session.new', title: 'New session', enabled: true, run() {} }],
+      commands: () => [
+        { id: 'session.new', title: 'New session', enabled: true, run() {} },
+        { id: 'opencode.settings', title: 'Open settings', enabled: true, run() {} },
+      ],
       shortcuts: () => [],
       dispatch: (id: string) => dispatched.push(id),
     },
@@ -339,8 +343,15 @@ test('the OpenCode 2 keymap adapter exposes reachable host commands for discover
 
   expect(adapter.api.keymap.getCommands({ visibility: 'registered' }).map((command) => command.name)).toEqual([
     'session.new',
+    'opencode.settings',
+    'permission.mode',
   ])
+  const permissions = QUICK_ACTIONS.find((action) => action.command === 'permission.mode')!
+
+  expect(quickActionLabel(adapter.api, permissions)).toBe('Permissions settings')
+  expect(quickActionDisabledReason(adapter.api, permissions)).toBeUndefined()
   expect(adapter.api.keymap.dispatchCommand('session.new').ok).toBe(true)
-  expect(dispatched).toEqual(['session.new'])
+  expect(adapter.api.keymap.dispatchCommand('permission.mode').ok).toBe(true)
+  expect(dispatched).toEqual(['session.new', 'opencode.settings'])
   await adapter.dispose()
 })
