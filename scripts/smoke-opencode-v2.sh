@@ -30,6 +30,10 @@ mkdir -p "$temporary/bin" "$temporary/cache" "$temporary/config/opencode" "$temp
   "$temporary/home" "$temporary/state" "$temporary/workspace/.opencode"
 
 opencode_bin="${OPENCODE_V2_SMOKE_BIN:-$(command -v opencode2 || command -v opencode || true)}"
+if [[ -z "${OPENCODE_V2_SMOKE_BIN:-}" && -x /opt/homebrew/opt/opencode-v2/bin/opencode ]]; then
+  # The interactive wrapper may load a user-specific server config; the smoke uses only its isolated fixture.
+  opencode_bin=/opt/homebrew/opt/opencode-v2/bin/opencode
+fi
 opencode_version="$($opencode_bin --version 2>/dev/null || true)"
 if [[ "$opencode_version" != *2.* ]]; then
   if ! command -v npm >/dev/null 2>&1; then
