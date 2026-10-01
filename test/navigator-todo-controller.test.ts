@@ -64,7 +64,7 @@ test('missing Navigator server leaves Todo retryable and does not enable guidanc
     client: {
       rpc: () => ({
         list: async () => {
-          throw new Error('RPC method not found')
+          throw { type: 'rpc.unavailable', message: 'RPC is unavailable: opencode-navigator.todo' }
         },
         events: { on: () => () => {} },
       }),
@@ -76,7 +76,8 @@ test('missing Navigator server leaves Todo retryable and does not enable guidanc
   } as unknown as TuiPluginApi
   const controller = createNavigatorTodoController(context, api)
 
-  await expect(controller.refresh('ses_one')).rejects.toThrow('RPC method not found')
+  await expect(controller.refresh('ses_one')).rejects.toMatchObject({ type: 'rpc.unavailable' })
   expect(controller.state('ses_one').error?.retryable).toBe(true)
+  expect(controller.missing('ses_one')).toBe(true)
   expect(controller.guidance('ses_one').available).toBe(false)
 })

@@ -8,11 +8,16 @@ import { type NavigatorTodoState, normalizeTodoState } from './navigator-state'
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
+function isMissingServer(error: unknown) {
+  return typeof error === 'object' && error !== null && 'type' in error && error.type === 'rpc.unavailable'
+}
+
 export function createNavigatorTodoController(context: Plugin.Context, api: TuiPluginApi) {
   const rpc = context.client.rpc(NavigatorTodoRpc)
   const [sessions, setSessions] = createSignal<Record<string, NavigatorTodoState>>({})
   const [saving, setSaving] = createSignal<Record<string, boolean>>({})
   const [errors, setErrors] = createSignal<Record<string, string | undefined>>({})
+  const [missing, setMissing] = createSignal<Record<string, boolean>>({})
   const requests = createRequestState(api.lifecycle.signal)
   const refreshing = new Map<string, Promise<NavigatorTodoState>>()
   const revisions = new Map<string, number>()
@@ -46,13 +51,20 @@ export function createNavigatorTodoController(context: Plugin.Context, api: TuiP
       .then((value) => {
         const state = normalizeTodoState(value)
 
-        if (requestState.isCurrent() && (revisions.get(current.key) ?? 0) === revision) set(current.key, state)
+        if (requestState.isCurrent()) {
+          setMissing((values) => ({ ...values, [current.key]: false }))
+
+          if ((revisions.get(current.key) ?? 0) === revision) set(current.key, state)
+        }
 
         requestState.succeed()
 
         return state
       })
       .catch((error) => {
+        if (requestState.isCurrent() && !requestState.signal.aborted)
+          setMissing((values) => ({ ...values, [current.key]: isMissingServer(error) }))
+
         requestState.fail(error)
         throw error
       })
@@ -90,6 +102,9 @@ export function createNavigatorTodoController(context: Plugin.Context, api: TuiP
     refresh,
     state(sessionID: string) {
       return requests.state(target(sessionID).key)
+    },
+    missing(sessionID: string) {
+      return missing()[target(sessionID).key] ?? false
     },
     retry(sessionID: string) {
       return refresh(sessionID, true)

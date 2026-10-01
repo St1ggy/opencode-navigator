@@ -249,6 +249,7 @@ test('OpenCode 2 Todo keeps its session instructions control visible without tas
     state: () => ({ status: 'ready' }),
     refresh: async () => [],
     guidance: () => ({ enabled: enabled(), saving: false, available: true }),
+    missing: () => false,
     setGuidance: async (_id: string, value: boolean) => setEnabled(value),
   } as unknown as NavigatorTodoController
   const preferences = {
@@ -276,7 +277,8 @@ test('OpenCode 2 Todo keeps its session instructions control visible without tas
   }
 })
 
-test('OpenCode 2 Todo explains how to enable its missing server plugin', async () => {
+test('OpenCode 2 Todo explains how to enable its missing server plugin without a retry error', async () => {
+  const [missing, setMissing] = createSignal(true)
   const api = { theme: { current: sidebarTheme } } as unknown as TuiPluginApi
   const controller = {
     list: () => [],
@@ -286,6 +288,7 @@ test('OpenCode 2 Todo explains how to enable its missing server plugin', async (
       throw new Error('RPC method unavailable')
     },
     guidance: () => ({ enabled: false, saving: false, available: false }),
+    missing,
   } as unknown as NavigatorTodoController
   const preferences = {
     expanded: () => ({ ...expandedLayout, todo: true }),
@@ -298,9 +301,14 @@ test('OpenCode 2 Todo explains how to enable its missing server plugin', async (
 
   try {
     await setup.flush()
-    expect(setup.captureCharFrame()).toContain('server plugin to opencode.json')
-    expect(setup.captureCharFrame()).toContain('Retry')
+    expect(setup.captureCharFrame().replaceAll(/\s+/g, ' ')).toContain('separate OpenCode 2 server plugin')
+    expect(setup.captureCharFrame()).not.toContain('Retry')
+    expect(setup.captureCharFrame()).not.toContain('RPC method unavailable')
     expect(setup.captureCharFrame()).not.toContain('Todo instructions:')
+    setMissing(false)
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain('RPC method unavailable')
+    expect(setup.captureCharFrame()).toContain('Retry')
   } finally {
     setup.renderer.destroy()
   }

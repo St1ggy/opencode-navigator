@@ -70,7 +70,9 @@ export function TodoSection(props: {
       navigationSection={navigationSection()}
       title="TODO"
       section="todo"
-      summary={unavailable() ? '—' : `${view().counts.completed}/${list().length}`}
+      summary={
+        unavailable() || managed()?.missing(props.sessionID) ? '—' : `${view().counts.completed}/${list().length}`
+      }
       open={props.preferences.expanded().todo}
       onToggle={() => props.preferences.toggleSectionExpanded('todo')}
     >
@@ -87,34 +89,39 @@ export function TodoSection(props: {
                 navigationSection={navigationSection()}
               />
             </Show>
-            <Show when={managed() && state().error && !managed()?.guidance(props.sessionID).available}>
+            <Show
+              when={managed()?.missing(props.sessionID)}
+              fallback={
+                <SectionRequestBody
+                  api={props.api}
+                  interaction={props.interaction}
+                  id={`${PLUGIN_ID}.retry.todo`}
+                  position={{ section: navigationSection(), row: 1, column: 0 }}
+                  state={state()}
+                  hasItems={list().length > 0}
+                  empty="No tasks yet"
+                  loading="Loading tasks…"
+                  onRetry={() => void props.controller.retry(props.sessionID).catch(() => {})}
+                >
+                  <TodoContents
+                    api={props.api}
+                    interaction={props.interaction}
+                    navigationSection={props.navigationSection}
+                    mode={mode()}
+                    setMode={setMode}
+                    view={view()}
+                    visibility={visibility}
+                    density={props.preferences.rowDensity?.() ?? 'compact'}
+                    managed={Boolean(managed())}
+                  />
+                </SectionRequestBody>
+              }
+            >
               <text fg={props.api.theme.current.textMuted} wrapMode="word">
-                Add Navigator's server plugin to opencode.json; restart OpenCode to enable Todo.
+                {icons.icon('info')} Navigator Todo needs a separate OpenCode 2 server plugin. See the README setup
+                steps and restart OpenCode.
               </text>
             </Show>
-            <SectionRequestBody
-              api={props.api}
-              interaction={props.interaction}
-              id={`${PLUGIN_ID}.retry.todo`}
-              position={{ section: navigationSection(), row: 1, column: 0 }}
-              state={state()}
-              hasItems={list().length > 0}
-              empty="No tasks yet"
-              loading="Loading tasks…"
-              onRetry={() => void props.controller.retry(props.sessionID).catch(() => {})}
-            >
-              <TodoContents
-                api={props.api}
-                interaction={props.interaction}
-                navigationSection={props.navigationSection}
-                mode={mode()}
-                setMode={setMode}
-                view={view()}
-                visibility={visibility}
-                density={props.preferences.rowDensity?.() ?? 'compact'}
-                managed={Boolean(managed())}
-              />
-            </SectionRequestBody>
           </box>
         }
       >
