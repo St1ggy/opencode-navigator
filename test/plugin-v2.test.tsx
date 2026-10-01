@@ -2,6 +2,9 @@
 import { Host } from '@opencode/plugin/host'
 import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import packageJSON from '../package.json' with { type: 'json' }
@@ -98,6 +101,10 @@ const theme = {
 }
 
 test('the packaged plugin mounts through the OpenCode 2.x contract', async () => {
+  const stateDirectory = await mkdtemp(join(tmpdir(), 'navigator-v2-plugin-'))
+  const previousStateHome = process.env.XDG_STATE_HOME
+
+  process.env.XDG_STATE_HOME = stateDirectory
   const loaded = (await Host.load(fileURLToPath(new URL('../dist/tui.js', import.meta.url)))) as {
     default: Plugin.Definition & { tui: unknown }
   }
@@ -279,10 +286,14 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     await cleanup()
     expect(slotCleanups).toEqual(['sidebar.footer', 'sidebar.content', 'app'])
   } finally {
+    if (previousStateHome === undefined) delete process.env.XDG_STATE_HOME
+    else process.env.XDG_STATE_HOME = previousStateHome
+
     globalThis.fetch = originalFetch
     footer?.renderer.destroy()
     sidebar?.renderer.destroy()
     app?.renderer.destroy()
     bootstrap.renderer.destroy()
+    await rm(stateDirectory, { recursive: true, force: true })
   }
 })
