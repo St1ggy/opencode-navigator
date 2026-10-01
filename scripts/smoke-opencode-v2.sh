@@ -71,6 +71,13 @@ cat >"$cli_config" <<JSON
 }
 JSON
 
+cat >"$temporary/config/opencode/opencode.json" <<JSON
+{
+  "\$schema": "https://opencode.ai/config.json",
+  "plugin": ["$root"]
+}
+JSON
+
 cat >"$temporary/workspace/.opencode/navigator.json" <<JSON
 {
   "behavior": {
@@ -109,6 +116,23 @@ session_id="$(SESSION_JSON="$session_json" bun --eval '
   process.stdout.write(id)
 ')"
 export OPENCODE_V2_SMOKE_SESSION_ID="$session_id"
+
+todo_json="$("$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.todo --param method=list --data "{\"input\":{\"sessionID\":\"$session_id\"},\"location\":{\"directory\":\"$temporary/workspace\"}}")"
+TODO_JSON="$todo_json" bun --eval '
+  const value = JSON.parse(process.env.TODO_JSON)
+  const todo = value.output ?? value.data?.output
+  if (!todo || !Array.isArray(todo.todos) || todo.guidance !== false)
+    throw new Error("Navigator Todo server RPC did not initialize with instructions off")
+'
+
+"$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.todo --param method=replace --data "{\"input\":{\"sessionID\":\"$session_id\",\"todos\":[{\"content\":\"Smoke task\",\"status\":\"pending\"}]},\"location\":{\"directory\":\"$temporary/workspace\"}}" >/dev/null
+todo_json="$("$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.todo --param method=list --data "{\"input\":{\"sessionID\":\"$session_id\"},\"location\":{\"directory\":\"$temporary/workspace\"}}")"
+TODO_JSON="$todo_json" bun --eval '
+  const value = JSON.parse(process.env.TODO_JSON)
+  const todo = value.output ?? value.data?.output
+  if (todo?.todos?.[0]?.content !== "Smoke task" || todo.guidance !== false)
+    throw new Error("Navigator Todo did not persist across server processes")
+'
 
 expect <<'EXPECT'
   log_user 0

@@ -8,6 +8,8 @@
     "scripts/update-local-snapshot.mjs",
     "screenshots/harness",
     "build.ts",
+    "server.js",
+    "rpc.js",
     "*.config.js"
   ]
 }

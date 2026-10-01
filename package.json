@@ -27,6 +27,8 @@
   ],
   "files": [
     "dist",
+    "server.js",
+    "rpc.js",
     "assets",
     "scripts/install-font.mjs",
     "scripts/update-local-snapshot.mjs",
@@ -40,6 +42,12 @@
   "exports": {
     "./tui": {
       "import": "./dist/tui.js"
+    },
+    "./server": {
+      "import": "./dist/server.js"
+    },
+    "./rpc": {
+      "import": "./dist/rpc.js"
     }
   },
   "publishConfig": {

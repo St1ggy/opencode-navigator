@@ -117,6 +117,11 @@ export default [
     rules: { 'import-x/extensions': 'off' },
   },
   {
+    files: ['server.js', 'rpc.js'],
+    // Public plugin entrypoints point to dist files generated only by the build.
+    rules: { 'import-x/extensions': 'off', 'import-x/no-unresolved': 'off' },
+  },
+  {
     files: ['screenshots/harness/*.mjs'],
     rules: {
       // The fixture runs inside an isolated container with a container-only bundle path

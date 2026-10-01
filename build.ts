@@ -235,3 +235,29 @@ for (const output of result.outputs) {
 
   await Bun.write(output.path, bundled)
 }
+
+for (const entrypoint of ['src/server.ts', 'src/rpc.ts']) {
+  const server = await Bun.build({
+    entrypoints: [entrypoint],
+    outdir: 'dist',
+    target: 'bun',
+    format: 'esm',
+    external: [
+      '@opencode/plugin',
+      '@opencode/schema',
+      '@opencode/client',
+      '@opentui/core',
+      '@opentui/solid',
+      'solid-js',
+    ],
+  })
+
+  if (!server.success) {
+    for (const log of server.logs) console.error(log)
+    process.exit(1)
+  }
+
+  for (const output of server.outputs) {
+    if (output.kind === 'entry-point') await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
+  }
+}
