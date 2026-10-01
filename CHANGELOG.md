@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.18.2] - 2026-10-02
+
+- Open the host Settings dialog from the OpenCode 2.x Permissions Quick Action, where the user can change between `prompt` and `auto accept`; keep the direct auto-approve toggle on OpenCode 1.x.
+
 ## [0.18.1] - 2026-10-01
 
 - Show calm Todo setup guidance in OpenCode 2.x when Navigator's server plugin is absent, without a request error or Retry control. Actual server failures still offer Retry.
@@ -41,6 +45,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.18.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.3...v0.18.0
 [0.17.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.2...v0.17.3

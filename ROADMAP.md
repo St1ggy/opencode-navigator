@@ -120,6 +120,7 @@ verification workflow before expanding the product surface.
 - [x] Quick Actions: keep scoped ordering and visibility, add user-wide bookmarks with favorites first in configured order, remove usage-based ordering, retain independent hiding for every action, and preserve the explicit argument-free host-command allowlist including the global auto-approve toggle and route-aware disabled reasons.
 - [x] Keep full Quick Action names readable in narrow sidebars by moving unavailable reasons below the label and hiding shortcuts that would force the label to truncate.
 - [x] Refresh the auto-approve Quick Action label reactively in the sidebar and Search Everything after `permission.mode` changes.
+- [x] Make the OpenCode 2.x Permissions Quick Action open the host Settings dialog, where the user changes `prompt`/`autoaccept`; retain OpenCode 1.x's direct auto-approve toggle.
 - [x] Add `Ctrl+,` as the direct Navigator Settings shortcut and separate bookmarked Quick Actions from the remaining visible actions.
 - [~] LSP: icons/text badges, error-first sorting, and in-place server-label toggling exist; diagnostic-specific actions depend on public API support.
 - [x] Remove the LSP root/status details modal because the host may report an empty root.
