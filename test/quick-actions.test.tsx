@@ -7,6 +7,7 @@ import { createPreferencesController } from '../src/controllers/preferences'
 import { QuickActionsDialog } from '../src/dialogs/quick-actions'
 import { uiIcon } from '../src/icons/ui'
 import { QuickActionsSection } from '../src/pages/session-sidebar'
+import { QuickActionRow } from '../src/pages/session-sidebar/ui/quick-action-row'
 import { QUICK_ACTIONS, QUICK_ACTION_IDS, quickActionDisabledReason, quickActionLabel } from '../src/quick-actions'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -57,6 +58,46 @@ test('quick action availability distinguishes routes, unsupported commands, and 
   expect(quickActionDisabledReason(api, action('session.rename'))).toBe('Unavailable in the current session')
   expect(quickActionDisabledReason(api, action('session.export'))).toBe('Unavailable in this OpenCode version')
   expect(quickActionLabel(api, action('permission.mode'))).toBe('Enable auto-approve permissions')
+})
+
+test('narrow Quick Actions show the complete name and keep unavailable reasons below it', async () => {
+  const shortcut = 'ctrl+shift+alt+a'
+  const api = {
+    theme: { current: { text: '#ffffff', textMuted: '#888888', accent: '#00ffff', backgroundElement: '#222222' } },
+    keymap: { getCommandBindings: () => new Map([['permission.mode', ['ctrl+shift+alt+a']]]) },
+    keys: { formatBindings: () => shortcut },
+  } as unknown as TuiPluginApi
+  const action = QUICK_ACTIONS.find((candidate) => candidate.command === 'permission.mode')!
+  const row = (disabled?: string) => (
+    <QuickActionRow
+      api={api}
+      action={action}
+      disabled={disabled}
+      favorite
+      favoriteDisabled={false}
+      separator={false}
+      onToggleFavorite={() => {}}
+      position={{ section: 1, row: 1, column: 0 }}
+    />
+  )
+  const narrow = await testRender(() => row('Unavailable in this OpenCode version'), { width: 42, height: 6 })
+  const wide = await testRender(() => row(), { width: 72, height: 6 })
+
+  try {
+    await narrow.flush()
+    await wide.flush()
+    const lines = narrow.captureCharFrame().split('\n')
+    const title = lines.findIndex((line) => line.includes('Auto-approve permissions'))
+
+    expect(title).toBeGreaterThan(-1)
+    expect(lines[title]).not.toContain('Unavailable')
+    expect(lines[title + 1]).toContain('Unavailable in this OpenCode version')
+    expect(lines[title]).not.toContain(shortcut)
+    expect(wide.captureCharFrame()).toContain(shortcut)
+  } finally {
+    narrow.renderer.destroy()
+    wide.renderer.destroy()
+  }
 })
 
 test('Quick Actions settings change live visibility and ordering and keep selection on the moved action', async () => {

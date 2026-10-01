@@ -1,4 +1,4 @@
-import { Show, createMemo } from 'solid-js'
+import { Show, createMemo, createSignal } from 'solid-js'
 
 import { PLUGIN_ID } from '../../../shared/config'
 import { BookmarkControl, ListRow, useIcons } from '../../../shared/ui'
@@ -24,6 +24,7 @@ export function QuickActionRow(props: {
 }) {
   const icons = useIcons()
   const theme = () => props.api.theme.current
+  const [width, setWidth] = createSignal(0)
   const shortcut = createMemo(() => {
     const bindings = props.api.keymap.getCommandBindings({
       visibility: 'registered',
@@ -31,6 +32,12 @@ export function QuickActionRow(props: {
     })
 
     return props.api.keys.formatBindings(bindings.get(props.action.command))
+  })
+  const visibleShortcut = createMemo(() => {
+    const value = shortcut()
+
+    // Row padding, icon, bookmark control, and three gaps consume nine cells.
+    return value && width() >= Bun.stringWidth(props.action.label) + Bun.stringWidth(value) + 9 ? value : undefined
   })
 
   function run() {
@@ -84,6 +91,9 @@ export function QuickActionRow(props: {
       paddingLeft={1}
       paddingRight={1}
       marginTop={props.separator ? 1 : 0}
+      onSizeChange={function (this: BoxRenderable) {
+        setWidth(this.width)
+      }}
       backgroundColor={row.backgroundColor()}
       onMouseOver={row.onMouseOver}
       onMouseOut={row.onMouseOut}
@@ -99,14 +109,22 @@ export function QuickActionRow(props: {
       content={
         <text flexGrow={1} fg={row.foregroundColor()} wrapMode="none" truncate>
           {props.action.label}
-          {props.disabled ? ` · ${props.disabled}` : ''}
         </text>
       }
       metadata={
-        <Show when={shortcut()}>
+        <Show when={visibleShortcut()}>
           {(value) => (
             <text flexShrink={0} fg={row.focused() ? row.foregroundColor() : theme().textMuted} wrapMode="none">
               {value()}
+            </text>
+          )}
+        </Show>
+      }
+      details={
+        <Show when={props.disabled}>
+          {(reason) => (
+            <text fg={row.focused() ? row.foregroundColor() : theme().textMuted} wrapMode="word">
+              {reason()}
             </text>
           )}
         </Show>
