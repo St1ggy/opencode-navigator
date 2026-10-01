@@ -1,2 +1,6 @@
 export * from './model/controller'
+export * from './model/managed-todos'
+export * from './model/navigator-controller'
+export * from './model/navigator-rpc'
+export * from './model/navigator-state'
 export * from './model/view'

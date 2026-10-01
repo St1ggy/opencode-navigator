@@ -119,9 +119,6 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     todo: true,
     lsp: false,
     titleVisibility: false,
-    unavailable: {
-      todo: 'OpenCode 2 does not expose Todo data through its supported plugin API.',
-    },
   })
 
   return {

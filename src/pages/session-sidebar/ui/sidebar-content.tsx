@@ -15,7 +15,7 @@ import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
 import type { SubagentController } from '../../../entities/subagent'
-import type { TodoController } from '../../../entities/todo'
+import type { NavigatorTodoController, TodoController } from '../../../entities/todo'
 import type { SidebarInteraction } from '../model/sidebar-interaction'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { BoxRenderable } from '@opentui/core'
@@ -23,7 +23,7 @@ import type { BoxRenderable } from '@opentui/core'
 export function SidebarContent(props: {
   api: TuiPluginApi
   mcp: McpController
-  todo: TodoController
+  todo: TodoController | NavigatorTodoController
   subagents: SubagentController
   skills: SkillController
   preferences: PreferencesController

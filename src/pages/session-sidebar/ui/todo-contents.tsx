@@ -25,8 +25,10 @@ export function TodoContents(props: {
   view: TodoView
   visibility: TodoVisibility
   density: SidebarRowDensity
+  managed?: boolean
 }) {
   const navigationSection = () => props.navigationSection ?? 1
+  const tabsRow = () => (props.managed ? 3 : 2)
 
   return (
     <box gap={1}>
@@ -37,7 +39,7 @@ export function TodoContents(props: {
               api={props.api}
               interaction={props.interaction}
               id={`${PLUGIN_ID}.todo.filter.${value}`}
-              position={{ section: navigationSection(), row: 2, column: index() }}
+              position={{ section: navigationSection(), row: tabsRow(), column: index() }}
               label={value[0].toUpperCase() + value.slice(1)}
               count={props.view.counts[value]}
               selected={props.mode === value}
@@ -71,7 +73,7 @@ export function TodoContents(props: {
         interaction={props.interaction}
         section="todo"
         navigationSection={navigationSection()}
-        row={3}
+        row={tabsRow() + 1}
         visibility={props.visibility}
       />
     </box>

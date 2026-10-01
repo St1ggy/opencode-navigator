@@ -211,7 +211,7 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
   expect(connectCalls).toEqual([{ server: 'docs', location: { directory: '/workspace' } }])
   expect(disconnectCalls).toEqual([{ server: 'docs', location: { directory: '/workspace' } }])
   expect(supportsSidebarSection(adapter.api, 'todo')).toBe(true)
-  expect(hostCapabilityUnavailable(adapter.api, 'todo')).toContain('does not expose Todo data')
+  expect(hostCapabilityUnavailable(adapter.api, 'todo')).toBeUndefined()
   expect(supportsSidebarSection(adapter.api, 'lsp')).toBe(false)
   expect(supportsSidebarSection(adapter.api, 'skills')).toBe(true)
 

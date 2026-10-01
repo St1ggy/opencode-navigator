@@ -1,6 +1,11 @@
 import { Show, createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js'
 
-import { type TodoController, type TodoViewMode, buildTodoView } from '../../../entities/todo'
+import {
+  type NavigatorTodoController,
+  type TodoController,
+  type TodoViewMode,
+  buildTodoView,
+} from '../../../entities/todo'
 import { PLUGIN_ID } from '../../../shared/config'
 import { hostCapabilityUnavailable } from '../../../shared/lib/host-capabilities'
 import { createListVisibility } from '../../../shared/lib/list-visibility'
@@ -9,6 +14,7 @@ import { useIcons } from '../../../shared/ui'
 import { SectionRequestBody } from './request-body'
 import { Section } from './section'
 import { TodoContents } from './todo-contents'
+import { TodoGuidanceControl } from './todo-guidance-control'
 
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SidebarInteraction } from '../model/sidebar-interaction'
@@ -17,7 +23,7 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 export function TodoSection(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
-  controller: TodoController
+  controller: TodoController | NavigatorTodoController
   preferences: PreferencesController
   sessionID: string
   navigationSection?: number
@@ -25,6 +31,8 @@ export function TodoSection(props: {
   const list = createMemo(() => props.controller.list(props.sessionID))
   const icons = useIcons()
   const unavailable = () => hostCapabilityUnavailable(props.api, 'todo')
+  const managed = (): NavigatorTodoController | undefined =>
+    'guidance' in props.controller ? props.controller : undefined
   const [mode, setMode] = createSignal<TodoViewMode>('all')
   const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
 
@@ -69,28 +77,45 @@ export function TodoSection(props: {
       <Show
         when={unavailable()}
         fallback={
-          <SectionRequestBody
-            api={props.api}
-            interaction={props.interaction}
-            id={`${PLUGIN_ID}.retry.todo`}
-            position={{ section: navigationSection(), row: 1, column: 0 }}
-            state={state()}
-            hasItems={list().length > 0}
-            empty="No tasks yet"
-            loading="Loading tasks…"
-            onRetry={() => void props.controller.retry(props.sessionID)}
-          >
-            <TodoContents
+          <box gap={1}>
+            <Show when={managed()?.guidance(props.sessionID).available}>
+              <TodoGuidanceControl
+                api={props.api}
+                controller={managed()!}
+                sessionID={props.sessionID}
+                interaction={props.interaction}
+                navigationSection={navigationSection()}
+              />
+            </Show>
+            <Show when={managed() && state().error && !managed()?.guidance(props.sessionID).available}>
+              <text fg={props.api.theme.current.textMuted} wrapMode="word">
+                Add Navigator's server plugin to opencode.json; restart OpenCode to enable Todo.
+              </text>
+            </Show>
+            <SectionRequestBody
               api={props.api}
               interaction={props.interaction}
-              navigationSection={props.navigationSection}
-              mode={mode()}
-              setMode={setMode}
-              view={view()}
-              visibility={visibility}
-              density={props.preferences.rowDensity?.() ?? 'compact'}
-            />
-          </SectionRequestBody>
+              id={`${PLUGIN_ID}.retry.todo`}
+              position={{ section: navigationSection(), row: 1, column: 0 }}
+              state={state()}
+              hasItems={list().length > 0}
+              empty="No tasks yet"
+              loading="Loading tasks…"
+              onRetry={() => void props.controller.retry(props.sessionID).catch(() => {})}
+            >
+              <TodoContents
+                api={props.api}
+                interaction={props.interaction}
+                navigationSection={props.navigationSection}
+                mode={mode()}
+                setMode={setMode}
+                view={view()}
+                visibility={visibility}
+                density={props.preferences.rowDensity?.() ?? 'compact'}
+                managed={Boolean(managed())}
+              />
+            </SectionRequestBody>
+          </box>
         }
       >
         {(message) => (

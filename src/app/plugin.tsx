@@ -3,7 +3,7 @@ import { createMcpController } from '../entities/mcp'
 import { createPreferencesController, createPreferencesStore } from '../entities/preferences'
 import { createSkillController } from '../entities/skill'
 import { createSubagentController } from '../entities/subagent'
-import { createTodoController } from '../entities/todo'
+import { type NavigatorTodoController, createNavigatorTodoController, createTodoController } from '../entities/todo'
 import { openKeyboardHelp } from '../features/keyboard-help'
 import { SearchBinding } from '../features/search-everything'
 import { SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
@@ -69,10 +69,11 @@ async function setupNavigator(
   api: Parameters<TuiPlugin>[0],
   options: Parameters<TuiPlugin>[1],
   readProject?: () => Promise<string | undefined>,
+  managedTodo?: NavigatorTodoController,
 ) {
   const config = pluginConfig(undefined)
   const configured = await loadConfiguredDefaults(api, options, readProject)
-  const todo = createTodoController(api)
+  const todo = managedTodo ?? createTodoController(api)
   const subagents = createSubagentController(api)
   const skills = createSkillController(api)
   const preferences = createPreferencesController(api, config, createPreferencesStore(api.state.path.state), configured)
@@ -203,13 +204,19 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMe
 
 export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (context) => {
   const adapter = createOpenCodeV2Api(context)
-  const { mcp, preferences } = await setupNavigator(adapter.api, context.options as never, async () => {
-    if (!context.client.file?.read) return
+  const todo = createNavigatorTodoController(context, adapter.api)
+  const { mcp, preferences } = await setupNavigator(
+    adapter.api,
+    context.options as never,
+    async () => {
+      if (!context.client.file?.read) return
 
-    return new TextDecoder().decode(
-      await context.client.file.read({ location: context.location, path: '.opencode/navigator.json' }),
-    )
-  })
+      return new TextDecoder().decode(
+        await context.client.file.read({ location: context.location, path: '.opencode/navigator.json' }),
+      )
+    },
+    todo,
+  )
   const versionStatus = createVersionStatus(adapter.api, __NAVIGATOR_VERSION__)
   const versionUpdates = createVersionUpdateActions(
     adapter.api,

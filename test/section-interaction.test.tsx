@@ -32,6 +32,7 @@ import { TodoRow } from '../src/pages/session-sidebar/ui/todo-row'
 import type { PreferencesController } from '../src/controllers/preferences'
 import type { SubagentController } from '../src/controllers/subagents'
 import type { TodoController } from '../src/controllers/todo'
+import type { NavigatorTodoController } from '../src/entities/todo'
 import type { SubagentViewItem } from '../src/subagent-view'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { JSX } from 'solid-js'
@@ -234,6 +235,72 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
     await setup.flush()
     expect(setup.captureCharFrame()).toContain('All 1')
     expect(setup.captureCharFrame()).toContain('done-task')
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('OpenCode 2 Todo keeps its session instructions control visible without tasks', async () => {
+  const [enabled, setEnabled] = createSignal(false)
+  const api = { theme: { current: sidebarTheme } } as unknown as TuiPluginApi
+  const controller = {
+    list: () => [],
+    target: (id: string) => ({ key: id }),
+    state: () => ({ status: 'ready' }),
+    refresh: async () => [],
+    guidance: () => ({ enabled: enabled(), saving: false, available: true }),
+    setGuidance: async (_id: string, value: boolean) => setEnabled(value),
+  } as unknown as NavigatorTodoController
+  const preferences = {
+    expanded: () => ({ ...expandedLayout, todo: true }),
+    toggleSectionExpanded() {},
+  } as unknown as PreferencesController
+  const setup = await testRender(
+    () => <TodoSection api={api} controller={controller} preferences={preferences} sessionID="ses_one" />,
+    { width: 52, height: 18 },
+  )
+
+  try {
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain('No tasks yet')
+    const lines = setup.captureCharFrame().split('\n')
+    const row = lines.findIndex((line) => line.includes('Todo instructions: Off'))
+
+    expect(row).toBeGreaterThan(-1)
+    await setup.mockMouse.click(lines[row].indexOf('Todo instructions: Off'), row)
+    await setup.flush()
+    expect(enabled()).toBe(true)
+    expect(setup.captureCharFrame()).toContain('Todo instructions: On')
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('OpenCode 2 Todo explains how to enable its missing server plugin', async () => {
+  const api = { theme: { current: sidebarTheme } } as unknown as TuiPluginApi
+  const controller = {
+    list: () => [],
+    target: (id: string) => ({ key: id }),
+    state: () => ({ status: 'error', error: { message: 'RPC method unavailable', retryable: true } }),
+    refresh: async () => {
+      throw new Error('RPC method unavailable')
+    },
+    guidance: () => ({ enabled: false, saving: false, available: false }),
+  } as unknown as NavigatorTodoController
+  const preferences = {
+    expanded: () => ({ ...expandedLayout, todo: true }),
+    toggleSectionExpanded() {},
+  } as unknown as PreferencesController
+  const setup = await testRender(
+    () => <TodoSection api={api} controller={controller} preferences={preferences} sessionID="ses_one" />,
+    { width: 52, height: 16 },
+  )
+
+  try {
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain('server plugin to opencode.json')
+    expect(setup.captureCharFrame()).toContain('Retry')
+    expect(setup.captureCharFrame()).not.toContain('Todo instructions:')
   } finally {
     setup.renderer.destroy()
   }

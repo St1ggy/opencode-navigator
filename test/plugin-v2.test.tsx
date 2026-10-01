@@ -136,6 +136,12 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
         off() {},
       }),
       client: {
+        rpc: () => ({
+          list: async () => {
+            throw new Error('Navigator Todo RPC unavailable')
+          },
+          events: { on: () => () => {} },
+        }),
         session: {
           list: async () => ({ data: [], cursor: {} }),
           active: async () => ({}),
@@ -253,7 +259,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
 
     expect(frame).not.toContain('OpenCode 2 session')
     expect(frame).toContain('TODO')
-    expect(frame).toContain('OpenCode 2 does not expose Todo data')
+    expect(frame).toContain('server plugin to opencode.json')
     expect(frame).toContain('SUBAGENTS')
     expect(frame).toContain('SKILLS')
     expect(frame).toContain('QUICK ACTIONS')
