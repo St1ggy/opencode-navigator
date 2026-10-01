@@ -189,6 +189,12 @@ and update in the sidebar when the agent calls `navigator_todo_write`. The
 starts **Off**: tasks and the agent tool work without adding Todo instructions
 to the model's context. OpenCode 1.x continues to show the host's Todo list.
 
+If you use both OpenCode 1.x and 2.x with the same global `opencode.json`, keep
+that shared server config compatible with 1.x. Place the server-plugin entry
+in a separate JSON file and set `OPENCODE_CONFIG` to its path **only when
+launching OpenCode 2.x**. The TUI configuration in `cli.json` remains separate;
+the OpenCode 1.x launch must not load Navigator's 2.x server plugin.
+
 ### Install the corner font
 
 **Required for rounded multiline selections in Nerd Font mode.** Run the font

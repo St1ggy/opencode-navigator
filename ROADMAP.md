@@ -61,7 +61,7 @@ verification workflow before expanding the product surface.
 - [x] Enforce a 360,000-byte raw bundle budget through `bun run check` and CI.
 - [x] Add verified runtime and package compatibility for both OpenCode 1.18.30+ and OpenCode 2.x, with explicit adapters for host API differences and a real local OpenCode 2.0.16 client smoke.
 - [x] Verify a user-managed 2.x transition with parallel 1.x `tui.json` and 2.x `cli.json` client configurations.
-- [x] Refresh the development SDK/runtime dependencies and compatibility fixtures for OpenCode 1.18.32 and the latest stable OpenCode 2.x.
+- [x] Refresh the development SDK/runtime dependencies and compatibility fixtures for OpenCode 1.18.34 and the latest stable OpenCode 2.x.
 
 ### Keyboard Navigation
 
@@ -85,8 +85,10 @@ verification workflow before expanding the product surface.
 - [x] Verify the migrated global `cli.json` and Navigator package wrapper in the real OpenCode 2.0.16 TUI while retaining the separate OpenCode 1.x `tui.json` configuration.
 - [x] Restore OpenCode 2.x visual parity for Navigator and keep Todo visible with setup guidance when its server Todo API is unavailable.
 - [x] Provide a Navigator-owned OpenCode 2 Todo server plugin with durable per-session RPC, an agent Todo tool, reactive sidebar updates, and an off-by-default per-session control for model-context Todo guidance; keep OpenCode 1.x host Todo unchanged.
+- [x] Show quiet OpenCode 2 Todo server setup guidance without a request error or Retry when its RPC is not installed; retain retry for other errors and configure local dual-host OpenCode clients without loading the v2 server plugin in 1.x.
 - [x] Add a separate required real-host OpenCode 2.x PTY smoke while retaining the OpenCode 1.x compatibility smoke.
-- [x] Route local `oc` and `opencode` to OpenCode 1.18.32 and `oc2` and `opencode2` to OpenCode 2.0.16; verify both interactive zsh wrappers and executable PATH commands with `--version`.
+- [x] Establish separate local `oc`/`opencode` and `oc2`/`opencode2` launch routing; verify both interactive zsh wrappers and executable PATH commands with `--version`.
+- [x] Replace the local npm-managed OpenCode 1.x and 2.x installs with Homebrew 1.18.34 and 2.0.21 while retaining the same four command names, compatibility with already-open shells, and separate startup configurations.
 
 ## Product Direction
 
@@ -116,6 +118,7 @@ verification workflow before expanding the product surface.
 - [x] Skills: user-wide favorites, recent items, source details, fuzzy keyboard selection through Search Everything, and trusted-skill confirmation management.
 - [x] Replace Skill star/info row actions with the MCP-style bookmark control and expose the same bookmark in the Skill confirmation dialog.
 - [x] Quick Actions: keep scoped ordering and visibility, add user-wide bookmarks with favorites first in configured order, remove usage-based ordering, retain independent hiding for every action, and preserve the explicit argument-free host-command allowlist including the global auto-approve toggle and route-aware disabled reasons.
+- [x] Keep full Quick Action names readable in narrow sidebars by moving unavailable reasons below the label and hiding shortcuts that would force the label to truncate.
 - [x] Refresh the auto-approve Quick Action label reactively in the sidebar and Search Everything after `permission.mode` changes.
 - [x] Add `Ctrl+,` as the direct Navigator Settings shortcut and separate bookmarked Quick Actions from the remaining visible actions.
 - [~] LSP: icons/text badges, error-first sorting, and in-place server-label toggling exist; diagnostic-specific actions depend on public API support.
