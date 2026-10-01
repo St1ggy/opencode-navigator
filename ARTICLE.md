@@ -202,7 +202,9 @@ OpenCode 1.x uses `.opencode/tui.json` for a project installation and `~/.config
 }
 ```
 
-OpenCode 2.0.16 does not yet expose Todo or LSP data to TUI plugins. Navigator therefore keeps Todo visible with an explicit host-limitation message, hides LSP, and preserves Subagents, Skills, Quick Actions, MCP, search, and settings. Restart OpenCode after changing the configuration.
+OpenCode 2.0.16 does not expose host Todo or LSP data to TUI plugins. To keep my tasks when I reopen a session, I added a separate server plugin. Put `"plugin": ["opencode-navigator"]` in `~/.config/opencode/opencode.json` alongside the TUI entry in `cli.json`, then restart OpenCode.
+
+The agent can update that session's list with `navigator_todo_write`. **Todo instructions** is a separate switch: it starts Off and adds task guidance to model context only when I turn it on. Without the server plugin, Todo explains how to connect it. LSP remains hidden on 2.x.
 
 For rounded multiline highlights in Nerd Font mode, install the additional font on the machine running the terminal:
 

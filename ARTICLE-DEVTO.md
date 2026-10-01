@@ -200,9 +200,13 @@ The command updates the `plugins` array in the global `~/.config/opencode/cli.js
 
 OpenCode 2.x has no project-local `cli.json`. Navigator replaces the `sidebar.content` slot, so the built-in sidebar overrides required for OpenCode 1.x are not needed.
 
-OpenCode 2.0.16 does not expose Todo or LSP state to TUI plugins. Navigator keeps
-Todo visible with an explicit unsupported-host message and hides LSP while retaining
-Subagents, Skills, Quick Actions, MCP, Search, settings, and presets.
+OpenCode 2.0.16 does not expose host Todo or LSP state to TUI plugins. To use Todo,
+I put `"plugin": ["opencode-navigator"]` in `~/.config/opencode/opencode.json` as
+well as the TUI entry above, then restart OpenCode. The server plugin keeps tasks
+per session and gives the agent a `navigator_todo_write` tool. A separate
+**Todo instructions** switch starts Off; turning it on adds task guidance to the
+model context for that session. If the server plugin is missing, the sidebar
+explains how to enable it. LSP remains hidden on OpenCode 2.x.
 
 ### Rounded selections and the corner font
 
@@ -220,7 +224,7 @@ If you do not want an additional font, turn off **Settings -> Behavior -> Multil
 
 Navigator uses the full sidebar slot OpenCode provides, but OpenCode currently fixes the outer panel at 42 columns. There is no honest plugin setting for making it wider.
 
-Todo priority is read-only because TUI plugins do not receive a Todo mutation API. Language Server Protocol (LSP) badges can reveal the full server ID in place, but Navigator does not show a root/status dialog because the host may report an empty root and does not expose the underlying diagnostic error text. MCP startup ordering has the brief-connect limitation described earlier.
+Todo priority is read-only in the sidebar: the OpenCode 1.x host does not expose a Todo mutation API to TUI plugins, while OpenCode 2.x uses the separate agent tool. Language Server Protocol (LSP) badges can reveal the full server ID in place on 1.x, but Navigator does not show a root/status dialog because the host may report an empty root and does not expose the underlying diagnostic error text. MCP startup ordering has the brief-connect limitation described earlier.
 
 I would rather state those boundaries plainly than add controls that pretend the plugin has authority it does not.
 

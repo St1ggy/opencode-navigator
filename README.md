@@ -12,7 +12,7 @@ See the [changelog](CHANGELOG.md) for release-by-release changes.
 
 - Theme-aware session title with the session creation date
 - First-run setup guide with interactive section settings
-- Collapsible Todo section with status filters, grouped tasks, progress and priority indicators
+- Collapsible Todo section with status filters, grouped tasks, progress and priority indicators; OpenCode 2 adds session-owned tasks and optional model-context instructions
 - Active subagent list with live statuses and click-to-open navigation, including dev-team workers running in separate local processes
 - Compact, searchable workspace skill list with user-wide favorites, recent skills, source details, and click-to-confirm slash commands
 - Configurable host quick actions, including the auto-approve toggle, with user-wide bookmarks and availability reasons
@@ -42,8 +42,9 @@ collapsed. Use `Save current layout as default` in sidebar settings to reuse the
 current visible/hidden, expanded/collapsed, and ordering states in new sessions.
 
 Supports OpenCode 1.18.30 and newer, including OpenCode 2.x. OpenCode 2.0.16 does
-not expose Todo or LSP data to TUI plugins. Navigator keeps Todo visible with an
-explicit unsupported-host message and hides LSP on 2.x while retaining Subagents,
+not expose host Todo or LSP data to TUI plugins. Navigator supplies its own
+session Todo list through a separately configured server plugin in 2.x. Without
+that plugin, Todo stays visible with setup guidance. LSP is hidden on 2.x while retaining Subagents,
 Skills, Quick Actions, MCP, Search, settings, and presets. All interface icons use Nerd Font glyphs by
 default (Codicons for controls, keyboard symbols for hints, language logos for LSP). Use a Nerd Fonts v3
 terminal font, or select **Settings → Behavior → Icon style → Text fallback**.
@@ -167,6 +168,26 @@ OpenCode 2.x CLI plugins are global terminal settings; there is no project-local
 `cli.json`. Navigator replaces the `sidebar.content` slot, so no built-in sidebar
 plugin overrides are required. OpenCode validates `cli.json` strictly, so keep it
 within the linked schema and restart OpenCode after changing it.
+
+To enable Todo in OpenCode 2.x, also install the **server** half of Navigator.
+Add the same package to `~/.config/opencode/opencode.json` (or the project
+`opencode.json`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["opencode-navigator"]
+}
+```
+
+For a local source installation, use the directory containing Navigator's
+`server.js` in the `plugin` array. Keep the TUI package in `cli.json` as above;
+the server configuration alone does not replace it. Restart OpenCode after
+configuring both. Todo items belong to the current session, survive restarts,
+and update in the sidebar when the agent calls `navigator_todo_write`. The
+**Todo instructions: Off/On** control in the Todo section is session-scoped and
+starts **Off**: tasks and the agent tool work without adding Todo instructions
+to the model's context. OpenCode 1.x continues to show the host's Todo list.
 
 ### Install the corner font
 
@@ -509,8 +530,8 @@ root order. Activate any badge, including a custom server, to toggle its full ID
 in place. Navigator does not open a root/status dialog because OpenCode may report
 an empty root and does not expose the underlying diagnostic error text.
 
-Todo priorities are read-only because OpenCode does not expose a Todo mutation
-API to TUI plugins.
+Todo priorities are read-only in the sidebar. OpenCode 1.x provides host Todo
+data without a TUI mutation API; on 2.x, Navigator's agent tool writes tasks.
 
 Todo offers `All`, `Active`, and `Finished` views with counts. Active shows running
 tasks before pending tasks. Finished contains separate Completed and Cancelled

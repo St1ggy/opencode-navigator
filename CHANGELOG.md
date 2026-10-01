@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.18.0] - 2026-10-01
+
+- Add durable per-session Todo lists to OpenCode 2.x through a separately configured Navigator server plugin and an agent Todo tool.
+- Update Todo in the sidebar as tasks change, and offer an off-by-default per-session switch for model-context Todo instructions.
+- Keep Todo visible with setup guidance when the OpenCode 2.x server plugin is missing.
+
 ## [0.17.3] - 2026-09-30
 
 ## [0.17.2] - 2026-09-30
@@ -30,6 +36,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.18.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.3...v0.18.0
 [0.17.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.0...v0.17.1

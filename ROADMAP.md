@@ -83,7 +83,8 @@ verification workflow before expanding the product surface.
 - [x] Add a reproducible Docker/Ghostty screenshot harness with pinned fonts, virtual display capture, and fully synthetic fixtures for every sidebar section and dialog.
 - [x] Keep deterministic layout, MCP, and import previews with Nerd Font icons but rectangular multiline highlights when the additional corner font is disabled.
 - [x] Verify the migrated global `cli.json` and Navigator package wrapper in the real OpenCode 2.0.16 TUI while retaining the separate OpenCode 1.x `tui.json` configuration.
-- [x] Restore OpenCode 2.x visual parity for Navigator and keep Todo visible with an explicit unsupported-host state when no Todo API is available.
+- [x] Restore OpenCode 2.x visual parity for Navigator and keep Todo visible with setup guidance when its server Todo API is unavailable.
+- [x] Provide a Navigator-owned OpenCode 2 Todo server plugin with durable per-session RPC, an agent Todo tool, reactive sidebar updates, and an off-by-default per-session control for model-context Todo guidance; keep OpenCode 1.x host Todo unchanged.
 - [x] Add a separate required real-host OpenCode 2.x PTY smoke while retaining the OpenCode 1.x compatibility smoke.
 - [x] Route local `oc` and `opencode` to OpenCode 1.18.32 and `oc2` and `opencode2` to OpenCode 2.0.16; verify both interactive zsh wrappers and executable PATH commands with `--version`.
 
