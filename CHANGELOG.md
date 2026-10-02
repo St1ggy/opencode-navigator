@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.19.2] - 2026-10-02
+
+- Show MCP group connection states with the same radio-style indicators as individual servers, without Connect/Disconnect labels on group headings.
+
 ## [0.19.1] - 2026-10-02
 
 - Remember the OpenCode 1.x auto-approve mode as a user-wide default for new sessions, including changes made through the host's permission toggle.
@@ -55,6 +59,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.19.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.2...v0.19.0
 [0.18.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.1...v0.18.2

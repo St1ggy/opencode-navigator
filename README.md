@@ -89,7 +89,9 @@ Click a group heading (including Favorites or Ungrouped), or focus it and press
 `Enter`, to connect its remaining eligible servers. Once none need connecting,
 the same control disconnects its connected servers. This affects the full group
 even when a filter or item limit hides some rows; failed operations retain the
-usual retry control.
+usual retry control. The heading has no action label: its radio-style icon is
+filled only when every server in the group is connected, empty if any still
+needs connecting, and pending while the group changes.
 
 ![MCP group manager](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
 

@@ -131,6 +131,7 @@ verification workflow before expanding the product surface.
 - [x] Remove the LSP root/status details modal because the host may report an empty root.
 - [x] MCP: filtering, pending rows, dedicated full-error details, individual/bulk connect/disconnect, retry, user-wide favorites, and user-wide custom groups with absent-server retention.
 - [x] Toggle all eligible servers in a sidebar MCP group from its heading with keyboard/mouse support, full-bucket semantics under filters/limits, and existing bulk retry feedback.
+- [x] Replace MCP group Connect/Disconnect labels with a full-bucket server-style status indicator, including connected, disconnected, failed, and pending states.
 - [x] Consolidate the local installation's private MCP groups and remove retired integrations from active host configuration, shell commands, installed runtimes, and private state while preserving source projects.
 - [x] Let MCP group assignment select an existing group or create a new one.
 - [x] Add a single-row gap between adjacent MCP groups in the sidebar.
