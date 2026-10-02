@@ -56,6 +56,7 @@
 - Make first-run onboarding a seven-slide, capability-first wizard: introduction, monitoring, Search and Skills, Quick Actions and LSP, MCP, customization, then section configuration on the final slide.
 - Use a dotted circular Nerd Font glyph for pending/loading indicators so MCP pending state has the same footprint as its connected and disconnected radio indicators.
 - Settings section toggles must update the effective sidebar layout immediately without changing section order or allowing stale worktree/session snapshots to mask the selected scope.
+- Offer a manual Settings action to reload the private preferences file across running OpenCode sessions without restarting. Flush pending local writes first, refresh effective Global/Worktree layout and behavior together with favorites, groups, and presets, and clear temporary session layout overrides that would mask the reloaded settings.
 - Subagent tabs show muted non-bold counts using the same query-aware counting behavior as Todo tabs.
 - Hide the Subagent Errors tab when its query-aware count is zero. Keep empty Active and Recent tabs visible but disabled for both mouse and keyboard navigation.
 - Mark subagent durations that began before observation with the Nerd Font clock icon and a readable text-mode fallback instead of the greater-than-or-equal sign.
@@ -82,9 +83,13 @@
 - MCP on/off indicators look like radio buttons. MCP favorites use the compact filled/outlined bookmark pair that fits a terminal cell.
 - Failed MCP rows expose a dedicated information control instead of rendering the error inline; it opens a scrollable dialog with the server, status, and full error text.
 - MCP custom groups are user-wide, assign at most one group per exact server name, keep favorites in a leading bucket, sort named groups and their servers alphabetically, and retain assignments for servers absent from the current workspace.
+- Let users activate any sidebar MCP group heading (including Favorites and Ungrouped) by mouse or keyboard to connect its remaining eligible members, or disconnect its connected members when none need connecting. Affect the full bucket regardless of the current filter or item limit, keep preset and scope guards, and reuse bulk progress, failure, and retry handling.
 - MCP group assignment must offer existing groups as selectable options while retaining an input for creating a new group.
+- For local MCP cleanup, remove retired integrations from effective host configuration and private Navigator state while preserving source repositories unless explicitly requested. Keep remaining user-wide groups compact and leave favorites and unrelated settings intact.
+- Treat the local dev-team CLI and MCP deepagent as separate integrations; removing dev-team must leave deepagent available.
 - Separate adjacent MCP groups in the sidebar with a single-row gap, without adding space before the first group or between servers in one group.
 - Skill favorites use the same compact filled/outlined bookmark control as MCP favorites in both sidebar rows and the Skill confirmation dialog.
+- Skill groups are user-wide private assignments keyed by each skill's exact source location. Keep Favorites first, named groups alphabetical, and Ungrouped last; retain absent skill assignments and recent indicators. Manage existing and new groups from Settings → Sections → Skills with mouse and keyboard, search group names in Search Everything, and keep grouping independent of filters, item limits, and skill activation. Group headings must not run all skills.
 - Skill rows do not expose a separate information control; description and source remain available in the Skill confirmation dialog.
 - Keep MCP headings, counts, and bulk-action controls on single lines. Truncate long preset names rather than wrapping the heading or hiding the server count.
 - Keep background refresh visually quiet, including for empty sections. Subagent events update immediately; snapshot polling currently uses a five-second interval.
@@ -104,7 +109,7 @@
 
 ## Configuration sources
 
-- Support simultaneous validated Navigator configuration from the plugin `options` dictionary in `opencode.json`, `~/.config/.opencode-navigator/settings.json`, and the commit-safe `.opencode/navigator.json` project file. Merge every portable setting across sources; `.opencode/navigator.json` has the highest priority and the `opencode.json` dictionary has the lowest priority. Treat the merged result as configured defaults below saved Global/Worktree preferences. Portable settings include behavior, layout, desired MCP states, layout/MCP presets, workspace-profile links, and MCP groups, but exclude history, favorites, trusted-skill state, onboarding state, paths, and other private mutable data.
+- Support simultaneous validated Navigator configuration from the plugin `options` dictionary in `opencode.json`, `~/.config/.opencode-navigator/settings.json`, and the commit-safe `.opencode/navigator.json` project file. Merge every portable setting across sources; `.opencode/navigator.json` has the highest priority and the `opencode.json` dictionary has the lowest priority. Treat the merged result as configured defaults below saved Global/Worktree preferences. Portable settings include behavior, layout, desired MCP states, layout/MCP presets, workspace-profile links, and MCP groups, but exclude history, favorites, skill groups keyed by private paths, trusted-skill state, onboarding state, paths, and other private mutable data.
 
 ## Corner font and installation
 

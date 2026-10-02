@@ -48,6 +48,10 @@ Selecting a Skill does not run it silently. A dialog first shows its description
 
 The row limit is applied after filtering and sorting. Favorites and recent Skills therefore stay in the short list instead of merely receiving an icon somewhere in a full catalog.
 
+I can also group Skills by their exact source path. That lets two Skills named `review` in different worktrees have different assignments. Favorites still lead, with named groups and Ungrouped below; the recent marker stays on each Skill rather than becoming another bucket. I manage assignments from Settings and can search by group name, even when a Skill is hidden from the sidebar. A group heading never runs every Skill beneath it.
+
+![Skill groups](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/38-skill-groups.png)
+
 ## MCP: The Reason This Started
 
 Originally, I planned to change only the MCP section. I wanted to filter servers by name, keep favorites at the top, and toggle connections directly from each row. That small interface change ended up requiring state persistence, bulk operations, and saved presets.
@@ -68,7 +72,7 @@ A layout preset can be linked to one MCP preset. This workspace profile is still
 
 A saved preset performs only the necessary toggles. Servers absent from the current scope are marked as skipped rather than successfully changed. This matters when the same settings are used across different worktrees. MCP favorites are stored separately by server name and only move a row upward; bookmarking a server never connects it.
 
-For a long list, bookmarks alone were not enough. I added custom MCP groups in settings: favorites stay first, followed by groups and their servers in alphabetical order. Assignments are shared by all workspaces and remain stored when a server is temporarily absent from the current project.
+For a long list, bookmarks alone were not enough. I added custom MCP groups in settings: favorites stay first, followed by groups and their servers in alphabetical order. A group heading is a shortcut for the whole group: one activation connects servers that still need it; when none do, the same heading disconnects the connected ones. It works even if a filter has hidden some rows. Assignments are shared by all workspaces and remain stored when a server is temporarily absent from the current project.
 
 ![Custom MCP groups](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
 
@@ -95,6 +99,8 @@ Navigator works with an explicit allowlist of argument-free OpenCode commands. I
 ![Section settings](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/13-settings-sections.png)
 
 Settings can be changed globally or only for the current worktree. Declarative values come from three places at once: the plugin's `options` dictionary, the user-level `~/.config/.opencode-navigator/settings.json`, and the project-level `.opencode/navigator.json`, which is convenient to keep in version control. These files merge field by field to establish defaults, with saved global preferences, worktree preferences, and temporary process state layered above them. Reset removes only the selected layer instead of copying a parent value into it. Favorites, history, trusted Skills, and other private data never enter declarative files.
+
+When I change saved settings in one running OpenCode window, I use **Reload settings from file** in another to pick up the layout, behavior, groups, and presets without restarting. It flushes pending local writes first and clears temporary layout overrides that would mask the new values. For a layout change to travel between windows, I first save it as the default; unsaved session-only adjustments stay local.
 
 In OpenCode 1.x I can hide the session name or its creation date separately in Sections; the settings button stays put even when both are hidden. OpenCode 2.x owns its fixed title, so I leave those unsupported switches out rather than pretend they work there.
 
@@ -158,7 +164,7 @@ After the two-Solid-instance bug, I stopped treating unit tests as sufficient pr
 
 The tests click with the mouse, type into filters, navigate dialogs with the keyboard, and compare the resulting character frame. Separate checks cover 500-row lists and loading the built plugin into a real OpenCode process through a PTY.
 
-Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; three intentionally omit it. Every task, session, path, Skill, server, error, and saved preset is synthetic. `bun run screenshots:verify` renders all 37 scenes again in a temporary directory and compares the PNG files byte for byte with their references.
+Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; three intentionally omit it. Every task, session, path, Skill, server, error, and saved preset is synthetic. The release workflow renders all 38 scenes twice and compares the PNG files byte for byte.
 
 That setup is not free. It requires Docker with Linux ARM64 support, and pixel-level comparison is sensitive to the environment, so Ghostty and font versions must be pinned. In return, the README screenshots and the tested interface are now produced by exactly the same process.
 
@@ -214,7 +220,7 @@ npx --yes --package=opencode-navigator opencode-navigator-font
 
 The installer requires Node.js 20+ and npm. After installation, fully quit and reopen the terminal application, not only OpenCode. You do not need to change your primary Nerd Font. If you prefer not to install the fallback font, disable `Settings → Behavior → Multiline corner font`; Nerd Font icons remain enabled.
 
-The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is published on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains a [gallery of all 37 states](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots): Todo and Subagent filters, all four search tabs, settings, saved presets, Skill confirmation, first-run onboarding, and text mode.
+The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is published on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains a [gallery of all 38 states](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots): Todo and Subagent filters, all four search tabs, settings, saved presets, Skill confirmation, first-run onboarding, and text mode.
 
 ## What Comes Next
 

@@ -42,6 +42,7 @@ verification workflow before expanding the product surface.
 - [x] Apply Settings visibility edits immediately without stale session or worktree layout snapshots masking the selected scope.
 - [x] Keep commit-safe project-local profiles and project persistence scope deferred to the portability phase.
 - [x] Merge validated portable defaults from plugin options, user settings, and `.opencode/navigator.json` below saved Global/Worktree preferences.
+- [x] Let users reload saved Navigator preferences manually from Settings without restarting OpenCode, including scope-aware layout, behavior, favorites, groups, and presets.
 
 ### Request And Error Reliability
 
@@ -116,6 +117,7 @@ verification workflow before expanding the product surface.
 - [x] Remove the status icon from the sidebar title and show the current session's creation date below it in muted text.
 - [x] Subagents: observed runtime with pre-observation clock markers, retry countdown, in-memory recent runs, failure attention, text/status filters, query-aware tabs that hide empty errors and disable empty active/recent views, and parent-session navigation.
 - [x] Skills: user-wide favorites, recent items, source details, fuzzy keyboard selection through Search Everything, and trusted-skill confirmation management.
+- [x] Group Skills by user-wide private source-location assignments with Favorites, named groups, and Ungrouped in the sidebar; manage groups in Settings and search their names without changing skill activation.
 - [x] Replace Skill star/info row actions with the MCP-style bookmark control and expose the same bookmark in the Skill confirmation dialog.
 - [x] Quick Actions: keep scoped ordering and visibility, add user-wide bookmarks with favorites first in configured order, remove usage-based ordering, retain independent hiding for every action, and preserve the explicit argument-free host-command allowlist including the global auto-approve toggle and route-aware disabled reasons.
 - [x] Keep full Quick Action names readable in narrow sidebars by moving unavailable reasons below the label and hiding shortcuts that would force the label to truncate.
@@ -125,6 +127,8 @@ verification workflow before expanding the product surface.
 - [~] LSP: icons/text badges, error-first sorting, and in-place server-label toggling exist; diagnostic-specific actions depend on public API support.
 - [x] Remove the LSP root/status details modal because the host may report an empty root.
 - [x] MCP: filtering, pending rows, dedicated full-error details, individual/bulk connect/disconnect, retry, user-wide favorites, and user-wide custom groups with absent-server retention.
+- [x] Toggle all eligible servers in a sidebar MCP group from its heading with keyboard/mouse support, full-bucket semantics under filters/limits, and existing bulk retry feedback.
+- [x] Consolidate the local installation's private MCP groups and remove retired integrations from active host configuration, shell commands, installed runtimes, and private state while preserving source projects.
 - [x] Let MCP group assignment select an existing group or create a new one.
 - [x] Add a single-row gap between adjacent MCP groups in the sidebar.
 - [x] Add consistent single-row spacing above and below every sidebar section filter.

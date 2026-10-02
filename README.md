@@ -14,7 +14,7 @@ See the [changelog](CHANGELOG.md) for release-by-release changes.
 - First-run setup guide with interactive section settings
 - Collapsible Todo section with status filters, grouped tasks, progress and priority indicators; OpenCode 2 adds session-owned tasks and optional model-context instructions
 - Active subagent list with live statuses and click-to-open navigation, including dev-team workers running in separate local processes
-- Compact, searchable workspace skill list with user-wide favorites, recent skills, source details, and click-to-confirm slash commands
+- Compact, searchable workspace skill list with user-wide favorites and groups, recent skills, source details, and click-to-confirm slash commands
 - Configurable host quick actions, including OpenCode 1.x's auto-approve toggle and OpenCode 2.x's Permissions settings, with user-wide bookmarks and availability reasons
 - Live LSP connection status with error-first sorting and badges that reveal server names in place
 - Searchable MCP section with live radio-style connection controls
@@ -85,10 +85,23 @@ muted section dividers share the same narrow sidebar:
 MCP groups are managed from **Settings → Sections → MCP → Groups**. Favorites
 remain in a leading bucket; custom groups and their servers sort alphabetically.
 Assignments can select an existing group or open an input to create a new one.
+Click a group heading (including Favorites or Ungrouped), or focus it and press
+`Enter`, to connect its remaining eligible servers. Once none need connecting,
+the same control disconnects its connected servers. This affects the full group
+even when a filter or item limit hides some rows; failed operations retain the
+usual retry control.
 
 ![MCP group manager](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
 
 ![MCP error details](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/32-mcp-error.png)
+
+Manage Skill groups from **Settings → Sections → Skills → Groups**. Favorites
+stay first, named groups sort alphabetically, and Ungrouped stays last. Groups
+belong to each Skill's exact source path, so assignments survive when a Skill
+is absent from the current workspace. Filters and Search Everything also match
+group names; choosing a group heading never runs its Skills.
+
+![Skill group manager](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/38-skill-groups.png)
 
 Search Everything preserves one query across Skills, Subagents, MCP, and Actions:
 
@@ -124,7 +137,7 @@ the uninstalled-font result remains visible rather than being documented only in
 
 ![Nerd Font without Navigator corner font](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/35-no-corner-font-layout-preview.png)
 
-The [complete 37-state screenshot gallery](screenshots/README.md) shows every
+The [complete 38-state screenshot gallery](screenshots/README.md) shows every
 Todo and Subagent filter, sidebar section, Search and Settings tab, preset menu
 and preview, confirmation, keyboard-help, setup, and icon-fallback state.
 
@@ -450,8 +463,13 @@ the terminal clipboard. **Import portable settings…** accepts pasted JSON and
 opens a preview before writing. Unknown future fields and section IDs are listed
 as skipped; malformed versions or invalid known values are rejected. Apply
 replaces only the supplied layout and MCP blocks in the still-selected scope in
-one atomic preferences update. Paths, shortcuts, favorites, history, trust choices,
+one atomic preferences update. Paths, Skill group assignments, shortcuts, favorites, history, trust choices,
 and other private preferences are never imported or exported.
+**Reload settings from file** reads Navigator's saved private preferences on
+demand. It picks up layout defaults, behavior, favorites, groups, and presets
+saved in another OpenCode session without restarting; temporary layout edits in
+the receiving session are cleared so they cannot hide the reloaded settings.
+Save a session's layout as the default before reloading it elsewhere.
 
 ## Keyboard controls
 

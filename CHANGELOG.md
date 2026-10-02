@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.19.0] - 2026-10-02
+
+- Connect or disconnect all eligible MCP servers in a group from its heading, including filtered-out items, with keyboard access and failed-only retry.
+- Organize Skills into user-wide groups by source location, with Favorites first and group names searchable across the full catalog.
+- Reload saved Navigator settings from disk in another running OpenCode session without restarting it.
+
 ## [0.18.2] - 2026-10-02
 
 - Open the host Settings dialog from the OpenCode 2.x Permissions Quick Action, where the user can change between `prompt` and `auto accept`; keep the direct auto-approve toggle on OpenCode 1.x.
@@ -45,6 +51,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.19.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.2...v0.19.0
 [0.18.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.17.3...v0.18.0

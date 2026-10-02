@@ -44,6 +44,10 @@ OpenCode Skills are reusable instructions exposed as slash commands. A long alph
 
 I added two ways to keep useful skills near the top. Bookmarked favorites are user-wide, and the last ten successfully inserted skills are remembered by source location as recent items. Favorites come first, recent skills follow, and everything else remains alphabetical.
 
+For a larger collection, I file each Skill by its exact source path. Favorites remain first, then named groups and Ungrouped; a recent Skill keeps its clock marker. I change assignments in Settings or search by group name without executing anything.
+
+![Skill groups in Navigator settings](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/38-skill-groups.png)
+
 Selecting a skill does not immediately insert an unfamiliar command. Navigator first opens its description and source path.
 
 From there I can accept, cancel, or choose "Don't show again for this skill." The same compact bookmark control appears in both the sidebar row and the confirmation dialog. Skipped confirmations can be restored from settings.
@@ -62,7 +66,7 @@ Bookmarks are separate from connection state. A favorite is saved user-wide by s
 
 ![MCP connection controls and favorite bookmarks](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/08-mcp-sidebar.png)
 
-For larger catalogs, I added user-wide custom groups. Favorites stay in a leading bucket, named groups and their servers sort alphabetically, and assignments survive when a server is absent from the current workspace. Group names are searchable in both the sidebar and Search Everything.
+For larger catalogs, I added user-wide custom groups. Favorites stay in a leading bucket, named groups and their servers sort alphabetically, and assignments survive when a server is absent from the current workspace. Clicking a group heading connects the members that still need it, or disconnects the connected ones once all are up, even if some rows are hidden by a filter. Group names are searchable in both the sidebar and Search Everything.
 
 ![MCP custom group manager](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
 
@@ -99,6 +103,8 @@ Quick Actions call an explicit allowlist of OpenCode's argument-free commands ra
 The focus, search, and sidebar shortcuts can all be changed at runtime. By default, `Ctrl+Shift+B` opens a temporary shortcut mode: `h` toggles the panel, while `t`, `a`, `s`, `q`, `l`, and `m` focus Todo, Subagents, Skills, Quick Actions, LSP, and MCP. Some terminals do not distinguish `Ctrl+Shift+B` from `Ctrl+B`, so the mode may need a terminal-friendly binding such as `Alt+S`.
 
 Settings cover section visibility, order, item limits, global or current-worktree scope, named layout presets, MCP persistence, icon style, and Quick Action ordering. Behavior changes apply immediately. A seven-step first-run guide introduces the same controls, then lets me choose the visible sections on its final screen.
+
+If I change saved settings in another OpenCode window, **Reload settings from file** brings them into this one without restarting. It waits for my local writes, then refreshes the layout, behavior, favorites, groups, and presets. I save a layout as the default before reloading it elsewhere; temporary per-session layout edits are intentionally discarded by the reload.
 
 On OpenCode 1.x, Sections also lets me hide the session title and creation date independently while keeping Settings reachable. OpenCode 2.x renders its own title, so Navigator does not offer switches it cannot honor.
 
@@ -232,6 +238,6 @@ I would rather state those boundaries plainly than add controls that pretend the
 
 Navigator now covers the sidebar workflow I wanted: monitor current work, find hidden or limited items quickly, and keep configuration close to the controls it affects. That workflow is personal, though. Some people never touch a mouse. Some have two MCP servers; others have fifty. Some do not use Todo at all.
 
-The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and version 0.15.0 is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [37-state screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
+The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [38-state screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
 
 If you try it, I'd like to know what still feels hard to reach, which section you'd remove, and what breaks with your terminal, theme, or configuration. Bugs and feature requests are welcome in [GitHub Issues](https://github.com/St1ggy/opencode-navigator/issues), or tell me in the comments how you use OpenCode's sidebar.
