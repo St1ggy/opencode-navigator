@@ -194,3 +194,73 @@ test('Skills keep favorites before recent, use bookmark controls, and record onl
     setup.renderer.destroy()
   }
 })
+
+test('Skill groups show Favorites, named groups and Ungrouped independently of filters and limits', async () => {
+  const items = ['favorite', 'alpha', 'beta', 'recent', 'orphan'].map((name) => ({
+    name,
+    location: `/skills/${name}/SKILL.md`,
+    content: '',
+  }))
+  const groups = { [items[1].location]: 'Docs', [items[2].location]: 'Docs' }
+  let uses = 0
+  const api = {
+    theme: { current: { text: '#ffffff', textMuted: '#888888', accent: '#00ffff', backgroundPanel: '#111111' } },
+    ui: { toast() {}, dialog: { replace() {}, clear() {}, setSize() {} } },
+  } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: 'workspace' }),
+    list: () => items,
+    state: () => ({ status: 'ready' }),
+    refresh: async () => items,
+    use: async () => {
+      uses++
+
+      return true
+    },
+  } as unknown as SkillController
+  const preferences = {
+    expanded: () => ({ skills: true }),
+    favoriteSkills: () => new Set([items[0].location]),
+    isFavoriteSkill: (item: SkillInfo) => item.location === items[0].location,
+    recentSkills: () => [items[3].location],
+    skillGroups: () => groups,
+    shouldConfirmSkill: () => false,
+    sectionItemLimit: () => 2,
+  } as unknown as PreferencesController
+  const setup = await testRender(() => <SkillsSection api={api} controller={controller} preferences={preferences} />, {
+    width: 48,
+    height: 24,
+  })
+
+  try {
+    await setup.flush()
+    let lines = setup.captureCharFrame().split('\n')
+    const groupRow = lines.findIndex((line) => line.includes('Docs'))
+
+    expect(lines.findIndex((line) => line.includes('Favorites'))).toBeGreaterThan(-1)
+    expect(groupRow).toBeGreaterThan(-1)
+    expect(setup.captureCharFrame()).not.toContain('Ungrouped')
+    await setup.mockMouse.click(lines[groupRow].indexOf('Docs'), groupRow)
+    expect(uses).toBe(0)
+
+    const more = lines.findIndex((line) => line.includes('Show all'))
+
+    await setup.mockMouse.click(lines[more].indexOf('Show all'), more)
+    await setup.flush()
+    lines = setup.captureCharFrame().split('\n')
+    expect(lines.findIndex((line) => line.includes('Ungrouped'))).toBeGreaterThan(-1)
+    expect(setup.captureCharFrame()).toContain('recent')
+
+    const filter = lines.findIndex((line) => line.includes('Filter skills'))
+
+    await setup.mockMouse.pressDown(8, filter)
+    await setup.mockInput.typeText('Docs')
+    await setup.flush()
+    expect(setup.captureCharFrame()).toContain('alpha')
+    expect(setup.captureCharFrame()).toContain('beta')
+    expect(setup.captureCharFrame()).not.toContain('favorite')
+    expect(uses).toBe(0)
+  } finally {
+    setup.renderer.destroy()
+  }
+})

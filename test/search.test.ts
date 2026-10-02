@@ -15,6 +15,7 @@ test('Search Everything ranks fuzzy matches within groups and searches source pa
     mcp: [{ name: 'review-mcp', status: 'connected' }],
     actionOrder: QUICK_ACTION_IDS,
     favoriteSkills: new Set(['/skills/favorite/SKILL.md']),
+    skillGroups: { '/skills/review/SKILL.md': 'Quality Gate' },
     recentSkills: [],
     favoriteMcp: new Set(),
     mcpGroups: { 'review-mcp': 'Knowledge' },
@@ -27,6 +28,7 @@ test('Search Everything ranks fuzzy matches within groups and searches source pa
   expect(searchResults(candidates, 'rvwcd')[0].title).toBe('review-code')
   expect(searchResults(candidates, 'review-code SKILL.md').map((item) => item.title)).toEqual(['review-code'])
   expect(searchResults(candidates, 'knowledge').map((item) => item.title)).toEqual(['review-mcp'])
+  expect(searchResults(candidates, 'quality gate').map((item) => item.title)).toEqual(['review'])
   expect(searchResults(candidates, 'nothinghere')).toEqual([])
   const groupOrder = searchResults(candidates, '').map((item) => SEARCH_GROUPS.indexOf(item.group))
 

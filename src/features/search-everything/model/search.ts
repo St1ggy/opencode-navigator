@@ -47,6 +47,7 @@ export function buildSearchCandidates(input: {
   actionOrder: readonly QuickActionId[]
   favoriteQuickActions?: ReadonlySet<QuickActionId>
   favoriteSkills: ReadonlySet<string>
+  skillGroups?: Readonly<Record<string, string>>
   recentSkills: readonly string[]
   favoriteMcp: ReadonlySet<string>
   mcpGroups?: Readonly<Record<string, string>>
@@ -71,8 +72,10 @@ export function buildSearchCandidates(input: {
       id: `skill:${skill.location || skill.name}`,
       group: 'Skills',
       title: skill.name,
-      description: skill.description?.trim() || skill.location,
-      keywords: skill.location,
+      description: [input.skillGroups?.[skill.location], skill.description?.trim() || skill.location]
+        .filter(Boolean)
+        .join(' · '),
+      keywords: `${skill.location} ${input.skillGroups?.[skill.location] ?? ''}`,
       skill,
     })),
     ...input.subagents.map((item): SearchResult => ({

@@ -1,11 +1,12 @@
 import { createEffect, createMemo, onCleanup, untrack } from 'solid-js'
 
+import { buildSkillGroupedView } from '../../../entities/skill'
 import { createListVisibility } from '../../../shared/lib/list-visibility'
 import { isAbortError } from '../../../shared/lib/request-state'
 import { matchesFilter } from '../lib/matches-filter'
 
 import type { PreferencesController } from '../../../entities/preferences'
-import type { SkillController, SkillInfo } from '../../../entities/skill'
+import type { GroupedSkill, SkillController, SkillInfo } from '../../../entities/skill'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor } from 'solid-js'
 
@@ -17,25 +18,19 @@ export function createSkillSectionModel(
   const recent = createMemo(
     () => new Map((props.preferences.recentSkills?.() ?? []).map((location, index) => [location, index])),
   )
-  const list = createMemo(() => {
-    const favorites = props.preferences.favoriteSkills?.() ?? new Set<string>()
-
-    return [...props.controller.list(target())]
-      .sort((left, right) => {
-        const isLeftFavorite = favorites.has(left.location)
-        const isRightFavorite = favorites.has(right.location)
-
-        return (
-          Number(isRightFavorite) - Number(isLeftFavorite) ||
-          (isLeftFavorite
-            ? 0
-            : (recent().get(left.location) ?? Infinity) - (recent().get(right.location) ?? Infinity)) ||
-          left.name.localeCompare(right.name)
-        )
-      })
-      .map((item) => ({ ...item }))
-  })
-  const filtered = createMemo(() => list().filter((item) => matchesFilter(query(), item.name, item.description)))
+  const groups = createMemo(() => props.preferences.skillGroups?.() ?? {})
+  const grouped = createMemo(() => Object.keys(groups()).length > 0)
+  const list = createMemo(() =>
+    buildSkillGroupedView(
+      props.controller.list(target()),
+      props.preferences.favoriteSkills?.() ?? new Set(),
+      groups(),
+      recent(),
+    ),
+  )
+  const filtered = createMemo(() =>
+    list().filter((item) => matchesFilter(query(), item.name, item.description, item.assignedGroup)),
+  )
   const visibility = createListVisibility({
     items: filtered,
     limit: () => props.preferences.sectionItemLimit?.('skills') ?? 0,
@@ -68,11 +63,13 @@ export function createSkillSectionModel(
     }
   }
 
-  function skillGroup(item: SkillInfo) {
+  function skillGroup(item: GroupedSkill) {
+    if (grouped()) return item.bucket
+
     if (props.preferences.isFavoriteSkill?.(item)) return 'favorite'
 
     return recent().has(item.location) ? 'recent' : 'other'
   }
 
-  return { target, recent, list, filtered, visibility, state, useSkill, skillGroup }
+  return { target, recent, grouped, list, filtered, visibility, state, useSkill, skillGroup }
 }

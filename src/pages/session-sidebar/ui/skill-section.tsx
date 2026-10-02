@@ -96,21 +96,44 @@ export function SkillsSection(props: {
             <SidebarRowList density={props.preferences.rowDensity?.() ?? 'compact'}>
               <For each={model.visibility.visible()}>
                 {(item, index) => (
-                  <SkillRow
-                    api={props.api}
-                    interaction={props.interaction}
-                    item={item}
-                    position={{ section: navigationSection(), row: 10 + index(), column: 0 }}
-                    onUse={() => selectSkill(item)}
-                    recent={model.recent().has(item.location)}
-                    favorite={props.preferences.isFavoriteSkill?.(item) ?? false}
-                    favoriteDisabled={props.preferences.ready?.() === false}
-                    separator={
-                      index() > 0 &&
-                      model.skillGroup(model.visibility.visible()[index() - 1]) !== model.skillGroup(item)
-                    }
-                    onToggleFavorite={() => props.preferences.toggleFavoriteSkill?.(item)}
-                  />
+                  <>
+                    <Show
+                      when={
+                        model.grouped() &&
+                        (index() === 0 || model.visibility.visible()[index() - 1]?.bucket !== item.bucket)
+                      }
+                    >
+                      <text
+                        height={1}
+                        marginTop={index() > 0 ? 1 : 0}
+                        fg={props.api.theme.current.textMuted}
+                        wrapMode="none"
+                        truncate
+                      >
+                        {item.bucket}
+                      </text>
+                    </Show>
+                    <SkillRow
+                      api={props.api}
+                      interaction={props.interaction}
+                      item={item}
+                      position={{
+                        section: navigationSection(),
+                        row: 10 + index() * (model.grouped() ? 2 : 1),
+                        column: 0,
+                      }}
+                      onUse={() => selectSkill(item)}
+                      recent={model.recent().has(item.location)}
+                      favorite={props.preferences.isFavoriteSkill?.(item) ?? false}
+                      favoriteDisabled={props.preferences.ready?.() === false}
+                      separator={
+                        !model.grouped() &&
+                        index() > 0 &&
+                        model.skillGroup(model.visibility.visible()[index() - 1]) !== model.skillGroup(item)
+                      }
+                      onToggleFavorite={() => props.preferences.toggleFavoriteSkill?.(item)}
+                    />
+                  </>
                 )}
               </For>
             </SidebarRowList>
@@ -119,7 +142,7 @@ export function SkillsSection(props: {
               interaction={props.interaction}
               section="skills"
               navigationSection={navigationSection()}
-              row={10 + model.visibility.visible().length}
+              row={10 + model.visibility.visible().length * (model.grouped() ? 2 : 1)}
               visibility={model.visibility}
             />
           </Show>

@@ -80,6 +80,7 @@ export function createSearchDialogController(props: SearchServices & { returnTar
       actionOrder: props.preferences.quickActionOrder?.() ?? QUICK_ACTION_IDS,
       favoriteQuickActions: props.preferences.favoriteQuickActions?.() ?? new Set(),
       favoriteSkills: props.preferences.favoriteSkills(),
+      skillGroups: props.preferences.skillGroups?.() ?? {},
       recentSkills: props.preferences.recentSkills(),
       favoriteMcp: props.preferences.favoriteMcpServers(),
       mcpGroups: props.preferences.mcpServerGroups?.() ?? {},
