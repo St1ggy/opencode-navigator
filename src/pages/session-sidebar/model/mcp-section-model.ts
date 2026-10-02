@@ -1,6 +1,6 @@
 import { createMemo } from 'solid-js'
 
-import { buildMcpGroupedView, matchingMcpPreset, mcpToggleAction } from '../../../entities/mcp'
+import { buildMcpGroupedView, matchingMcpPreset, mcpGroupToggleAction, mcpToggleAction } from '../../../entities/mcp'
 import { createListVisibility } from '../../../shared/lib/list-visibility'
 import { matchesFilter } from '../lib/matches-filter'
 
@@ -17,6 +17,7 @@ export function createMcpSectionModel(
   const groups = createMemo(() => props.preferences.mcpServerGroups?.() ?? {})
   const grouped = createMemo(() => Object.keys(groups()).length > 0)
   const list = createMemo(() => buildMcpGroupedView(props.controller.list(target()), favorites(), groups()))
+  const groupItems = (bucket: string) => list().filter((item) => item.bucket === bucket)
   const filtered = createMemo(() =>
     list().filter((item) => matchesFilter(query(), `${item.name} ${item.assignedGroup ?? ''}`)),
   )
@@ -61,6 +62,12 @@ export function createMcpSectionModel(
     groups,
     grouped,
     list,
+    groupNames(bucket: string) {
+      return groupItems(bucket).map((item) => item.name)
+    },
+    groupAction(bucket: string) {
+      return mcpGroupToggleAction(groupItems(bucket))
+    },
     filtered,
     visibility,
     active,

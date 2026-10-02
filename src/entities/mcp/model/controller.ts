@@ -5,6 +5,7 @@ import { currentLocation } from '../../../shared/lib/location'
 import { mcpPresetPreview } from '../../../shared/lib/preset-preview'
 import { createRequestState, isAbortError, retryBackgroundRefresh } from '../../../shared/lib/request-state'
 
+import { mcpGroupToggleAction } from './grouping'
 import { mcpToggleAction } from './status'
 
 import type { TuiPluginApi, TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
@@ -27,6 +28,7 @@ type McpAction = 'connect' | 'disconnect'
 export type McpBulkState = {
   action: McpAction | 'preset'
   preset?: string
+  group?: string
   status: 'idle' | 'running' | 'ready' | 'error'
   completed: number
   total: number
@@ -34,6 +36,15 @@ export type McpBulkState = {
 }
 
 type McpChange = { name: string; action: McpAction }
+type McpBulkOperation = { action: McpAction | 'preset'; preset?: string; group?: string }
+
+function bulkDescription(operation: McpBulkOperation, action: McpAction) {
+  if (operation.action === 'preset') return `apply ${operation.preset} MCP preset`
+
+  if (operation.group) return `${action} ${operation.group} MCP group`
+
+  return `${action} all MCP servers`
+}
 
 export function matchingMcpPreset(items: readonly TuiSidebarMcpItem[], presets: McpPresets) {
   if (items.length === 0) return
@@ -366,11 +377,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     )
   }
 
-  async function changeMany(
-    operation: { action: McpAction | 'preset'; preset?: string },
-    changes: McpChange[],
-    current = target(),
-  ) {
+  async function changeMany(operation: McpBulkOperation, changes: McpChange[], current = target()) {
     if (mutating(current)) return
 
     setActive(current)
@@ -399,10 +406,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
         if (operation.action !== 'preset') save(current, name, action === 'disconnect')
 
         try {
-          const description =
-            operation.action === 'preset' ? `apply ${operation.preset} MCP preset` : `${action} all MCP servers`
-
-          await changeServer(current, name, action, description, false)
+          await changeServer(current, name, action, bulkDescription(operation, action), false)
         } catch (error) {
           if (!isAbortError(error)) {
             failed.push(name)
@@ -441,7 +445,9 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
     }))
 
     if (failed.length > 0 && activeTarget === current.key) {
-      const action = operation.action === 'preset' ? `apply ${operation.preset}` : operation.action
+      let action = operation.action === 'preset' ? `apply ${operation.preset}` : operation.action
+
+      if (operation.group) action += ` ${operation.group}`
 
       api.ui.toast({
         variant: 'warning',
@@ -559,6 +565,27 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
         current,
       )
     },
+    toggleGroup(group: string, names: readonly string[], current = target()) {
+      if (target().key !== current.key || mutating(current) || bulkState(current).status === 'running') return
+
+      const selected = new Set(names)
+      const items = list(current).filter((item) => selected.has(item.name))
+      const action = mcpGroupToggleAction(items)
+
+      if (!action) return
+
+      resetSelectedPreset(current)
+
+      if (action === 'connect') {
+        for (const item of items) if (item.status === 'connected') save(current, item.name, false)
+      }
+
+      return changeMany(
+        { action, group },
+        items.filter((item) => mcpToggleAction(item.status) === action).map((item) => ({ name: item.name, action })),
+        current,
+      )
+    },
     retryBulk(current = target()) {
       const state = bulkState(current)
 
@@ -566,7 +593,15 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
 
       const changes = bulkRetries.get(current.key) ?? []
 
-      return changeMany({ action: state.action, ...(state.preset && { preset: state.preset }) }, changes, current)
+      return changeMany(
+        {
+          action: state.action,
+          ...(state.preset && { preset: state.preset }),
+          ...(state.group && { group: state.group }),
+        },
+        changes,
+        current,
+      )
     },
   }
 }

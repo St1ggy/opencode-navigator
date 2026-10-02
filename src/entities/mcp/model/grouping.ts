@@ -1,8 +1,16 @@
+import { mcpToggleAction } from './status'
+
 import type { McpServerGroups } from '../../../shared/config'
 import type { TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
 
 export type GroupedMcpItem = TuiSidebarMcpItem & { bucket: string; assignedGroup?: string }
 const BUCKET_RANK: Record<string, number> = { Favorites: 0, Ungrouped: 2 }
+
+export function mcpGroupToggleAction(items: readonly TuiSidebarMcpItem[]) {
+  if (items.some((item) => mcpToggleAction(item.status) === 'connect')) return 'connect'
+
+  return items.some((item) => mcpToggleAction(item.status) === 'disconnect') ? 'disconnect' : undefined
+}
 
 export function buildMcpGroupedView(
   items: readonly TuiSidebarMcpItem[],

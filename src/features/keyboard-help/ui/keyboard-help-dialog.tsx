@@ -13,6 +13,7 @@ export function KeyboardHelpDialog(props: { api: TuiPluginApi }) {
     `${icons.key('up')}/k and ${icons.key('down')}/j move · ${icons.key('enter')} activates`,
     `${icons.key('enter')} on a filter starts typing · ${icons.key('esc')} returns`,
     `Todo: ${icons.key('enter')} on All / Active / Finished changes the view`,
+    `MCP: ${icons.key('enter')} toggles a group`,
     'Show all / Show less expands or limits the filtered list',
     `Skills: ${icons.icon('info')} opens source · ${icons.icon('recent')} marks recent skills`,
     'Navigator Settings: Ctrl+,',

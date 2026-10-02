@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { buildMcpGroupedView } from '../src/entities/mcp'
+import { buildMcpGroupedView, mcpGroupToggleAction } from '../src/entities/mcp'
 
 test('MCP grouping keeps favorites first and sorts named groups and servers', () => {
   const items = [
@@ -18,4 +18,14 @@ test('MCP grouping keeps favorites first and sorts named groups and servers', ()
     ['Ungrouped', 'orphan'],
   ])
   expect(grouped.find((item) => item.name === 'wiki')?.assignedGroup).toBe('Docs')
+})
+
+test('an MCP group connects remaining eligible servers before disconnecting connected members', () => {
+  const connected = { name: 'docs', status: 'connected' as const }
+  const disabled = { name: 'wiki', status: 'disabled' as const }
+
+  expect(mcpGroupToggleAction([connected, disabled])).toBe('connect')
+  expect(mcpGroupToggleAction([connected])).toBe('disconnect')
+  expect(mcpGroupToggleAction([])).toBeUndefined()
+  expect(mcpGroupToggleAction([{ name: 'broken', status: 'failed' }])).toBe('connect')
 })

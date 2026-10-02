@@ -1,10 +1,10 @@
 import { For, Show } from 'solid-js'
 
 import { PLUGIN_ID } from '../../../shared/config'
-import { useIcons } from '../../../shared/ui'
 
 import { ListVisibilityControl } from './list-visibility'
-import { McpBulkAction } from './mcp-bulk-action'
+import { McpBulkControls } from './mcp-bulk-controls'
+import { McpGroupHeader } from './mcp-group-header'
 import { McpRow } from './mcp-row'
 import { SectionRequestBody } from './request-body'
 import { SectionFilter } from './section-filter'
@@ -26,7 +26,6 @@ export function McpSectionContent(props: {
   onQuery: (value: string) => void
   model: ReturnType<typeof createMcpSectionModel>
 }) {
-  const icons = useIcons()
   const model = props.model
 
   return (
@@ -42,47 +41,13 @@ export function McpSectionContent(props: {
       onRetry={() => void props.controller.retry(model.target())}
     >
       <box>
-        <box flexDirection="row" gap={1} paddingBottom={model.bulkRunning() || model.bulk().status === 'error' ? 1 : 0}>
-          <McpBulkAction
-            api={props.api}
-            interaction={props.interaction}
-            id={`${PLUGIN_ID}.mcp.connect-all`}
-            position={{ section: props.navigationSection, row: 2, column: 0 }}
-            label={`${icons.icon('connected')} Connect all`}
-            disabled={model.bulkRunning() || model.mutationRunning() || model.connectable() === 0}
-            onActivate={() => void props.controller.connectAll(model.target())}
-          />
-          <McpBulkAction
-            api={props.api}
-            interaction={props.interaction}
-            id={`${PLUGIN_ID}.mcp.disconnect-all`}
-            position={{ section: props.navigationSection, row: 2, column: 1 }}
-            label={`${icons.icon('disconnected')} Disconnect all`}
-            disabled={model.bulkRunning() || model.mutationRunning() || model.disconnectable() === 0}
-            onActivate={() => void props.controller.disconnectAll(model.target())}
-          />
-        </box>
-        <Show when={model.bulkRunning()}>
-          <text fg={props.api.theme.current.textMuted}>
-            {model.bulk().action === 'connect'
-              ? 'Connecting'
-              : model.bulk().action === 'disconnect'
-                ? 'Disconnecting'
-                : `Applying ${model.bulk().preset}`}{' '}
-            {model.bulk().completed}/{model.bulk().total}…
-          </text>
-        </Show>
-        <Show when={model.bulk().status === 'error'}>
-          <McpBulkAction
-            api={props.api}
-            interaction={props.interaction}
-            id={`${PLUGIN_ID}.mcp.retry-all`}
-            position={{ section: props.navigationSection, row: 3, column: 0 }}
-            label={`${icons.icon('retry')} Retry ${model.bulk().failed.length} failed`}
-            disabled={false}
-            onActivate={() => void props.controller.retryBulk(model.target())}
-          />
-        </Show>
+        <McpBulkControls
+          api={props.api}
+          interaction={props.interaction}
+          controller={props.controller}
+          navigationSection={props.navigationSection}
+          model={model}
+        />
         <SectionFilter
           api={props.api}
           interaction={props.interaction}
@@ -106,21 +71,25 @@ export function McpSectionContent(props: {
                       (index() === 0 || model.visibility.visible()[index() - 1]?.bucket !== item.bucket)
                     }
                   >
-                    <text
-                      height={1}
+                    <McpGroupHeader
+                      api={props.api}
+                      interaction={props.interaction}
+                      bucket={item.bucket}
+                      count={model.groupNames(item.bucket).length}
+                      action={model.groupAction(item.bucket)}
+                      disabled={model.bulkRunning() || model.mutationRunning()}
                       marginTop={index() > 0 ? 1 : 0}
-                      fg={props.api.theme.current.textMuted}
-                      wrapMode="none"
-                      truncate
-                    >
-                      {item.bucket}
-                    </text>
+                      position={{ section: props.navigationSection, row: 9 + index() * 3, column: 0 }}
+                      onToggle={() =>
+                        void props.controller.toggleGroup(item.bucket, model.groupNames(item.bucket), model.target())
+                      }
+                    />
                   </Show>
                   <McpRow
                     api={props.api}
                     interaction={props.interaction}
                     item={item}
-                    position={{ section: props.navigationSection, row: 10 + index() * 2, column: 0 }}
+                    position={{ section: props.navigationSection, row: 10 + index() * 3, column: 0 }}
                     state={props.controller.serverState(item.name, model.target())}
                     disabled={model.bulkRunning()}
                     onToggle={() => void props.controller.toggle(item.name).catch(() => {})}
@@ -144,7 +113,7 @@ export function McpSectionContent(props: {
             interaction={props.interaction}
             section="mcp"
             navigationSection={props.navigationSection}
-            row={10 + model.visibility.visible().length * 2}
+            row={10 + model.visibility.visible().length * 3}
             visibility={model.visibility}
           />
         </Show>

@@ -496,6 +496,74 @@ test('applies mixed MCP presets and retries only failed actions', async () => {
   expect(controller.selectedPreset()).toBeUndefined()
 })
 
+test('group toggles persist the entire bucket and retry only its failed servers', async () => {
+  const statuses: Record<string, string> = { alpha: 'disabled', beta: 'connected', outside: 'disabled' }
+  const calls: string[] = []
+  const saved = preferences()
+  let fail = true
+  const route = { current: { name: 'session', params: { sessionID: 'first' } } }
+  const api = {
+    route,
+    state: {
+      path: { worktree: '/workspace', directory: '/workspace' },
+      session: { get: (id: string) => ({ directory: `/workspace/${id}` }) },
+      mcp: () => Object.entries(statuses).map(([name, status]) => ({ name, status })),
+    },
+    client: {
+      mcp: {
+        status: () =>
+          Promise.resolve({
+            data: Object.fromEntries(Object.entries(statuses).map(([name, status]) => [name, { status }])),
+          }),
+        connect: ({ name }: { name: string }) => {
+          calls.push(`connect:${name}`)
+
+          if (name === 'alpha' && fail) return Promise.reject(new Error('alpha unavailable'))
+
+          statuses[name] = 'connected'
+
+          return Promise.resolve({ data: true })
+        },
+        disconnect: ({ name }: { name: string }) => {
+          calls.push(`disconnect:${name}`)
+          statuses[name] = 'disabled'
+
+          return Promise.resolve({ data: true })
+        },
+      },
+    },
+    ui: { toast() {} },
+    lifecycle: { signal: new AbortController().signal },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => true, saved.access)
+
+  await controller.refresh()
+  const first = controller.target()
+
+  await controller.toggleGroup('Docs', ['alpha', 'beta'], first)
+  expect(calls).toEqual(['connect:alpha'])
+  expect(saved.values()).toEqual({ alpha: 'enabled', beta: 'enabled' })
+  expect(controller.bulkState(first)).toMatchObject({
+    action: 'connect',
+    group: 'Docs',
+    status: 'error',
+    failed: ['alpha'],
+  })
+  fail = false
+  await controller.retryBulk(first)
+  expect(calls).toEqual(['connect:alpha', 'connect:alpha'])
+  expect(controller.bulkState(first)).toMatchObject({ group: 'Docs', status: 'ready', failed: [] })
+
+  await controller.toggleGroup('Docs', ['alpha', 'beta'], first)
+  expect(calls.slice(2)).toEqual(['disconnect:alpha', 'disconnect:beta'])
+  expect(saved.values()).toEqual({ alpha: 'disabled', beta: 'disabled' })
+  expect(statuses.outside).toBe('disabled')
+
+  route.current.params.sessionID = 'second'
+  expect(controller.toggleGroup('Docs', ['alpha', 'beta'], first)).toBeUndefined()
+  expect(calls).toHaveLength(4)
+})
+
 test('does not apply a preset during an individual mutation', async () => {
   const pending = deferred<{ data: true }>()
   const saved = preferences()

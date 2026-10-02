@@ -1,10 +1,11 @@
 /** @jsxImportSource @opentui/solid */
 import { RGBA } from '@opentui/core'
 import { registerCommaBindings } from '@opentui/keymap/addons'
+import { createDefaultOpenTuiKeymap } from '@opentui/keymap/opentui'
 import { createTestKeymap } from '@opentui/keymap/testing'
-import { testRender } from '@opentui/solid'
+import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
-import { createSignal } from 'solid-js'
+import { createSignal, onCleanup } from 'solid-js'
 
 import { SettingsBinding } from '../src/features/sidebar-settings'
 import { IconProvider } from '../src/icons/context'
@@ -16,6 +17,7 @@ import {
   SectionFilter,
   SidebarTitle,
   SubagentSection,
+  createSidebarInteraction,
 } from '../src/pages/session-sidebar'
 
 import type { McpController } from '../src/controllers/mcp'
@@ -248,6 +250,118 @@ test('MCP groups have a gap only between adjacent buckets', async () => {
     expect(row('beta') - row('alpha')).toBe(1)
     expect(row('Operations') - row('beta')).toBe(2)
     expect(row('gamma') - row('Operations')).toBe(1)
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
+test('MCP group headings toggle the full bucket by mouse and keyboard despite filters and limits', async () => {
+  let interaction!: SidebarInteraction
+  const [limit, setLimit] = createSignal(2)
+  const [showFailure, setShowFailure] = createSignal(false)
+  const calls: { group: string; names: string[] }[] = []
+
+  function Harness() {
+    const renderer = useRenderer()
+    const api = {
+      renderer,
+      theme: { current: theme },
+      keymap: createDefaultOpenTuiKeymap(renderer),
+      route: { current: { name: 'session' } },
+      ui: { dialog: { open: false }, toast() {} },
+    } as unknown as TuiPluginApi
+
+    interaction = createSidebarInteraction(api)
+    onCleanup(() => interaction.dispose())
+    const controller = {
+      target: () => ({ key: 'test' }),
+      list: () => [
+        { name: 'context7', status: 'connected' },
+        { name: 'alpha', status: 'disabled' },
+        { name: 'beta', status: 'connected' },
+        { name: 'other', status: 'disabled' },
+      ],
+      state: () => ({ status: 'ready' }),
+      serverState: (name: string) =>
+        name === 'context7' && showFailure()
+          ? {
+              status: 'error',
+              error: { operation: 'connect', target: 'test', message: 'unavailable', retryable: true },
+            }
+          : { status: 'ready' },
+      mutating: () => false,
+      toggleGroup: (group: string, names: string[]) => {
+        calls.push({ group, names })
+      },
+    } as unknown as McpController
+    const preferences = {
+      expanded: () => ({ mcp: true }),
+      favoriteMcpServers: () => new Set(['context7']),
+      mcpServerGroups: () => ({ alpha: 'Docs', beta: 'Docs' }),
+      sectionItemLimit: limit,
+    } as unknown as PreferencesController
+
+    return (
+      <box ref={(node: BoxRenderable) => interaction.setContentRoot(node)} focusable>
+        <McpSection api={api} controller={controller} preferences={preferences} interaction={interaction} />
+      </box>
+    )
+  }
+
+  const setup = await testRender(() => <Harness />, { width: 42, height: 20 })
+
+  try {
+    await setup.flush()
+    let lines = setup.captureCharFrame().split('\n')
+    const groupRow = lines.findIndex((line) => line.includes('Docs (2)'))
+
+    expect(groupRow).toBeGreaterThan(-1)
+    expect(setup.captureCharFrame()).not.toContain('beta')
+    await setup.mockMouse.click(lines[groupRow].indexOf('Docs'), groupRow)
+    expect(calls).toEqual([{ group: 'Docs', names: ['alpha', 'beta'] }])
+
+    setLimit(0)
+    await setup.flush()
+    lines = setup.captureCharFrame().split('\n')
+    for (const [heading, group] of [
+      ['Favorites (1)', 'Favorites'],
+      ['Ungrouped (1)', 'Ungrouped'],
+    ] as const) {
+      const row = lines.findIndex((line) => line.includes(heading))
+
+      expect(row).toBeGreaterThan(-1)
+      await setup.mockMouse.click(lines[row].indexOf(group), row)
+    }
+    expect(calls.slice(1)).toEqual([
+      { group: 'Favorites', names: ['context7'] },
+      { group: 'Ungrouped', names: ['other'] },
+    ])
+    setShowFailure(true)
+    await setup.flush()
+    interaction.focus(null, 'opencode-navigator.mcp.context7.retry')
+    setup.mockInput.pressArrow('down')
+    expect(interaction.selectedId()).toBe('opencode-navigator.mcp.group.Docs')
+    setShowFailure(false)
+    setLimit(2)
+    await setup.flush()
+    lines = setup.captureCharFrame().split('\n')
+
+    const filter = lines.findIndex((line) => line.includes('Filter MCP'))
+
+    await setup.mockMouse.pressDown(8, filter)
+    await setup.mockInput.typeText('alpha')
+    await setup.flush()
+    lines = setup.captureCharFrame().split('\n')
+    expect(lines.some((line) => line.includes('Docs (2)'))).toBe(true)
+    expect(setup.captureCharFrame()).not.toContain('context7')
+    interaction.focus(null, 'opencode-navigator.mcp.group.Docs')
+    setup.mockInput.pressEnter()
+    expect(calls).toEqual([
+      { group: 'Docs', names: ['alpha', 'beta'] },
+      { group: 'Favorites', names: ['context7'] },
+      { group: 'Ungrouped', names: ['other'] },
+      { group: 'Docs', names: ['alpha', 'beta'] },
+    ])
   } finally {
     setup.renderer.destroy()
   }
