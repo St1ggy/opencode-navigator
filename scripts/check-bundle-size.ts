@@ -15,3 +15,14 @@ if (size > MAX_BUNDLE_BYTES) {
   console.error(`Bundle exceeds the ${MAX_BUNDLE_BYTES.toLocaleString('en-US')}-byte budget`)
   process.exit(1)
 }
+
+for (const name of ['mcp-groups', 'skill-groups', 'quick-actions-settings']) {
+  const dialog = Bun.file(new URL(`../dist/${name}.js`, import.meta.url))
+
+  if (!(await dialog.exists())) {
+    console.error(`Missing on-demand dialog bundle: dist/${name}.js`)
+    process.exit(1)
+  }
+
+  console.log(`dist/${name}.js: ${dialog.size.toLocaleString('en-US')} bytes (on demand)`)
+}

@@ -1,4 +1,6 @@
 import solidPlugin from '@opentui/solid/bun-plugin'
+import { readdir, unlink } from 'node:fs/promises'
+import { basename, join } from 'node:path'
 
 type ScannerState = 'code' | 'single' | 'double' | 'template' | 'line-comment' | 'block-comment'
 type ScannerTransition = { state: ScannerState; escaped: boolean; consumeNext?: boolean }
@@ -234,6 +236,48 @@ for (const output of result.outputs) {
   const bundled = consolidateNamedImports(consolidateGeneratedHelpers(compacted))
 
   await Bun.write(output.path, bundled)
+}
+
+const dialogs = await Bun.build({
+  entrypoints: ['src/mcp-groups.ts', 'src/skill-groups.ts', 'src/quick-actions-settings.ts'],
+  outdir: 'dist',
+  target: 'bun',
+  format: 'esm',
+  splitting: true,
+  external: [
+    '@opencode-ai/plugin',
+    '@opencode/plugin',
+    '@opentui/core',
+    '@opentui/keymap',
+    '@opentui/solid',
+    'solid-js',
+  ],
+  plugins: [
+    solidPlugin,
+    {
+      name: 'share-navigator-ui',
+      setup(build) {
+        build.onResolve({ filter: /shared\/ui(?:$|\/)/ }, () => ({ path: './tui.js', external: true }))
+      },
+    },
+  ],
+})
+
+if (!dialogs.success) {
+  for (const log of dialogs.logs) console.error(log)
+  process.exit(1)
+}
+
+for (const output of dialogs.outputs) {
+  if (output.kind === 'entry-point' || output.kind === 'chunk')
+    await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
+}
+
+const generated = new Set(dialogs.outputs.map((output) => basename(output.path)))
+const outputFiles = await readdir('dist')
+
+for (const name of outputFiles) {
+  if (/^chunk-[\da-z]+\.js$/u.test(name) && !generated.has(name)) await unlink(join('dist', name))
 }
 
 for (const entrypoint of ['src/server.ts', 'src/rpc.ts']) {

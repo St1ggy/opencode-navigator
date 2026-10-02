@@ -12,6 +12,7 @@ import { createSettingsSelection } from './settings-selection'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
+import type { SkillController } from '../../../entities/skill'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { ScrollBoxRenderable } from '@opentui/core'
 
@@ -19,6 +20,7 @@ export function createSettingsDialogController(props: {
   api: TuiPluginApi
   preferences: PreferencesController
   mcp?: McpController
+  skills?: SkillController
   activeValue?: string
 }) {
   let body: ScrollBoxRenderable | undefined
@@ -46,7 +48,7 @@ export function createSettingsDialogController(props: {
     const common = `${icons.key('tab')} switch · ${icons.key('up/down')} navigate`
 
     if (activeGroup() === 'sections')
-      return `${common} · ${icons.key('enter')} toggle · l item limit${options()[active()]?.value === 'quick_actions' ? ' · a actions' : ''}${options()[active()]?.value === 'mcp' ? ' · g groups' : ''} · ${icons.key('left/right')} or ${icons.key('shift+up/down')} reorder`
+      return `${common} · ${icons.key('enter')} toggle · l item limit${options()[active()]?.value === 'quick_actions' ? ' · a actions' : ''}${['mcp', 'skills'].includes(options()[active()]?.value ?? '') ? ' · g groups' : ''} · ${icons.key('left/right')} or ${icons.key('shift+up/down')} reorder`
 
     if (activeGroup() === 'presets') return `${common} · ${icons.key('enter')} manage`
 
@@ -111,6 +113,7 @@ export function createSettingsDialogController(props: {
     api: props.api,
     preferences: props.preferences,
     mcp: props.mcp,
+    skills: props.skills,
     dialogs,
     options,
     active,
@@ -129,6 +132,7 @@ export function createSettingsDialogController(props: {
     select: selection.select,
     openQuickActions: selection.openQuickActions,
     openMcpGroups: selection.openMcpGroups,
+    openSkillGroups: selection.openSkillGroups,
     openLimitPrompt: selection.openLimitPrompt,
   })
 
@@ -144,6 +148,7 @@ export function createSettingsDialogController(props: {
     openLimitPrompt: selection.openLimitPrompt,
     openQuickActions: selection.openQuickActions,
     openMcpGroups: selection.openMcpGroups,
+    openSkillGroups: selection.openSkillGroups,
     options,
     optionId,
     orderedGroups,

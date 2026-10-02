@@ -9,6 +9,7 @@ import { SettingsOptionRow } from './settings-option-row'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
+import type { SkillController } from '../../../entities/skill'
 import type { SettingsTab } from '../../../shared/ui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -16,6 +17,7 @@ export function SettingsDialog(props: {
   api: TuiPluginApi
   preferences: PreferencesController
   mcp?: McpController
+  skills?: SkillController
   activeValue?: string
 }) {
   const model = createSettingsDialogController(props)
@@ -82,9 +84,10 @@ export function openSettings(
   preferences: PreferencesController,
   activeValue?: string,
   mcp?: McpController,
+  skills?: SkillController,
 ) {
   createDialogStack(api, preferences.lspIconStyle, () => true, preferences.cornerFont).open(
-    () => <SettingsDialog api={api} preferences={preferences} mcp={mcp} activeValue={activeValue} />,
+    () => <SettingsDialog api={api} preferences={preferences} mcp={mcp} skills={skills} activeValue={activeValue} />,
     'xlarge',
   )
 }

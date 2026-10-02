@@ -105,7 +105,7 @@ async function setupNavigator(
         return (
           <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
             <PreferencesPersistence api={api} controller={preferences} />
-            <SettingsBinding api={api} preferences={preferences} mcp={mcp} />
+            <SettingsBinding api={api} preferences={preferences} mcp={mcp} skills={skills} />
             <SidebarToggleBinding api={api} preferences={preferences} />
             <SidebarFocusBinding api={api} preferences={preferences} interaction={interaction} />
             <SearchBinding
@@ -131,6 +131,7 @@ async function setupNavigator(
               api={api}
               preferences={preferences}
               mcp={mcp}
+              skills={skills}
               interaction={interaction}
               sessionID={props.session_id}
               title={props.title}
@@ -158,7 +159,7 @@ async function setupNavigator(
     },
   })
 
-  return { mcp, preferences }
+  return { mcp, skills, preferences }
 }
 
 export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMeta) => {
@@ -205,7 +206,7 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMe
 export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (context) => {
   const adapter = createOpenCodeV2Api(context)
   const todo = createNavigatorTodoController(context, adapter.api)
-  const { mcp, preferences } = await setupNavigator(
+  const { mcp, skills, preferences } = await setupNavigator(
     adapter.api,
     context.options as never,
     async () => {
@@ -236,7 +237,7 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
             onOpenCodeUpdate={versionUpdates.openCode}
             onNavigatorUpdate={versionUpdates.navigator}
           />
-          <SettingsFooterButton api={adapter.api} preferences={preferences} mcp={mcp} />
+          <SettingsFooterButton api={adapter.api} preferences={preferences} mcp={mcp} skills={skills} />
         </box>
       </IconProvider>
     ),

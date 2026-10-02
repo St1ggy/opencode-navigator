@@ -6,9 +6,15 @@ import { openSettings } from './settings-dialog'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
+import type { SkillController } from '../../../entities/skill'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-export function SettingsBinding(props: { api: TuiPluginApi; preferences: PreferencesController; mcp?: McpController }) {
+export function SettingsBinding(props: {
+  api: TuiPluginApi
+  preferences: PreferencesController
+  mcp?: McpController
+  skills?: SkillController
+}) {
   const unregister = props.api.keymap.registerLayer({
     mode: 'base',
     commands: [
@@ -18,7 +24,7 @@ export function SettingsBinding(props: { api: TuiPluginApi; preferences: Prefere
         category: 'Navigator',
         namespace: 'palette',
         enabled: () => ['home', 'session'].includes(props.api.route.current.name),
-        run: () => openSettings(props.api, props.preferences, undefined, props.mcp),
+        run: () => openSettings(props.api, props.preferences, undefined, props.mcp, props.skills),
       },
     ],
     // String bindings treat commas as separators, so punctuation uses an object stroke.

@@ -1,13 +1,15 @@
 import { SECTION_DEFINITIONS, type SidebarSection } from '../../../entities/sidebar-layout'
 import { type DialogNavigation, PresetMenu, type PresetOption } from '../../../shared/ui'
 import { FirstRunWizard } from '../ui/first-run-wizard'
-import { McpGroupsDialog } from '../ui/mcp-groups-dialog'
-import { QuickActionsDialog } from '../ui/quick-actions-dialog'
 import { TrustedSkillsDialog } from '../ui/trusted-skills-dialog'
 
 import type { SettingsOption } from './settings-groups'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
+import type { SkillController } from '../../../entities/skill'
+import type { McpGroupsDialog as McpGroupsComponent } from '../ui/mcp-groups-dialog'
+import type { QuickActionsDialog as QuickActionsComponent } from '../ui/quick-actions-dialog'
+import type { SkillGroupsDialog as SkillGroupsComponent } from '../ui/skill-groups-dialog'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor, Setter } from 'solid-js'
 
@@ -15,6 +17,7 @@ export function createSettingsSelection(input: {
   api: TuiPluginApi
   preferences: PreferencesController
   mcp?: McpController
+  skills?: SkillController
   dialogs: DialogNavigation
   options: Accessor<SettingsOption[]>
   active: Accessor<number>
@@ -22,6 +25,8 @@ export function createSettingsSelection(input: {
   openPreset: (name: string) => void
   promptPreset: () => void
 }) {
+  const dialogClosed = () => 'open' in input.api.ui.dialog && !input.api.ui.dialog.open
+
   function openLimitPrompt(section: SidebarSection) {
     const index = input.options().findIndex((option) => option.value === section)
 
@@ -216,6 +221,28 @@ export function createSettingsSelection(input: {
           break
         }
 
+        case 'reload_settings': {
+          void input.preferences
+            .reloadFromFile()
+            .then(() =>
+              input.api.ui.toast({
+                variant: 'success',
+                title: 'Navigator settings',
+                message: 'Saved settings reloaded',
+                duration: 3000,
+              }),
+            )
+            .catch((error) =>
+              input.api.ui.toast({
+                variant: 'error',
+                title: 'Navigator settings',
+                message: error instanceof Error ? error.message : 'Could not reload saved settings',
+                duration: 5000,
+              }),
+            )
+          break
+        }
+
         case 'reset_sections': {
           input.preferences.resetSections()
           break
@@ -297,14 +324,59 @@ export function createSettingsSelection(input: {
   }
   function openQuickActions() {
     input.setActive(input.options().findIndex((option) => option.value === 'quick_actions'))
-    input.dialogs.open(() => <QuickActionsDialog api={input.api} preferences={input.preferences} />)
+    const path = import.meta.url.includes('/dist/tui.js') ? './quick-actions-settings.js' : '../ui/quick-actions-dialog'
+
+    void import(path)
+      .then((module) => {
+        if (dialogClosed()) return
+
+        const { QuickActionsDialog } = module as { QuickActionsDialog: typeof QuickActionsComponent }
+
+        input.dialogs.open(() => <QuickActionsDialog api={input.api} preferences={input.preferences} />)
+      })
+      .catch((error) => {
+        input.api.ui.toast({ variant: 'error', title: 'Quick actions', message: String(error), duration: 4000 })
+      })
   }
   function openMcpGroups() {
     if (!input.mcp) return
 
     input.setActive(input.options().findIndex((option) => option.value === 'mcp'))
-    input.dialogs.open(() => <McpGroupsDialog api={input.api} preferences={input.preferences} mcp={input.mcp!} />)
+    const path = import.meta.url.includes('/dist/tui.js') ? './mcp-groups.js' : '../ui/mcp-groups-dialog'
+
+    void import(path)
+      .then((module) => {
+        if (dialogClosed()) return
+
+        const { McpGroupsDialog } = module as { McpGroupsDialog: typeof McpGroupsComponent }
+
+        input.dialogs.open(() => <McpGroupsDialog api={input.api} preferences={input.preferences} mcp={input.mcp!} />)
+      })
+      .catch((error) => {
+        input.api.ui.toast({ variant: 'error', title: 'MCP groups', message: String(error), duration: 4000 })
+      })
   }
 
-  return { openLimitPrompt, openMcpGroups, openQuickActions, select }
+  function openSkillGroups() {
+    if (!input.skills) return
+
+    input.setActive(input.options().findIndex((option) => option.value === 'skills'))
+    const path = import.meta.url.includes('/dist/tui.js') ? './skill-groups.js' : '../ui/skill-groups-dialog'
+
+    void import(path)
+      .then((module) => {
+        if (dialogClosed()) return
+
+        const { SkillGroupsDialog } = module as { SkillGroupsDialog: typeof SkillGroupsComponent }
+
+        input.dialogs.open(() => (
+          <SkillGroupsDialog api={input.api} preferences={input.preferences} skills={input.skills!} />
+        ))
+      })
+      .catch((error) => {
+        input.api.ui.toast({ variant: 'error', title: 'Skill groups', message: String(error), duration: 4000 })
+      })
+  }
+
+  return { openLimitPrompt, openMcpGroups, openSkillGroups, openQuickActions, select }
 }

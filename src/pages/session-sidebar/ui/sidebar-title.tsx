@@ -8,6 +8,7 @@ import { useSidebarItem } from './sidebar-item'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
+import type { SkillController } from '../../../entities/skill'
 import type { SidebarInteraction } from '../model/sidebar-interaction'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { BoxRenderable } from '@opentui/core'
@@ -16,6 +17,7 @@ export function SidebarTitle(props: {
   api: TuiPluginApi
   preferences: PreferencesController
   mcp?: McpController
+  skills?: SkillController
   interaction: SidebarInteraction
   sessionID: string
   title: string
@@ -36,7 +38,7 @@ export function SidebarTitle(props: {
     {
       id: settingsId,
       position: { section: 0, row: 0, column: 0 },
-      activate: () => openSettings(props.api, props.preferences, undefined, props.mcp),
+      activate: () => openSettings(props.api, props.preferences, undefined, props.mcp, props.skills),
     },
     () => theme().textMuted,
     'control',

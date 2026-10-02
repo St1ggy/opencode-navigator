@@ -1,5 +1,15 @@
 export { default } from './app'
 export {
+  DialogSurface,
+  PresetMenu,
+  SelectionBox,
+  createDialogStack,
+  useDialogScroll,
+  useDialogState,
+  useDialogs,
+  useIcons,
+} from './shared/ui'
+export {
   DEFAULT_SECTION_EXPANSION,
   FOCUS_COMMAND,
   FirstRunWizard,

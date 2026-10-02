@@ -16,6 +16,7 @@ export function registerSettingsKeymap(input: {
   select: () => void
   openQuickActions: () => void
   openMcpGroups: () => void
+  openSkillGroups: () => void
   openLimitPrompt: (section: SidebarSection) => void
 }) {
   return input.api.keymap.registerLayer({
@@ -26,10 +27,13 @@ export function registerSettingsKeymap(input: {
       { name: `${PLUGIN_ID}.settings.next`, run: () => input.move(1) },
       { name: `${PLUGIN_ID}.settings.select`, run: () => input.select() },
       {
-        name: `${PLUGIN_ID}.settings.mcp-groups`,
+        name: `${PLUGIN_ID}.settings.groups`,
         run: () => {
-          if (input.activeGroup() === 'sections' && input.options()[input.active()]?.value === 'mcp')
-            input.openMcpGroups()
+          if (input.activeGroup() !== 'sections') return
+
+          if (input.options()[input.active()]?.value === 'mcp') input.openMcpGroups()
+
+          if (input.options()[input.active()]?.value === 'skills') input.openSkillGroups()
         },
       },
       {
@@ -61,7 +65,7 @@ export function registerSettingsKeymap(input: {
       { key: 'return', cmd: `${PLUGIN_ID}.settings.select` },
       { key: 'l', cmd: `${PLUGIN_ID}.settings.item-limit` },
       { key: 'a', cmd: `${PLUGIN_ID}.settings.quick-actions` },
-      { key: 'g', cmd: `${PLUGIN_ID}.settings.mcp-groups` },
+      { key: 'g', cmd: `${PLUGIN_ID}.settings.groups` },
       { key: 'left', cmd: `${PLUGIN_ID}.settings.move-up` },
       { key: 'right', cmd: `${PLUGIN_ID}.settings.move-down` },
       { key: 'shift+up', cmd: `${PLUGIN_ID}.settings.move-up` },

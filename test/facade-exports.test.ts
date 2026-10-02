@@ -40,18 +40,22 @@ test('the built bundle preserves its public exports', async () => {
 
   expect(Object.keys(module).sort()).toEqual([
     'DEFAULT_SECTION_EXPANSION',
+    'DialogSurface',
     'FOCUS_COMMAND',
     'FirstRunWizard',
     'KeyboardHelpDialog',
     'LspBadge',
     'McpSection',
+    'PresetMenu',
     'QUICK_ACTIONS',
     'Section',
     'SectionFilter',
+    'SelectionBox',
     'SettingsDialog',
     'SidebarFocusBinding',
     'SidebarToggleBinding',
     'SkillsSection',
+    'createDialogStack',
     'createMcpController',
     'createPreferencesController',
     'createSidebarInteraction',
@@ -66,6 +70,10 @@ test('the built bundle preserves its public exports', async () => {
     'openKeyboardHelp',
     'openSettings',
     'showFirstRunWizard',
+    'useDialogScroll',
+    'useDialogState',
+    'useDialogs',
+    'useIcons',
   ])
   expect(module.default.id).toBe('opencode-navigator')
 })

@@ -148,6 +148,11 @@ export function createSettingsGroups(
           description: 'preview pasted JSON before applying',
         },
         {
+          title: `${icons.icon('retry')} Reload settings from file`,
+          value: 'reload_settings',
+          description: 'sync saved changes from other OpenCode sessions',
+        },
+        {
           title: `${icons.icon('reset')} Restore configured layout`,
           value: 'reset_sections',
           description: 'visibility and expansion',

@@ -7,12 +7,14 @@ import { openSettings } from './settings-dialog'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
+import type { SkillController } from '../../../entities/skill'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function SettingsFooterButton(props: {
   api: TuiPluginApi
   preferences: PreferencesController
   mcp?: McpController
+  skills?: SkillController
 }) {
   const icons = useIcons()
   const [hovered, setHovered] = createSignal(false)
@@ -26,7 +28,7 @@ export function SettingsFooterButton(props: {
       backgroundColor={hovered() ? theme().backgroundElement : theme().backgroundPanel}
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
-      onMouseUp={() => openSettings(props.api, props.preferences, undefined, props.mcp)}
+      onMouseUp={() => openSettings(props.api, props.preferences, undefined, props.mcp, props.skills)}
     />
   )
 }

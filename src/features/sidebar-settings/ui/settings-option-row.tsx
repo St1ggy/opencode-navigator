@@ -52,13 +52,15 @@ export function SettingsOptionRow(props: {
               {model.icons.icon('actions')} Actions
             </text>
           </Show>
-          <Show when={props.option.value === 'mcp'}>
+          <Show when={props.option.value === 'mcp' || props.option.value === 'skills'}>
             <text
               fg={model.theme().accent}
               onMouseDown={(event) => event.stopPropagation()}
               onMouseUp={(event) => {
                 event.stopPropagation()
-                model.openMcpGroups()
+
+                if (props.option.value === 'skills') model.openSkillGroups()
+                else model.openMcpGroups()
               }}
             >
               {model.icons.icon('sections')} Groups
