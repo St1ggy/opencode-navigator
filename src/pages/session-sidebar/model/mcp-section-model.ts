@@ -1,6 +1,6 @@
 import { createMemo } from 'solid-js'
 
-import { buildMcpGroupedView, matchingMcpPreset, mcpGroupToggleAction, mcpToggleAction } from '../../../entities/mcp'
+import { buildMcpGroupedView, matchingMcpPreset, mcpGroupStatus, mcpToggleAction } from '../../../entities/mcp'
 import { createListVisibility } from '../../../shared/lib/list-visibility'
 import { matchesFilter } from '../lib/matches-filter'
 
@@ -65,8 +65,16 @@ export function createMcpSectionModel(
     groupNames(bucket: string) {
       return groupItems(bucket).map((item) => item.name)
     },
-    groupAction(bucket: string) {
-      return mcpGroupToggleAction(groupItems(bucket))
+    groupStatus(bucket: string) {
+      const items = groupItems(bucket)
+      const operation = bulk()
+      const busy =
+        (operation.status === 'running' && 'group' in operation && operation.group === bucket) ||
+        items.some((item) =>
+          ['loading', 'refreshing'].includes(props.controller.serverState(item.name, target()).status),
+        )
+
+      return mcpGroupStatus(items, busy)
     },
     filtered,
     visibility,

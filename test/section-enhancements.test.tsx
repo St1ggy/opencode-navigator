@@ -259,6 +259,8 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
   let interaction!: SidebarInteraction
   const [limit, setLimit] = createSignal(2)
   const [showFailure, setShowFailure] = createSignal(false)
+  const [allConnected, setAllConnected] = createSignal(false)
+  const [groupPending, setGroupPending] = createSignal(false)
   const calls: { group: string; names: string[] }[] = []
 
   function Harness() {
@@ -277,18 +279,22 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
       target: () => ({ key: 'test' }),
       list: () => [
         { name: 'context7', status: 'connected' },
-        { name: 'alpha', status: 'disabled' },
+        { name: 'alpha', status: allConnected() ? 'connected' : 'disabled' },
         { name: 'beta', status: 'connected' },
         { name: 'other', status: 'disabled' },
       ],
       state: () => ({ status: 'ready' }),
-      serverState: (name: string) =>
-        name === 'context7' && showFailure()
-          ? {
-              status: 'error',
-              error: { operation: 'connect', target: 'test', message: 'unavailable', retryable: true },
-            }
-          : { status: 'ready' },
+      serverState: (name: string) => {
+        if (name === 'alpha' && groupPending()) return { status: 'loading' }
+
+        if (name === 'context7' && showFailure())
+          return {
+            status: 'error',
+            error: { operation: 'connect', target: 'test', message: 'unavailable', retryable: true },
+          }
+
+        return { status: 'ready' }
+      },
       mutating: () => false,
       toggleGroup: (group: string, names: string[]) => {
         calls.push({ group, names })
@@ -316,6 +322,9 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
     const groupRow = lines.findIndex((line) => line.includes('Docs (2)'))
 
     expect(groupRow).toBeGreaterThan(-1)
+    expect(lines[groupRow]).toContain(uiIcon('disconnected'))
+    expect(lines[groupRow]).not.toContain('Connect')
+    expect(lines[groupRow]).not.toContain('Disconnect')
     expect(setup.captureCharFrame()).not.toContain('beta')
     await setup.mockMouse.click(lines[groupRow].indexOf('Docs'), groupRow)
     expect(calls).toEqual([{ group: 'Docs', names: ['alpha', 'beta'] }])
@@ -336,6 +345,19 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
       { group: 'Favorites', names: ['context7'] },
       { group: 'Ungrouped', names: ['other'] },
     ])
+    expect(lines.find((line) => line.includes('Favorites (1)'))).toContain(uiIcon('connected'))
+    expect(lines.find((line) => line.includes('Ungrouped (1)'))).toContain(uiIcon('disconnected'))
+    setAllConnected(true)
+    await setup.flush()
+    lines = setup.captureCharFrame().split('\n')
+    expect(lines.find((line) => line.includes('Docs (2)'))).toContain(uiIcon('connected'))
+    expect(lines.find((line) => line.includes('Docs (2)'))).not.toContain('Disconnect')
+    setGroupPending(true)
+    await setup.flush()
+    lines = setup.captureCharFrame().split('\n')
+    expect(lines.find((line) => line.includes('Docs (2)'))).toContain(uiIcon('pending'))
+    setGroupPending(false)
+    setAllConnected(false)
     setShowFailure(true)
     await setup.flush()
     interaction.focus(null, 'opencode-navigator.mcp.context7.retry')

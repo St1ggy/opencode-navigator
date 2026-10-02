@@ -1,5 +1,6 @@
 import { PLUGIN_ID } from '../../../shared/config'
 import { SelectionBox, useIcons } from '../../../shared/ui'
+import { mcpColor, mcpToggle } from '../model/mcp-status'
 
 import { useSidebarItem } from './sidebar-item'
 
@@ -12,19 +13,18 @@ export function McpGroupHeader(props: {
   interaction?: SidebarInteraction
   bucket: string
   count: number
-  action?: 'connect' | 'disconnect'
+  status: string
   disabled: boolean
   marginTop: number
   position: SidebarPosition
   onToggle: () => void
 }) {
   const icons = useIcons()
-  const theme = () => props.api.theme.current
   const id = () => `${PLUGIN_ID}.mcp.group.${props.bucket}`
   const item = useSidebarItem(props.api, props.interaction, {
     id: id(),
     position: () => props.position,
-    disabled: () => props.disabled || !props.action,
+    disabled: () => props.disabled,
     activate: props.onToggle,
   })
 
@@ -48,7 +48,7 @@ export function McpGroupHeader(props: {
       <text
         flexGrow={1}
         minWidth={0}
-        fg={item.focused() ? item.foregroundColor() : theme().textMuted}
+        fg={item.focused() ? item.foregroundColor() : props.api.theme.current.textMuted}
         wrapMode="none"
         truncate
       >
@@ -56,12 +56,10 @@ export function McpGroupHeader(props: {
       </text>
       <text
         flexShrink={0}
-        fg={item.focused() ? item.foregroundColor() : props.disabled ? theme().textMuted : theme().accent}
+        fg={item.focused() ? item.foregroundColor() : mcpColor(props.api, props.status)}
         wrapMode="none"
       >
-        {props.action
-          ? `${icons.icon(props.action === 'connect' ? 'connected' : 'disconnected')} ${props.action === 'connect' ? 'Connect' : 'Disconnect'}`
-          : ''}
+        <b>{icons.icon(mcpToggle(props.status, false))}</b>
       </text>
     </SelectionBox>
   )

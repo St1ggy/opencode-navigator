@@ -76,7 +76,7 @@ export function McpSectionContent(props: {
                       interaction={props.interaction}
                       bucket={item.bucket}
                       count={model.groupNames(item.bucket).length}
-                      action={model.groupAction(item.bucket)}
+                      status={model.groupStatus(item.bucket)}
                       disabled={model.bulkRunning() || model.mutationRunning()}
                       marginTop={index() > 0 ? 1 : 0}
                       position={{ section: props.navigationSection, row: 9 + index() * 3, column: 0 }}

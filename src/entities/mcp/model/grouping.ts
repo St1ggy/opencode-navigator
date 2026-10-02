@@ -12,6 +12,14 @@ export function mcpGroupToggleAction(items: readonly TuiSidebarMcpItem[]) {
   return items.some((item) => mcpToggleAction(item.status) === 'disconnect') ? 'disconnect' : undefined
 }
 
+export function mcpGroupStatus(items: readonly TuiSidebarMcpItem[], busy = false) {
+  if (busy) return 'pending'
+
+  if (items.length > 0 && items.every((item) => item.status === 'connected')) return 'connected'
+
+  return items.find((item) => item.status !== 'connected' && item.status !== 'disabled')?.status ?? 'disabled'
+}
+
 export function buildMcpGroupedView(
   items: readonly TuiSidebarMcpItem[],
   favorites: ReadonlySet<string>,
