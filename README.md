@@ -338,6 +338,15 @@ Search Everything. Usage never changes the order. Visibility remains independent
 so any action, including a bookmarked one, can be hidden from the sidebar while it
 remains searchable. Unavailable actions stay visible with a route- or host-specific reason.
 
+In OpenCode 1.x, Navigator saves changes to the auto-approve mode as a user-wide
+default, including changes made through OpenCode's own command palette. Set the
+default under **Navigator Settings → Behavior → Default auto-approve permissions**;
+new sessions restore it. Until you set a Navigator default, an explicit OpenCode
+startup mode is respected. OpenCode 2.x owns this setting: use the host Settings
+dialog for the current session and `session.permissions` in the user-wide
+`cli.json` (`"prompt"` or `"autoaccept"`) for its startup default. Restart
+OpenCode after changing `cli.json`.
+
 ## Configuration sources
 
 Navigator validates and deep-merges three simultaneous sources in this order:

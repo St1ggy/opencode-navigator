@@ -118,11 +118,14 @@ verification workflow before expanding the product surface.
 - [x] Subagents: observed runtime with pre-observation clock markers, retry countdown, in-memory recent runs, failure attention, text/status filters, query-aware tabs that hide empty errors and disable empty active/recent views, and parent-session navigation.
 - [x] Skills: user-wide favorites, recent items, source details, fuzzy keyboard selection through Search Everything, and trusted-skill confirmation management.
 - [x] Group Skills by user-wide private source-location assignments with Favorites, named groups, and Ungrouped in the sidebar; manage groups in Settings and search their names without changing skill activation.
+- [x] Assign every discovered local Skill source location to a purpose-based user-wide Navigator group while preserving unrelated private preferences.
+- [x] Preserve the user's local Skill-group assignments across sessions, including existing instances saving unrelated preferences.
 - [x] Replace Skill star/info row actions with the MCP-style bookmark control and expose the same bookmark in the Skill confirmation dialog.
 - [x] Quick Actions: keep scoped ordering and visibility, add user-wide bookmarks with favorites first in configured order, remove usage-based ordering, retain independent hiding for every action, and preserve the explicit argument-free host-command allowlist including the global auto-approve toggle and route-aware disabled reasons.
 - [x] Keep full Quick Action names readable in narrow sidebars by moving unavailable reasons below the label and hiding shortcuts that would force the label to truncate.
 - [x] Refresh the auto-approve Quick Action label reactively in the sidebar and Search Everything after `permission.mode` changes.
 - [x] Make the OpenCode 2.x Permissions Quick Action open the host Settings dialog, where the user changes `prompt`/`autoaccept`; retain OpenCode 1.x's direct auto-approve toggle.
+- [x] Remember the OpenCode 1.x auto-approve mode globally for new sessions, keep its Behavior control and host Quick Action in sync, and use the host-owned OpenCode 2.x Session → Permissions default.
 - [x] Add `Ctrl+,` as the direct Navigator Settings shortcut and separate bookmarked Quick Actions from the remaining visible actions.
 - [~] LSP: icons/text badges, error-first sorting, and in-place server-label toggling exist; diagnostic-specific actions depend on public API support.
 - [x] Remove the LSP root/status details modal because the host may report an empty root.
