@@ -116,7 +116,7 @@ function fixtureReadyDelay() {
 
   if (['mcp-presets', 'mcp-preset-actions', 'mcp-preset-preview'].includes(SCENE)) return 3500
 
-  if (SCENE === 'settings-mcp-groups') return 4200
+  if (SCENE === 'settings-mcp-groups' || SCENE === 'settings-skill-groups') return 4200
 
   return 2800
 }
@@ -339,8 +339,16 @@ const plugin = {
 
         if (SCENE === 'settings-mcp-groups') {
           setTimeout(() => {
-            for (let index = 0; index < 5; index++) dispatch('opencode-navigator.settings.next')
-            dispatch('opencode-navigator.settings.mcp-groups')
+            for (let index = 0; index < 7; index++) dispatch('opencode-navigator.settings.next')
+            dispatch('opencode-navigator.settings.groups')
+          }, 400)
+          later(1500, 'opencode-navigator.mcp-preset-menu.select')
+        }
+
+        if (SCENE === 'settings-skill-groups') {
+          setTimeout(() => {
+            for (let index = 0; index < 4; index++) dispatch('opencode-navigator.settings.next')
+            dispatch('opencode-navigator.settings.groups')
           }, 400)
           later(1500, 'opencode-navigator.mcp-preset-menu.select')
         }

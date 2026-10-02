@@ -70,6 +70,7 @@ const preferences = {
       ],
     }),
     favoriteSkills: [`${workspace}/.opencode/skills/review-changes/SKILL.md`],
+    skillGroups: { [`${workspace}/.opencode/skills/write-docs/SKILL.md`]: 'Documentation' },
     favoriteMcpServers: ['docs'],
     favoriteQuickActions: ['session.fork', 'messages.copy'],
     mcpServerGroups: {

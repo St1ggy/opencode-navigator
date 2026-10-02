@@ -1,6 +1,6 @@
 # Screenshot Gallery
 
-These 37 deterministic captures render the real OpenCode TUI through Ghostty.
+These 38 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
 ## Sidebar
@@ -110,6 +110,12 @@ Supported changes remain separate from future fields that will be skipped.
 User-wide assignments include servers that are not present in the current workspace.
 
 ![MCP group manager](31-mcp-groups.png)
+
+### Skill Groups
+
+User-wide assignments keep favorite skills in front and retain absent source locations.
+
+![Skill group manager](38-skill-groups.png)
 
 ## Presets
 

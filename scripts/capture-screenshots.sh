@@ -5,7 +5,7 @@ set -Eeuo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 image="opencode-navigator-screenshots:local"
 mode="${1:-generate}"
-scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview)
+scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups)
 
 file_for_scene() {
   case "$1" in
@@ -46,6 +46,7 @@ file_for_scene() {
     no-corner-layout-preview) printf '%s\n' 35-no-corner-font-layout-preview.png ;;
     no-corner-mcp-preview) printf '%s\n' 36-no-corner-font-mcp-preview.png ;;
     no-corner-import-preview) printf '%s\n' 37-no-corner-font-import-preview.png ;;
+    settings-skill-groups) printf '%s\n' 38-skill-groups.png ;;
     *) return 1 ;;
   esac
 }

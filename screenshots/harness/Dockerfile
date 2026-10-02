@@ -62,7 +62,7 @@ WORKDIR /workspace
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 
-COPY dist/tui.js dist/tui.js
+COPY dist/ dist/
 COPY screenshots/harness /harness
 RUN chmod +x /harness/capture.sh /harness/run-opencode.sh
 
