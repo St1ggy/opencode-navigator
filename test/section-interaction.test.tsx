@@ -930,6 +930,7 @@ test('the built settings dialog saves the current layout as default', async () =
     | undefined
   let saved = 0
   let mcpToggles = 0
+  let autoApproveToggles = 0
   let startToggles = 0
   let iconToggles = 0
   let cornerToggles = 0
@@ -987,6 +988,8 @@ test('the built settings dialog saves the current layout as default', async () =
     persistMcp: () => true,
     selectedPersistMcp: () => true,
     selectedStartInChat: () => false,
+    autoApprovePermissions: () => {},
+    setAutoApprovePermissions: () => autoApproveToggles++,
     selectedShowSessionTitle: titleVisible,
     selectedShowSessionDate: dateVisible,
     cornerFont: () => true,
@@ -1130,6 +1133,10 @@ test('the built settings dialog saves the current layout as default', async () =
 
     nextTab?.run()
     await setup.flush()
+    expect(setup.captureCharFrame()).toContain('Default auto-approve permissions')
+    select?.run()
+    expect(autoApproveToggles).toBe(1)
+    next?.run()
     expect(setup.captureCharFrame()).toContain('Start new sessions in chat')
     expect(setup.captureCharFrame()).toContain('Remember MCP states')
     expect(setup.captureCharFrame()).toContain(`${keyHint('enter')} change`)

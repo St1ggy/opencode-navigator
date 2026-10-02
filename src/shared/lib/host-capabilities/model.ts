@@ -5,6 +5,7 @@ type HostCapability = 'todo' | 'lsp'
 export type HostCapabilities = Readonly<
   Record<HostCapability, boolean> & {
     titleVisibility?: boolean
+    permissionMode?: boolean
     unavailable?: Partial<Record<HostCapability, string>>
   }
 >
@@ -32,4 +33,8 @@ export function supportsSidebarSection(api: TuiPluginApi, section: string) {
 
 export function supportsTitleVisibility(api: TuiPluginApi) {
   return hostCapabilities(api).titleVisibility !== false
+}
+
+export function supportsPermissionMode(api: TuiPluginApi) {
+  return hostCapabilities(api).permissionMode !== false
 }

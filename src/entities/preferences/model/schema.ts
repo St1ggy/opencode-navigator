@@ -68,6 +68,7 @@ export type PreferencesDocument = {
     recentQuickActions?: QuickActionId[]
     mcpServerGroups?: McpServerGroups
     skillGroups?: SkillGroups
+    autoApprovePermissions?: boolean
   }
 }
 export type WorkspaceProfiles = Record<string, string>
@@ -318,6 +319,9 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
       ...(recentQuickActions.length > 0 && { recentQuickActions }),
       ...(Object.keys(mcpServerGroups).length > 0 && { mcpServerGroups }),
       ...(Object.keys(skillGroups).length > 0 && { skillGroups }),
+      ...(typeof userInput?.autoApprovePermissions === 'boolean' && {
+        autoApprovePermissions: userInput.autoApprovePermissions,
+      }),
       ...(Object.keys(workspaceProfiles).length > 0 && { workspaceProfiles }),
     },
   }

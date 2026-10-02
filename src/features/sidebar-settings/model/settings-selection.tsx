@@ -268,6 +268,11 @@ export function createSettingsSelection(input: {
           break
         }
 
+        case 'auto_approve_permissions': {
+          input.preferences.setAutoApprovePermissions(input.preferences.autoApprovePermissions() !== true)
+          break
+        }
+
         case 'lsp_icon_style': {
           input.preferences.toggleLspIconStyle()
           break

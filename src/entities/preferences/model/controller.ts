@@ -123,6 +123,7 @@ export function createPreferencesController(
   const [recentQuickActions, setRecentQuickActions] = createSignal<QuickActionId[]>([])
   const [mcpServerGroups, setMcpServerGroups] = createSignal<McpServerGroups>(configured.mcpServerGroups ?? {})
   const [skillGroups, setSkillGroups] = createSignal<SkillGroups>({})
+  const [autoApprovePermissions, setAutoApprovePermissions] = createSignal<boolean | undefined>()
   const [ready, setReady] = createSignal(false)
   const [revision, setRevision] = createSignal(0)
   const sessionLayouts = new Map<string, SessionLayout>()
@@ -248,6 +249,7 @@ export function createPreferencesController(
     setRecentQuickActions(value.user.recentQuickActions ?? [])
     setMcpServerGroups({ ...configured.mcpServerGroups, ...value.user.mcpServerGroups })
     setSkillGroups(value.user.skillGroups ?? {})
+    setAutoApprovePermissions(value.user.autoApprovePermissions)
     setReady(true)
     refreshResolved()
   }
@@ -451,6 +453,19 @@ export function createPreferencesController(
     update({ user: { skillGroup: { location, group: value } } })
   }
 
+  function changeAutoApprovePermissions(value: boolean) {
+    if (!isHydrated) {
+      void load().then(() => changeAutoApprovePermissions(value))
+
+      return
+    }
+
+    if (autoApprovePermissions() === value) return
+
+    setAutoApprovePermissions(value)
+    update({ user: { autoApprovePermissions: value } })
+  }
+
   function toggleFavoriteMcpServer(name: string) {
     if (!isHydrated) {
       void load().then(() => toggleFavoriteMcpServer(name))
@@ -626,6 +641,8 @@ export function createPreferencesController(
     },
     skillGroups,
     setSkillGroup: changeSkillGroup,
+    autoApprovePermissions,
+    setAutoApprovePermissions: changeAutoApprovePermissions,
     async recordSkillUse(skill: PreferenceSkill) {
       await load()
 

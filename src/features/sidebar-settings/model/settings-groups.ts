@@ -2,7 +2,7 @@ import { createMemo } from 'solid-js'
 
 import { SECTION_DEFINITIONS, SIDEBAR_SECTIONS } from '../../../entities/sidebar-layout'
 import { DEFAULT_SEARCH_KEY } from '../../../shared/config'
-import { supportsSidebarSection } from '../../../shared/lib/host-capabilities'
+import { supportsPermissionMode, supportsSidebarSection } from '../../../shared/lib/host-capabilities'
 
 import { titleVisibilityOptions } from './title-visibility-options'
 
@@ -19,6 +19,13 @@ export function createSettingsGroups(
   icons: ReturnType<typeof useIcons>,
 ) {
   const supportedSections = () => SIDEBAR_SECTIONS.filter((name) => supportsSidebarSection(api, name))
+  const permissionDefaultDescription = () => {
+    const value = preferences.autoApprovePermissions()
+
+    if (value === undefined) return 'follow OpenCode startup mode'
+
+    return value ? 'on for new sessions' : 'off for new sessions'
+  }
   const groups = createMemo<SettingsGroup[]>(() => [
     {
       id: 'scope',
@@ -85,6 +92,15 @@ export function createSettingsGroups(
       tab: 'Behavior',
       title: 'Behavior',
       options: [
+        ...(supportsPermissionMode(api)
+          ? [
+              {
+                title: `${icons.icon(preferences.autoApprovePermissions() === true ? 'checked' : 'unchecked')} Default auto-approve permissions`,
+                value: 'auto_approve_permissions',
+                description: permissionDefaultDescription(),
+              },
+            ]
+          : []),
         {
           title: `${icons.icon(preferences.selectedStartInChat() ? 'checked' : 'unchecked')} Start new sessions in chat`,
           value: 'start_in_chat',

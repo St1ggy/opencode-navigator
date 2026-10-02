@@ -65,6 +65,7 @@ export type PreferencesUpdate = {
     recentQuickAction?: QuickActionId
     mcpServerGroup?: { name: string; group?: string }
     skillGroup?: { location: string; group?: string }
+    autoApprovePermissions?: boolean
     workspaceProfile?: { layout: string; mcp?: string }
   }
   mcp?: {
@@ -343,6 +344,9 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
       ...(recentQuickActions.length > 0 && { recentQuickActions }),
       ...(Object.keys(mcpServerGroups).length > 0 && { mcpServerGroups: parseMcpServerGroups(mcpServerGroups) }),
       ...(Object.keys(skillGroups).length > 0 && { skillGroups: parseSkillGroups(skillGroups) }),
+      ...(typeof (update.user?.autoApprovePermissions ?? current.user.autoApprovePermissions) === 'boolean' && {
+        autoApprovePermissions: update.user?.autoApprovePermissions ?? current.user.autoApprovePermissions,
+      }),
     },
   }
 }

@@ -2,6 +2,7 @@ export {
   hostCapabilities,
   hostCapabilityUnavailable,
   setHostCapabilities,
+  supportsPermissionMode,
   supportsSidebarSection,
   supportsTitleVisibility,
 } from './model'

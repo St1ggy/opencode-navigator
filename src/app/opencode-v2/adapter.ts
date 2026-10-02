@@ -119,6 +119,7 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     todo: true,
     lsp: false,
     titleVisibility: false,
+    permissionMode: false,
   })
 
   return {

@@ -6,7 +6,7 @@ import { createSubagentController } from '../entities/subagent'
 import { type NavigatorTodoController, createNavigatorTodoController, createTodoController } from '../entities/todo'
 import { openKeyboardHelp } from '../features/keyboard-help'
 import { SearchBinding } from '../features/search-everything'
-import { SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
+import { PermissionModeBinding, SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
 import { StartupSessionBinding, createStartupSessionController } from '../features/startup-session'
 import { UpgradeNotesBinding } from '../features/upgrade-notes'
 import {
@@ -26,6 +26,7 @@ import {
   createSidebarInteraction,
 } from '../pages/session-sidebar'
 import { PLUGIN_ID, pluginConfig } from '../shared/config'
+import { supportsPermissionMode } from '../shared/lib/host-capabilities'
 import { IconProvider } from '../shared/ui'
 
 import { loadConfiguredDefaults } from './configured-defaults'
@@ -105,6 +106,7 @@ async function setupNavigator(
         return (
           <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
             <PreferencesPersistence api={api} controller={preferences} />
+            {supportsPermissionMode(api) && <PermissionModeBinding api={api} preferences={preferences} />}
             <SettingsBinding api={api} preferences={preferences} mcp={mcp} skills={skills} />
             <SidebarToggleBinding api={api} preferences={preferences} />
             <SidebarFocusBinding api={api} preferences={preferences} interaction={interaction} />
