@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -321,6 +321,69 @@ test('visibility toggles preserve the effective section order in global and work
   controller.toggleSelectedSection('skills')
   expect(controller.selectedSectionOrder()).toEqual(order)
   expect(controller.selectedSections().skills).toBe(true)
+})
+
+test('manual reload reads other sessions settings and clears temporary layout overrides without losing local writes', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'navigator-manual-reload-'))
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+
+  try {
+    const reader = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+    const writer = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+
+    await Promise.all([reader.load(), writer.load()])
+    reader.setActiveScope('/repo')
+    reader.setPreferenceScope('worktree')
+    writer.setActiveScope('/repo')
+    writer.setPreferenceScope('worktree')
+    reader.toggleSection('todo')
+    expect(reader.sections().todo).toBe(false)
+    writer.toggleSelectedSection('skills')
+    await writer.saveLayoutAsDefault()
+    writer.toggleStartInChat()
+    writer.toggleFavoriteSkill({ location: '/skills/review/SKILL.md' })
+    writer.setSkillGroup('/skills/review/SKILL.md', 'Docs')
+    writer.setMcpServerGroup('wiki', 'Docs')
+    writer.toggleFavoriteMcpServer('wiki')
+    writer.saveMcpPreset('Docs', { wiki: 'enabled' })
+    writer.saveLayoutPreset('Review')
+    await writer.flush()
+
+    reader.toggleFavoriteQuickAction('session.new')
+    await reader.reloadFromFile()
+
+    expect(reader.sections().todo).toBe(true)
+    expect(reader.sections().skills).toBe(false)
+    expect(reader.selectedStartInChat()).toBe(true)
+    expect(reader.favoriteSkills()).toEqual(new Set(['/skills/review/SKILL.md']))
+    expect(reader.favoriteMcpServers()).toEqual(new Set(['wiki']))
+    expect(reader.favoriteQuickActions()).toEqual(new Set(['session.new']))
+    expect(reader.skillGroups()).toEqual({ '/skills/review/SKILL.md': 'Docs' })
+    expect(reader.mcpServerGroups()).toEqual({ wiki: 'Docs' })
+    expect(reader.mcpPresets()).toHaveProperty('Docs')
+    expect(reader.layoutPresets()).toHaveProperty('Review')
+    expect(reader.preferenceScope()).toBe('worktree')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('a failed manual reload retains the current Navigator settings', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'navigator-manual-reload-'))
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+
+  try {
+    const controller = createPreferencesController(api, pluginConfig(undefined), createPreferencesStore(directory))
+
+    await controller.load()
+    controller.setSkillGroup('/skills/review/SKILL.md', 'Docs')
+    await controller.flush()
+    await writeFile(join(directory, 'opencode-pretty-sidebar', 'preferences.json'), '{ invalid json')
+    await expect(controller.reloadFromFile()).rejects.toThrow('Malformed preferences JSON')
+    expect(controller.skillGroups()).toEqual({ '/skills/review/SKILL.md': 'Docs' })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
 })
 
 test('merges interactions made before storage hydration with saved preferences', async () => {

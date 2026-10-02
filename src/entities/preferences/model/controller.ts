@@ -9,6 +9,7 @@ import {
 } from '../../../shared/config'
 import { layoutPresetPreview } from '../../../shared/lib/preset-preview'
 
+import { assignGroup } from './group-assignments'
 import { type PortableSettings, parsePortableSettings, serializePortableSettings } from './portable-settings'
 import {
   type DesiredMcpState,
@@ -20,6 +21,7 @@ import {
   type ResolvedPreferences,
   type ScopedPreferences,
   type SectionLayoutDefault,
+  type SkillGroups,
   emptyPreferencesDocument,
   parseRecentQuickActions,
   parseRecentSkills,
@@ -120,6 +122,7 @@ export function createPreferencesController(
   const [recentSkills, setRecentSkills] = createSignal<string[]>([])
   const [recentQuickActions, setRecentQuickActions] = createSignal<QuickActionId[]>([])
   const [mcpServerGroups, setMcpServerGroups] = createSignal<McpServerGroups>(configured.mcpServerGroups ?? {})
+  const [skillGroups, setSkillGroups] = createSignal<SkillGroups>({})
   const [ready, setReady] = createSignal(false)
   const [revision, setRevision] = createSignal(0)
   const sessionLayouts = new Map<string, SessionLayout>()
@@ -129,6 +132,8 @@ export function createPreferencesController(
   let hydration: Promise<void> | undefined
   let mcpPresetRevision = 0
   let mcpPresetReconciliation = Promise.resolve()
+  let updateRevision = 0
+  let reloading: Promise<void> | undefined
   let isPersistenceWarningShown = false
 
   function skillKey(skill: PreferenceSkill) {
@@ -221,11 +226,29 @@ export function createPreferencesController(
   }
 
   function update(change: PreferencesUpdate) {
+    updateRevision++
     document = applyPreferencesUpdate(document, change)
 
     if (isHydrated) persist(store.update(change))
     else pendingUpdates.push(change)
 
+    refreshResolved()
+  }
+
+  function applyDocument(value: PreferencesDocument) {
+    document = value
+    setSkippedSkills(new Set(value.user.skippedSkillConfirmations))
+    setOnboardingCompleted(value.user.onboardingCompleted === true)
+    setLayoutPresets({ ...configured.layoutPresets, ...value.user.layoutPresets })
+    setMcpPresets({ ...configured.mcpPresets, ...value.user.mcpPresets })
+    setFavoriteSkills(new Set(value.user.favoriteSkills))
+    setFavoriteMcpServers(new Set(value.user.favoriteMcpServers))
+    setFavoriteQuickActions(new Set(value.user.favoriteQuickActions))
+    setRecentSkills(value.user.recentSkills ?? [])
+    setRecentQuickActions(value.user.recentQuickActions ?? [])
+    setMcpServerGroups({ ...configured.mcpServerGroups, ...value.user.mcpServerGroups })
+    setSkillGroups(value.user.skillGroups ?? {})
+    setReady(true)
     refreshResolved()
   }
 
@@ -250,21 +273,40 @@ export function createPreferencesController(
         pendingUpdates.length = 0
 
         for (const change of queued) persist(store.update(change))
-        setSkippedSkills(new Set(document.user.skippedSkillConfirmations))
-        setOnboardingCompleted(document.user.onboardingCompleted === true)
-        setLayoutPresets({ ...configured.layoutPresets, ...document.user.layoutPresets })
-        setMcpPresets({ ...configured.mcpPresets, ...document.user.mcpPresets })
-        setFavoriteSkills(new Set(document.user.favoriteSkills))
-        setFavoriteMcpServers(new Set(document.user.favoriteMcpServers))
-        setFavoriteQuickActions(new Set(document.user.favoriteQuickActions))
-        setRecentSkills(document.user.recentSkills ?? [])
-        setRecentQuickActions(document.user.recentQuickActions ?? [])
-        setMcpServerGroups({ ...configured.mcpServerGroups, ...document.user.mcpServerGroups })
-        setReady(true)
-        refreshResolved()
+        applyDocument(document)
       })
 
     return hydration
+  }
+
+  async function reloadFromFile() {
+    if (reloading) return reloading
+
+    const request = (async () => {
+      await load()
+
+      while (true) {
+        const observedRevision = updateRevision
+
+        await store.flush()
+        await mcpPresetReconciliation
+        const latest = await store.load()
+
+        if (observedRevision !== updateRevision) continue
+
+        sessionLayouts.clear()
+        applyDocument(latest)
+
+        return
+      }
+    })()
+
+    reloading = request
+    try {
+      await request
+    } finally {
+      if (reloading === request) reloading = undefined
+    }
   }
 
   function setKey(value: string, name: 'toggleKey' | 'focusKey' | 'searchKey') {
@@ -394,6 +436,19 @@ export function createPreferencesController(
 
     setFavoriteSkills(next)
     update({ user: { favoriteSkill: { location: key, favorite: next.has(key) } } })
+  }
+
+  function changeSkillGroup(location: string, value?: string) {
+    if (!location) return
+
+    if (!isHydrated) {
+      void load().then(() => changeSkillGroup(location, value))
+
+      return
+    }
+
+    setSkillGroups(assignGroup(skillGroups(), location, value))
+    update({ user: { skillGroup: { location, group: value } } })
   }
 
   function toggleFavoriteMcpServer(name: string) {
@@ -542,6 +597,7 @@ export function createPreferencesController(
         ...(preview.settings.mcp && { mcp: { states: preview.settings.mcp }, clearMcp: true }),
       }
 
+      updateRevision++
       await store.update(change)
       document = await store.load()
       sessionLayouts.delete(targetKey(target))
@@ -565,18 +621,11 @@ export function createPreferencesController(
     recentQuickActions,
     mcpServerGroups,
     setMcpServerGroup(name: string, value?: string) {
-      const group = value?.trim().slice(0, 64)
-      const next = { ...mcpServerGroups() }
-
-      if (group) {
-        const canonical = Object.values(next).find((item) => item.toLocaleLowerCase() === group.toLocaleLowerCase())
-
-        next[name] = canonical ?? group
-      } else delete next[name]
-
-      setMcpServerGroups(next)
-      update({ user: { mcpServerGroup: { name, group } } })
+      setMcpServerGroups(assignGroup(mcpServerGroups(), name, value))
+      update({ user: { mcpServerGroup: { name, group: value } } })
     },
+    skillGroups,
+    setSkillGroup: changeSkillGroup,
     async recordSkillUse(skill: PreferenceSkill) {
       await load()
 
@@ -622,6 +671,7 @@ export function createPreferencesController(
       await store.flush()
       await mcpPresetReconciliation
     },
+    reloadFromFile,
     async claimNavigatorUpgrade(version: string) {
       await load()
       const previous = document.user.lastNavigatorVersion
@@ -815,6 +865,7 @@ export function createPreferencesController(
       const target = selectedTarget()
       const layout = resolveTarget(target).layout
 
+      updateRevision++
       document = applyPreferencesUpdate(document, { target, layout })
       await store.update({ target, layout })
       refreshResolved()

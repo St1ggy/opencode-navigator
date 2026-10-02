@@ -334,6 +334,31 @@ test('MCP group assignments merge concurrently and can be removed without droppi
   }
 })
 
+test('Skill groups are private per source and retain absent assignments across concurrent updates', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'navigator-skill-groups-'))
+
+  try {
+    const first = createPreferencesStore(directory)
+    const second = createPreferencesStore(directory)
+    const active = '/one/review/SKILL.md'
+    const absent = '/elsewhere/review/SKILL.md'
+
+    await Promise.all([
+      first.update({ user: { skillGroup: { location: active, group: ' Docs ' } } }),
+      second.update({ user: { skillGroup: { location: absent, group: 'docs' } } }),
+    ])
+
+    const saved = (await first.load()).user.skillGroups!
+
+    expect(saved[active].toLocaleLowerCase()).toBe('docs')
+    expect(saved[absent]).toBe(saved[active])
+    await second.update({ user: { skillGroup: { location: active } } })
+    expect((await first.load()).user.skillGroups).toEqual({ [absent]: saved[active] })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('keeps concurrent MCP preset operations case-insensitive and rename-safe', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-store-'))
 

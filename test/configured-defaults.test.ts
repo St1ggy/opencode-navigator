@@ -32,6 +32,7 @@ test('parses every portable configured setting and excludes private state', () =
     mcpPresets: { Work: { docs: 'enabled' } },
     workspaceProfiles: { Focus: 'Work' },
     mcpServerGroups: { docs: 'Documentation' },
+    skillGroups: { '/private/skill': 'Research' },
     favoriteSkills: ['/private/skill'],
     favoriteQuickActions: ['session.rename'],
     onboardingCompleted: true,
@@ -57,6 +58,7 @@ test('parses every portable configured setting and excludes private state', () =
   expect(configured.workspaceProfiles).toEqual({ Focus: 'Work' })
   expect(configured.mcpServerGroups).toEqual({ docs: 'Documentation' })
   expect(configured).not.toHaveProperty('favoriteSkills')
+  expect(configured).not.toHaveProperty('skillGroups')
   expect(configured).not.toHaveProperty('favoriteQuickActions')
   expect(configured).not.toHaveProperty('onboardingCompleted')
   expect(configured).not.toHaveProperty('lastNavigatorVersion')

@@ -54,6 +54,7 @@ export type DesiredMcpStates = Record<string, DesiredMcpState>
 export type LayoutPresets = Record<string, SectionLayoutDefault>
 export type McpPresets = Record<string, DesiredMcpStates>
 export type McpServerGroups = Record<string, string>
+export type SkillGroups = Record<string, string>
 
 export function preferencesScope(path: { worktree?: string; directory?: string }) {
   return path.worktree || path.directory || 'global'

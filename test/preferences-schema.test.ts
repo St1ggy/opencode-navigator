@@ -176,6 +176,14 @@ describe('preferences schema', () => {
     ).toEqual({ 'review server': 'Review', 'review-server': 'x'.repeat(64) })
   })
 
+  test('keeps Skill group assignments private to exact source locations', () => {
+    expect(
+      parsePreferencesDocument({
+        user: { skillGroups: { '/one/review/SKILL.md': ' Docs ', '/two/review/SKILL.md': 'x'.repeat(100) } },
+      }).user.skillGroups,
+    ).toEqual({ '/one/review/SKILL.md': 'Docs', '/two/review/SKILL.md': 'x'.repeat(64) })
+  })
+
   test('sanitizes workspace profile links without requiring referenced presets to exist', () => {
     expect(
       parsePreferencesDocument({ user: { workspaceProfiles: { ' Focus ': ' Docs ', Empty: '', Invalid: 42 } } }).user

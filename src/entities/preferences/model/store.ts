@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { LEGACY_PLUGIN_ID } from '../../../shared/config'
 
+import { assignGroup } from './group-assignments'
 import {
   type DesiredMcpState,
   type LayoutPresets,
@@ -13,6 +14,7 @@ import {
   type PreferencesDocument,
   type QuickActionId,
   type SectionLayoutDefault,
+  type SkillGroups,
   type WorkspaceProfiles,
   emptyPreferencesDocument,
   parseDesiredMcpStates,
@@ -25,6 +27,7 @@ import {
   parseRecentQuickActions,
   parseRecentSkills,
   parseSectionLayout,
+  parseSkillGroups,
   parseWorkspaceProfiles,
 } from './schema'
 
@@ -61,6 +64,7 @@ export type PreferencesUpdate = {
     recentSkill?: string
     recentQuickAction?: QuickActionId
     mcpServerGroup?: { name: string; group?: string }
+    skillGroup?: { location: string; group?: string }
     workspaceProfile?: { layout: string; mcp?: string }
   }
   mcp?: {
@@ -280,20 +284,16 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     ...(update.user?.recentQuickAction ? [update.user.recentQuickAction] : []),
     ...(current.user.recentQuickActions ?? []),
   ])
-  const mcpServerGroups: McpServerGroups = { ...current.user.mcpServerGroups }
-  const groupUpdate = update.user?.mcpServerGroup
-
-  if (groupUpdate?.name) {
-    const group = groupUpdate.group?.trim().slice(0, 64)
-
-    if (group) {
-      const canonical = Object.values(mcpServerGroups).find(
-        (value) => value.toLocaleLowerCase() === group.toLocaleLowerCase(),
-      )
-
-      mcpServerGroups[groupUpdate.name] = canonical ?? group
-    } else delete mcpServerGroups[groupUpdate.name]
-  }
+  const mcpServerGroups: McpServerGroups = assignGroup(
+    current.user.mcpServerGroups,
+    update.user?.mcpServerGroup?.name,
+    update.user?.mcpServerGroup?.group,
+  )
+  const skillGroups: SkillGroups = assignGroup(
+    current.user.skillGroups,
+    update.user?.skillGroup?.location,
+    update.user?.skillGroup?.group,
+  )
 
   const favoriteSkills = update.user?.favoriteSkills
     ? parseSkillConfirmations(update.user.favoriteSkills)
@@ -342,6 +342,7 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
       ...(recentSkills.length > 0 && { recentSkills }),
       ...(recentQuickActions.length > 0 && { recentQuickActions }),
       ...(Object.keys(mcpServerGroups).length > 0 && { mcpServerGroups: parseMcpServerGroups(mcpServerGroups) }),
+      ...(Object.keys(skillGroups).length > 0 && { skillGroups: parseSkillGroups(skillGroups) }),
     },
   }
 }

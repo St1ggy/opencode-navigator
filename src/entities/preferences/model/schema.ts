@@ -10,6 +10,7 @@ import {
   type SectionLayoutDefault,
   type SectionVisibility,
   type SidebarSection,
+  type SkillGroups,
   parseQuickActionOrder,
   parseQuickActionVisibility,
   parseSectionItemLimits,
@@ -32,6 +33,7 @@ export type {
   SectionVisibility,
   SidebarRowDensity,
   SidebarSection,
+  SkillGroups,
 } from '../../../shared/config'
 
 export {
@@ -65,6 +67,7 @@ export type PreferencesDocument = {
     recentSkills?: string[]
     recentQuickActions?: QuickActionId[]
     mcpServerGroups?: McpServerGroups
+    skillGroups?: SkillGroups
   }
 }
 export type WorkspaceProfiles = Record<string, string>
@@ -223,6 +226,8 @@ export function parseMcpServerGroups(value: unknown): McpServerGroups {
   )
 }
 
+export const parseSkillGroups = parseMcpServerGroups
+
 export function parseWorkspaceProfiles(value: unknown): WorkspaceProfiles {
   return Object.fromEntries(
     Object.entries(record(value) ?? {})
@@ -283,6 +288,7 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   const recentSkills = parseRecentSkills(userInput?.recentSkills)
   const recentQuickActions = parseRecentQuickActions(userInput?.recentQuickActions)
   const mcpServerGroups = parseMcpServerGroups(userInput?.mcpServerGroups)
+  const skillGroups = parseSkillGroups(userInput?.skillGroups)
   const workspaceProfiles = parseWorkspaceProfiles(userInput?.workspaceProfiles)
 
   return {
@@ -311,6 +317,7 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
       ...(recentSkills.length > 0 && { recentSkills }),
       ...(recentQuickActions.length > 0 && { recentQuickActions }),
       ...(Object.keys(mcpServerGroups).length > 0 && { mcpServerGroups }),
+      ...(Object.keys(skillGroups).length > 0 && { skillGroups }),
       ...(Object.keys(workspaceProfiles).length > 0 && { workspaceProfiles }),
     },
   }
