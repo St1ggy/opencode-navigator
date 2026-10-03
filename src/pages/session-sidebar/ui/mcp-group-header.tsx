@@ -37,6 +37,7 @@ export function McpGroupHeader(props: {
       flexDirection="row"
       justifyContent="space-between"
       gap={1}
+      paddingRight={1}
       backgroundColor={item.backgroundColor()}
       onMouseOver={item.onMouseOver}
       onMouseOut={item.onMouseOut}

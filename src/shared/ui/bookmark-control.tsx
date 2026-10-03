@@ -5,6 +5,7 @@ import type { IconControlProps } from './icon-control'
 
 export type BookmarkControlProps = Omit<IconControlProps, 'icon'> & {
   bookmarked: boolean
+  visible?: () => boolean
 }
 
 export function BookmarkControl(props: BookmarkControlProps) {
@@ -14,7 +15,7 @@ export function BookmarkControl(props: BookmarkControlProps) {
     <IconControl
       ref={props.ref}
       id={props.id}
-      icon={icons.icon(props.bookmarked ? 'bookmark' : 'bookmarkEmpty')}
+      icon={props.visible?.() === false ? ' ' : icons.icon(props.bookmarked ? 'bookmark' : 'bookmarkEmpty')}
       backgroundColor={props.backgroundColor}
       foregroundColor={props.foregroundColor}
       onMouseOver={props.onMouseOver}

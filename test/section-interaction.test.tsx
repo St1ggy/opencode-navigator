@@ -27,6 +27,7 @@ import {
   SubagentSection,
   TodoSection,
 } from '../src/pages/session-sidebar'
+import { SidebarRowList } from '../src/pages/session-sidebar/ui/sidebar-row-list'
 import { TodoRow } from '../src/pages/session-sidebar/ui/todo-row'
 
 import type { PreferencesController } from '../src/controllers/preferences'
@@ -113,6 +114,10 @@ test('Subagents show observed duration, retry, errors and recent under one limit
     expect(setup.captureCharFrame()).toContain('Cancelled: aborted')
     lines = setup.captureCharFrame().split('\n')
     const older = lines.findIndex((line) => line.includes('Earlier worker'))
+    const recentGroup = lines.findIndex((line, index) => index < older && line.trim() === 'Recent')
+
+    expect(recentGroup).toBeGreaterThan(-1)
+    expect(lines[older].indexOf('Earlier worker')).toBeGreaterThan(lines[recentGroup].indexOf('Recent'))
 
     await setup.mockMouse.click(lines[older].indexOf('Earlier worker'), older)
     expect(opened).toEqual(['older'])
@@ -140,9 +145,11 @@ test('Todo priority indicators share one right-aligned slot', async () => {
   const setup = await testRender(
     () => (
       <box width={30}>
-        <TodoRow api={api} item={{ content: 'High', status: 'pending', priority: 'high' }} />
-        <TodoRow api={api} item={{ content: 'Medium', status: 'pending', priority: 'medium' }} />
-        <TodoRow api={api} item={{ content: 'Low', status: 'pending', priority: 'low' }} />
+        <SidebarRowList api={api} density="compact">
+          <TodoRow item={{ content: 'High', status: 'pending', priority: 'high' }} />
+          <TodoRow item={{ content: 'Medium', status: 'pending', priority: 'medium' }} />
+          <TodoRow item={{ content: 'Low', status: 'pending', priority: 'low' }} />
+        </SidebarRowList>
       </box>
     ),
     { width: 30, height: 3 },
@@ -219,6 +226,11 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
     expect(tabRow).not.toContain(uiIcon('radioOff'))
     expect(setup.captureCharFrame()).toContain('running-task')
     expect(setup.captureCharFrame()).not.toContain('pending-task')
+    const groupedLines = setup.captureCharFrame().split('\n')
+    const activeGroup = groupedLines.find((line) => line.trim() === 'Active')!
+    const activeItem = groupedLines.find((line) => line.includes('running-task'))!
+
+    expect(activeItem.indexOf('running-task')).toBeGreaterThan(activeGroup.indexOf('Active'))
     await click('Finished 2')
     expectTabStyle('Finished 2', sidebarTheme.accent, sidebarTheme.backgroundElement)
     expect(setup.captureCharFrame()).toContain('done-task')

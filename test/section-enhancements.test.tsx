@@ -196,9 +196,13 @@ test('MCP favorite toggles reorder rows without changing server state', async ()
 
   try {
     await setup.flush()
-    const lines = setup.captureCharFrame().split('\n')
+    let lines = setup.captureCharFrame().split('\n')
     const row = lines.findIndex((line) => line.includes('zebra'))
 
+    expect(lines[row]).not.toContain(uiIcon('bookmarkEmpty'))
+    await setup.mockMouse.moveTo(lines[row].indexOf('zebra'), row)
+    await setup.flush()
+    lines = setup.captureCharFrame().split('\n')
     const column = Bun.stringWidth(lines[row].slice(0, lines[row].indexOf(uiIcon('bookmarkEmpty'))))
 
     await setup.mockMouse.moveTo(column, row)
@@ -262,6 +266,7 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
   const [allConnected, setAllConnected] = createSignal(false)
   const [groupPending, setGroupPending] = createSignal(false)
   const calls: { group: string; names: string[] }[] = []
+  const favoriteToggles: string[] = []
 
   function Harness() {
     const renderer = useRenderer()
@@ -303,6 +308,7 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
     const preferences = {
       expanded: () => ({ mcp: true }),
       favoriteMcpServers: () => new Set(['context7']),
+      toggleFavoriteMcpServer: (name: string) => favoriteToggles.push(name),
       mcpServerGroups: () => ({ alpha: 'Docs', beta: 'Docs' }),
       sectionItemLimit: limit,
     } as unknown as PreferencesController
@@ -323,6 +329,12 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
 
     expect(groupRow).toBeGreaterThan(-1)
     expect(lines[groupRow]).toContain(uiIcon('disconnected'))
+    const favoriteRow = lines.findIndex((line) => line.includes('context7'))
+
+    expect(lines[favoriteRow].indexOf('context7')).toBeGreaterThan(lines[groupRow].indexOf('Docs'))
+    expect(Bun.stringWidth(lines[groupRow].split(uiIcon('disconnected'))[0])).toBe(
+      Bun.stringWidth(lines[favoriteRow].split(uiIcon('connected')).at(-2)!),
+    )
     expect(lines[groupRow]).not.toContain('Connect')
     expect(lines[groupRow]).not.toContain('Disconnect')
     expect(setup.captureCharFrame()).not.toContain('beta')
@@ -384,6 +396,34 @@ test('MCP group headings toggle the full bucket by mouse and keyboard despite fi
       { group: 'Ungrouped', names: ['other'] },
       { group: 'Docs', names: ['alpha', 'beta'] },
     ])
+    interaction.focus(null, 'opencode-navigator.mcp.alpha.favorite')
+    await setup.flush()
+    expect(interaction.selectedId()).toBe('opencode-navigator.mcp.alpha.favorite')
+    expect(interaction.ownsFocus()).toBe(true)
+    const alphaLine = setup
+      .captureCharFrame()
+      .split('\n')
+      .find((line) => line.includes('alpha') && !line.includes(uiIcon('search')))
+
+    expect(alphaLine).toContain(uiIcon('bookmarkEmpty'))
+    expect(
+      interaction
+        .available()
+        .filter((item) => item.id.includes('mcp.alpha'))
+        .map((item) => ({
+          id: item.id,
+          position: typeof item.position === 'function' ? item.position() : item.position,
+        })),
+    ).toEqual([
+      { id: 'opencode-navigator.mcp.alpha.favorite', position: { section: 6, row: 10, column: 0 } },
+      { id: 'opencode-navigator.mcp.alpha', position: { section: 6, row: 10, column: 1 } },
+    ])
+    interaction.moveHorizontal(1)
+    expect(interaction.selectedId()).toBe('opencode-navigator.mcp.alpha')
+    interaction.moveHorizontal(-1)
+    expect(interaction.selectedId()).toBe('opencode-navigator.mcp.alpha.favorite')
+    setup.mockInput.pressEnter()
+    expect(favoriteToggles).toEqual(['alpha'])
   } finally {
     setup.renderer.destroy()
   }

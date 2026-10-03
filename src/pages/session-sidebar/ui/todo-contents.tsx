@@ -49,7 +49,7 @@ export function TodoContents(props: {
         </For>
       </box>
       <Show when={props.view.rows.length > 0} fallback={<EmptyTodo api={props.api} mode={props.mode} />}>
-        <SidebarRowList density={props.density}>
+        <SidebarRowList api={props.api} interaction={props.interaction} density={props.density}>
           <For each={props.visibility.visible()}>
             {(row, index) => {
               const startsGroup = () => index() === 0 || props.visibility.visible()[index() - 1].group !== row.group
@@ -61,7 +61,7 @@ export function TodoContents(props: {
                       <b>{row.group}</b>
                     </text>
                   </Show>
-                  <TodoRow api={props.api} item={row.item} />
+                  <TodoRow item={row.item} />
                 </box>
               )
             }}

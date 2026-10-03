@@ -93,7 +93,12 @@ export function SkillsSection(props: {
             when={model.filtered().length > 0}
             fallback={<text fg={props.api.theme.current.textMuted}>No matching skills</text>}
           >
-            <SidebarRowList density={props.preferences.rowDensity?.() ?? 'compact'}>
+            <SidebarRowList
+              api={props.api}
+              interaction={props.interaction}
+              grouped={model.grouped}
+              density={props.preferences.rowDensity?.() ?? 'compact'}
+            >
               <For each={model.visibility.visible()}>
                 {(item, index) => (
                   <>
@@ -114,8 +119,6 @@ export function SkillsSection(props: {
                       </text>
                     </Show>
                     <SkillRow
-                      api={props.api}
-                      interaction={props.interaction}
                       item={item}
                       position={{
                         section: navigationSection(),

@@ -9,6 +9,7 @@ import { QuickActionsDialog } from '../src/dialogs/quick-actions'
 import { uiIcon } from '../src/icons/ui'
 import { QuickActionsSection } from '../src/pages/session-sidebar'
 import { QuickActionRow } from '../src/pages/session-sidebar/ui/quick-action-row'
+import { SidebarRowList } from '../src/pages/session-sidebar/ui/sidebar-row-list'
 import { QUICK_ACTIONS, QUICK_ACTION_IDS, quickActionDisabledReason, quickActionLabel } from '../src/quick-actions'
 
 import type { Plugin } from '@opencode/plugin/tui'
@@ -71,16 +72,17 @@ test('narrow Quick Actions show the complete name and keep unavailable reasons b
   } as unknown as TuiPluginApi
   const action = QUICK_ACTIONS.find((candidate) => candidate.command === 'permission.mode')!
   const row = (disabled?: string) => (
-    <QuickActionRow
-      api={api}
-      action={action}
-      disabled={disabled}
-      favorite
-      favoriteDisabled={false}
-      separator={false}
-      onToggleFavorite={() => {}}
-      position={{ section: 1, row: 1, column: 0 }}
-    />
+    <SidebarRowList api={api} density="compact">
+      <QuickActionRow
+        action={action}
+        disabled={disabled}
+        favorite
+        favoriteDisabled={false}
+        separator={false}
+        onToggleFavorite={() => {}}
+        position={{ section: 1, row: 1, column: 0 }}
+      />
+    </SidebarRowList>
   )
   const narrow = await testRender(() => row('Unavailable in this OpenCode version'), { width: 42, height: 6 })
   const wide = await testRender(() => row(), { width: 72, height: 6 })
@@ -124,16 +126,17 @@ test('OpenCode 2 Permissions Quick Action opens the host Settings dialog with mo
   const permissions = QUICK_ACTIONS.find((action) => action.command === 'permission.mode')!
   const sidebar = await testRender(
     () => (
-      <QuickActionRow
-        api={api}
-        action={{ ...permissions, label: quickActionLabel(api, permissions) }}
-        disabled={quickActionDisabledReason(api, permissions)}
-        favorite={false}
-        favoriteDisabled={false}
-        separator={false}
-        onToggleFavorite={() => {}}
-        position={{ section: 1, row: 1, column: 0 }}
-      />
+      <SidebarRowList api={api} density="compact">
+        <QuickActionRow
+          action={{ ...permissions, label: quickActionLabel(api, permissions) }}
+          disabled={quickActionDisabledReason(api, permissions)}
+          favorite={false}
+          favoriteDisabled={false}
+          separator={false}
+          onToggleFavorite={() => {}}
+          position={{ section: 1, row: 1, column: 0 }}
+        />
+      </SidebarRowList>
     ),
     { width: 42, height: 6 },
   )
@@ -293,8 +296,19 @@ test('Quick Actions settings change live visibility and ordering and keep select
     expect(sidebar.captureCharFrame()).not.toContain('Enable auto-approve permissions')
     expect(preferences.recentQuickActions()).toEqual([])
 
-    const favoriteFrame = sidebar.captureCharFrame().split('\n')
+    let favoriteFrame = sidebar.captureCharFrame().split('\n')
     const favoriteRow = favoriteFrame.findIndex((line) => line.includes('Rename'))
+    const labelColumn = Bun.stringWidth(
+      favoriteFrame[favoriteRow].slice(0, favoriteFrame[favoriteRow].indexOf('Rename')),
+    )
+
+    expect(favoriteFrame[favoriteRow]).not.toContain(uiIcon('bookmarkEmpty'))
+    await sidebar.mockMouse.moveTo(favoriteFrame[favoriteRow].indexOf('Rename'), favoriteRow)
+    await sidebar.flush()
+    favoriteFrame = sidebar.captureCharFrame().split('\n')
+    expect(Bun.stringWidth(favoriteFrame[favoriteRow].slice(0, favoriteFrame[favoriteRow].indexOf('Rename')))).toBe(
+      labelColumn,
+    )
     const favoriteColumn = Bun.stringWidth(
       favoriteFrame[favoriteRow].slice(0, favoriteFrame[favoriteRow].indexOf(uiIcon('bookmarkEmpty'))),
     )

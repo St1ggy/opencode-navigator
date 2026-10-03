@@ -22,7 +22,7 @@ export function SubagentList(props: {
   density: SidebarRowDensity
 }) {
   return (
-    <SidebarRowList density={props.density}>
+    <SidebarRowList api={props.api} interaction={props.interaction} density={props.density}>
       <For each={props.ids}>
         {(id, index) => {
           const initial = props.itemById(id)
@@ -37,8 +37,6 @@ export function SubagentList(props: {
                 </text>
               </Show>
               <SubagentRow
-                api={props.api}
-                interaction={props.interaction}
                 item={item()}
                 now={props.now}
                 position={{ section: props.navigationSection, row: 10 + index(), column: 0 }}

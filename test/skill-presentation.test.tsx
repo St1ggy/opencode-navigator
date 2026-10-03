@@ -182,8 +182,13 @@ test('Skills keep favorites before recent, use bookmark controls, and record onl
     expect(frame.indexOf('favorite')).toBeLessThan(frame.indexOf('zebra'))
     expect(frame.indexOf('zebra')).toBeLessThan(frame.indexOf('alpha'))
     expect(frame).toContain(uiIcon('bookmark'))
-    expect(frame).toContain(uiIcon('bookmarkEmpty'))
+    expect(frame).not.toContain(uiIcon('bookmarkEmpty'))
     expect(frame).not.toContain(uiIcon('info'))
+    const alphaRow = frame.split('\n').findIndex((line) => line.includes('alpha'))
+
+    await setup.mockMouse.moveTo(frame.split('\n')[alphaRow].indexOf('alpha'), alphaRow)
+    await setup.flush()
+    expect(setup.captureCharFrame().split('\n')[alphaRow]).toContain(uiIcon('bookmarkEmpty'))
     await clickSkill('alpha')
     expect(recent()[0]).toBe(items[0].location)
     isFail = true
@@ -240,6 +245,11 @@ test('Skill groups show Favorites, named groups and Ungrouped independently of f
     expect(lines.findIndex((line) => line.includes('Favorites'))).toBeGreaterThan(-1)
     expect(groupRow).toBeGreaterThan(-1)
     expect(setup.captureCharFrame()).not.toContain('Ungrouped')
+    const favoriteRow = lines.findIndex((line) => line.includes('favorite'))
+    const alphaRow = lines.findIndex((line) => line.includes('alpha'))
+
+    expect(lines[favoriteRow].indexOf('favorite')).toBeGreaterThan(lines[favoriteRow - 1].indexOf('Favorites'))
+    expect(lines[alphaRow].indexOf('alpha')).toBeGreaterThan(lines[groupRow].indexOf('Docs'))
     await setup.mockMouse.click(lines[groupRow].indexOf('Docs'), groupRow)
     expect(uses).toBe(0)
 

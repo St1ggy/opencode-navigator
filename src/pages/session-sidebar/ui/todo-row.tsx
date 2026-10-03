@@ -3,12 +3,14 @@ import { Show } from 'solid-js'
 
 import { useIcons } from '../../../shared/ui'
 
-import type { SidebarTodo } from '../../../entities/todo'
-import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import { useSidebarList } from './sidebar-row-list'
 
-export function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
+import type { SidebarTodo } from '../../../entities/todo'
+
+export function TodoRow(props: { item: SidebarTodo }) {
+  const { api } = useSidebarList()
   const icons = useIcons()
-  const theme = () => props.api.theme.current
+  const theme = () => api.theme.current
   const done = () => props.item.status === 'completed'
   const active = () => props.item.status === 'in_progress'
   const cancelled = () => props.item.status === 'cancelled'
@@ -30,7 +32,7 @@ export function TodoRow(props: { api: TuiPluginApi; item: SidebarTodo }) {
   }
 
   return (
-    <box flexDirection="row" gap={1}>
+    <box flexDirection="row" gap={1} paddingLeft={2}>
       <text
         flexShrink={0}
         fg={active() ? theme().warning : done() ? theme().success : cancelled() ? theme().error : theme().textMuted}

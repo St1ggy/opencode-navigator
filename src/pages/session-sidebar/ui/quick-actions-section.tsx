@@ -67,15 +67,17 @@ export function QuickActionsSection(props: {
       open={props.preferences.expanded().quick_actions}
       onToggle={() => props.preferences.toggleSectionExpanded('quick_actions')}
     >
-      <SidebarRowList density={props.preferences.rowDensity?.() ?? 'compact'}>
+      <SidebarRowList
+        api={props.api}
+        interaction={props.interaction}
+        density={props.preferences.rowDensity?.() ?? 'compact'}
+      >
         <Show when={actions().length === 0}>
           <text fg={props.api.theme.current.textMuted}>No quick actions selected</text>
         </Show>
         <For each={visibility.visible()}>
           {(action, index) => (
             <QuickActionRow
-              api={props.api}
-              interaction={props.interaction}
               onNewSession={props.onNewSession}
               action={action}
               disabled={action.disabled}

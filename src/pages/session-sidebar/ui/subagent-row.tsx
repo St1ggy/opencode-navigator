@@ -5,27 +5,26 @@ import { PLUGIN_ID } from '../../../shared/config'
 import { ListRow, useIcons } from '../../../shared/ui'
 
 import { useSidebarItem } from './sidebar-item'
+import { useSidebarList } from './sidebar-row-list'
 
-import type { SidebarInteraction, SidebarPosition } from '../model/sidebar-interaction'
-import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { SidebarPosition } from '../model/sidebar-interaction'
 import type { BoxRenderable } from '@opentui/core'
 
 export function SubagentRow(props: {
-  api: TuiPluginApi
-  interaction?: SidebarInteraction
   item: SubagentViewItem
   now: number
   position: SidebarPosition
   onOpen: () => void
 }) {
+  const { api, interaction } = useSidebarList()
   const icons = useIcons()
-  const theme = () => props.api.theme.current
+  const theme = () => api.theme.current
   const retrying = () => props.item.status.type === 'retry'
   const idle = () => props.item.status.type === 'idle'
   const failed = () => props.item.run?.outcome === 'error'
   const cancelled = () => props.item.run?.outcome === 'cancelled'
   const id = () => `${PLUGIN_ID}.subagent.${props.item.session.id}`
-  const row = useSidebarItem(props.api, props.interaction, {
+  const row = useSidebarItem(api, interaction, {
     id: id(),
     position: () => props.position,
     activate: props.onOpen,
@@ -45,7 +44,7 @@ export function SubagentRow(props: {
     <ListRow
       ref={(node: BoxRenderable) => row.ref(node)}
       id={id()}
-      paddingLeft={1}
+      paddingLeft={2}
       paddingRight={1}
       backgroundColor={row.backgroundColor()}
       onMouseOver={row.onMouseOver}

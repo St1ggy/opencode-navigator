@@ -61,7 +61,12 @@ export function McpSectionContent(props: {
           when={model.filtered().length > 0}
           fallback={<text fg={props.api.theme.current.textMuted}>No matching MCP servers</text>}
         >
-          <SidebarRowList density={props.preferences.rowDensity?.() ?? 'compact'}>
+          <SidebarRowList
+            api={props.api}
+            interaction={props.interaction}
+            grouped={model.grouped}
+            density={props.preferences.rowDensity?.() ?? 'compact'}
+          >
             <For each={model.visibility.visible()}>
               {(item, index) => (
                 <>
@@ -86,8 +91,6 @@ export function McpSectionContent(props: {
                     />
                   </Show>
                   <McpRow
-                    api={props.api}
-                    interaction={props.interaction}
                     item={item}
                     position={{ section: props.navigationSection, row: 10 + index() * 3, column: 0 }}
                     state={props.controller.serverState(item.name, model.target())}
