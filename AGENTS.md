@@ -21,6 +21,8 @@
 - Keep sidebar composition, section shells/filters/tabs/visibility/boundaries, and sidebar interaction implementation inside `src/pages/session-sidebar`; the corresponding legacy component and root modules must remain re-export-only compatibility facades.
 - Keep generic `Tab` and `SelectionBox` primitives in the `src/shared/ui` public API, and import shared primitives through that API from pages, dialogs, and features.
 - Keep shared list-row and icon-control primitives domain-agnostic. They may accept presentation slots and event props but must not import sidebar interaction, controllers, preferences, SDK domain types, or business logic.
+- Extract repeated sidebar bookmark interaction, hover/focus visibility, and nested-control rendering into one reusable page-level control rather than repeating it in MCP, Skill, and Quick Action rows; keep the shared UI primitive presentation-only.
+- Do not prop-drill shared sidebar list state through sections and rows. Provide common API, interaction controller, and grouped-list layout through a page-level Solid context; keep item-specific actions and bookmark state local to each row. Keep provider boundaries explicit and avoid placing sidebar domain state in Shared UI.
 - Keep flat controller/model paths as re-export-only compatibility facades. Production pages and features must consume entity/shared public APIs, and entity slices must not import or deep-import other entity slices.
 - Keep generic icons and dialog infrastructure in `src/shared/ui`, with legacy `src/icons`, `src/dialogs/context.tsx`, and generic `src/components` paths as re-export-only compatibility facades.
 - Keep Search Everything, keyboard help, and the cohesive sidebar settings/onboarding/presets/Quick Actions flows in isolated feature slices with explicit public APIs. Keep Skill dialog presentation in the Skill entity.
@@ -38,6 +40,7 @@
 - Clip long content to its content area so it cannot overwrite rounded corner cells.
 - Standalone and nested icon controls use a centered three-cell shape with one cell for each rounded end and no additional inner padding.
 - Nested controls (bookmarks, presets, settings) inherit the row background when idle and have their own contrasting hover/focus background and readable foreground.
+- In grouped sidebar lists, indent member rows beneath their headings. Place the three-cell favorite bookmark before each bookmarkable item, reserve its width to keep labels stable, reveal unselected bookmarks on hover or keyboard focus, and always show selected bookmarks. Keep favorite toggles available to mouse and keyboard in every sidebar list. Align MCP server status indicators with the group status indicator without overwriting rounded highlight ends.
 - Focused filter fields must use a consistent contrasting palette for their icon, placeholder, entered text, clear control, and cursor. Synchronize their appearance with actual input focus and blur.
 - Give every sidebar section filter a consistent single-row gap above and below the field.
 - Keep the active Todo filter visually persistent like the active Settings tab: use a rounded highlighted background, accent foreground, and bold label independently of transient keyboard focus.

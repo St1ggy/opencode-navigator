@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [0.19.3] - 2026-10-03
+
+- Indent grouped Todo, Subagent, Skill, and MCP rows and align MCP server status indicators with their group headings.
+- Place Skill, MCP, and Quick Action bookmarks before item names. Reveal unselected bookmarks on hover or keyboard focus, keep favorites visible, and keep labels steady.
+
 ## [0.19.2] - 2026-10-02
 
 - Show MCP group connection states with the same radio-style indicators as individual servers, without Connect/Disconnect labels on group headings.
@@ -59,6 +64,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.19.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.2...v0.19.3
 [0.19.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.18.2...v0.19.0

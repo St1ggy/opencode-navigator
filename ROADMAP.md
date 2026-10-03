@@ -132,6 +132,8 @@ verification workflow before expanding the product surface.
 - [x] MCP: filtering, pending rows, dedicated full-error details, individual/bulk connect/disconnect, retry, user-wide favorites, and user-wide custom groups with absent-server retention.
 - [x] Toggle all eligible servers in a sidebar MCP group from its heading with keyboard/mouse support, full-bucket semantics under filters/limits, and existing bulk retry feedback.
 - [x] Replace MCP group Connect/Disconnect labels with a full-bucket server-style status indicator, including connected, disconnected, failed, and pending states.
+- [x] Indent grouped Todo, Subagent, MCP, and Skill rows, reveal unselected favorite bookmarks on hover/focus while keeping favorites visible, and align MCP server indicators with their group headings across row states and narrow sidebars.
+- [x] Compose sidebar list rows with a page-level context for shared API, interaction, and grouping rather than drilling these through row props; centralize repeated bookmark behavior without moving domain state into shared UI.
 - [x] Consolidate the local installation's private MCP groups and remove retired integrations from active host configuration, shell commands, installed runtimes, and private state while preserving source projects.
 - [x] Let MCP group assignment select an existing group or create a new one.
 - [x] Add a single-row gap between adjacent MCP groups in the sidebar.

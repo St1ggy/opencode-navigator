@@ -66,7 +66,7 @@ Bookmarks are separate from connection state. A favorite is saved user-wide by s
 
 ![MCP connection controls and favorite bookmarks](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/08-mcp-sidebar.png)
 
-For larger catalogs, I added user-wide custom groups. Favorites stay in a leading bucket, named groups and their servers sort alphabetically, and assignments survive when a server is absent from the current workspace. Clicking a group heading connects the members that still need it, or disconnects the connected ones once all are up, even if some rows are hidden by a filter. The heading's single radio-style icon shows whether the entire group is connected, disconnected, or changing; it doesn't label the next action. Group names are searchable in both the sidebar and Search Everything.
+For larger catalogs, I added user-wide custom groups. Favorites stay in a leading bucket, named groups and their servers sort alphabetically, and assignments survive when a server is absent from the current workspace. Members sit beneath indented headings, with their status icons aligned to the group icon. An unselected bookmark appears before an item on hover or keyboard focus; a selected one stays visible. Clicking a group heading connects the members that still need it, or disconnects the connected ones once all are up, even if some rows are hidden by a filter. The heading's single radio-style icon shows whether the entire group is connected, disconnected, or changing; it doesn't label the next action. Group names are searchable in both the sidebar and Search Everything.
 
 ![MCP custom group manager](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
 
