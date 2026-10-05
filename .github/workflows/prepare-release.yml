@@ -30,6 +30,13 @@ jobs:
         run: bun run screenshots
       - name: Verify screenshot reproducibility
         run: bun run screenshots:verify
+      - name: Preserve screenshot diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-diagnostics
+          path: screenshots/
+          retention-days: 7
       - name: Create and merge screenshot pull request
         env:
           GH_TOKEN: ${{ github.token }}

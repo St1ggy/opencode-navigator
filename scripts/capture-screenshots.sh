@@ -96,12 +96,18 @@ for scene in "${scenes[@]}"; do
 done
 
 if [[ "$mode" == "--verify" ]]; then
+  different=false
   for scene in "${scenes[@]}"; do
     file="$(file_for_scene "$scene")"
     if ! cmp -s "$root/screenshots/$file" "$output/$file"; then
       printf 'Screenshot is not reproducible: screenshots/%s\n' "$file" >&2
-      exit 1
+      diagnostics="$root/screenshots/verification-failure"
+      mkdir -p "$diagnostics"
+      cp "$root/screenshots/$file" "$diagnostics/expected-$file"
+      cp "$output/$file" "$diagnostics/actual-$file"
+      different=true
     fi
   done
+  if [[ "$different" == "true" ]]; then exit 1; fi
   printf 'All screenshots match the committed deterministic captures.\n'
 fi
