@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [0.21.0] - 2026-10-06
+
+- Automatically verify Codex account identity from OpenCode 2's ChatGPT connection. When host identity is unavailable, confirm a private binding once per connection or provider and reuse it across models, projects, and sessions; preserve compatible older confirmations and isolate conflicting ones until relinked.
+- Expand OpenCode 2 Limits with documented native subscription allowances, API rate-limit observations, configured capacities, account balances, and key budgets. Keep provider-native units, currencies, model associations, and active-account boundaries explicit.
+- Add Provider sources to explain each provider's supported measurements, required permissions, and unavailable APIs without guessing remaining quota.
+- Keep available account balances visible when a separate subscription read fails, and show exhausted NanoGPT subscription windows instead of hiding them.
+- Keep stale quota guidance visible after failed refreshes, reject late results after credential changes, and recover from stalled provider reads without blocking model response streams.
+
 ## [0.20.0] - 2026-10-05
 
 - Add a default-visible Limits section for the selected model's provider-native quota windows, reset times, account identity, and freshness. Codex CLI support requires an explicit private account binding; unsupported providers show calm guidance.
@@ -70,6 +78,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.21.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.3...v0.20.0
 [0.19.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.2...v0.19.3
 [0.19.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.1...v0.19.2
