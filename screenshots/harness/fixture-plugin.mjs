@@ -162,7 +162,7 @@ const plugin = {
       title: 'Navigator product tour',
       directory: DIRECTORY,
       workspaceID: WORKSPACE_ID,
-      ...(SCENE.startsWith('limits-') && { model: { providerID: SCENE === 'limits-unavailable' ? 'synthetic-provider' : 'openai', id: 'synthetic-codex' } }),
+      ...(SCENE.startsWith('limits-') && { model: { providerID: ['limits-unavailable', 'limits-sources'].includes(SCENE) ? 'synthetic-provider' : 'openai', id: 'synthetic-codex' } }),
       time: { created: FIXTURE_NOW - 900_000, updated: FIXTURE_NOW },
     })
     const sessionState = {
@@ -283,7 +283,7 @@ const plugin = {
         later(1200, 'opencode-navigator.navigation.activate')
       }
 
-      if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {
+      if (['limits-credits', 'limits-confirmation', 'limits-count-only', 'limits-sources'].includes(SCENE)) {
         dispatch('opencode-navigator.focus.limits')
         later(300, 'opencode-navigator.navigation.next')
         later(450, 'opencode-navigator.navigation.activate')

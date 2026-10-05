@@ -58,7 +58,7 @@ verification workflow before expanding the product surface.
 - [x] Build the distributable before tests and keep Solid/OpenTUI out of the bundle.
 - [x] Run built-artifact tests and TypeScript checks through `bun run check` and CI.
 - [x] Limit the published package to the license, README, bundle, package metadata, and corner font with its installer.
-- [x] Run TypeScript, ESLint with the shared Solid preset, and Prettier checks through `bun run check`.
+- [x] Migrate to `@st1ggy/linter-config` 8.0.0 with its shared Solid Oxlint and Oxfmt presets, retain type-aware checks and documented project-specific exceptions, and verify the full `bun run check` pipeline.
 - [x] Enforce a 360,000-byte raw bundle budget through `bun run check` and CI.
 - [x] Add verified runtime and package compatibility for both OpenCode 1.18.30+ and OpenCode 2.x, with explicit adapters for host API differences and a real local OpenCode 2.0.16 client smoke.
 - [x] Verify a user-managed 2.x transition with parallel 1.x `tui.json` and 2.x `cli.json` client configurations.
@@ -159,7 +159,10 @@ verification workflow before expanding the product surface.
 - [x] Display Codex banked reset credits with available count and expiry, and support confirmed manual redemption through the official app-server RPC with account, eligibility, and idempotency guards; keep unsupported providers read-only.
 - [x] Show only documented quota buckets for the current host-selected provider/model, updating on model/session changes; use CodexBar for provider discovery without adopting credential-file, browser-cookie, or private-endpoint access.
 - [x] Show Limits as its own default-visible, default-expanded first sidebar section immediately below the session title, with Global/Worktree visibility and ordering controls like other sections.
-- [x] Require deliberate private provider/model-to-Codex-account binding, close stale confirmations, and preserve one unresolved reset attempt across restarts for same-key reconciliation.
+- [x] Require account-bound Codex quota reads and reset actions, close stale confirmations, and preserve one unresolved reset attempt across restarts for same-key reconciliation.
+- [x] Reuse public host integration/account metadata for automatic identity matching where supported; otherwise confirm a connection/provider binding once across models and migrate legacy model-specific bindings without crossing account boundaries.
+- [x] Add a broad audited provider inventory and documented native quota/balance adapters beyond Codex through the OpenCode 2 server plugin; distinguish subscription windows, observed API rate limits, configured capacities, and balances, and expose explicit capability guidance for unverified or API-dependent sources.
+- [ ] Generate and verify the new Provider sources screenshot plus updated account-binding captures through Prepare Release before publishing the native-source expansion; extend native-balance captures when the screenshot harness supports the OpenCode 2 server path.
 
 ### Unified Search
 

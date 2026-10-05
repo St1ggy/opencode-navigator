@@ -65,7 +65,7 @@ const preferences = {
     },
   },
   user: {
-    ...(scene.startsWith('limits-') && scene !== 'limits-link' && scene !== 'limits-unavailable' && {
+    ...(scene.startsWith('limits-') && !['limits-link', 'limits-unavailable', 'limits-sources'].includes(scene) && {
       codexAccountBindings: { '["openai","synthetic-codex"]': 'synthetic-codex-account' },
     }),
     onboardingCompleted: !scene.startsWith('setup-'),
