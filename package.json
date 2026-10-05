@@ -32,12 +32,14 @@
     "assets",
     "scripts/install-font.mjs",
     "scripts/update-local-snapshot.mjs",
+    "scripts/save-project-profile.mjs",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
   "bin": {
-    "opencode-navigator-font": "scripts/install-font.mjs"
+    "opencode-navigator-font": "scripts/install-font.mjs",
+    "opencode-navigator-profile": "scripts/save-project-profile.mjs"
   },
   "exports": {
     "./tui": {

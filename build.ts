@@ -280,7 +280,7 @@ for (const name of outputFiles) {
   if (/^chunk-[\da-z]+\.js$/u.test(name) && !generated.has(name)) await unlink(join('dist', name))
 }
 
-for (const entrypoint of ['src/server.ts', 'src/rpc.ts']) {
+for (const entrypoint of ['src/server.ts', 'src/rpc.ts', 'src/project-profile.ts']) {
   const server = await Bun.build({
     entrypoints: [entrypoint],
     outdir: 'dist',

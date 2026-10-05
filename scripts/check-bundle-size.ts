@@ -26,3 +26,8 @@ for (const name of ['mcp-groups', 'skill-groups', 'quick-actions-settings']) {
 
   console.log(`dist/${name}.js: ${dialog.size.toLocaleString('en-US')} bytes (on demand)`)
 }
+
+if (!(await Bun.file(new URL('../dist/project-profile.js', import.meta.url)).exists())) {
+  console.error('Missing project profile command bundle: dist/project-profile.js')
+  process.exit(1)
+}
