@@ -4,6 +4,7 @@ import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { Show, createSignal, onCleanup } from 'solid-js'
 
+import { LimitsPersistence } from '../src/app/limits-persistence'
 import { pluginConfig } from '../src/config'
 import {
   applyPreferencesUpdate,
@@ -24,6 +25,7 @@ const selected: SelectedModel = { providerID: 'openai', modelID: 'synthetic-code
 
 async function harness(
   input: {
+    observe?: boolean
     countOnly?: boolean
     provider?: string
     consume?: NonNullable<ProviderQuotaAdapter['consumeResetCredit']>
@@ -86,6 +88,7 @@ async function harness(
     discoverAccount: async () => 'synthetic-account',
     read: async (model) => {
       reads++
+      await Bun.sleep(5)
 
       if (failRead) throw new Error('Synthetic read failure')
 
@@ -201,6 +204,9 @@ async function harness(
 
     return (
       <IconProvider style={() => 'text'}>
+        <Show when={input.observe}>
+          <LimitsPersistence controller={controller} />
+        </Show>
         <Show
           keyed
           when={modal()}
@@ -296,6 +302,25 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
   }
 })
 
+test('mounted Limits persistence reads once per target without reacting to its own request state', async () => {
+  const h = await harness({ observe: true })
+
+  try {
+    h.preferences.setCodexAccountBinding(selected.providerID, selected.modelID, 'synthetic-account')
+    await Bun.sleep(100)
+    await h.flush()
+    expect(h.reads()).toBe(1)
+    expect(h.controller.state().status).toBe('ready')
+    h.setSelection({ ...selected, sessionID: 'session-two' })
+    await Bun.sleep(100)
+    await h.flush()
+    expect(h.reads()).toBe(2)
+    expect(h.controller.state().status).toBe('ready')
+  } finally {
+    h.destroy()
+  }
+})
+
 test('Limits keyboard opens credit review, Escape restores its selection, and only confirmation consumes once', async () => {
   const h = await harness()
 
@@ -321,6 +346,14 @@ test('Limits keyboard opens credit review, Escape restores its selection, and on
     await h.flush()
     expect(h.consumes()).toBe(1)
     expect(h.preferences.pendingResetAttempt()).toBeUndefined()
+    for (
+      let attempt = 0;
+      attempt < 20 && h.messages.every((message) => !message.includes('Reset applied'));
+      attempt++
+    ) {
+      await Bun.sleep(5)
+      await h.flush()
+    }
     expect(h.messages.some((message) => message.includes('Reset applied'))).toBe(true)
   } finally {
     h.destroy()

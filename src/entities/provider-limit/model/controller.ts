@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { createSignal, untrack } from 'solid-js'
 
 import { createRequestState } from '../../../shared/lib/request-state'
 
@@ -23,7 +23,7 @@ export function createProviderLimitsController(
     const key = model ? targetKey(model) : undefined
 
     if (activeKey !== key) {
-      requests.abortAll()
+      untrack(requests.abortAll)
       targetAbort.abort()
       targetAbort = new AbortController()
       activeKey = key
