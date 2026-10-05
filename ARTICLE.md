@@ -134,6 +134,8 @@ Banked resets need a stronger boundary. The credit list shows the available coun
 
 Limits is first and expanded by default, and I can hide or reorder it in the same scoped section settings. Other providers remain unavailable until there is a documented machine-readable quota source. I used CodexBar to discover possible providers, not to copy its credential-file or browser-cookie access.
 
+![Model-specific quota windows and banked resets](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/39-provider-limits.png)
+
 ## Why Rounded Corners Required a Separate Font
 
 A terminal interface quickly reminds you that its pixels are cells. A single-line button can use existing Nerd Font glyphs for rounded ends. Multiline selection is different: it needs a continuous background with corners that cut quarter circles from it. Nerd Fonts do not contain suitable glyphs.
@@ -174,7 +176,7 @@ After the two-Solid-instance bug, I stopped treating unit tests as sufficient pr
 
 The tests click with the mouse, type into filters, navigate dialogs with the keyboard, and compare the resulting character frame. Separate checks cover 500-row lists and loading the built plugin into a real OpenCode process through a PTY.
 
-Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; several intentionally omit it. Every task, session, path, Skill, server, error, saved preset, and provider account is synthetic. The harness now defines 46 scenes, including eight new Limits states queued for the next manual release workflow. That workflow renders each scene twice and compares the PNG files byte for byte.
+Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; several intentionally omit it. Every task, session, path, Skill, server, error, saved preset, and provider account is synthetic. The gallery contains 46 scenes, including eight Limits states. The manual release workflow renders each scene twice and compares the PNG files byte for byte before merging its update.
 
 That setup is not free. It requires Docker with Linux ARM64 support, and pixel-level comparison is sensitive to the environment, so Ghostty and font versions must be pinned. In return, the README screenshots and the tested interface are now produced by exactly the same process.
 

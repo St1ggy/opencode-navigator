@@ -188,7 +188,7 @@ verification workflow before expanding the product surface.
 - [x] Cover every product capability with deterministic synthetic screenshots and keep `ARTICLE.md` independent of private `yandex-team` resources and data.
 - [x] Prepare distinct English-language Habr and DEV Community articles plus the ignored private Atushka variant, completing five human-focused editorial passes for each.
 - [x] Prepare eight deterministic Limits/account/reset-credit screenshot scenes, including Text fallback and a Nerd Font capture without the corner font, with a synthetic read-only Codex executable.
-- [ ] Generate and verify the eight new Limits PNGs and refresh the existing gallery through the manual Prepare Release workflow before the next publication.
+- [x] Generate and verify the eight new Limits PNGs and refresh the existing gallery through the manual Prepare Release workflow before the next publication.
 
 ## API-Dependent Candidates
 

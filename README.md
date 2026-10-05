@@ -384,6 +384,8 @@ worktree scope. Hiding or collapsing it does not stop background refreshes, and
 does not grant permission to spend a reset credit. **Focus Limits** is also
 available from the command palette.
 
+![Model-specific Codex quota windows and reset times](screenshots/39-provider-limits.png)
+
 ### Link the intended Codex account
 
 Install a Codex CLI exposing the documented read and consume RPCs (verified with
@@ -422,6 +424,8 @@ idempotency key, including after a restart. Only its unresolved account/model,
 optional credit ID, and attempt key are saved in private preferences. Definitive
 outcomes clear that journal; quotas themselves are not saved to disk. A pending
 attempt on another account must be resolved on its original binding first.
+
+![Separate account-bound banked reset confirmation](screenshots/41-reset-confirmation.png)
 
 An absent Codex credit detail list does not mean there are zero credits: the
 provider may report a count without individual rows. Navigator does not read

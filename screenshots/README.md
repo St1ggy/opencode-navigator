@@ -1,13 +1,12 @@
 # Screenshot Gallery
 
-The committed gallery contains 38 deterministic captures of the real OpenCode TUI through Ghostty.
+These 46 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
-The harness now defines 46 scenes. The next manual **Prepare Release** run will
-generate and verify the eight new Limits captures listed below; the existing PNGs
-remain the last committed release's captures until that workflow merges its update.
+The manual **Prepare Release** workflow generated the gallery, verified every PNG
+against a second capture, and merged the update after CI passed.
 
-## Provider Limits Scenes Queued For Release Capture
+## Provider Limits
 
 | File | Synthetic interaction |
 | --- | --- |
@@ -23,6 +22,34 @@ remain the last committed release's captures until that workflow merges its upda
 The container uses a synthetic `codex` JSON-RPC executable. It accepts quota reads
 and rejects every consume request; no provider account, credentials, or live reset
 is involved in a screenshot scene.
+
+### Model Quota Windows
+
+![Account-bound provider quota windows](39-provider-limits.png)
+
+### Reset Credit Review
+
+![Available reset credits with provider details and expiry](40-reset-credits.png)
+
+### Manual Reset Confirmation
+
+![Separate account-bound reset confirmation](41-reset-confirmation.png)
+
+### Count-Only Credits
+
+![Available credits without individual details](42-reset-count-only.png)
+
+### Unsupported Provider
+
+![Calm unavailable guidance for an unsupported provider](43-limits-unavailable.png)
+
+### Limits In Text Fallback
+
+![Limits with readable Text fallback controls](44-limits-text.png)
+
+### Explicit Account Link
+
+![Guidance before linking a Codex CLI account](46-limits-account-link.png)
 
 ## Sidebar
 
@@ -203,3 +230,5 @@ single-line rounded controls remain, while multiline highlights become rectangle
 ![MCP preview without Navigator corner font](36-no-corner-font-mcp-preview.png)
 
 ![Import preview without Navigator corner font](37-no-corner-font-import-preview.png)
+
+![Reset credit review without Navigator corner font](45-no-corner-font-reset-credits.png)

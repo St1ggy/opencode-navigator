@@ -124,6 +124,8 @@ There is an account boundary here that a plugin cannot guess. Before showing quo
 
 For banked resets, the available count survives a missing credit detail list. The review screen shows any supplied details and expiry. Picking a credit opens a separate confirmation after a fresh eligibility check; a full usage bar alone is not permission to redeem one. If the request times out, the pending attempt keeps one idempotency key for reconciliation, including after a restart. Changing the model, session, or linked account closes a stale confirmation.
 
+![Account-bound confirmation before using a reset credit](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/41-reset-confirmation.png)
+
 ## The bug was a second copy of Solid
 
 Navigator is written in TypeScript and TSX with Solid and OpenTUI. An early build looked correct, accepted clicks, and wrote the new setting to disk. It simply did not update the screen.
@@ -152,7 +154,7 @@ The test suite now builds the unminified `dist/tui.js` that users load. Renderin
 
 This takes longer than testing source modules alone, but it covers the boundary where my most confusing bug actually lived: bundling and host integration.
 
-Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The harness defines 46 scenes; eight new Limits states are queued for the next manual release capture. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
+Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery contains 46 scenes, including eight Limits states generated and verified by the manual release workflow. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
 
 Every displayed task, session, workspace, path, skill, server, error, and preset is synthetic and deterministic. Verification renders the scenes again to a temporary directory and fails if any PNG differs.
 
