@@ -218,6 +218,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
           current: () => ({ type: 'session', sessionID: session.id }),
           navigate: () => {},
         },
+        model: { current: () => ({ providerID: 'synthetic-provider', modelID: 'synthetic-model' }) },
         slot(claim: Claim) {
           claims.push(claim)
 
@@ -266,6 +267,11 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
 
     expect(frame).not.toContain('OpenCode 2 session')
     expect(frame).toContain('TODO')
+    expect(frame).toContain('LIMITS')
+    expect(frame.indexOf('LIMITS')).toBeLessThan(frame.indexOf('TODO'))
+    expect(frame).toContain('synthetic-provider/synthetic-model')
+    expect(frame).toContain('No documented quota API')
+    expect(frame).not.toContain('Review reset credits')
     expect(frame.replaceAll(/\s+/g, ' ')).toContain('separate OpenCode 2 server plugin')
     expect(frame).not.toContain('Retry')
     expect(frame).toContain('SUBAGENTS')

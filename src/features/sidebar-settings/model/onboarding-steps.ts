@@ -27,12 +27,12 @@ export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
       {
         icon: 'subagents',
         title: 'Live subagents',
-        description: 'See running, retrying, recent, and failed child sessions.',
+        description: 'See running, retrying, recent, and failed child sessions; open them directly.',
       },
       {
-        icon: 'history',
-        title: 'Direct navigation',
-        description: 'Open a child session without leaving your workflow.',
+        icon: 'info',
+        title: 'Provider limits',
+        description: 'Link a matching Codex account for model quotas and confirmed banked resets.',
       },
     ],
   },

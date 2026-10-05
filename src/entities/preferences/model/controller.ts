@@ -16,6 +16,7 @@ import {
   type LayoutPresets,
   type McpPresets,
   type McpServerGroups,
+  type PendingResetAttempt,
   type PreferenceValues,
   type PreferencesDocument,
   type ResolvedPreferences,
@@ -124,6 +125,8 @@ export function createPreferencesController(
   const [mcpServerGroups, setMcpServerGroups] = createSignal<McpServerGroups>(configured.mcpServerGroups ?? {})
   const [skillGroups, setSkillGroups] = createSignal<SkillGroups>({})
   const [autoApprovePermissions, setAutoApprovePermissions] = createSignal<boolean | undefined>()
+  const [codexAccountBindings, setCodexAccountBindings] = createSignal<Record<string, string>>({})
+  const [pendingResetAttempt, setPendingResetAttempt] = createSignal<PendingResetAttempt>()
   const [ready, setReady] = createSignal(false)
   const [revision, setRevision] = createSignal(0)
   const sessionLayouts = new Map<string, SessionLayout>()
@@ -250,6 +253,8 @@ export function createPreferencesController(
     setMcpServerGroups({ ...configured.mcpServerGroups, ...value.user.mcpServerGroups })
     setSkillGroups(value.user.skillGroups ?? {})
     setAutoApprovePermissions(value.user.autoApprovePermissions)
+    setCodexAccountBindings(value.user.codexAccountBindings ?? {})
+    setPendingResetAttempt(value.user.pendingResetAttempt)
     setReady(true)
     refreshResolved()
   }
@@ -466,6 +471,28 @@ export function createPreferencesController(
     update({ user: { autoApprovePermissions: value } })
   }
 
+  function changeCodexAccountBinding(providerID: string, modelID: string, accountID?: string) {
+    if (!isHydrated) {
+      void load().then(() => changeCodexAccountBinding(providerID, modelID, accountID))
+
+      return
+    }
+
+    if (!providerID || !modelID) return
+
+    const key = JSON.stringify([providerID, modelID])
+
+    setCodexAccountBindings((currentBindings) => {
+      const next = { ...currentBindings }
+
+      if (accountID) next[key] = accountID
+      else delete next[key]
+
+      return next
+    })
+    update({ user: { codexAccountBinding: { providerID, modelID, accountID } } })
+  }
+
   function toggleFavoriteMcpServer(name: string) {
     if (!isHydrated) {
       void load().then(() => toggleFavoriteMcpServer(name))
@@ -643,6 +670,21 @@ export function createPreferencesController(
     setSkillGroup: changeSkillGroup,
     autoApprovePermissions,
     setAutoApprovePermissions: changeAutoApprovePermissions,
+    codexAccountForModel: (providerID: string, modelID: string) =>
+      codexAccountBindings()[JSON.stringify([providerID, modelID])],
+    setCodexAccountBinding: changeCodexAccountBinding,
+    pendingResetAttempt,
+    async beginResetAttempt(attempt: PendingResetAttempt) {
+      await load()
+      await store.update({ user: { pendingResetAttempt: attempt } })
+      const current = await store.load()
+
+      setPendingResetAttempt(current.user.pendingResetAttempt)
+    },
+    async finishResetAttempt(idempotencyKey: string) {
+      await store.update({ user: { clearPendingResetAttempt: idempotencyKey } })
+      setPendingResetAttempt(undefined)
+    },
     async recordSkillUse(skill: PreferenceSkill) {
       await load()
 

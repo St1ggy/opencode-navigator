@@ -5,6 +5,7 @@ import { mcpToggleAction, parseSectionVisibility } from '../src/state'
 describe('section visibility', () => {
   test('shows every section by default', () => {
     expect(parseSectionVisibility(undefined)).toEqual({
+      limits: true,
       todo: true,
       subagents: true,
       skills: true,
@@ -16,6 +17,7 @@ describe('section visibility', () => {
 
   test('accepts boolean overrides and ignores invalid values', () => {
     expect(parseSectionVisibility({ todo: false, skills: 'no', mcp: false })).toEqual({
+      limits: true,
       todo: false,
       subagents: true,
       skills: true,

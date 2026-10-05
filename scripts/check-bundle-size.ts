@@ -23,6 +23,7 @@ for (const name of [
   'settings-import',
   'trusted-skills',
   'layout-preset-actions',
+  'provider-limits',
 ]) {
   const dialog = Bun.file(new URL(`../dist/${name}.js`, import.meta.url))
 

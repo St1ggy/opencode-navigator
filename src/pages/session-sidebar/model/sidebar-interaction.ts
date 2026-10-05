@@ -27,6 +27,7 @@ function position(descriptor: SidebarNavigationDescriptor) {
 }
 
 const SECTION_COMMANDS: readonly { section: SidebarSection; title: string }[] = [
+  { section: 'limits', title: 'Focus Limits' },
   { section: 'todo', title: 'Focus Todo' },
   { section: 'subagents', title: 'Focus Subagents' },
   { section: 'skills', title: 'Focus Skills' },

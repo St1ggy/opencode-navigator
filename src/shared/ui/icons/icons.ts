@@ -1,10 +1,11 @@
 import { QUICK_ACTION_IDS, type QuickActionId } from '../../config'
 
 export type IconStyle = 'nerd' | 'text'
-export type SectionIconName = 'todo' | 'subagents' | 'skills' | 'quick_actions' | 'lsp' | 'mcp'
+export type SectionIconName = 'limits' | 'todo' | 'subagents' | 'skills' | 'quick_actions' | 'lsp' | 'mcp'
 
 // Nerd Font glyphs, paired with font-independent ASCII fallbacks.
 const ICONS = {
+  limits: ['\u{F029A}', '%'],
   todo: ['\u{EAB3}', '[T]'],
   subagents: ['\u{EA7E}', '[A]'],
   skills: ['\u{EAA4}', '[S]'],

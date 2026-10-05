@@ -13,9 +13,9 @@ import { showFirstRunWizard } from '../src/tui'
 import type { SectionVisibility, SidebarSection } from '../src/state'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-function pluginDefaults(sections: SectionVisibility) {
+function pluginDefaults(sections: Omit<SectionVisibility, 'limits'> & Partial<Pick<SectionVisibility, 'limits'>>) {
   return {
-    sections,
+    sections: { limits: true, ...sections },
     toggleKey: 'ctrl+shift+b',
     focusKey: 'ctrl+shift+f',
     searchKey: 'ctrl+shift+k',
@@ -230,6 +230,7 @@ test('persists section visibility and skipped skill confirmations', async () => 
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    limits: true,
     todo: true,
     subagents: true,
     skills: true,
@@ -296,7 +297,7 @@ test('persists section visibility and skipped skill confirmations', async () => 
 })
 
 test('visibility toggles preserve the effective section order in global and worktree scopes', async () => {
-  const order: SidebarSection[] = ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp']
+  const order: SidebarSection[] = ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp']
   const api = { ui: { toast() {} } } as unknown as TuiPluginApi
   const store: PreferencesStore = {
     async load() {
@@ -400,6 +401,7 @@ test('merges interactions made before storage hydration with saved preferences',
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    limits: true,
     todo: true,
     subagents: true,
     skills: true,
@@ -453,6 +455,7 @@ test('saves a default layout before storage hydration', async () => {
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    limits: true,
     todo: true,
     subagents: true,
     skills: true,
@@ -536,6 +539,7 @@ test('persists behavior settings and restores configured defaults', async () => 
     },
   } as unknown as TuiPluginApi
   const sections: SectionVisibility = {
+    limits: true,
     todo: true,
     subagents: true,
     skills: true,
@@ -620,7 +624,7 @@ test('resolves worktree overrides, section order, and scoped resets', async () =
     controller.setActiveScope('/repo-a')
     expect(controller.focusKey()).toBe('alt+w')
     expect(controller.sections().mcp).toBe(false)
-    expect(controller.sectionOrder().indexOf('mcp')).toBe(4)
+    expect(controller.sectionOrder().indexOf('mcp')).toBe(5)
     expect(controller.desiredMcpState('/repo-a', 'wiki')).toBe('disabled')
 
     controller.resetSections()
@@ -735,7 +739,7 @@ test('creates, applies, updates, renames, deletes, and persists layout presets',
     controller.toggleSelectedSection('lsp')
     controller.applyLayoutPreset(controller.layoutPresets().Focus)
     expect(controller.selectedSections().lsp).toBe(false)
-    expect(controller.selectedSectionOrder().indexOf('mcp')).toBe(4)
+    expect(controller.selectedSectionOrder().indexOf('mcp')).toBe(5)
 
     controller.toggleSelectedSection('skills')
     expect(controller.updateLayoutPreset('Focus')).toBe(true)
@@ -908,6 +912,7 @@ test('opens the setup wizard only once after preference hydration', async () => 
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    limits: true,
     todo: true,
     subagents: true,
     skills: true,

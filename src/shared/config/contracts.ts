@@ -1,4 +1,4 @@
-export const SIDEBAR_SECTIONS = ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'] as const
+export const SIDEBAR_SECTIONS = ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'] as const
 
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number]
 export type SectionVisibility = Record<SidebarSection, boolean>
@@ -61,6 +61,7 @@ export function preferencesScope(path: { worktree?: string; directory?: string }
 }
 
 export const DEFAULT_SECTION_EXPANSION: SectionVisibility = {
+  limits: true,
   todo: true,
   subagents: false,
   skills: false,
@@ -70,6 +71,7 @@ export const DEFAULT_SECTION_EXPANSION: SectionVisibility = {
 }
 
 export const SECTION_DEFINITIONS: readonly { name: SidebarSection; label: string }[] = [
+  { name: 'limits', label: 'Limits' },
   { name: 'todo', label: 'Todo' },
   { name: 'subagents', label: 'Subagents' },
   { name: 'skills', label: 'Skills' },
@@ -107,7 +109,10 @@ export function parseSectionOrder(value: unknown): SidebarSection[] | undefined 
     order.push(candidate as SidebarSection)
   }
   for (const section of SIDEBAR_SECTIONS) {
-    if (!seen.has(section)) order.push(section)
+    if (!seen.has(section)) {
+      if (section === 'limits') order.unshift(section)
+      else order.push(section)
+    }
   }
 
   return order
@@ -163,6 +168,7 @@ export function resolveSectionVisibility(defaults: SectionVisibility, value: unk
 export function parseSectionVisibility(value: unknown): SectionVisibility {
   return resolveSectionVisibility(
     {
+      limits: true,
       todo: true,
       subagents: true,
       skills: true,

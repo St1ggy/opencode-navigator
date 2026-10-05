@@ -17,12 +17,16 @@ test('layout preview merges partial presets and describes the exact applied layo
     order: ['skills'],
   })
 
-  expect(result.next.order).toEqual(['skills', ...SIDEBAR_SECTIONS.filter((section) => section !== 'skills')])
+  expect(result.next.order).toEqual([
+    'limits',
+    'skills',
+    ...SIDEBAR_SECTIONS.filter((section) => section !== 'limits' && section !== 'skills'),
+  ])
   expect(result.next.sections).toEqual({ ...current.sections, mcp: false })
   expect(result.next.expanded).toEqual({ ...current.expanded, skills: true })
   expect(result.rows.find((row) => row.section === 'mcp')?.visibility).toEqual([true, false])
   expect(result.rows.find((row) => row.section === 'skills')?.expansion).toEqual([false, true])
-  expect(result.rows.find((row) => row.section === 'skills')?.position).toEqual([3, 1])
+  expect(result.rows.find((row) => row.section === 'skills')?.position).toEqual([4, 2])
   expect(current).toEqual(before)
   const same = layoutPresetPreview(current, current)
 

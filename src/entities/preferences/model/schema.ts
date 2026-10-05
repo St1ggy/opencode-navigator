@@ -69,7 +69,17 @@ export type PreferencesDocument = {
     mcpServerGroups?: McpServerGroups
     skillGroups?: SkillGroups
     autoApprovePermissions?: boolean
+    codexAccountBindings?: Record<string, string>
+    pendingResetAttempt?: PendingResetAttempt
   }
+}
+export type PendingResetAttempt = {
+  providerID: string
+  modelID: string
+  accountID: string
+  creditID?: string
+  idempotencyKey: string
+  createdAt: number
 }
 export type WorkspaceProfiles = Record<string, string>
 
@@ -229,6 +239,34 @@ export function parseMcpServerGroups(value: unknown): McpServerGroups {
 
 export const parseSkillGroups = parseMcpServerGroups
 
+export const parseCodexAccountBindings = parseMcpServerGroups
+
+export function parsePendingResetAttempt(value: unknown): PendingResetAttempt | undefined {
+  const input = record(value)
+
+  if (
+    !input ||
+    typeof input.providerID !== 'string' ||
+    typeof input.modelID !== 'string' ||
+    typeof input.accountID !== 'string' ||
+    typeof input.idempotencyKey !== 'string' ||
+    !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/iu.test(input.idempotencyKey) ||
+    typeof input.createdAt !== 'number' ||
+    !Number.isFinite(input.createdAt) ||
+    (input.creditID !== undefined && typeof input.creditID !== 'string')
+  )
+    return
+
+  return {
+    providerID: input.providerID,
+    modelID: input.modelID,
+    accountID: input.accountID,
+    idempotencyKey: input.idempotencyKey,
+    createdAt: input.createdAt,
+    ...(input.creditID && { creditID: input.creditID }),
+  }
+}
+
 export function parseWorkspaceProfiles(value: unknown): WorkspaceProfiles {
   return Object.fromEntries(
     Object.entries(record(value) ?? {})
@@ -290,6 +328,8 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
   const recentQuickActions = parseRecentQuickActions(userInput?.recentQuickActions)
   const mcpServerGroups = parseMcpServerGroups(userInput?.mcpServerGroups)
   const skillGroups = parseSkillGroups(userInput?.skillGroups)
+  const codexAccountBindings = parseCodexAccountBindings(userInput?.codexAccountBindings)
+  const pendingResetAttempt = parsePendingResetAttempt(userInput?.pendingResetAttempt)
   const workspaceProfiles = parseWorkspaceProfiles(userInput?.workspaceProfiles)
 
   return {
@@ -319,6 +359,8 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
       ...(recentQuickActions.length > 0 && { recentQuickActions }),
       ...(Object.keys(mcpServerGroups).length > 0 && { mcpServerGroups }),
       ...(Object.keys(skillGroups).length > 0 && { skillGroups }),
+      ...(Object.keys(codexAccountBindings).length > 0 && { codexAccountBindings }),
+      ...(pendingResetAttempt && { pendingResetAttempt }),
       ...(typeof userInput?.autoApprovePermissions === 'boolean' && {
         autoApprovePermissions: userInput.autoApprovePermissions,
       }),

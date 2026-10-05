@@ -8,6 +8,7 @@ import { createPreferencesStore } from '../src/preferences-store'
 import type { SectionVisibility, SidebarSection } from '../src/state'
 
 const defaults: SectionVisibility = {
+  limits: true,
   todo: true,
   subagents: true,
   skills: true,
@@ -101,7 +102,7 @@ test('stores and clears user layout presets', async () => {
   const layout = {
     sections: { ...defaults, skills: false },
     expanded: { ...defaults, todo: false },
-    order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'] as SidebarSection[],
+    order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'limits'] as SidebarSection[],
   }
 
   try {
@@ -585,7 +586,10 @@ test('stores and resets every preference group independently per worktree', asyn
 
     expect((await store.load()).worktrees['/repo']).toMatchObject({
       behavior: { focusKey: 'alt+w' },
-      layout: { sections: { mcp: false }, order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'] },
+      layout: {
+        sections: { mcp: false },
+        order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+      },
       mcp: { tracker: 'enabled', wiki: 'disabled' },
     })
 
@@ -639,6 +643,44 @@ test('refuses to overwrite malformed preferences JSON', async () => {
     await expect(store.load()).rejects.toThrow('Malformed preferences JSON')
     await expect(store.update({ behavior: { toggleKey: 'alt+s' } })).rejects.toThrow('Malformed preferences JSON')
     expect(await readFile(preferencesFile, 'utf8')).toBe(malformed)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('keeps Codex account bindings private and locks one pending reset attempt across sessions', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'navigator-reset-journal-'))
+  const first = createPreferencesStore(directory)
+  const second = createPreferencesStore(directory)
+  const attempt = {
+    providerID: 'openai',
+    modelID: 'gpt-5-codex',
+    accountID: 'account-1',
+    idempotencyKey: 'bca9a7f2-68be-4093-a9b8-e1392f4be6c8',
+    createdAt: 1_800_000_000,
+  }
+
+  try {
+    await first.update({
+      user: { codexAccountBinding: { providerID: 'openai', modelID: 'gpt-5-codex', accountID: 'account-1' } },
+    })
+    await first.update({ user: { pendingResetAttempt: attempt } })
+    await second.update({ user: { favoriteMcpServer: { name: 'docs', favorite: true } } })
+    const saved = await second.load()
+
+    expect(saved.user.codexAccountBindings?.[JSON.stringify(['openai', 'gpt-5-codex'])]).toBe('account-1')
+    expect(saved.user.pendingResetAttempt).toEqual(attempt)
+    await expect(
+      second.update({
+        user: { pendingResetAttempt: { ...attempt, idempotencyKey: 'a14b0eb7-a779-4be8-928a-a04d167340a1' } },
+      }),
+    ).rejects.toThrow('unresolved')
+    await expect(
+      second.update({ user: { clearPendingResetAttempt: 'a14b0eb7-a779-4be8-928a-a04d167340a1' } }),
+    ).rejects.toThrow('changed')
+    await first.update({ user: { clearPendingResetAttempt: attempt.idempotencyKey } })
+    expect((await second.load()).user.pendingResetAttempt).toBeUndefined()
+    expect((await second.load()).user.favoriteMcpServers).toEqual(['docs'])
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

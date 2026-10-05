@@ -51,7 +51,7 @@ test('parses every portable configured setting and excludes private state', () =
   })
   expect(configured.layout?.sections).toEqual({ todo: false })
   expect(configured.layout?.expanded).toEqual({ mcp: true })
-  expect(configured.layout?.order?.slice(0, 2)).toEqual(['mcp', 'todo'])
+  expect(configured.layout?.order?.slice(0, 3)).toEqual(['limits', 'mcp', 'todo'])
   expect(configured.desiredMcpStates).toEqual({ docs: 'enabled' })
   expect(configured.layoutPresets?.Focus?.sections).toEqual({ skills: false })
   expect(configured.mcpPresets).toEqual({ Work: { docs: 'enabled' } })
@@ -83,7 +83,7 @@ test('deep-merges configured sources while replacing ordered lists', () => {
 
   expect(merged.behavior?.sectionItemLimits).toEqual({ todo: 5, skills: 3 })
   expect(merged.layout?.sections).toEqual({ todo: true, skills: false })
-  expect(merged.layout?.order?.[0]).toBe('mcp')
+  expect(merged.layout?.order?.slice(0, 2)).toEqual(['limits', 'mcp'])
   expect(merged.desiredMcpStates).toEqual({ docs: 'enabled', tracker: 'disabled' })
   expect(merged.layoutPresets?.Focus).toMatchObject({ sections: { todo: true }, expanded: { todo: true } })
 })

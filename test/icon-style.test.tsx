@@ -151,6 +151,7 @@ test('switching the shared icon preference updates every section and dialog with
       <box>
         <SidebarTitle api={api} preferences={preferences} interaction={interaction} sessionID="one" title="Icon test" />
         <SidebarContent
+          limitsSection={() => <box />}
           api={api}
           preferences={preferences}
           interaction={interaction}

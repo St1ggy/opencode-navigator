@@ -42,7 +42,7 @@ describe('portable settings', () => {
     expect(result.settings.layout).toEqual({
       sections: { todo: false },
       expanded: { mcp: true },
-      order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+      order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
     })
     expect(result.settings.mcp).toEqual({ future: 'enabled' })
     expect(result.unsupported).toEqual(['/behavior', '/layout/density', '/layout/order/0', '/layout/sections/agents'])

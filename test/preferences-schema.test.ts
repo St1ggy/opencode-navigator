@@ -28,6 +28,7 @@ const builtIns = {
   },
   layout: {
     sections: {
+      limits: true,
       todo: true,
       subagents: true,
       skills: true,
@@ -36,6 +37,7 @@ const builtIns = {
       mcp: true,
     },
     expanded: {
+      limits: true,
       todo: true,
       subagents: false,
       skills: false,
@@ -43,7 +45,7 @@ const builtIns = {
       lsp: false,
       mcp: false,
     },
-    order: ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'] as SidebarSection[],
+    order: ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'] as SidebarSection[],
   },
   desiredMcpStates: {},
 }
@@ -113,7 +115,7 @@ describe('preferences schema', () => {
         layout: {
           sections: { todo: false },
           expanded: { skills: true },
-          order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+          order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
         },
         mcp: { global: 'enabled' },
       },
@@ -123,7 +125,7 @@ describe('preferences schema', () => {
           layout: {
             sections: { mcp: false },
             expanded: {},
-            order: ['skills', 'todo', 'subagents', 'quick_actions', 'lsp', 'mcp'],
+            order: ['limits', 'skills', 'todo', 'subagents', 'quick_actions', 'lsp', 'mcp'],
           },
           mcp: { context7: 'enabled', wiki: 'disabled' },
         },
@@ -135,7 +137,7 @@ describe('preferences schema', () => {
           Focus: {
             sections: { skills: false },
             expanded: { todo: false },
-            order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+            order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
           },
         },
         mcpPresets: { Work: { context7: 'enabled', wiki: 'disabled' } },
@@ -259,7 +261,7 @@ describe('preferences schema', () => {
       layout: {
         sections: { ...builtIns.layout.sections, todo: false },
         expanded: builtIns.layout.expanded,
-        order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+        order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
       },
       desiredMcpStates: { wiki: 'enabled', optionOnly: 'disabled', context7: 'enabled' },
     })

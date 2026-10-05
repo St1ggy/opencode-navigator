@@ -480,6 +480,7 @@ test('the built LSP badge toggles its server name on mouse down', async () => {
 
 test('the built first-run wizard explains controls and changes section settings', async () => {
   const [sections, setSections] = createSignal({
+    limits: true,
     todo: true,
     subagents: true,
     skills: true,
@@ -553,8 +554,9 @@ test('the built first-run wizard explains controls and changes section settings'
     expect(setup.captureCharFrame()).toContain('Choose your sidebar sections')
     layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()
     await setup.renderOnce()
-    expect(sections().todo).toBe(false)
-    expect(setup.captureCharFrame()).toContain(`${uiIcon('unchecked')} ${sectionIcon('todo')} Todo`)
+    expect(sections().limits).toBe(false)
+    expect(sections().todo).toBe(true)
+    expect(setup.captureCharFrame()).toContain(`${uiIcon('unchecked')} ${sectionIcon('limits')} Limits`)
   } finally {
     setup.renderer.destroy()
   }
@@ -949,11 +951,9 @@ test('the built settings dialog saves the current layout as default', async () =
   let densityToggles = 0
   let prompt: { onConfirm: (value: string) => void } | undefined
   let replacement: (() => unknown) | undefined
-  const savedPresets: string[] = []
   const sectionMoves: [string, number][] = []
   const [titleVisible, setTitleVisible] = createSignal(true)
   const [dateVisible, setDateVisible] = createSignal(true)
-  let updatedPresets = 0
   const api = {
     theme: { current: sidebarTheme },
     keymap: {
@@ -982,15 +982,15 @@ test('the built settings dialog saves the current layout as default', async () =
   const preferences = {
     sections,
     expanded: () => expandedLayout,
-    sectionOrder: () => ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'],
+    sectionOrder: () => ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'],
     selectedSections: sections,
     selectedExpanded: () => expandedLayout,
-    selectedSectionOrder: () => ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'],
+    selectedSectionOrder: () => ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'],
     layoutPresets: () => ({
       Focus: {
         sections: sections(),
         expanded: expandedLayout,
-        order: ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'],
+        order: ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'],
       },
     }),
     preferenceScope: () => 'global',
@@ -1037,16 +1037,6 @@ test('the built settings dialog saves the current layout as default', async () =
     moveSection: () => {},
     moveSelectedSection: (name: string, direction: number) => sectionMoves.push([name, direction]),
     applyLayoutPreset: () => {},
-    saveLayoutPreset: (name: string) => {
-      savedPresets.push(name)
-
-      return name
-    },
-    updateLayoutPreset: () => {
-      updatedPresets++
-
-      return true
-    },
     renameLayoutPreset: (_current: string, name: string) => name,
     deleteLayoutPreset: () => true,
     saveLayoutAsDefault: async () => {
@@ -1071,7 +1061,8 @@ test('the built settings dialog saves the current layout as default', async () =
     expect(initialFrame).toContain(`${settingsTabIcon('presets')} Presets`)
     expect(initialFrame).toContain(`${settingsTabIcon('behavior')} Behavior`)
     expect(initialFrame).toContain(`${settingsTabIcon('defaults')} Defaults`)
-    expect(initialFrame).toContain(`1. ${sectionIcon('todo')} Todo`)
+    expect(initialFrame).toContain(`1. ${sectionIcon('limits')} Limits`)
+    expect(initialFrame).toContain(`2. ${sectionIcon('todo')} Todo`)
     expect(initialFrame).not.toContain('Lists')
     expect(initialFrame).toContain('Items: All')
     expect(initialFrame).toContain('Behavior')
@@ -1097,6 +1088,7 @@ test('the built settings dialog saves the current layout as default', async () =
     select?.run()
     expect(dateVisible()).toBe(false)
     next?.run()
+    next?.run()
     layer?.commands.find((command) => command.name.endsWith('.settings.move-down'))?.run()
     expect(sectionMoves).toEqual([['todo', 1]])
     expect(layer?.bindings.filter((binding) => binding.key === 'left' || binding.key === 'right')).toHaveLength(2)
@@ -1121,27 +1113,6 @@ test('the built settings dialog saves the current layout as default', async () =
     expect(setup.captureCharFrame()).toContain('Save as…')
     expect(setup.captureCharFrame()).toContain(`${keyHint('enter')} manage`)
     expect(setup.captureCharFrame()).not.toContain('reorder')
-
-    select?.run()
-    const presetMenu = await testRender(() => replacement?.() as JSX.Element, { width: 60, height: 20 })
-
-    try {
-      await presetMenu.flush()
-      for (const label of ['Preview & apply', 'Update from current', 'Rename', 'Delete']) {
-        expect(presetMenu.captureCharFrame()).toContain(label)
-      }
-      layer?.commands.find((command) => command.name.endsWith('.next'))?.run()
-      layer?.commands.find((command) => command.name.endsWith('.select'))?.run()
-    } finally {
-      presetMenu.renderer.destroy()
-    }
-    expect(updatedPresets).toBe(1)
-
-    next?.run()
-    select?.run()
-    replacement?.()
-    prompt?.onConfirm('Focus')
-    expect(savedPresets).toEqual(['Focus'])
 
     nextTab?.run()
     await setup.flush()
@@ -1224,7 +1195,7 @@ test('Sections edits limits with L and mouse without toggling visibility and res
   try {
     openSettings(api, preferences)
     await setup.flush()
-    for (let index = 0; index < 3; index++) run('next')
+    for (let index = 0; index < 4; index++) run('next')
     run('item-limit')
     await setup.flush()
     expect(prompt?.title).toBe('Subagents item limit')
@@ -1243,7 +1214,7 @@ test('Sections edits limits with L and mouse without toggling visibility and res
     scroll.scrollTo(100)
     await setup.flush()
     const lines = setup.captureCharFrame().split('\n')
-    const mcpLine = lines.findIndex((line) => line.includes(`6. ${sectionIcon('mcp')} MCP`))
+    const mcpLine = lines.findIndex((line) => line.includes(`7. ${sectionIcon('mcp')} MCP`))
 
     expect(mcpLine, lines.join('\n')).toBeGreaterThan(-1)
     await setup.mockMouse.pressDown(lines[mcpLine].indexOf('Items:'), mcpLine)

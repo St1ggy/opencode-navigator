@@ -10,6 +10,7 @@ import {
   type LayoutPresets,
   type McpPresets,
   type McpServerGroups,
+  type PendingResetAttempt,
   type PluginSettings,
   type PreferencesDocument,
   type QuickActionId,
@@ -17,6 +18,7 @@ import {
   type SkillGroups,
   type WorkspaceProfiles,
   emptyPreferencesDocument,
+  parseCodexAccountBindings,
   parseDesiredMcpStates,
   parseFavoriteQuickActions,
   parseLayoutPresets,
@@ -66,6 +68,9 @@ export type PreferencesUpdate = {
     mcpServerGroup?: { name: string; group?: string }
     skillGroup?: { location: string; group?: string }
     autoApprovePermissions?: boolean
+    codexAccountBinding?: { providerID: string; modelID: string; accountID?: string }
+    pendingResetAttempt?: PendingResetAttempt
+    clearPendingResetAttempt?: string
     workspaceProfile?: { layout: string; mcp?: string }
   }
   mcp?: {
@@ -295,6 +300,27 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     update.user?.skillGroup?.location,
     update.user?.skillGroup?.group,
   )
+  const binding = update.user?.codexAccountBinding
+  const codexAccountBindings = assignGroup(
+    current.user.codexAccountBindings,
+    binding?.providerID && binding.modelID ? JSON.stringify([binding.providerID, binding.modelID]) : undefined,
+    binding?.accountID,
+  )
+  const pendingUpdate = update.user?.pendingResetAttempt
+  const currentAttempt = current.user.pendingResetAttempt
+
+  if (pendingUpdate && currentAttempt && currentAttempt.idempotencyKey !== pendingUpdate.idempotencyKey) {
+    throw new Error('Another reset attempt is still unresolved')
+  }
+
+  if (
+    update.user?.clearPendingResetAttempt &&
+    currentAttempt?.idempotencyKey !== update.user.clearPendingResetAttempt
+  ) {
+    throw new Error('Reset attempt changed; refresh before retrying')
+  }
+
+  const pendingResetAttempt = update.user?.clearPendingResetAttempt ? undefined : (pendingUpdate ?? currentAttempt)
 
   const favoriteSkills = update.user?.favoriteSkills
     ? parseSkillConfirmations(update.user.favoriteSkills)
@@ -344,6 +370,10 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
       ...(recentQuickActions.length > 0 && { recentQuickActions }),
       ...(Object.keys(mcpServerGroups).length > 0 && { mcpServerGroups: parseMcpServerGroups(mcpServerGroups) }),
       ...(Object.keys(skillGroups).length > 0 && { skillGroups: parseSkillGroups(skillGroups) }),
+      ...(Object.keys(codexAccountBindings).length > 0 && {
+        codexAccountBindings: parseCodexAccountBindings(codexAccountBindings),
+      }),
+      ...(pendingResetAttempt && { pendingResetAttempt }),
       ...(typeof (update.user?.autoApprovePermissions ?? current.user.autoApprovePermissions) === 'boolean' && {
         autoApprovePermissions: update.user?.autoApprovePermissions ?? current.user.autoApprovePermissions,
       }),

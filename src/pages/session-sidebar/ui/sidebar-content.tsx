@@ -19,6 +19,7 @@ import type { NavigatorTodoController, TodoController } from '../../../entities/
 import type { SidebarInteraction } from '../model/sidebar-interaction'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { BoxRenderable } from '@opentui/core'
+import type { JSX } from 'solid-js'
 
 export function SidebarContent(props: {
   api: TuiPluginApi
@@ -29,6 +30,7 @@ export function SidebarContent(props: {
   preferences: PreferencesController
   interaction: SidebarInteraction
   sessionID: string
+  limitsSection: (navigationSection: number) => JSX.Element
   onNewSession?: () => boolean
 }) {
   const sections = props.preferences.sections
@@ -60,6 +62,7 @@ export function SidebarContent(props: {
         {(section, index) => (
           <SectionBoundary api={props.api} divided={index() < visibleSections().length - 1}>
             <Switch>
+              <Match when={section === 'limits'}>{props.limitsSection(index() + 1)}</Match>
               <Match when={section === 'todo'}>
                 <TodoSection {...props} navigationSection={index() + 1} controller={props.todo} />
               </Match>

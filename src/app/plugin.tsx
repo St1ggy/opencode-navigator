@@ -30,9 +30,21 @@ import { supportsPermissionMode } from '../shared/lib/host-capabilities'
 import { IconProvider } from '../shared/ui'
 
 import { loadConfiguredDefaults } from './configured-defaults'
+import { LimitsPersistence } from './limits-persistence'
 import { createOpenCodeV2Api } from './opencode-v2'
+import { selectedV2Model } from './opencode-v2/model-adapter'
 import { createOpenCodeV1VersionUpdater, createOpenCodeV2VersionUpdater } from './version-updaters'
 
+import type { selectedV1Model as SelectV1Model } from './model-selection'
+import type {
+  createProviderLimitsController as CreateProviderLimitsController,
+  SelectedModel,
+} from '../entities/provider-limit'
+import type {
+  createCodexAppServerClient as CreateCodexAppServerClient,
+  createCodexQuotaAdapter as CreateCodexQuotaAdapter,
+} from '../features/provider-limits'
+import type { ProviderLimitsSection as LimitsComponent } from '../pages/session-sidebar'
 import type { Plugin as OpenCodeV2Plugin } from '@opencode/plugin/tui'
 import type { TuiPlugin, TuiPluginMeta, TuiPluginModule } from '@opencode-ai/plugin/tui'
 
@@ -71,6 +83,7 @@ async function setupNavigator(
   options: Parameters<TuiPlugin>[1],
   readProject?: () => Promise<string | undefined>,
   managedTodo?: NavigatorTodoController,
+  selectedModel?: () => SelectedModel | undefined,
 ) {
   const config = pluginConfig(undefined)
   const configured = await loadConfiguredDefaults(api, options, readProject)
@@ -78,6 +91,31 @@ async function setupNavigator(
   const subagents = createSubagentController(api)
   const skills = createSkillController(api)
   const preferences = createPreferencesController(api, config, createPreferencesStore(api.state.path.state), configured)
+  const limitsPath = import.meta.url.includes('/dist/tui.js') ? './provider-limits.js' : '../provider-limits'
+  const limitsModule = (await import(limitsPath)) as {
+    createCodexAppServerClient: typeof CreateCodexAppServerClient
+    createCodexQuotaAdapter: typeof CreateCodexQuotaAdapter
+    ProviderLimitsSection: typeof LimitsComponent
+    selectedV1Model: typeof SelectV1Model
+    createProviderLimitsController: typeof CreateProviderLimitsController
+  }
+  const codex = limitsModule.createCodexQuotaAdapter(
+    limitsModule.createCodexAppServerClient({ version: __NAVIGATOR_VERSION__ }),
+  )
+  const LimitsSection = limitsModule.ProviderLimitsSection
+  const limits = limitsModule.createProviderLimitsController(
+    [codex],
+    () => {
+      const model = selectedModel?.() ?? limitsModule.selectedV1Model(api)
+
+      if (!model) return
+
+      const accountID = preferences.codexAccountForModel(model.providerID, model.modelID)
+
+      return { ...model, ...(accountID && { accountID }) }
+    },
+    api.lifecycle.signal,
+  )
   const mcp = createMcpController(api, preferences.persistMcp, preferences)
   const interaction = createSidebarInteraction(api, () =>
     openKeyboardHelp(api, preferences.lspIconStyle, preferences.cornerFont),
@@ -85,6 +123,7 @@ async function setupNavigator(
   const startup = createStartupSessionController(api, preferences)
 
   api.lifecycle.onDispose(() => preferences.flush())
+  api.lifecycle.onDispose(() => limits.dispose())
   api.lifecycle.onDispose(() => interaction.dispose())
 
   const unsubscribeMcp = api.event.on('mcp.tools.changed', () => {
@@ -106,6 +145,7 @@ async function setupNavigator(
         return (
           <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
             <PreferencesPersistence api={api} controller={preferences} />
+            <LimitsPersistence controller={limits} />
             {supportsPermissionMode(api) && <PermissionModeBinding api={api} preferences={preferences} />}
             <SettingsBinding api={api} preferences={preferences} mcp={mcp} skills={skills} />
             <SidebarToggleBinding api={api} preferences={preferences} />
@@ -148,6 +188,16 @@ async function setupNavigator(
               api={api}
               onNewSession={startup.handleNewSession}
               mcp={mcp}
+              limitsSection={(navigationSection) => (
+                <LimitsSection
+                  api={api}
+                  preferences={preferences}
+                  interaction={interaction}
+                  controller={limits}
+                  codex={codex}
+                  navigationSection={navigationSection}
+                />
+              )}
               todo={todo}
               subagents={subagents}
               skills={skills}
@@ -219,6 +269,7 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
       )
     },
     todo,
+    () => selectedV2Model(context),
   )
   const versionStatus = createVersionStatus(adapter.api, __NAVIGATOR_VERSION__)
   const versionUpdates = createVersionUpdateActions(
