@@ -1,15 +1,16 @@
 import { SECTION_DEFINITIONS, type SidebarSection } from '../../../entities/sidebar-layout'
-import { type DialogNavigation, PresetMenu, type PresetOption } from '../../../shared/ui'
 import { FirstRunWizard } from '../ui/first-run-wizard'
-import { TrustedSkillsDialog } from '../ui/trusted-skills-dialog'
 
 import type { SettingsOption } from './settings-groups'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
+import type { DialogNavigation } from '../../../shared/ui'
 import type { McpGroupsDialog as McpGroupsComponent } from '../ui/mcp-groups-dialog'
 import type { QuickActionsDialog as QuickActionsComponent } from '../ui/quick-actions-dialog'
+import type { openSettingsImport as ImportSettingsFunction } from '../ui/settings-import-dialog'
 import type { SkillGroupsDialog as SkillGroupsComponent } from '../ui/skill-groups-dialog'
+import type { TrustedSkillsDialog as TrustedSkillsComponent } from '../ui/trusted-skills-dialog'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor, Setter } from 'solid-js'
 
@@ -109,84 +110,13 @@ export function createSettingsSelection(input: {
     })
   }
   function importSettings() {
-    input.dialogs.prompt({
-      title: 'Import portable settings',
-      description: () => <text fg={input.api.theme.current.textMuted}>Paste versioned Navigator JSON.</text>,
-      onConfirm(source) {
-        const preview = input.preferences.previewPortableSettings(source)
-        const options: PresetOption[] = [
-          ...(preview.settings.layout
-            ? [
-                {
-                  title: `Layout · ${preview.layoutChanged ? 'CHANGED' : 'UNCHANGED'}`,
-                  value: 'status',
-                  description: `${Object.keys(preview.settings.layout.sections).length} visibility · ${Object.keys(preview.settings.layout.expanded).length} expansion values`,
-                  icon: preview.layoutChanged ? ('edit' as const) : ('done' as const),
-                },
-              ]
-            : []),
-          ...(preview.settings.mcp
-            ? [
-                {
-                  title: `MCP · ${preview.mcpChanged ? 'CHANGED' : 'UNCHANGED'}`,
-                  value: 'status',
-                  description: `${Object.keys(preview.settings.mcp).length} remembered server states`,
-                  icon: preview.mcpChanged ? ('edit' as const) : ('done' as const),
-                },
-              ]
-            : []),
-          ...preview.unsupported.map((path: string) => ({
-            title: 'Unsupported field · SKIPPED',
-            value: 'status',
-            description: path,
-            icon: 'error' as const,
-          })),
-          ...(preview.layoutChanged || preview.mcpChanged
-            ? [{ title: 'Apply imported settings', value: 'apply', description: preview.target, icon: 'done' as const }]
-            : []),
-          { title: 'Cancel', value: 'cancel', description: 'return without changes', icon: 'close' },
-        ]
-        let applying = false
+    const path = import.meta.url.includes('/dist/tui.js') ? './settings-import.js' : '../ui/settings-import-dialog'
 
-        async function apply() {
-          applying = true
-          try {
-            await input.preferences.applyPortableSettings(preview)
-            input.api.ui.toast({
-              variant: 'success',
-              title: 'Portable settings',
-              message: 'Layout and MCP settings imported',
-              duration: 3000,
-            })
-            input.dialogs.back()
-          } catch (error) {
-            applying = false
-            input.api.ui.toast({
-              variant: 'error',
-              title: 'Portable settings',
-              message: error instanceof Error ? error.message : 'Could not import settings',
-              duration: 5000,
-            })
-          }
-        }
-
-        input.dialogs.replace(() => (
-          <PresetMenu
-            api={input.api}
-            title="Settings import preview"
-            options={options}
-            height={Math.min(options.length * 3, 18)}
-            onSelect={(option) => {
-              if (option.value === 'cancel') input.dialogs.back()
-
-              if (option.value !== 'apply' || applying) return
-
-              void apply()
-            }}
-          />
-        ))
-      },
-    })
+    void import(path)
+      .then((module) => {
+        if (!dialogClosed()) (module as { openSettingsImport: typeof ImportSettingsFunction }).openSettingsImport(input)
+      })
+      .catch((error) => input.api.ui.toast({ variant: 'error', title: 'Portable settings', message: String(error) }))
   }
   function select(value = input.options()[input.active()]?.value) {
     if (!value) return
@@ -314,7 +244,17 @@ export function createSettingsSelection(input: {
         }
 
         case 'trusted_skills': {
-          input.dialogs.open(() => <TrustedSkillsDialog api={input.api} preferences={input.preferences} />)
+          const path = import.meta.url.includes('/dist/tui.js') ? './trusted-skills.js' : '../ui/trusted-skills-dialog'
+
+          void import(path)
+            .then((module) => {
+              if (dialogClosed()) return
+
+              const { TrustedSkillsDialog } = module as { TrustedSkillsDialog: typeof TrustedSkillsComponent }
+
+              input.dialogs.open(() => <TrustedSkillsDialog api={input.api} preferences={input.preferences} />)
+            })
+            .catch((error) => input.api.ui.toast({ variant: 'error', title: 'Trusted skills', message: String(error) }))
           break
         }
 

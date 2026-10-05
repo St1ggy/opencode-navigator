@@ -16,7 +16,14 @@ if (size > MAX_BUNDLE_BYTES) {
   process.exit(1)
 }
 
-for (const name of ['mcp-groups', 'skill-groups', 'quick-actions-settings']) {
+for (const name of [
+  'mcp-groups',
+  'skill-groups',
+  'quick-actions-settings',
+  'settings-import',
+  'trusted-skills',
+  'layout-preset-actions',
+]) {
   const dialog = Bun.file(new URL(`../dist/${name}.js`, import.meta.url))
 
   if (!(await dialog.exists())) {

@@ -5,11 +5,11 @@ import { SIDEBAR_SECTIONS, type SidebarSection } from '../../../entities/sidebar
 import { PLUGIN_ID } from '../../../shared/config'
 import { useDialogScroll, useDialogState, useDialogs, useIcons } from '../../../shared/ui'
 
-import { createLayoutPresetActions } from './layout-preset-actions'
 import { createSettingsGroups } from './settings-groups'
 import { registerSettingsKeymap } from './settings-keymap'
 import { createSettingsSelection } from './settings-selection'
 
+import type { createLayoutPresetActions as LayoutPresetActionsFactory } from './layout-preset-actions'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
@@ -103,12 +103,22 @@ export function createSettingsDialogController(props: {
     })
   }
 
-  const presetActions = createLayoutPresetActions({
-    api: props.api,
-    preferences: props.preferences,
-    mcp: props.mcp,
-    dialogs,
-  })
+  function runPresetAction(action: 'open' | 'prompt', name?: string) {
+    const path = import.meta.url.includes('/dist/tui.js') ? './layout-preset-actions.js' : './layout-preset-actions'
+
+    void import(path)
+      .then((module) => {
+        if ('open' in props.api.ui.dialog && !props.api.ui.dialog.open) return
+
+        const factory = (module as { createLayoutPresetActions: typeof LayoutPresetActionsFactory })
+          .createLayoutPresetActions
+        const actions = factory({ api: props.api, preferences: props.preferences, mcp: props.mcp, dialogs })
+
+        if (action === 'open' && name) actions.open(name)
+        else actions.prompt()
+      })
+      .catch((error) => props.api.ui.toast({ variant: 'error', title: 'Layout presets', message: String(error) }))
+  }
   const selection = createSettingsSelection({
     api: props.api,
     preferences: props.preferences,
@@ -118,8 +128,8 @@ export function createSettingsDialogController(props: {
     options,
     active,
     setActive,
-    openPreset: presetActions.open,
-    promptPreset: presetActions.prompt,
+    openPreset: (name) => runPresetAction('open', name),
+    promptPreset: () => runPresetAction('prompt'),
   })
   const unregister = registerSettingsKeymap({
     api: props.api,

@@ -138,6 +138,18 @@ async function harness(height = 40) {
   }
 }
 
+async function waitForDialog(h: Awaited<ReturnType<typeof harness>>, label: string) {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    await h.flush()
+
+    if (h.captureCharFrame().includes(label)) return
+
+    await Bun.sleep(5)
+  }
+
+  expect(h.captureCharFrame()).toContain(label)
+}
+
 test('dialog stack restores frame state and size, handles native closes, and unregisters modal bindings', async () => {
   const h = await harness()
   const stack = createDialogStack(h.api)
@@ -207,7 +219,7 @@ test('settings preserve their tab through nested preset actions, rename cancella
     openSettings(h.api, h.preferences, 'preset:custom:Work')
     await h.flush()
     h.mockInput.pressEnter()
-    await h.flush()
+    await waitForDialog(h, 'Update from current')
     expect(h.captureCharFrame()).toContain('Update from current')
     await chooseRename()
     await h.flush()
@@ -227,7 +239,7 @@ test('settings preserve their tab through nested preset actions, rename cancella
     expect(h.captureCharFrame()).toContain('Save as…')
     expect(h.size()).toBe('xlarge')
     h.mockInput.pressEnter()
-    await h.flush()
+    await waitForDialog(h, 'Update from current')
     expect(h.captureCharFrame()).toContain('Update from current')
     await h.escape()
     await h.escape()
@@ -246,6 +258,10 @@ test('portable settings preview skipped fields and apply only after confirmation
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()
+    for (let attempt = 0; attempt < 20 && !h.prompt(); attempt++) {
+      await Bun.sleep(5)
+      await h.flush()
+    }
     expect(h.prompt().title).toBe('Import portable settings')
     h.prompt().onConfirm?.(
       JSON.stringify({

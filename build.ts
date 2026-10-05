@@ -239,7 +239,14 @@ for (const output of result.outputs) {
 }
 
 const dialogs = await Bun.build({
-  entrypoints: ['src/mcp-groups.ts', 'src/skill-groups.ts', 'src/quick-actions-settings.ts'],
+  entrypoints: [
+    'src/mcp-groups.ts',
+    'src/skill-groups.ts',
+    'src/quick-actions-settings.ts',
+    'src/settings-import.ts',
+    'src/trusted-skills.ts',
+    'src/layout-preset-actions.ts',
+  ],
   outdir: 'dist',
   target: 'bun',
   format: 'esm',
