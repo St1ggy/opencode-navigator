@@ -64,7 +64,8 @@ RUN bun install --frozen-lockfile --ignore-scripts
 
 COPY dist/ dist/
 COPY screenshots/harness /harness
-RUN chmod +x /harness/capture.sh /harness/run-opencode.sh
+RUN chmod +x /harness/capture.sh /harness/run-opencode.sh /harness/codex-app-server.mjs \
+    && ln -s /harness/codex-app-server.mjs /usr/local/bin/codex
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \

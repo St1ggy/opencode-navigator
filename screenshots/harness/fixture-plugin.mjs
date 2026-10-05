@@ -162,6 +162,7 @@ const plugin = {
       title: 'Navigator product tour',
       directory: DIRECTORY,
       workspaceID: WORKSPACE_ID,
+      ...(SCENE.startsWith('limits-') && { model: { providerID: SCENE === 'limits-unavailable' ? 'synthetic-provider' : 'openai', id: 'synthetic-codex' } }),
       time: { created: FIXTURE_NOW - 900_000, updated: FIXTURE_NOW },
     })
     const sessionState = {
@@ -282,6 +283,14 @@ const plugin = {
         later(1200, 'opencode-navigator.navigation.activate')
       }
 
+      if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {
+        dispatch('opencode-navigator.focus.limits')
+        later(300, 'opencode-navigator.navigation.next')
+        later(450, 'opencode-navigator.navigation.activate')
+
+        if (SCENE === 'limits-confirmation') later(800, 'opencode-navigator.selection-menu.select')
+      }
+
       if (SCENE === 'todo-active' || SCENE === 'todo-finished') {
         dispatch('opencode-navigator.focus.todo')
         setTimeout(() => {
@@ -339,18 +348,18 @@ const plugin = {
 
         if (SCENE === 'settings-mcp-groups') {
           setTimeout(() => {
-            for (let index = 0; index < 7; index++) dispatch('opencode-navigator.settings.next')
+            for (let index = 0; index < 8; index++) dispatch('opencode-navigator.settings.next')
             dispatch('opencode-navigator.settings.groups')
           }, 400)
-          later(1500, 'opencode-navigator.mcp-preset-menu.select')
+          later(1500, 'opencode-navigator.selection-menu.select')
         }
 
         if (SCENE === 'settings-skill-groups') {
           setTimeout(() => {
-            for (let index = 0; index < 4; index++) dispatch('opencode-navigator.settings.next')
+            for (let index = 0; index < 5; index++) dispatch('opencode-navigator.settings.next')
             dispatch('opencode-navigator.settings.groups')
           }, 400)
-          later(1500, 'opencode-navigator.mcp-preset-menu.select')
+          later(1500, 'opencode-navigator.selection-menu.select')
         }
 
         if (SCENE === 'settings-trusted-skills') {
@@ -363,18 +372,18 @@ const plugin = {
         if (SCENE === 'layout-preset-menu' || SCENE === 'layout-preset-preview')
           later(600, 'opencode-navigator.settings.select')
 
-        if (SCENE === 'layout-preset-preview') later(800, 'opencode-navigator.mcp-preset-menu.select')
+        if (SCENE === 'layout-preset-preview') later(800, 'opencode-navigator.selection-menu.select')
       }
 
       if (SCENE === 'mcp-presets' || SCENE === 'mcp-preset-actions' || SCENE === 'mcp-preset-preview') {
         openMcpPresets()
 
         if (SCENE === 'mcp-preset-actions' || SCENE === 'mcp-preset-preview') {
-          later(1600, 'opencode-navigator.mcp-preset-menu.next')
-          later(1700, 'opencode-navigator.mcp-preset-menu.select')
+          later(1600, 'opencode-navigator.selection-menu.next')
+          later(1700, 'opencode-navigator.selection-menu.select')
         }
 
-        if (SCENE === 'mcp-preset-preview') later(1900, 'opencode-navigator.mcp-preset-menu.select')
+        if (SCENE === 'mcp-preset-preview') later(1900, 'opencode-navigator.selection-menu.select')
       }
 
       if (SCENE === 'keyboard-help') {

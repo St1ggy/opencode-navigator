@@ -5,7 +5,7 @@ set -Eeuo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 image="opencode-navigator-screenshots:local"
 mode="${1:-generate}"
-scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups)
+scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link)
 
 file_for_scene() {
   case "$1" in
@@ -47,6 +47,14 @@ file_for_scene() {
     no-corner-mcp-preview) printf '%s\n' 36-no-corner-font-mcp-preview.png ;;
     no-corner-import-preview) printf '%s\n' 37-no-corner-font-import-preview.png ;;
     settings-skill-groups) printf '%s\n' 38-skill-groups.png ;;
+    limits-ready) printf '%s\n' 39-provider-limits.png ;;
+    limits-credits) printf '%s\n' 40-reset-credits.png ;;
+    limits-confirmation) printf '%s\n' 41-reset-confirmation.png ;;
+    limits-count-only) printf '%s\n' 42-reset-count-only.png ;;
+    limits-unavailable) printf '%s\n' 43-limits-unavailable.png ;;
+    limits-text) printf '%s\n' 44-limits-text.png ;;
+    no-corner-limits-credits) printf '%s\n' 45-no-corner-font-reset-credits.png ;;
+    limits-link) printf '%s\n' 46-limits-account-link.png ;;
     *) return 1 ;;
   esac
 }
@@ -77,6 +85,7 @@ for scene in "${scenes[@]}"; do
     no-corner-layout-preview) fixture_scene=layout-preset-preview; no_corner_font=true ;;
     no-corner-mcp-preview) fixture_scene=mcp-preset-preview; no_corner_font=true ;;
     no-corner-import-preview) fixture_scene=settings-import-preview; no_corner_font=true ;;
+    no-corner-limits-credits) fixture_scene=limits-credits; no_corner_font=true ;;
   esac
   docker run --rm --platform linux/arm64 \
     -e "SCREENSHOT_SCENE=$fixture_scene" \

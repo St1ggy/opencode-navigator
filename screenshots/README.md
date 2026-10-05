@@ -1,7 +1,28 @@
 # Screenshot Gallery
 
-These 38 deterministic captures render the real OpenCode TUI through Ghostty.
+The committed gallery contains 38 deterministic captures of the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
+
+The harness now defines 46 scenes. The next manual **Prepare Release** run will
+generate and verify the eight new Limits captures listed below; the existing PNGs
+remain the last committed release's captures until that workflow merges its update.
+
+## Provider Limits Scenes Queued For Release Capture
+
+| File | Synthetic interaction |
+| --- | --- |
+| `39-provider-limits.png` | Account-bound model windows, native units, reset times, freshness |
+| `40-reset-credits.png` | Available count, individual credit, expiry, and provider-selected next credit |
+| `41-reset-confirmation.png` | Separate account/model-bound manual confirmation |
+| `42-reset-count-only.png` | Nonzero count without a credit detail list |
+| `43-limits-unavailable.png` | Calm guidance for an unsupported provider |
+| `44-limits-text.png` | Readable Text fallback |
+| `45-no-corner-font-reset-credits.png` | Nerd Font credit menu without the extra corner font |
+| `46-limits-account-link.png` | Explicit Codex CLI account binding guidance |
+
+The container uses a synthetic `codex` JSON-RPC executable. It accepts quota reads
+and rejects every consume request; no provider account, credentials, or live reset
+is involved in a screenshot scene.
 
 ## Sidebar
 

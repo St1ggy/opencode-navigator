@@ -7,6 +7,7 @@ const workspace = '/workspace/atlas-console'
 const sessionID = 'ses_01J00000000000000000000000'
 const preferenceDirectory = `${stateRoot}/opencode/opencode-pretty-sidebar`
 const allSections = {
+  limits: scene.startsWith('limits-'),
   todo: true,
   subagents: true,
   skills: true,
@@ -14,7 +15,7 @@ const allSections = {
   lsp: true,
   mcp: true,
 }
-const defaultOrder = ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp']
+const defaultOrder = ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp']
 const subagentsOrder = ['subagents', 'todo', 'skills', 'quick_actions', 'lsp', 'mcp']
 const sectionOrder = scene.startsWith('subagents')
   ? subagentsOrder
@@ -26,7 +27,9 @@ const sectionOrder = scene.startsWith('subagents')
         ? ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp']
         : defaultOrder
 const collapsedSections = Object.fromEntries(Object.keys(allSections).map((section) => [section, false]))
-const expandedSections = scene.startsWith('subagents')
+const expandedSections = scene.startsWith('limits-')
+  ? { ...collapsedSections, limits: true }
+  : scene.startsWith('subagents')
   ? { ...collapsedSections, subagents: true }
   : scene === 'sidebar-skills'
     ? { ...collapsedSections, skills: true }
@@ -43,7 +46,7 @@ const preferences = {
       searchKey: 'alt+y',
       persistMcp: false,
       cornerFont: hasCornerFont,
-      lspIconStyle: scene === 'text-fallback' ? 'text' : 'nerd',
+      lspIconStyle: scene === 'text-fallback' || scene === 'limits-text' ? 'text' : 'nerd',
       sectionItemLimits: { todo: 3, subagents: 2, skills: 2, quick_actions: 3, lsp: 3, mcp: 3 },
     },
     layout: {
@@ -62,6 +65,9 @@ const preferences = {
     },
   },
   user: {
+    ...(scene.startsWith('limits-') && scene !== 'limits-link' && scene !== 'limits-unavailable' && {
+      codexAccountBindings: { '["openai","synthetic-codex"]': 'synthetic-codex-account' },
+    }),
     onboardingCompleted: !scene.startsWith('setup-'),
     ...(scene === 'settings-trusted-skills' && {
       skippedSkillConfirmations: [
@@ -120,7 +126,7 @@ const config = {
       'file:///harness/fixture-plugin.mjs',
       {
         persist_mcp: false,
-        icon_style: scene === 'text-fallback' ? 'text' : 'nerd',
+        icon_style: scene === 'text-fallback' || scene === 'limits-text' ? 'text' : 'nerd',
         focus_key: 'ctrl+shift+f',
         search_key: 'alt+y',
         toggle_key: 'ctrl+shift+b',
