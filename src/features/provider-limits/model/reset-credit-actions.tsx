@@ -36,13 +36,15 @@ export function createResetCreditActions(input: {
       ...(creditID && { creditID }),
       idempotencyKey: randomUUID(),
       createdAt: Date.now(),
+      ...(input.model.hostConnection?.id && { connectionID: input.model.hostConnection.id }),
     }
 
     try {
       if (
         attempt.accountID !== input.model.accountID ||
         attempt.modelID !== input.model.modelID ||
-        attempt.providerID !== input.model.providerID
+        attempt.providerID !== input.model.providerID ||
+        (attempt.connectionID !== undefined && attempt.connectionID !== input.model.hostConnection?.id)
       ) {
         throw new Error('Resolve the earlier attempt on its linked account and model first')
       }

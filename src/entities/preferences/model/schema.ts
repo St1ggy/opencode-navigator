@@ -19,6 +19,8 @@ import {
   parseSectionPreferences,
 } from '../../../shared/config'
 
+import { migrateCodexAccountBindings as parseCodexAccountBindings } from './codex-account-bindings'
+
 export type {
   DesiredMcpState,
   DesiredMcpStates,
@@ -80,6 +82,7 @@ export type PendingResetAttempt = {
   creditID?: string
   idempotencyKey: string
   createdAt: number
+  connectionID?: string
 }
 export type WorkspaceProfiles = Record<string, string>
 
@@ -239,7 +242,7 @@ export function parseMcpServerGroups(value: unknown): McpServerGroups {
 
 export const parseSkillGroups = parseMcpServerGroups
 
-export const parseCodexAccountBindings = parseMcpServerGroups
+export { migrateCodexAccountBindings as parseCodexAccountBindings } from './codex-account-bindings'
 
 export function parsePendingResetAttempt(value: unknown): PendingResetAttempt | undefined {
   const input = record(value)
@@ -253,7 +256,8 @@ export function parsePendingResetAttempt(value: unknown): PendingResetAttempt | 
     !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/iu.test(input.idempotencyKey) ||
     typeof input.createdAt !== 'number' ||
     !Number.isFinite(input.createdAt) ||
-    (input.creditID !== undefined && typeof input.creditID !== 'string')
+    (input.creditID !== undefined && typeof input.creditID !== 'string') ||
+    (input.connectionID !== undefined && (typeof input.connectionID !== 'string' || !input.connectionID))
   )
     return
 
@@ -264,6 +268,7 @@ export function parsePendingResetAttempt(value: unknown): PendingResetAttempt | 
     idempotencyKey: input.idempotencyKey,
     createdAt: input.createdAt,
     ...(input.creditID && { creditID: input.creditID }),
+    ...(input.connectionID && { connectionID: input.connectionID as string }),
   }
 }
 

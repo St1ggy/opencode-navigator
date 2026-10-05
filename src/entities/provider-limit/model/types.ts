@@ -1,4 +1,13 @@
-export type QuotaAvailability = 'ready' | 'unsupported' | 'unauthenticated' | 'stale' | 'rate_limited'
+export type QuotaAvailability =
+  | 'ready'
+  | 'unsupported'
+  | 'unauthenticated'
+  | 'stale'
+  | 'rate_limited'
+  | 'waiting'
+  | 'setup_required'
+  | 'permission_required'
+  | 'unavailable'
 
 export type SelectedModel = {
   providerID: string
@@ -6,6 +15,23 @@ export type SelectedModel = {
   sessionID: string
   variant?: string
   accountID?: string
+  accountSource?: 'host' | 'binding'
+  hostConnection?: HostProviderConnection
+}
+
+export type HostProviderConnection = {
+  status: 'ready' | 'loading' | 'unavailable' | 'unsupported'
+  id?: string
+  accountID?: string
+  method?: 'api' | 'oauth'
+  providerID?: string
+}
+
+export type ProviderAccountSource = {
+  current(model: SelectedModel): SelectedModel
+  refresh(model: SelectedModel): Promise<void>
+  validate(model: SelectedModel, signal: AbortSignal): Promise<boolean>
+  dispose(): void
 }
 
 export type QuotaWindow = {
@@ -14,10 +40,21 @@ export type QuotaWindow = {
   modelID: string
   limitID?: string
   unit: string
-  used: number
+  used?: number
+  remaining?: number
+  kind?: 'subscription' | 'rate_limit' | 'configured_limit'
   total?: number
   durationMinutes?: number
   resetsAt?: number
+}
+
+export type QuotaBalance = {
+  id: string
+  label: string
+  amount?: string
+  unit?: string
+  unlimited?: boolean
+  scope: 'account' | 'key'
 }
 
 export type BankedResetCredit = {
@@ -44,6 +81,9 @@ export type ProviderQuotaSnapshot = {
   fetchedAt: number
   availability: QuotaAvailability
   windows: readonly QuotaWindow[]
+  balances?: readonly QuotaBalance[]
+  connectionID?: string
+  message?: string
   ordinaryUsageAllowed?: boolean
   bankedResets?: BankedResets
 }
@@ -53,7 +93,8 @@ export type ProviderQuotaAdapter = {
   name: string
   supports(model: SelectedModel): boolean
   discoverAccount?(signal: AbortSignal): Promise<string>
-  read(model: SelectedModel, signal: AbortSignal): Promise<ProviderQuotaSnapshot>
+  validateHost?(model: SelectedModel, signal: AbortSignal): Promise<boolean>
+  read(model: SelectedModel, signal: AbortSignal, force?: boolean): Promise<ProviderQuotaSnapshot>
   prepareResetCreditConsumption?(
     model: SelectedModel,
     creditID: string | undefined,
@@ -85,7 +126,9 @@ export function normalizeProviderQuota(snapshot: ProviderQuotaSnapshot): Provide
       !window.label ||
       window.modelID !== snapshot.model.modelID ||
       !window.unit ||
-      !Number.isFinite(window.used) ||
+      (window.used !== undefined && !Number.isFinite(window.used)) ||
+      (window.remaining !== undefined && !Number.isFinite(window.remaining)) ||
+      (window.used === undefined && window.remaining === undefined && window.total === undefined) ||
       (window.total !== undefined && (!Number.isFinite(window.total) || window.total < 0)) ||
       (window.durationMinutes !== undefined &&
         (!Number.isFinite(window.durationMinutes) || window.durationMinutes < 0)) ||
@@ -97,6 +140,22 @@ export function normalizeProviderQuota(snapshot: ProviderQuotaSnapshot): Provide
     return { ...window }
   })
   const bankedResets = snapshot.bankedResets
+  const balances = snapshot.balances?.map((balance) => {
+    if (
+      !balance.id ||
+      !balance.label ||
+      (balance.scope !== 'account' && balance.scope !== 'key') ||
+      (balance.amount === undefined && !balance.unlimited) ||
+      (balance.amount !== undefined &&
+        (typeof balance.amount !== 'string' ||
+          !/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(balance.amount) ||
+          !Number.isFinite(Number(balance.amount)))) ||
+      (balance.unit !== undefined && (typeof balance.unit !== 'string' || !balance.unit))
+    )
+      throw new Error('Invalid provider balance')
+
+    return { ...balance }
+  })
 
   if (bankedResets && (!Number.isSafeInteger(bankedResets.availableCount) || bankedResets.availableCount < 0)) {
     throw new Error('Invalid banked reset count')
@@ -105,6 +164,7 @@ export function normalizeProviderQuota(snapshot: ProviderQuotaSnapshot): Provide
   return {
     ...snapshot,
     windows,
+    ...(balances && { balances }),
     ...(bankedResets && {
       bankedResets: {
         availableCount: bankedResets.availableCount,

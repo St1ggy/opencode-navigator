@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { LEGACY_PLUGIN_ID } from '../../../shared/config'
 
+import { changeCodexBinding } from './codex-account-bindings'
 import { assignGroup } from './group-assignments'
 import {
   type DesiredMcpState,
@@ -68,7 +69,7 @@ export type PreferencesUpdate = {
     mcpServerGroup?: { name: string; group?: string }
     skillGroup?: { location: string; group?: string }
     autoApprovePermissions?: boolean
-    codexAccountBinding?: { providerID: string; modelID: string; accountID?: string }
+    codexAccountBinding?: { providerID: string; modelID?: string; connectionID?: string; accountID?: string }
     pendingResetAttempt?: PendingResetAttempt
     clearPendingResetAttempt?: string
     workspaceProfile?: { layout: string; mcp?: string }
@@ -301,11 +302,12 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     update.user?.skillGroup?.group,
   )
   const binding = update.user?.codexAccountBinding
-  const codexAccountBindings = assignGroup(
-    current.user.codexAccountBindings,
-    binding?.providerID && binding.modelID ? JSON.stringify([binding.providerID, binding.modelID]) : undefined,
-    binding?.accountID,
-  )
+  const legacyBindingKey =
+    binding?.providerID && binding.modelID ? JSON.stringify([binding.providerID, binding.modelID]) : undefined
+  const codexAccountBindings =
+    binding?.providerID && !binding.modelID
+      ? changeCodexBinding(current.user.codexAccountBindings, binding, binding.accountID)
+      : assignGroup(current.user.codexAccountBindings, legacyBindingKey, binding?.accountID)
   const pendingUpdate = update.user?.pendingResetAttempt
   const currentAttempt = current.user.pendingResetAttempt
 

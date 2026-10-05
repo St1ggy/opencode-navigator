@@ -54,11 +54,19 @@ function windows(limit: CodexLimit, model: SelectedModel): QuotaWindow[] {
   })
 }
 
-export function createCodexQuotaAdapter(client: CodexAppServerClient): ProviderQuotaAdapter {
+export function createCodexQuotaAdapter(
+  client: CodexAppServerClient,
+  validateHost?: ProviderQuotaAdapter['validateHost'],
+): ProviderQuotaAdapter {
   const adapter: ProviderQuotaAdapter = {
     id: 'codex',
     name: 'Codex CLI',
-    supports: (model) => model.providerID === 'openai' && Boolean(model.accountID),
+    supports: (model) =>
+      (model.providerID === 'openai' || model.hostConnection?.providerID === 'openai') &&
+      model.hostConnection?.method !== 'api' &&
+      Boolean(model.accountID) &&
+      (!model.hostConnection || model.hostConnection.status === 'ready'),
+    ...(validateHost && { validateHost }),
     async discoverAccount(signal) {
       const account = await client.request<{ account: { type: string } | null }>(
         'account/read',
@@ -86,6 +94,9 @@ export function createCodexQuotaAdapter(client: CodexAppServerClient): ProviderQ
         fetchedAt: Date.now(),
         windows: [] as QuotaWindow[],
       }
+
+      if (validateHost && !(await validateHost(model, signal))) return { ...base, availability: 'unauthenticated' }
+
       const account = await client.request<{ account: { type: string } | null }>(
         'account/read',
         { refreshToken: false },
@@ -181,6 +192,11 @@ export function createCodexQuotaAdapter(client: CodexAppServerClient): ProviderQ
 
         if (latest.accountId !== attempt.accountID) throw new Error('Codex account changed')
       } else await adapter.prepareResetCreditConsumption!(model, attempt.creditID, signal)
+
+      signal.throwIfAborted()
+
+      if (validateHost && !(await validateHost(model, signal)))
+        throw new Error('OpenCode account or connection changed')
 
       signal.throwIfAborted()
 

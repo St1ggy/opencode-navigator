@@ -9,6 +9,7 @@ import {
 } from '../../../shared/config'
 import { layoutPresetPreview } from '../../../shared/lib/preset-preview'
 
+import { changeCodexBinding, codexBindingAccount } from './codex-account-bindings'
 import { assignGroup } from './group-assignments'
 import { type PortableSettings, parsePortableSettings, serializePortableSettings } from './portable-settings'
 import {
@@ -471,26 +472,17 @@ export function createPreferencesController(
     update({ user: { autoApprovePermissions: value } })
   }
 
-  function changeCodexAccountBinding(providerID: string, modelID: string, accountID?: string) {
+  function changeCodexConnectionBinding(providerID: string, connectionID: string | undefined, accountID?: string) {
     if (!isHydrated) {
-      void load().then(() => changeCodexAccountBinding(providerID, modelID, accountID))
+      void load().then(() => changeCodexConnectionBinding(providerID, connectionID, accountID))
 
       return
     }
 
-    if (!providerID || !modelID) return
+    if (!providerID) return
 
-    const key = JSON.stringify([providerID, modelID])
-
-    setCodexAccountBindings((currentBindings) => {
-      const next = { ...currentBindings }
-
-      if (accountID) next[key] = accountID
-      else delete next[key]
-
-      return next
-    })
-    update({ user: { codexAccountBinding: { providerID, modelID, accountID } } })
+    setCodexAccountBindings((bindings) => changeCodexBinding(bindings, { providerID, connectionID }, accountID))
+    update({ user: { codexAccountBinding: { providerID, connectionID, accountID } } })
   }
 
   function toggleFavoriteMcpServer(name: string) {
@@ -671,8 +663,12 @@ export function createPreferencesController(
     autoApprovePermissions,
     setAutoApprovePermissions: changeAutoApprovePermissions,
     codexAccountForModel: (providerID: string, modelID: string) =>
-      codexAccountBindings()[JSON.stringify([providerID, modelID])],
-    setCodexAccountBinding: changeCodexAccountBinding,
+      codexBindingAccount(codexAccountBindings(), { providerID }, modelID),
+    setCodexAccountBinding: (providerID: string, _modelID: string, accountID?: string) =>
+      changeCodexConnectionBinding(providerID, undefined, accountID),
+    codexAccountForConnection: (providerID: string, connectionID?: string, modelID?: string) =>
+      codexBindingAccount(codexAccountBindings(), { providerID, connectionID }, modelID),
+    setCodexConnectionBinding: changeCodexConnectionBinding,
     pendingResetAttempt,
     async beginResetAttempt(attempt: PendingResetAttempt) {
       await load()

@@ -73,6 +73,20 @@ test('banked reset remains manual and validates eligible model, account and cred
 
   expect(outcome).toBe('reset')
   expect(methods.filter((method) => method === 'account/rateLimitResetCredit/consume')).toHaveLength(1)
+
+  methods.length = 0
+  let checks = 0
+  const guarded = createCodexQuotaAdapter(client, async () => ++checks === 1)
+
+  await expect(
+    guarded.consumeResetCredit!(model, { accountID: 'account-1', idempotencyKey: randomUUID() }, signal),
+  ).rejects.toThrow('OpenCode account or connection changed')
+  expect(methods).not.toContain('account/rateLimitResetCredit/consume')
+  const unavailable = createCodexQuotaAdapter(client, async () => false)
+
+  methods.length = 0
+  expect((await unavailable.read(model, signal)).availability).toBe('unauthenticated')
+  expect(methods).toHaveLength(0)
 })
 
 test('uncertain redemption retries with its original idempotency key after credits disappear', async () => {
