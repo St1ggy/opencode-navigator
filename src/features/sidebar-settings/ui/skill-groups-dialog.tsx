@@ -1,8 +1,7 @@
-import { useDialogs } from '../../../shared/ui'
+import { SelectionMenu, useDialogs } from '../../../shared/ui'
 import { createSkillGroupsModel } from '../model/skill-groups'
 
 import { GroupAssignmentDialog } from './group-assignment-dialog'
-import { PresetMenu } from './preset-menu'
 
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
@@ -17,7 +16,7 @@ export function SkillGroupsDialog(props: {
   const model = createSkillGroupsModel(props.skills, props.preferences)
 
   return (
-    <PresetMenu
+    <SelectionMenu
       api={props.api}
       title="Skill groups · user-wide"
       options={model.options()}

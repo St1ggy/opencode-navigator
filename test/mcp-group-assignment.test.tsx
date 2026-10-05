@@ -67,7 +67,7 @@ test('MCP group assignment selects an existing group without opening an input', 
     expect(frame).toContain('Research')
     expect(frame).toContain('Current')
     expect(frame).toContain('Create new group')
-    model.commands.get('opencode-navigator.mcp-preset-menu.select')?.()
+    model.commands.get('opencode-navigator.selection-menu.select')?.()
     expect(model.groups().alpha).toBe('Operations')
     expect(model.cleared()).toBe(1)
     expect(model.replaced()).toBe(0)
@@ -89,10 +89,10 @@ test('MCP group assignment retains the new-group input path', async () => {
 
   try {
     await view.flush()
-    model.commands.get('opencode-navigator.mcp-preset-menu.next')?.()
-    model.commands.get('opencode-navigator.mcp-preset-menu.next')?.()
+    model.commands.get('opencode-navigator.selection-menu.next')?.()
+    model.commands.get('opencode-navigator.selection-menu.next')?.()
     await view.flush()
-    model.commands.get('opencode-navigator.mcp-preset-menu.select')?.()
+    model.commands.get('opencode-navigator.selection-menu.select')?.()
     expect(model.replaced()).toBe(1)
     expect(model.groups().alpha).toBe('Research')
   } finally {

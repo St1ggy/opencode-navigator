@@ -40,9 +40,12 @@ test('the built bundle preserves its public exports', async () => {
 
   expect(Object.keys(module).sort()).toEqual([
     'DEFAULT_SECTION_EXPANSION',
+    'DialogAction',
+    'DialogHeader',
     'DialogSurface',
     'FOCUS_COMMAND',
     'FirstRunWizard',
+    'GuardedConfirmation',
     'KeyboardHelpDialog',
     'LspBadge',
     'McpSection',
@@ -51,6 +54,7 @@ test('the built bundle preserves its public exports', async () => {
     'Section',
     'SectionFilter',
     'SelectionBox',
+    'SelectionMenu',
     'SettingsDialog',
     'SidebarFocusBinding',
     'SidebarToggleBinding',

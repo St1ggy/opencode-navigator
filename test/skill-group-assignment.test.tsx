@@ -87,7 +87,7 @@ test('Skill group manager shows the full workspace list and keeps absent assignm
     expect(frame).toContain('search')
     expect(frame).toContain('not in workspace')
     expect(frame).toContain('Research')
-    model.commands.get('opencode-navigator.mcp-preset-menu.select')?.()
+    model.commands.get('opencode-navigator.selection-menu.select')?.()
     expect(model.replaced()).toBe(1)
   } finally {
     view.renderer.destroy()
@@ -117,7 +117,7 @@ test('Skill group assignment offers existing, new and Ungrouped options for an e
     expect(view.captureCharFrame()).toContain('Research')
     expect(view.captureCharFrame()).toContain('Create new group')
     expect(view.captureCharFrame()).toContain('Ungrouped')
-    model.commands.get('opencode-navigator.mcp-preset-menu.select')?.()
+    model.commands.get('opencode-navigator.selection-menu.select')?.()
     expect(model.groups()[location]).toBe('Research')
     expect(model.cleared()).toBe(1)
   } finally {

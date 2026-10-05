@@ -1,6 +1,4 @@
-import { useDialogs } from '../../../shared/ui'
-
-import { PresetMenu } from './preset-menu'
+import { SelectionMenu, useDialogs } from '../../../shared/ui'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -23,7 +21,7 @@ export function GroupAssignmentDialog(props: {
   ]
 
   return (
-    <PresetMenu
+    <SelectionMenu
       api={props.api}
       title={props.title}
       options={options()}

@@ -1,10 +1,10 @@
-import { PresetMenu } from '../../../shared/ui'
+import { SelectionMenu } from '../../../shared/ui'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function McpErrorDialog(props: { api: TuiPluginApi; name: string; status: string; error: string }) {
   return (
-    <PresetMenu
+    <SelectionMenu
       api={props.api}
       title={`MCP error · ${props.name}`}
       height={12}

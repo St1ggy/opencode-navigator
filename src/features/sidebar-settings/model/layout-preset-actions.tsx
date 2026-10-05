@@ -1,9 +1,8 @@
+import { type DialogNavigation, SelectionMenu, type SelectionOption } from '../../../shared/ui'
 import { LayoutPresetPreview } from '../ui/layout-preset-preview'
-import { PresetMenu, type PresetOption } from '../ui/preset-menu'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
-import type { DialogNavigation } from '../../../shared/ui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function createLayoutPresetActions(input: {
@@ -54,7 +53,7 @@ export function createLayoutPresetActions(input: {
       })
 
     input.dialogs.open(() => (
-      <PresetMenu
+      <SelectionMenu
         api={input.api}
         title={name}
         options={
@@ -83,7 +82,7 @@ export function createLayoutPresetActions(input: {
                 ]
               : []),
             { title: 'Delete', value: 'delete', description: 'remove preset', icon: 'delete' },
-          ] as PresetOption[]
+          ] as SelectionOption[]
         }
         onSelect={(option) => {
           switch (option.value) {

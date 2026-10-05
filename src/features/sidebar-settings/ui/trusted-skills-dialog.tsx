@@ -1,6 +1,6 @@
 import { createMemo } from 'solid-js'
 
-import { PresetMenu } from './preset-menu'
+import { SelectionMenu } from '../../../shared/ui'
 
 import type { PreferencesController } from '../../../entities/preferences'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -38,7 +38,7 @@ export function TrustedSkillsDialog(props: { api: TuiPluginApi; preferences: Pre
   })
 
   return (
-    <PresetMenu
+    <SelectionMenu
       api={props.api}
       title="Trusted skills"
       options={options()}

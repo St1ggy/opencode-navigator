@@ -1,7 +1,11 @@
 export { default } from './app'
 export {
   DialogSurface,
+  DialogAction,
+  DialogHeader,
+  GuardedConfirmation,
   PresetMenu,
+  SelectionMenu,
   SelectionBox,
   createDialogStack,
   useDialogScroll,

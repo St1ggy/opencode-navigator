@@ -1,7 +1,6 @@
-import { createDialogStack } from '../../../shared/ui'
+import { SelectionMenu, createDialogStack } from '../../../shared/ui'
 
 import { McpPresetPreview } from './mcp-preset-preview'
-import { PresetMenu } from './preset-menu'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
@@ -47,7 +46,7 @@ export function openMcpPresets(api: TuiPluginApi, controller: McpController, pre
 
   function actions(name: string) {
     dialogs.open(() => (
-      <PresetMenu
+      <SelectionMenu
         api={api}
         title={name}
         options={[
@@ -116,7 +115,7 @@ export function openMcpPresets(api: TuiPluginApi, controller: McpController, pre
   }
 
   dialogs.open(() => (
-    <PresetMenu
+    <SelectionMenu
       api={api}
       title="MCP presets"
       options={[
@@ -138,4 +137,4 @@ export function openMcpPresets(api: TuiPluginApi, controller: McpController, pre
   ))
 }
 
-export { PresetMenu, PresetMenu as McpPresetMenu } from './preset-menu'
+export { SelectionMenu as PresetMenu, SelectionMenu as McpPresetMenu } from '../../../shared/ui'

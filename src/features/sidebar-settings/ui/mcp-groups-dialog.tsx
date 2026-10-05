@@ -1,7 +1,6 @@
-import { useDialogs } from '../../../shared/ui'
+import { SelectionMenu, useDialogs } from '../../../shared/ui'
 
 import { McpGroupAssignmentDialog } from './mcp-group-assignment-dialog'
-import { PresetMenu } from './preset-menu'
 
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
@@ -24,7 +23,7 @@ export function McpGroupsDialog(props: { api: TuiPluginApi; preferences: Prefere
   }
 
   return (
-    <PresetMenu
+    <SelectionMenu
       api={props.api}
       title="MCP groups · user-wide"
       options={options()}
