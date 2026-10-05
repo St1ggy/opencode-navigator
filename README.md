@@ -404,6 +404,8 @@ available from the command palette.
 
 ![Model-specific Codex quota windows and reset times](screenshots/39-provider-limits.png)
 
+![Audited provider sources and required capabilities](screenshots/47-provider-sources.png)
+
 ### Link the intended Codex account
 
 Install a Codex CLI exposing the documented read and consume RPCs (verified with

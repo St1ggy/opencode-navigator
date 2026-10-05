@@ -156,7 +156,7 @@ The test suite now builds the unminified `dist/tui.js` that users load. Renderin
 
 This takes longer than testing source modules alone, but it covers the boundary where my most confusing bug actually lived: bundling and host integration.
 
-Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery contains 46 scenes, including eight Limits states generated and verified by the manual release workflow. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
+Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery contains 47 scenes, including nine Limits states generated and verified by the manual release workflow. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
 
 Every displayed task, session, workspace, path, skill, server, error, and preset is synthetic and deterministic. Verification renders the scenes again to a temporary directory and fails if any PNG differs.
 

@@ -162,7 +162,8 @@ verification workflow before expanding the product surface.
 - [x] Require account-bound Codex quota reads and reset actions, close stale confirmations, and preserve one unresolved reset attempt across restarts for same-key reconciliation.
 - [x] Reuse public host integration/account metadata for automatic identity matching where supported; otherwise confirm a connection/provider binding once across models and migrate legacy model-specific bindings without crossing account boundaries.
 - [x] Add a broad audited provider inventory and documented native quota/balance adapters beyond Codex through the OpenCode 2 server plugin; distinguish subscription windows, observed API rate limits, configured capacities, and balances, and expose explicit capability guidance for unverified or API-dependent sources.
-- [ ] Generate and verify the new Provider sources screenshot plus updated account-binding captures through Prepare Release before publishing the native-source expansion; extend native-balance captures when the screenshot harness supports the OpenCode 2 server path.
+- [x] Generate and verify the new Provider sources screenshot plus updated account-binding captures through Prepare Release; screenshot PR #18 passed CI and merged with all 47 captures reproducible.
+- [ ] Extend native-balance and configured-capacity screenshot scenes when the harness supports the OpenCode 2 server path.
 
 ### Unified Search
 
