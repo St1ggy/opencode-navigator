@@ -98,7 +98,7 @@ Navigator works with an explicit allowlist of argument-free OpenCode commands. I
 
 ![Section settings](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/13-settings-sections.png)
 
-Settings can be changed globally or only for the current worktree. Declarative values come from three places at once: the plugin's `options` dictionary, the user-level `~/.config/.opencode-navigator/settings.json`, and the project-level `.opencode/navigator.json`, which is convenient to keep in version control. These files merge field by field to establish defaults, with saved global preferences, worktree preferences, and temporary process state layered above them. Reset removes only the selected layer instead of copying a parent value into it. Favorites, history, trusted Skills, and other private data never enter declarative files.
+Settings can be changed globally or only for the current worktree. Declarative values come from three places at once: the plugin's `options` dictionary, the user-level `~/.config/.opencode-navigator/settings.json`, and the project-level `.opencode/navigator.json`, which is convenient to keep in version control. I can copy the current worktree's portable layout and MCP settings, preview a named project profile with `opencode-navigator-profile save Focus`, then write it with `--apply`. A teammate loads the committed file on restart and chooses Preview & apply manually. These files merge field by field to establish defaults, with saved global preferences, worktree preferences, and temporary process state layered above them. Reset removes only the selected layer instead of copying a parent value into it. Favorites, history, trusted Skills, and other private data never enter declarative files.
 
 When I change saved settings in one running OpenCode window, I use **Reload settings from file** in another to pick up the layout, behavior, groups, and presets without restarting. It flushes pending local writes first and clears temporary layout overrides that would mask the new values. For a layout change to travel between windows, I first save it as the default; unsaved session-only adjustments stay local.
 
@@ -123,6 +123,16 @@ Pressing `?` opens keyboard help. `Ctrl+Shift+B` starts a temporary shortcut mod
 On first launch, a seven-step wizard introduces monitoring, search, Skills, Quick Actions, LSP, MCP, and customization before asking which sections should be visible. I deliberately moved layout selection to the final screen: by then, the user knows what each option enables and why it might matter.
 
 For LSP, I intentionally stopped at compact status indicators. Selecting one reveals the server name in place, but there is no separate dialog for the root directory or diagnostics: OpenCode may return an empty path and does not expose internal error text to the plugin. I chose not to fabricate details the API does not provide.
+
+## Subscription Limits Belong to the Selected Model
+
+OpenCode already shows the model above the prompt, so I did not add another model overview. What I wanted beside my tasks was the provider's remaining quota. Session token counts and cost estimates cannot answer that question.
+
+Limits starts with Codex's documented app-server API. I deliberately link the CLI account to the selected OpenCode provider/model before showing any windows: OpenCode does not tell a plugin whether those accounts match. If Codex does not associate a quota bucket with that model, the section says it is unavailable instead of borrowing another model's quota. A successful read shows native usage units, window durations, reset times, and freshness. Changing the model or session invalidates an old response.
+
+Banked resets need a stronger boundary. The credit list shows the available count even when the provider omits individual details. Choosing a credit checks eligibility and opens a separate account-bound confirmation. Escape goes back to the list. If submission times out, a private pending-attempt journal keeps the same idempotency key for reconciliation after a restart; opening the sidebar or polling limits never spends a credit.
+
+Limits is first and expanded by default, and I can hide or reorder it in the same scoped section settings. Other providers remain unavailable until there is a documented machine-readable quota source. I used CodexBar to discover possible providers, not to copy its credential-file or browser-cookie access.
 
 ## Why Rounded Corners Required a Separate Font
 
@@ -164,13 +174,13 @@ After the two-Solid-instance bug, I stopped treating unit tests as sufficient pr
 
 The tests click with the mouse, type into filters, navigate dialogs with the keyboard, and compare the resulting character frame. Separate checks cover 500-row lists and loading the built plugin into a real OpenCode process through a PTY.
 
-Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; three intentionally omit it. Every task, session, path, Skill, server, error, and saved preset is synthetic. The release workflow renders all 38 scenes twice and compares the PNG files byte for byte.
+Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; several intentionally omit it. Every task, session, path, Skill, server, error, saved preset, and provider account is synthetic. The harness now defines 46 scenes, including eight new Limits states queued for the next manual release workflow. That workflow renders each scene twice and compares the PNG files byte for byte.
 
 That setup is not free. It requires Docker with Linux ARM64 support, and pixel-level comparison is sensitive to the environment, so Ghostty and font versions must be pinned. In return, the README screenshots and the tested interface are now produced by exactly the same process.
 
 ## Installation
 
-The current OpenCode Navigator version at the time of writing is `0.15.0`. It supports OpenCode `1.18.30` and later, including OpenCode 2.x.
+OpenCode Navigator supports OpenCode `1.18.30` and later, including OpenCode 2.x.
 
 To install it for all projects:
 

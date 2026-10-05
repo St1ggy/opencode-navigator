@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.20.0] - 2026-10-05
+
+- Add a default-visible Limits section for the selected model's provider-native quota windows, reset times, account identity, and freshness. Codex CLI support requires an explicit private account binding; unsupported providers show calm guidance.
+- Review Codex banked reset credits and use them only after a separate confirmation and fresh eligibility checks. Preserve the same attempt key when reconciling an uncertain result, including after a restart.
+- Save named, commit-safe project layout and MCP profiles to `.opencode/navigator.json` with the `opencode-navigator-profile` command, an explicit preview, and `--apply`; profile application remains manual.
+
 ## [0.19.3] - 2026-10-03
 
 - Indent grouped Todo, Subagent, Skill, and MCP rows and align MCP server status indicators with their group headings.
@@ -64,6 +70,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.20.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.3...v0.20.0
 [0.19.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.2...v0.19.3
 [0.19.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.0...v0.19.1

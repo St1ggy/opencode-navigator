@@ -355,6 +355,78 @@ dialog for the current session and `session.permissions` in the user-wide
 `cli.json` (`"prompt"` or `"autoaccept"`) for its startup default. Restart
 OpenCode after changing `cli.json`.
 
+## Limits: provider quotas and banked resets
+
+Navigator keeps subscription limits separate from OpenCode's session token and
+cost statistics. The first supported source is Codex's documented app-server
+`account/rateLimits/read` RPC. It reports provider-owned usage windows, reset
+times, account identity, and any available banked reset credits. The installed
+Codex 0.160.0 protocol also exposes the separate
+`account/rateLimitResetCredit/consume` RPC. Navigator requires explicit
+confirmation before using it and never redeems credits in the background.
+Limits follows the model selected in the current OpenCode session. A Codex
+account's windows appear only if the provider explicitly maps them to that
+model; otherwise the section explains that a matching quota is unavailable.
+Switching provider, model, session, or account invalidates stale reads and credit actions.
+CodexBar is useful for discovering providers, but its cookie, credential-file,
+and undocumented endpoint integrations are not Navigator data sources.
+
+| Source | Machine-readable subscription limits | Banked reset credits |
+| --- | --- | --- |
+| Codex app-server | Rate-limit windows and account ID | Available count, optional details and expiry, confirmed manual consumption |
+| Claude Code (not integrated) | Session-local `rate_limits` statusline payload after a Claude Code response | No documented cross-process consumption API |
+| OpenCode session statistics | Token and cost statistics, not subscription quota | Not applicable |
+| Other providers | Not shown until a documented machine-readable quota API is verified | No action without a documented consume API |
+
+Limits is visible and expanded by default, first below the session title. Change
+its visibility and order under **Settings → Sections** in Global or Current
+worktree scope. Hiding or collapsing it does not stop background refreshes, and
+does not grant permission to spend a reset credit. **Focus Limits** is also
+available from the command palette.
+
+### Link the intended Codex account
+
+Install a Codex CLI exposing the documented read and consume RPCs (verified with
+0.160.0), ensure `codex` is on the same machine's `PATH`, and sign in with a ChatGPT
+account. Navigator starts `codex app-server --stdio` lazily; it does not start a
+Codex subprocess for unsupported providers or before an explicit account link.
+
+OpenCode does not expose which Codex CLI account its selected model uses. Select
+**Link Codex CLI account** in Limits and confirm the reported account ID only if
+you know it matches this OpenCode provider. The binding is private, user-wide,
+and specific to the provider/model. **Unlink Codex account** removes it;
+**Relink Codex account** is available when the CLI account has changed.
+
+For a linked model, Limits shows only buckets with a provider-reported model
+association, their native usage units and window durations, reset times, and
+the last successful read time. It refreshes quietly every five seconds, even
+when hidden. **Refresh** requests a read immediately; a failed read preserves
+cached windows with a stale label and **Retry**. Unsupported mappings, changed
+sign-in/account, and rate-limited reads have separate muted guidance.
+
+### Review and manually use a banked reset
+
+**Review reset credits** displays the provider's available count, optional credit
+details, statuses, and expiry. Selecting a credit first checks fresh eligibility
+and opens a separate confirmation tied to the current account and model. Cancel
+or Escape returns to the credit list without spending anything.
+
+The provider must report ordinary usage blocked, a matching quota window, and an
+available reset credit. A displayed percentage alone does not establish
+eligibility. A reset can affect other eligible Codex windows as well. Navigator
+checks the account and eligibility again before submission. Read-only providers
+do not gain a consume action.
+
+After an uncertain result, **Reconcile pending attempt** reuses the same
+idempotency key, including after a restart. Only its unresolved account/model,
+optional credit ID, and attempt key are saved in private preferences. Definitive
+outcomes clear that journal; quotas themselves are not saved to disk. A pending
+attempt on another account must be resolved on its original binding first.
+
+An absent Codex credit detail list does not mean there are zero credits: the
+provider may report a count without individual rows. Navigator does not read
+provider credential files or save credentials in preferences.
+
 ## Configuration sources
 
 Navigator validates and deep-merges three simultaneous sources in this order:
@@ -457,9 +529,31 @@ sources are left untouched.
 Configured files may define behavior, layout, desired MCP states, layout and MCP
 presets, workspace-profile links, and MCP groups. Navigator deliberately ignores
 favorites, recent-item history, trusted skills, onboarding state, paths, and other
-private mutable data. The files are read-only defaults: UI changes continue to use
-the concurrency-safe preferences file under OpenCode's state directory. Resetting
-a scope removes only its saved override and reveals configured values again.
+private mutable data. UI changes normally use the concurrency-safe preferences
+file under OpenCode's state directory. Resetting a scope removes only its saved
+override and reveals configured values again.
+
+To deliberately save a named, commit-safe project profile, choose **Current
+worktree** in Navigator Settings, copy the portable settings JSON, and paste it
+into a temporary file. From that project's root, preview and then save it:
+
+```sh
+opencode-navigator-profile save Focus < /path/to/portable-settings.json
+opencode-navigator-profile save Focus --apply < /path/to/portable-settings.json
+```
+
+If the command is not installed globally, run it with
+`npx --yes --package=opencode-navigator opencode-navigator-profile` instead.
+The command writes only the validated layout preset, desired MCP states, and
+their optional link into `.opencode/navigator.json`. It preserves other project
+configuration, rejects stale or symlinked targets, and never copies favorites,
+history, trust choices, or private paths. Use `--replace` deliberately to update
+an existing project profile. After saving, restart OpenCode to load the project
+file, then open **Settings → Presets → Focus → Preview & apply**. The profile is
+never applied merely by entering the project, and applying it does not save the
+layout as a default. Saved Global or Current worktree presets with the same name
+still take precedence, so use a distinct name if you want the project profile
+to be visible in the current installation.
 
 Choose `Global` or `Current worktree` before editing from the sidebar gear button.
 Behavior changes apply immediately in the selected scope. Section visibility,

@@ -116,6 +116,14 @@ I can also export the selected scope's effective layout and desired MCP states a
 
 ![Settings import preview](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/34-settings-import-preview.png)
 
+## Quotas need an account and a model
+
+I wanted a quota readout, but OpenCode's session token and cost counters are a different thing. Limits uses provider-owned usage windows and reset times, starting with Codex's documented app-server RPC.
+
+There is an account boundary here that a plugin cannot guess. Before showing quotas, I link the Codex CLI account to the selected OpenCode provider/model. Navigator shows a bucket only when Codex explicitly associates it with that model. Unsupported providers get a quiet explanation. The section starts first and expanded; Global and Current worktree settings can hide or reorder it, while reads keep refreshing in the background.
+
+For banked resets, the available count survives a missing credit detail list. The review screen shows any supplied details and expiry. Picking a credit opens a separate confirmation after a fresh eligibility check; a full usage bar alone is not permission to redeem one. If the request times out, the pending attempt keeps one idempotency key for reconciliation, including after a restart. Changing the model, session, or linked account closes a stale confirmation.
+
 ## The bug was a second copy of Solid
 
 Navigator is written in TypeScript and TSX with Solid and OpenTUI. An early build looked correct, accepted clicks, and wrote the new setting to disk. It simply did not update the screen.
@@ -134,7 +142,7 @@ Navigator stores validated, unversioned preferences under OpenCode's state direc
 
 A lock file records the owner's PID to serialize writers. If that process has died, a later process recognizes and removes the stale lock.
 
-That one file holds layout and behavior overrides, remembered MCP states, onboarding state, Skill confirmation choices, favorites, recent skills, and presets. Configured defaults can come from the plugin options, `~/.config/.opencode-navigator/settings.json`, and a commit-safe `.opencode/navigator.json`; those sources deep-merge in that order. Saved global preferences, worktree overrides, and temporary session state remain above them. Personal history, favorites, trust decisions, and paths are deliberately excluded from the declarative files.
+That one file holds layout and behavior overrides, remembered MCP states, onboarding state, Skill confirmation choices, favorites, recent skills, and presets. Configured defaults can come from the plugin options, `~/.config/.opencode-navigator/settings.json`, and a commit-safe `.opencode/navigator.json`; those sources deep-merge in that order. For a team profile, I copy the worktree's portable settings, preview `opencode-navigator-profile save Focus`, then write it with `--apply` and commit the project file. A teammate still chooses Preview & apply after restarting OpenCode. Saved global preferences, worktree overrides, and temporary session state remain above the configured defaults. Personal history, favorites, trust decisions, and paths are deliberately excluded from the declarative files.
 
 ## Test the bundle users actually load
 
@@ -144,7 +152,7 @@ The test suite now builds the unminified `dist/tui.js` that users load. Renderin
 
 This takes longer than testing source modules alone, but it covers the boundary where my most confusing bug actually lived: bundling and host integration.
 
-Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display and renders 37 scenes with a pinned JetBrains Mono Nerd Font. The bundled corner font is present in 34 scenes and deliberately absent from three, preserving the real pre-installation experience. Running the harness requires Docker with Linux ARM64 support.
+Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The harness defines 46 scenes; eight new Limits states are queued for the next manual release capture. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
 
 Every displayed task, session, workspace, path, skill, server, error, and preset is synthetic and deterministic. Verification renders the scenes again to a temporary directory and fails if any PNG differs.
 
@@ -154,7 +162,7 @@ Screenshots are documentation, but in this project they are also rendering regre
 
 ## Installation
 
-OpenCode Navigator 0.15.0 supports OpenCode 1.18.30 and newer, including OpenCode 2.x.
+OpenCode Navigator supports OpenCode 1.18.30 and newer, including OpenCode 2.x.
 
 ### OpenCode 1.x
 

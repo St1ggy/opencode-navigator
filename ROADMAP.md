@@ -111,6 +111,7 @@ verification workflow before expanding the product surface.
 - [x] Give the active Todo filter the same persistent rounded highlight, accent color, and bold treatment as an active Settings tab.
 - [x] Remove the redundant radio-circle marker from the active Todo filter tab.
 - [x] Unify Todo, Subagents, Search Everything, and Settings tab styling through shared atomic tab components without radio markers and with muted non-bold counters.
+- [x] Generalize the shared selection menu and guarded confirmation under neutral names and types, keeping old preset names as compatibility aliases.
 - [x] Separate adjacent sidebar sections with dividers that are more muted than the title divider instead of section-wide background containers.
 - [x] Preserve the effective section order when Settings changes visibility in Global or Current worktree scope.
 - [x] Lift the Quick Actions configuration dialog toward the upper part of the terminal.
@@ -128,6 +129,7 @@ verification workflow before expanding the product surface.
 - [x] Remember the OpenCode 1.x auto-approve mode globally for new sessions, keep its Behavior control and host Quick Action in sync, and use the host-owned OpenCode 2.x Session → Permissions default.
 - [x] Add `Ctrl+,` as the direct Navigator Settings shortcut and separate bookmarked Quick Actions from the remaining visible actions.
 - [~] LSP: icons/text badges, error-first sorting, and in-place server-label toggling exist; diagnostic-specific actions depend on public API support.
+- [x] Recheck the OpenCode 1.x and 2.x public LSP surfaces: status is supported, while restart and diagnostic counts remain API-dependent candidates.
 - [x] Remove the LSP root/status details modal because the host may report an empty root.
 - [x] MCP: filtering, pending rows, dedicated full-error details, individual/bulk connect/disconnect, retry, user-wide favorites, and user-wide custom groups with absent-server retention.
 - [x] Toggle all eligible servers in a sidebar MCP group from its heading with keyboard/mouse support, full-bucket semantics under filters/limits, and existing bulk retry feedback.
@@ -151,9 +153,13 @@ verification workflow before expanding the product surface.
 ### Agents And Limits
 
 - Use OpenCode's existing agent/model display above the prompt; omit a duplicate sidebar overview.
-- [ ] Define independent adapters for OpenCode, stable provider quota APIs, and machine-readable external agent CLIs.
-- [ ] Preserve provider-native units and reset windows while showing freshness, unsupported, authentication, stale, and rate-limited states.
-- [ ] Never read undocumented credential files or store provider credentials in sidebar preferences or logs.
+- [~] Define independent adapters for OpenCode, stable provider quota APIs, and machine-readable external agent CLIs: host-selected model adapters and the documented Codex app-server source are implemented; other providers remain API-dependent.
+- [x] Preserve provider-native units and reset windows while showing freshness, unsupported, authentication, stale, and rate-limited states.
+- [x] Never read undocumented credential files or store provider credentials in sidebar preferences or logs.
+- [x] Display Codex banked reset credits with available count and expiry, and support confirmed manual redemption through the official app-server RPC with account, eligibility, and idempotency guards; keep unsupported providers read-only.
+- [x] Show only documented quota buckets for the current host-selected provider/model, updating on model/session changes; use CodexBar for provider discovery without adopting credential-file, browser-cookie, or private-endpoint access.
+- [x] Show Limits as its own default-visible, default-expanded first sidebar section immediately below the session title, with Global/Worktree visibility and ordering controls like other sections.
+- [x] Require deliberate private provider/model-to-Codex-account binding, close stale confirmations, and preserve one unresolved reset attempt across restarts for same-key reconciliation.
 
 ### Unified Search
 
@@ -163,8 +169,9 @@ verification workflow before expanding the product surface.
 ### Profiles And Portability
 
 - [x] Import and export the selected scope's layout and MCP settings as versioned JSON with validation and unsupported-field previews.
-- [ ] Add commit-safe project-local profiles after global/worktree persistence is stable.
-- [~] Current configured-default, global, worktree, and session precedence is documented; project-local profiles remain deferred.
+- [x] Add commit-safe project-local profiles after global/worktree persistence is stable.
+- [x] Add an explicit CLI preview and save flow for named project layout/MCP profiles in `.opencode/navigator.json`, with workspace/file guards and no private preferences in the project file.
+- [x] Document configured-default, global, worktree, and session precedence; project-local profiles remain configured defaults and are applied manually through the existing preset preview.
 
 ### Release Polish
 
@@ -173,12 +180,15 @@ verification workflow before expanding the product surface.
 - [x] Include `CHANGELOG.md` in npm packages and publish generated GitHub Release notes with upgrade guidance from v0.16.1 onward; earlier releases retain their GitHub Release notes.
 - [x] Decouple both locally configured OpenCode hosts from the repository build by loading Navigator from a pinned local snapshot with its own dependencies and changelog.
 - [x] Ignore project-local OpenCode TUI and CLI config files and stop tracking the old source-plugin override without removing the user's local file.
+- [x] Stop tracking local `vibe/` plans and trackers, ignore the directory, and preserve existing local copies.
 - [x] Let confirmed Navigator updates advance a recognized local pinned snapshot without changing its installation source or touching the running version.
 - [x] Remove release-number assertions across all tests and make optional live-update verification follow the published npm version rather than a fixed release.
 - [x] Persist the prior installed Navigator version and show the intervening bundled changelog once after the first launch of an updated plugin.
 - [x] Restrict changelog and GitHub Release highlights to user-facing changes and exclude technical screenshot pull requests from generated notes.
 - [x] Cover every product capability with deterministic synthetic screenshots and keep `ARTICLE.md` independent of private `yandex-team` resources and data.
 - [x] Prepare distinct English-language Habr and DEV Community articles plus the ignored private Atushka variant, completing five human-focused editorial passes for each.
+- [x] Prepare eight deterministic Limits/account/reset-credit screenshot scenes, including Text fallback and a Nerd Font capture without the corner font, with a synthetic read-only Codex executable.
+- [ ] Generate and verify the eight new Limits PNGs and refresh the existing gallery through the manual Prepare Release workflow before the next publication.
 
 ## API-Dependent Candidates
 

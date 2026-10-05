@@ -6,6 +6,8 @@
 - Update an existing requirement when the user changes it; do not retain contradictory versions.
 - Track feature work, deferred tasks, and completion in `ROADMAP.md`. Mark work complete only after implementation and verification.
 - Preserve the current user changes and staged work. Commit, push, and release only when requested.
+- For the completed provider-quota work, split the changes into thematic commits and publish the release only after the required Prepare Release screenshot workflow and CI have succeeded.
+- Keep local planning files under `vibe/` ignored and out of the public repository; preserve existing local copies when untracking them.
 
 ## Architecture: Feature-Sliced Design
 
@@ -16,6 +18,8 @@
 - Compose larger interfaces from small components. Keep business logic, persistence, requests, and SDK adaptation out of presentation components.
 - Existing large modules, especially `src/components/sections.tsx` and multi-component dialog modules, are migration targets. Apply the atomic-component requirement to new code now.
 - Extract reusable UI primitives and domain logic deliberately; do not turn Shared into a collection of unrelated application code.
+- When a component becomes reusable across domains, give it a neutral name that describes its presentation or interaction role. Generalize its props and public types too; retain former domain-specific exports only as compatibility aliases.
+- Keep reusable selection dialogs under `SelectionMenu`/`SelectionOption` and predicate-guarded confirmations under `GuardedConfirmation` in Shared UI; existing preset exports are compatibility aliases.
 - Generalize tabs and list rows through domain-agnostic presentation props such as leading icon, clickability, metadata, details, and trailing controls; keep Todo, Subagent, Skill, LSP, and MCP rules in their owning page/entity modules.
 - Keep the session sidebar sections in the pages-first `src/pages/session-sidebar` slice with an explicit public API. Preserve `src/components/sections.tsx` as a compatibility re-export while existing bundles, tests, and external consumers depend on it.
 - Keep sidebar composition, section shells/filters/tabs/visibility/boundaries, and sidebar interaction implementation inside `src/pages/session-sidebar`; the corresponding legacy component and root modules must remain re-export-only compatibility facades.
@@ -102,11 +106,18 @@
 - Keep background refresh visually quiet, including for empty sections. Subagent events update immediately; snapshot polling currently uses a five-second interval.
 - Maximize usable sidebar space without redundant padding. Use supported host APIs; do not pretend a configurable outer width exists when OpenCode fixes it internally.
 - Do not duplicate the agent/model overview already displayed above OpenCode's prompt.
+- Keep provider subscription limits separate from OpenCode session token and cost statistics. Expose only provider-native quota windows, units, reset times, and account identity obtained through documented machine-readable APIs; show unsupported, unauthenticated, stale, and rate-limited states without reading undocumented credential files or storing credentials.
+- Derive the Limits source from the model currently selected in the host session, not from every installed provider or the previous conversation's model. Show only quota buckets the provider explicitly associates with that provider/model; if no documented mapping exists, display calm unavailable guidance instead of a different model's or account's quota. React to model/provider/session switches immediately and reject stale reads and credit actions. CodexBar may guide provider discovery, but its cookie, local credential-file, and undocumented endpoint integrations are not acceptable Navigator data sources.
+- The OpenCode host does not identify its selected model's Codex CLI account. Require a deliberate private account binding before presenting Codex CLI quotas or permitting credit redemption; never silently assume the selected OpenCode provider and Codex CLI share an account.
+- For providers with banked reset credits, show the available count and provider-supplied credit details/expiry without treating a missing detail list as zero. Offer an explicit, confirmed manual consume action only through a documented provider API. For Codex, use its app-server rate-limit read and reset-credit consume RPCs, pin the current account, preserve one idempotency key across retries, re-read eligibility before submission, reconcile uncertain outcomes, and never auto-consume credits.
+- Make Limits a separate sidebar section that is visible and expanded by default, first immediately below the session title in the supported sidebar layout. Let users hide it through the same scoped Settings → Sections controls as other sections. Keep refresh and credit redemption independent of section visibility and never automatically spend credits.
 - Keep LSP badges compact. Activating a badge toggles its server label in place and must not open a details dialog; the host may report an empty LSP root, so do not expose a root/status modal from the badge.
+- Keep remaining LSP actions gated on documented public host capabilities. OpenCode 1.x and 2.x currently expose status only; do not invent restart actions or diagnostic counters from unsupported internal state.
 
 ## Preset previews
 
 - A workspace profile is a user-wide optional link from one layout preset to one MCP preset. Apply it manually through one combined preview; do not auto-apply it on workspace entry or implicitly save the layout as the default.
+- Let users deliberately save named, commit-safe project-local layout/MCP profiles to `.opencode/navigator.json` without exporting private paths, favorites, history, trust, or other mutable preferences. Preserve unrelated project configuration and existing profiles, validate changes before writing, reject stale workspace/file targets, and keep profile application manual with a preview rather than applying it on workspace entry.
 - Manual application from a layout or MCP preset menu opens a change preview with a separate Apply action. Opening or cancelling a preview must not apply the preset.
 - Layout previews show visibility, expansion, and destination positions. MCP previews distinguish connections, disconnections, unchanged servers, and skipped servers; show changes first.
 - Use the same change calculation for preview and application. Keep the preview current, disable Apply for removed presets or failed/in-flight MCP refreshes and mutations, and reject stale scope/workspace targets.
