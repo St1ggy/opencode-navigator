@@ -1,6 +1,7 @@
 import { Plugin } from '@opencode/plugin'
 
 import { type NavigatorTodoItem, NavigatorTodoRpc, createManagedTodos, todoGuidance } from '../../entities/todo/server'
+import { setupProviderQuotaServer } from '../../features/provider-limits/server'
 
 const input = {
   type: 'object',
@@ -61,8 +62,13 @@ export default Plugin.define({
 
       if (state.guidance) event.system.push({ type: 'text', text: todoGuidance(state) })
     })
+    const quotaCleanup =
+      typeof host.integration?.connection?.active === 'function' && typeof host.provider?.get === 'function'
+        ? await setupProviderQuotaServer(host)
+        : undefined
 
     return async () => {
+      await quotaCleanup?.()
       await context.dispose()
       await tools.dispose()
       await rpc.dispose()

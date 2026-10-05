@@ -270,7 +270,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     expect(frame).toContain('LIMITS')
     expect(frame.indexOf('LIMITS')).toBeLessThan(frame.indexOf('TODO'))
     expect(frame).toContain('synthetic-provider/synthetic-model')
-    expect(frame).toContain('No documented quota API')
+    expect(frame.replaceAll(/\s+/g, ' ')).toContain('server plugin for native provider quotas and balances')
     expect(frame).not.toContain('Review reset credits')
     expect(frame.replaceAll(/\s+/g, ' ')).toContain('separate OpenCode 2 server plugin')
     expect(frame).not.toContain('Retry')

@@ -1,15 +1,17 @@
-import { For, Show } from 'solid-js'
+import { Show } from 'solid-js'
 
-import { QuotaWindowRow, ResetCreditDialog, createCodexAccountLink } from '../../../features/provider-limits'
+import { ProviderSupportDialog, QuotaSnapshotRows, ResetCreditDialog } from '../../../features/provider-limits'
 import { PLUGIN_ID } from '../../../shared/config'
 import { useDialogs, useIcons } from '../../../shared/ui'
 
+import { CodexAccountControls } from './codex-account-controls'
 import { LimitsAction } from './limits-action'
 import { LimitsStatus } from './limits-status'
 import { Section } from './section'
 
 import type { PreferencesController } from '../../../entities/preferences'
 import type { ProviderQuotaAdapter, createProviderLimitsController } from '../../../entities/provider-limit'
+import type { ProviderQuotaCapability } from '../../../features/provider-limits'
 import type { SidebarInteraction } from '../model/sidebar-interaction'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -20,18 +22,13 @@ export function ProviderLimitsSection(props: {
   controller: ReturnType<typeof createProviderLimitsController>
   codex: ProviderQuotaAdapter
   navigationSection: number
+  capabilities?: () => Promise<ProviderQuotaCapability[]>
 }) {
   const icons = useIcons()
   const dialogs = useDialogs(props.api)
   const model = () => props.controller.current().model
   const snapshot = props.controller.snapshot
-  const accountLink = createCodexAccountLink({
-    api: props.api,
-    preferences: props.preferences,
-    adapter: props.codex,
-    model,
-    dialogs,
-  })
+  const count = () => (snapshot()?.windows.length ?? 0) + (snapshot()?.balances?.length ?? 0)
   const action = (id: string, row: number, label: string, onActivate: () => void, disabled = false) => (
     <LimitsAction
       api={props.api}
@@ -47,17 +44,16 @@ export function ProviderLimitsSection(props: {
   function openCredits() {
     const selected = model()
 
-    if (!selected) return
-
-    dialogs.open(() => (
-      <ResetCreditDialog
-        api={props.api}
-        preferences={props.preferences}
-        controller={props.controller}
-        adapter={props.codex}
-        model={selected}
-      />
-    ))
+    if (selected)
+      dialogs.open(() => (
+        <ResetCreditDialog
+          api={props.api}
+          preferences={props.preferences}
+          controller={props.controller}
+          adapter={props.codex}
+          model={selected}
+        />
+      ))
   }
 
   return (
@@ -68,7 +64,7 @@ export function ProviderLimitsSection(props: {
       navigationSection={props.navigationSection}
       title="LIMITS"
       section="limits"
-      summary={snapshot()?.availability === 'ready' ? String(snapshot()?.windows.length) : ''}
+      summary={count() ? String(count()) : ''}
       open={props.preferences.expanded().limits}
       onToggle={() => props.preferences.toggleSectionExpanded('limits')}
     >
@@ -81,37 +77,22 @@ export function ProviderLimitsSection(props: {
             <text fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
               {selected().providerID}/{selected().modelID}
             </text>
-            <Show when={!selected().accountID && selected().providerID === 'openai'}>
-              <text fg={props.api.theme.current.textMuted}>Link the matching Codex account to read quotas</text>
-              {action(
-                'link',
-                1,
-                `${icons.icon('scope')} Link Codex CLI account`,
-                () => void accountLink.link(),
-                accountLink.busy(),
+            <CodexAccountControls {...props} model={selected()} />
+            <Show when={snapshot() && ['ready', 'stale'].includes(snapshot()!.availability) ? snapshot() : undefined}>
+              {(quota) => <QuotaSnapshotRows api={props.api} snapshot={quota()} />}
+            </Show>
+            <Show when={snapshot()?.bankedResets}>
+              {(credits) => (
+                <>
+                  <text fg={props.api.theme.current.textMuted}>Banked resets: {credits().availableCount}</text>
+                  <Show when={credits().availableCount > 0 || props.preferences.pendingResetAttempt()}>
+                    {action('credits', 2, `${icons.icon('info')} Review reset credits`, openCredits)}
+                  </Show>
+                </>
               )}
             </Show>
-            <Show when={selected().accountID && snapshot()?.availability === 'ready'}>
-              <text fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
-                Codex CLI · {snapshot()?.accountId}
-              </text>
-              <For each={snapshot()?.windows}>{(window) => <QuotaWindowRow api={props.api} window={window} />}</For>
-              <Show when={snapshot()?.bankedResets}>
-                {(credits) => (
-                  <>
-                    <text fg={props.api.theme.current.textMuted}>Banked resets: {credits().availableCount}</text>
-                    <Show when={credits().availableCount > 0 || props.preferences.pendingResetAttempt()}>
-                      {action('credits', 2, `${icons.icon('info')} Review reset credits`, openCredits)}
-                    </Show>
-                  </>
-                )}
-              </Show>
-            </Show>
             <LimitsStatus api={props.api} controller={props.controller} />
-            <Show when={selected().providerID !== 'openai'}>
-              <text fg={props.api.theme.current.textMuted}>No documented quota API for this model</text>
-            </Show>
-            <Show when={props.controller.current().adapter}>
+            <Show when={props.controller.current().adapter || selected().hostConnection?.status === 'unavailable'}>
               {action(
                 'refresh',
                 3,
@@ -120,20 +101,9 @@ export function ProviderLimitsSection(props: {
                 ['loading', 'refreshing'].includes(props.controller.state().status),
               )}
             </Show>
-            <Show when={selected().providerID === 'openai' && selected().accountID}>
-              {action('unlink', 4, `${icons.icon('close')} Unlink Codex account`, () =>
-                props.preferences.setCodexAccountBinding(selected().providerID, selected().modelID),
-              )}
-              <Show when={snapshot()?.availability === 'unauthenticated'}>
-                {action(
-                  'relink',
-                  5,
-                  `${icons.icon('scope')} Relink Codex account`,
-                  () => void accountLink.link(),
-                  accountLink.busy(),
-                )}
-              </Show>
-            </Show>
+            {action('sources', 6, `${icons.icon('info')} Provider sources`, () =>
+              dialogs.open(() => <ProviderSupportDialog api={props.api} load={props.capabilities} />),
+            )}
           </box>
         )}
       </Show>

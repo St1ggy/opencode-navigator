@@ -4,6 +4,7 @@ import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { Show, createSignal, onCleanup } from 'solid-js'
 
+import { bindCodexAccount } from '../src/app/limits-account-model'
 import { LimitsPersistence } from '../src/app/limits-persistence'
 import { pluginConfig } from '../src/config'
 import {
@@ -25,13 +26,19 @@ const selected: SelectedModel = { providerID: 'openai', modelID: 'synthetic-code
 
 async function harness(
   input: {
+    hostConnection?: NonNullable<SelectedModel['hostConnection']>
     observe?: boolean
     countOnly?: boolean
     provider?: string
+    sourceMessage?: string
     consume?: NonNullable<ProviderQuotaAdapter['consumeResetCredit']>
   } = {},
 ) {
-  const [selection, setSelection] = createSignal({ ...selected, providerID: input.provider ?? selected.providerID })
+  const [selection, setSelection] = createSignal<SelectedModel>({
+    ...selected,
+    providerID: input.provider ?? selected.providerID,
+    ...(input.hostConnection && { hostConnection: input.hostConnection }),
+  })
   const [modal, setModal] = createSignal<() => JSX.Element>()
   let onClose: (() => void) | undefined
   let api!: TuiPluginApi
@@ -52,6 +59,7 @@ async function harness(
     accountId: model.accountID,
     availability: 'ready',
     fetchedAt: 1_800_000_000_000,
+    ...(input.sourceMessage && { message: input.sourceMessage }),
     ordinaryUsageAllowed: false,
     windows: [
       {
@@ -196,9 +204,8 @@ async function harness(
     })
     controller = createProviderLimitsController([adapter], () => {
       const model = selection()
-      const accountID = preferences.codexAccountForModel(model.providerID, model.modelID)
 
-      return { ...model, ...(accountID && { accountID }) }
+      return bindCodexAccount(model, preferences)
     })
     interaction = createSidebarInteraction(api, () => {})
 
@@ -284,7 +291,8 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
     expect(h.captureCharFrame()).toContain('Link the matching Codex account')
     expect(h.reads()).toBe(0)
     await h.link()
-    expect(h.captureCharFrame()).toContain('300 min: 100% used')
+    expect(h.captureCharFrame()).toContain('Primary · 300 min')
+    expect(h.captureCharFrame()).toContain('100% used')
     expect(h.captureCharFrame()).toContain('resets ')
     expect(h.captureCharFrame()).toContain('Updated ')
     expect(h.captureCharFrame()).toContain('Banked resets: 3')
@@ -316,6 +324,58 @@ test('mounted Limits persistence reads once per target without reacting to its o
     await h.flush()
     expect(h.reads()).toBe(2)
     expect(h.controller.state().status).toBe('ready')
+  } finally {
+    h.destroy()
+  }
+})
+
+test('automatically matched OpenCode accounts need no Link control when switching models', async () => {
+  const hostConnection = { status: 'ready' as const, id: 'credential:one', accountID: 'synthetic-account' }
+  const h = await harness({ hostConnection })
+
+  try {
+    await h.controller.refresh(true)
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Banked resets: 3')
+    expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
+    expect(h.captureCharFrame()).not.toContain('Unlink Codex account')
+    h.setSelection({ ...selected, modelID: 'second-model', hostConnection })
+    await h.controller.refresh(true)
+    await h.flush()
+    expect(h.controller.current().model?.accountID).toBe('synthetic-account')
+    expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
+    await h.click('Review reset credits')
+    await h.click('Synthetic reset')
+    const previous = h.confirmation()
+
+    h.setSelection({
+      ...selected,
+      hostConnection: { status: 'ready', id: 'credential:two', accountID: 'other-account' },
+    })
+    await h.flush()
+    previous.onConfirm?.()
+    expect(h.consumes()).toBe(0)
+    expect(h.api.ui.dialog.open).toBe(false)
+  } finally {
+    h.destroy()
+  }
+})
+
+test('a manual connection confirmation is reused across models and unknown host metadata never requests a link', async () => {
+  const hostConnection = { status: 'ready' as const, id: 'credential:one' }
+  const h = await harness({ hostConnection })
+
+  try {
+    await h.link()
+    h.setSelection({ ...selected, modelID: 'second-model', hostConnection })
+    await h.controller.refresh(true)
+    await h.flush()
+    expect(h.controller.current().model?.accountID).toBe('synthetic-account')
+    expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
+    h.setSelection({ ...selected, hostConnection: { status: 'loading' } })
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Checking the OpenCode account')
+    expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
   } finally {
     h.destroy()
   }
@@ -419,14 +479,17 @@ test('Limits keeps unsupported providers calm and shows stale read failures with
   const unsupported = await harness({ provider: 'synthetic-provider' })
 
   try {
-    expect(unsupported.captureCharFrame()).toContain('No documented quota API')
+    expect(unsupported.captureCharFrame()).toContain('No independent quota/balance API or native counter semantics')
     expect(unsupported.captureCharFrame()).not.toContain('Refresh')
     expect(unsupported.captureCharFrame()).not.toContain('Review reset credits')
     expect(unsupported.reads()).toBe(0)
+    await unsupported.click('Provider sources')
+    expect(unsupported.captureCharFrame()).toContain('Provider sources')
+    expect(unsupported.captureCharFrame()).toContain('AIHubMix')
   } finally {
     unsupported.destroy()
   }
-  const h = await harness()
+  const h = await harness({ sourceMessage: 'Provider-native API limits observed for the selected model.' })
 
   try {
     await h.link()

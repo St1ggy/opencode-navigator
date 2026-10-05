@@ -60,7 +60,8 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
   if (target === version) return
 
   await validate(previous, version)
-  const dependencies = JSON.parse(await readFile(join(previous, 'package.json'), 'utf8')).dependencies
+  const previousMetadata = JSON.parse(await readFile(join(previous, 'package.json'), 'utf8'))
+  const dependencies = previousMetadata.dependencies
 
   if (!dependencies?.['@opentui/core'] || !dependencies['@opentui/solid'] || !dependencies['solid-js'])
     throw new Error('Pinned Navigator runtime dependencies are missing')
@@ -99,6 +100,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
           private: true,
           type: 'module',
           dependencies,
+          optionalDependencies: { ...previousMetadata.optionalDependencies, ...metadata.optionalDependencies },
         }),
       )
 

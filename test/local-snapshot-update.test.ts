@@ -35,17 +35,27 @@ async function fixture(sourceVersion = SOURCE_VERSION) {
 
 test('a confirmed pinned update stages a complete new snapshot and only then repoints the wrapper', async () => {
   const { temporary, root, current, wrapper } = await fixture()
+  const optionalDependencies = { '@github/copilot-sdk': '1.2.3' }
 
   try {
     await updateLocalSnapshot(wrapper, TARGET_VERSION, {
       async stage(staging: string, version: string) {
         expect(await readFile(wrapper, 'utf8')).toContain(`v${SOURCE_VERSION}`)
         await mkdir(join(staging, 'dist'))
-        await writeFile(join(staging, 'package.json'), JSON.stringify({ name: 'opencode-navigator', version }))
+        await writeFile(
+          join(staging, 'package.json'),
+          JSON.stringify({ name: 'opencode-navigator', version, optionalDependencies }),
+        )
         await writeFile(join(staging, 'dist', 'tui.js'), 'export default { id: "opencode-navigator" };\n')
         await writeFile(join(staging, 'CHANGELOG.md'), `## [${version}]\n\n`)
       },
       async install(staging: string) {
+        const metadata = JSON.parse(await readFile(join(staging, 'package.json'), 'utf8'))
+
+        expect(metadata.optionalDependencies).toEqual(optionalDependencies)
+        expect(metadata.dependencies).toEqual(
+          JSON.parse(await readFile(join(current, 'package.json'), 'utf8')).dependencies,
+        )
         await mkdir(join(staging, 'node_modules', '@opentui', 'core'), { recursive: true })
         await mkdir(join(staging, 'node_modules', '@opentui', 'solid'), { recursive: true })
         await mkdir(join(staging, 'node_modules', 'solid-js'), { recursive: true })

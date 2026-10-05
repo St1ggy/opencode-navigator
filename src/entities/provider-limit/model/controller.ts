@@ -10,6 +10,7 @@ export function createProviderLimitsController(
   adapters: readonly ProviderQuotaAdapter[],
   selectedModel: () => SelectedModel | undefined,
   signal?: AbortSignal,
+  refreshContext?: () => Promise<void>,
 ) {
   const requests = createRequestState(signal)
   const [snapshots, setSnapshots] = createSignal<Record<string, ProviderQuotaSnapshot>>({})
@@ -33,6 +34,8 @@ export function createProviderLimitsController(
   }
 
   async function refresh(force = false) {
+    if (force && refreshContext) await refreshContext()
+
     const { model, adapter } = current()
 
     if (!model || !adapter) return
@@ -43,7 +46,7 @@ export function createProviderLimitsController(
     if (!request) return
 
     try {
-      const snapshot = normalizeProviderQuota(await adapter.read(model, request.signal))
+      const snapshot = normalizeProviderQuota(await adapter.read(model, request.signal, force))
 
       if (!request.isCurrent() || targetKey(current().model ?? model) !== key) return
 

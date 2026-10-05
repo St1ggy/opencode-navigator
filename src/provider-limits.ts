@@ -2,3 +2,6 @@ export { createCodexAppServerClient, createCodexQuotaAdapter } from './features/
 export { ProviderLimitsSection } from './pages/session-sidebar/limits'
 export { selectedV1Model } from './app/model-selection'
 export { createProviderLimitsController } from './entities/provider-limit'
+export { createOpenCodeV2AccountSource } from './app/opencode-v2/account-source'
+export { bindCodexAccount } from './app/limits-account-model'
+export { createProviderQuotaIntegration } from './app/provider-quota'

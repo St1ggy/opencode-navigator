@@ -296,6 +296,7 @@ for (const entrypoint of ['src/server.ts', 'src/rpc.ts', 'src/project-profile.ts
     format: 'esm',
     external: [
       '@opencode/plugin',
+      '@github/copilot-sdk',
       '@opencode/schema',
       '@opencode/client',
       '@opentui/core',
