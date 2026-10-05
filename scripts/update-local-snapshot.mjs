@@ -102,17 +102,17 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
         }),
       )
 
-      if (operations.install) await operations.install(staging)
-      else
-        await command('npm', [
-          'install',
-          '--prefix',
-          staging,
-          '--omit=dev',
-          '--ignore-scripts',
-          '--no-package-lock',
-          '--legacy-peer-deps',
-        ])
+      await (operations.install
+        ? operations.install(staging)
+        : command('npm', [
+            'install',
+            '--prefix',
+            staging,
+            '--omit=dev',
+            '--ignore-scripts',
+            '--no-package-lock',
+            '--legacy-peer-deps',
+          ]))
 
       await validate(staging, target)
 

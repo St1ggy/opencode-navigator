@@ -119,7 +119,7 @@ function retargetProfileMcp(profiles: WorkspaceProfiles, previous: string, next?
 }
 
 // Keep the ordered, independent mutations together as one atomic document update.
-// eslint-disable-next-line sonarjs/cognitive-complexity
+// oxlint-disable-next-line sonarjs/cognitive-complexity
 export function applyPreferencesUpdate(current: PreferencesDocument, update: PreferencesUpdate): PreferencesDocument {
   const target =
     update.target ?? (update.mcp?.scope ? targetForLegacyScope(update.mcp.scope) : { kind: 'global' as const })

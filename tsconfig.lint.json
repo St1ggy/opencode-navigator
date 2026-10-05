@@ -10,6 +10,6 @@
     "build.ts",
     "server.js",
     "rpc.js",
-    "*.config.js"
+    "*.config.ts"
   ]
 }

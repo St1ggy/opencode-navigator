@@ -280,7 +280,7 @@ test('recent skills merge concurrent uses, deduplicate, and retain the latest te
     const second = createPreferencesStore(directory)
 
     await Promise.all([first.update({ user: { recentSkill: '/a' } }), second.update({ user: { recentSkill: '/b' } })])
-    expect((await first.load()).user.recentSkills?.slice().sort()).toEqual(['/a', '/b'])
+    expect([...((await first.load()).user.recentSkills ?? [])].sort()).toEqual(['/a', '/b'])
     for (let index = 0; index < 12; index++) await first.update({ user: { recentSkill: `/${index}` } })
     await first.update({ user: { recentSkill: '/8' } })
     const recent = (await second.load()).user.recentSkills!
@@ -305,7 +305,10 @@ test('recent quick actions merge concurrent successful uses and retain the lates
       first.update({ user: { recentQuickAction: 'session.rename' } }),
       second.update({ user: { recentQuickAction: 'session.export' } }),
     ])
-    expect((await first.load()).user.recentQuickActions?.slice().sort()).toEqual(['session.export', 'session.rename'])
+    expect([...((await first.load()).user.recentQuickActions ?? [])].sort()).toEqual([
+      'session.export',
+      'session.rename',
+    ])
     await first.update({ user: { recentQuickAction: 'session.rename' } })
     expect((await second.load()).user.recentQuickActions?.[0]).toBe('session.rename')
   } finally {

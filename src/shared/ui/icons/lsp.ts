@@ -109,7 +109,7 @@ export function lspIconName(id: string) {
 
   if (name.includes('prisma')) return 'prisma'
 
-  // eslint-disable-next-line sonarjs/no-redundant-jump -- Required by TypeScript's noImplicitReturns.
+  // oxlint-disable-next-line sonarjs/no-redundant-jump -- Required by TypeScript's noImplicitReturns.
   return
 }
 

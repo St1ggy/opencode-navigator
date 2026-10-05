@@ -75,7 +75,6 @@ test('legacy session sidebar and model modules remain re-export-only facades', a
     const source = await readFile(path, 'utf8')
 
     // Facades may use one or more multiline named/type/star re-exports, but no declarations.
-    // eslint-disable-next-line sonarjs/regex-complexity
     expect(source).toMatch(/^(?:export\s+(?:type\s+)?(?:\*|\{[\s\S]*?\})\s+from\s+['"][^'"]+['"]\n?)+$/)
   }
 })

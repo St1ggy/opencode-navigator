@@ -993,9 +993,8 @@ export function createPreferencesController(
     },
     skipSkillConfirmation(skill: PreferenceSkill) {
       void load()
-      const next = new Set(skippedSkills())
+      const next = new Set([...skippedSkills(), skillKey(skill)])
 
-      next.add(skillKey(skill))
       setSkippedSkills(next)
       update({ user: { skillConfirmation: { location: skillKey(skill), skipped: true } } })
     },

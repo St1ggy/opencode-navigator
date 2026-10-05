@@ -110,11 +110,11 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     },
     attention: context.attention,
     lifecycle: { signal: controller.signal, onDispose },
+    slots: createV2Slots(context, keymap, (dispose) => {
+      onDispose(dispose)
+    }),
   } as unknown as TuiPluginApi
 
-  api.slots = createV2Slots(context, keymap, (dispose) => {
-    onDispose(dispose)
-  })
   setHostCapabilities(api, {
     todo: true,
     lsp: false,
