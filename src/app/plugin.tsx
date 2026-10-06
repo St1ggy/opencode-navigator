@@ -93,7 +93,7 @@ async function setupNavigator(
     codex,
     accountSource,
     selectModel,
-    capabilities,
+    modelSelection,
   } = limitsModule.createProviderQuotaIntegration(api, preferences, __NAVIGATOR_VERSION__, hostContext)
   const mcp = createMcpController(api, preferences.persistMcp, preferences)
   const interaction = createSidebarInteraction(api, () =>
@@ -175,7 +175,7 @@ async function setupNavigator(
                   interaction={interaction}
                   controller={limits}
                   codex={codex}
-                  capabilities={capabilities}
+                  modelSelection={modelSelection}
                   navigationSection={navigationSection}
                 />
               )}

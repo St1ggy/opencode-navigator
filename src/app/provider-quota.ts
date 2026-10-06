@@ -3,10 +3,10 @@ import {
   createCodexAppServerClient,
   createCodexQuotaAdapter,
   createNativeQuotaAdapter,
-  providerQuotaCatalog,
 } from '../features/provider-limits'
 
 import { bindCodexAccount } from './limits-account-model'
+import { createLimitsModelSelection } from './limits-model-selection'
 import { selectedV1Model } from './model-selection'
 import { createOpenCodeV2AccountSource } from './opencode-v2/account-source'
 import { selectedV2Model } from './opencode-v2/model-adapter'
@@ -52,6 +52,6 @@ export function createProviderQuotaIntegration(
     codex,
     accountSource,
     selectModel,
-    capabilities: native?.capabilities ?? (async () => providerQuotaCatalog()),
+    modelSelection: createLimitsModelSelection(api, selectModel, context),
   }
 }

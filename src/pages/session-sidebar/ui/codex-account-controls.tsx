@@ -54,9 +54,15 @@ export function CodexAccountControls(props: {
         when={!props.model.accountID && (!props.model.hostConnection || props.model.hostConnection.status === 'ready')}
       >
         <text fg={props.api.theme.current.textMuted}>Link the matching Codex account once for this connection</text>
-        {action('link', 1, `${icons.icon('scope')} Link Codex CLI account`, () => void accountLink.link())}
+        {action('link', 2, `${icons.icon('scope')} Link Codex CLI account`, () => void accountLink.link())}
       </Show>
-      <Show when={props.model.accountID && props.model.accountSource !== 'host'}>
+      <Show
+        when={
+          props.model.accountID &&
+          props.model.accountSource !== 'host' &&
+          props.controller.snapshot()?.availability === 'unauthenticated'
+        }
+      >
         {action('unlink', 4, `${icons.icon('close')} Unlink Codex account`, () =>
           props.preferences.setCodexConnectionBinding(props.model.providerID, props.model.hostConnection?.id),
         )}

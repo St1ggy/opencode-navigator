@@ -1,32 +1,31 @@
+import { useIcons } from '../../../shared/ui'
+import { quotaPresentation } from '../model/quota-presentation'
+
 import type { QuotaWindow } from '../../../entities/provider-limit'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function QuotaWindowRow(props: { api: TuiPluginApi; window: QuotaWindow }) {
-  const kind = () =>
-    props.window.kind === 'rate_limit' ? 'API · ' : props.window.kind === 'configured_limit' ? 'Limit · ' : ''
-  const measurement = () => {
-    if (props.window.used !== undefined)
-      return `${props.window.used}${props.window.total === undefined ? '' : `/${props.window.total}`}${props.window.unit === '%' ? '' : ' '}${props.window.unit} used`
+  const icons = useIcons()
+  const view = () => quotaPresentation(props.window)
+  const scale = () => {
+    const ratio = view().ratio
 
-    if (props.window.remaining !== undefined) return `${props.window.remaining} ${props.window.unit} remaining`
+    if (ratio === undefined) return ' · scale unknown'
 
-    return `${props.window.total} ${props.window.unit} capacity · usage unknown`
+    const filled = Math.round(ratio * 10)
+    const symbols = icons.style() === 'text' ? ['#', '-'] : ['█', '░']
+
+    return ` [${symbols[0].repeat(filled)}${symbols[1].repeat(10 - filled)}]`
   }
 
   return (
     <box>
-      <text fg={props.api.theme.current.text} wrapMode="none" truncate>
-        {kind()}
-        {props.window.label}
-        {props.window.durationMinutes === undefined ? '' : ` · ${props.window.durationMinutes} min`}
+      <text fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
+        <span style={{ fg: props.api.theme.current.text }}>{view().value}</span>
+        {scale()}
       </text>
-      <text fg={props.api.theme.current.text} wrapMode="word">
-        {measurement()}
-      </text>
-      <text fg={props.api.theme.current.textMuted} wrapMode="word">
-        {props.window.resetsAt === undefined
-          ? 'Reset time unavailable'
-          : `resets ${new Date(props.window.resetsAt * 1000).toLocaleString()}`}
+      <text fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
+        {view().reset}
       </text>
     </box>
   )

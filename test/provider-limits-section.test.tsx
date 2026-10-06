@@ -1,10 +1,12 @@
 /** @jsxImportSource @opentui/solid */
+import { type BoxRenderable, RGBA } from '@opentui/core'
 import { createDefaultOpenTuiKeymap } from '@opentui/keymap/opentui'
 import { testRender, useRenderer } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { Show, createSignal, onCleanup } from 'solid-js'
 
 import { bindCodexAccount } from '../src/app/limits-account-model'
+import { createLimitsModelSelection } from '../src/app/limits-model-selection'
 import { LimitsPersistence } from '../src/app/limits-persistence'
 import { pluginConfig } from '../src/config'
 import {
@@ -26,12 +28,24 @@ import type { JSX } from 'solid-js'
 
 const selected: SelectedModel = { providerID: 'openai', modelID: 'synthetic-codex', sessionID: 'session-one' }
 
+function NativeModelPicker() {
+  return <text>Native model picker</text>
+}
+function NativeVariantPicker() {
+  return <text>Native variant picker</text>
+}
+
 async function harness(
   input: {
     hostConnection?: NonNullable<SelectedModel['hostConnection']>
     observe?: boolean
     countOnly?: boolean
     provider?: string
+    variant?: string
+    width?: number
+    height?: number
+    style?: 'nerd' | 'text'
+    creditCount?: number
     sourceMessage?: string
     read?: ProviderQuotaAdapter['read']
     consume?: NonNullable<ProviderQuotaAdapter['consumeResetCredit']>
@@ -41,6 +55,7 @@ async function harness(
     ...selected,
     providerID: input.provider ?? selected.providerID,
     ...(input.hostConnection && { hostConnection: input.hostConnection }),
+    ...(input.variant && { variant: input.variant }),
   })
   const [modal, setModal] = createSignal<() => JSX.Element>()
   let onClose: (() => void) | undefined
@@ -77,19 +92,20 @@ async function harness(
       },
     ],
     bankedResets: {
-      availableCount: 3,
-      ...(!input.countOnly && {
-        credits: [
-          {
-            id: 'credit-one',
-            type: 'codexRateLimits',
-            status: 'available' as const,
-            grantedAt: 1_800_000_000,
-            title: 'Synthetic reset',
-            expiresAt: 1_900_000_000,
-          },
-        ],
-      }),
+      availableCount: input.creditCount ?? 3,
+      ...(!input.countOnly &&
+        input.creditCount !== 0 && {
+          credits: [
+            {
+              id: 'credit-one',
+              type: 'codexRateLimits',
+              status: 'available' as const,
+              grantedAt: 1_800_000_000,
+              title: 'Synthetic reset',
+              expiresAt: 1_900_000_000,
+            },
+          ],
+        }),
     },
   })
   const adapter: ProviderQuotaAdapter = {
@@ -198,6 +214,31 @@ async function harness(
         },
       },
     } as unknown as TuiPluginApi
+    Object.assign(api.state, {
+      provider: [
+        {
+          id: input.provider ?? 'openai',
+          name: input.provider ?? 'OpenAI',
+          models: { 'synthetic-codex': { name: 'Synthetic Codex', variants: { low: {}, high: {} } } },
+        },
+      ],
+    })
+    keymap.registerLayer({
+      commands: [
+        {
+          name: 'model.list',
+          run: () => {
+            setModal(() => NativeModelPicker)
+          },
+        },
+        {
+          name: 'variant.list',
+          run: () => {
+            setModal(() => NativeVariantPicker)
+          },
+        },
+      ],
+    })
     preferences = createPreferencesController(api, pluginConfig(undefined), {
       load: async () => document,
       update: async (update) => {
@@ -213,7 +254,7 @@ async function harness(
     interaction = createSidebarInteraction(api, () => {})
 
     return (
-      <IconProvider style={() => 'text'}>
+      <IconProvider style={() => input.style ?? 'text'}>
         <Show when={input.observe}>
           <LimitsPersistence controller={controller} />
         </Show>
@@ -221,13 +262,14 @@ async function harness(
           keyed
           when={modal()}
           fallback={
-            <box ref={interaction.setContentRoot}>
+            <box ref={interaction.setContentRoot} focusable>
               <ProviderLimitsSection
                 api={api}
                 preferences={preferences}
                 interaction={interaction}
                 controller={controller}
                 codex={adapter}
+                modelSelection={createLimitsModelSelection(api, selection)}
                 navigationSection={1}
               />
             </box>
@@ -238,7 +280,7 @@ async function harness(
       </IconProvider>
     )
   }
-  const setup = await testRender(() => <Harness />, { width: 80, height: 40 })
+  const setup = await testRender(() => <Harness />, { width: input.width ?? 80, height: input.height ?? 40 })
 
   await preferences.load()
   await setup.flush()
@@ -249,7 +291,7 @@ async function harness(
     const row = lines.findIndex((line) => line.includes(label))
 
     expect(row).toBeGreaterThanOrEqual(0)
-    await setup.mockMouse.click(lines[row].indexOf(label), row)
+    await setup.mockMouse.click(Bun.stringWidth(lines[row].slice(0, lines[row].indexOf(label))), row)
     await setup.flush()
   }
   async function link() {
@@ -294,12 +336,14 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
     expect(h.captureCharFrame()).toContain('Link the matching Codex account')
     expect(h.reads()).toBe(0)
     await h.link()
-    expect(h.captureCharFrame()).toContain('Primary · 300 min')
-    expect(h.captureCharFrame()).toContain('100% used')
-    expect(h.captureCharFrame()).toContain('resets ')
-    expect(h.captureCharFrame()).toContain('Updated ')
-    expect(h.captureCharFrame()).toContain('Banked resets: 3')
-    await h.click('Review reset credits')
+    expect(h.captureCharFrame()).toContain('[OpenAI] Synthetic Codex')
+    expect(h.captureCharFrame()).toContain('0% left [----------]')
+    expect(h.captureCharFrame()).toContain('Resets ')
+    expect(h.captureCharFrame()).not.toContain('Updated ')
+    expect(h.captureCharFrame()).toContain('Banked Resets')
+    expect(h.captureCharFrame()).not.toContain('synthetic-account')
+    expect(h.captureCharFrame()).not.toContain('Provider sources')
+    await h.click('Banked Resets')
     expect(h.captureCharFrame()).toContain('3 available')
     expect(h.captureCharFrame()).toContain('Credit details unavailable')
     expect(h.consumes()).toBe(0)
@@ -339,7 +383,7 @@ test('automatically matched OpenCode accounts need no Link control when switchin
   try {
     await h.controller.refresh(true)
     await h.flush()
-    expect(h.captureCharFrame()).toContain('Banked resets: 3')
+    expect(h.captureCharFrame()).toContain('Banked Resets')
     expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
     expect(h.captureCharFrame()).not.toContain('Unlink Codex account')
     h.setSelection({ ...selected, modelID: 'second-model', hostConnection })
@@ -347,7 +391,7 @@ test('automatically matched OpenCode accounts need no Link control when switchin
     await h.flush()
     expect(h.controller.current().model?.accountID).toBe('synthetic-account')
     expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
-    await h.click('Review reset credits')
+    await h.click('Banked Resets')
     await h.click('Synthetic reset')
     const previous = h.confirmation()
 
@@ -434,7 +478,7 @@ test('Limits closes stale confirmation on provider, model, session, or account c
 
     try {
       await h.link()
-      await h.click('Review reset credits')
+      await h.click('Banked Resets')
       await h.click('Synthetic reset')
       const previous = h.confirmation()
 
@@ -464,7 +508,7 @@ test('Limits preserves a pending attempt after timeout and reconciles with the s
 
   try {
     await h.link()
-    await h.click('Review reset credits')
+    await h.click('Banked Resets')
     await h.click('Synthetic reset')
     await h.click('Confirm')
     expect(h.captureCharFrame()).toContain('Reconcile pending attempt')
@@ -484,11 +528,9 @@ test('Limits keeps unsupported providers calm and shows stale read failures with
   try {
     expect(unsupported.captureCharFrame()).toContain('No independent quota/balance API or native counter semantics')
     expect(unsupported.captureCharFrame()).not.toContain('Refresh')
-    expect(unsupported.captureCharFrame()).not.toContain('Review reset credits')
+    expect(unsupported.captureCharFrame()).not.toContain('Banked Resets')
     expect(unsupported.reads()).toBe(0)
-    await unsupported.click('Provider sources')
-    expect(unsupported.captureCharFrame()).toContain('Provider sources')
-    expect(unsupported.captureCharFrame()).toContain('AIHubMix')
+    expect(unsupported.captureCharFrame()).not.toContain('Provider sources')
   } finally {
     unsupported.destroy()
   }
@@ -500,8 +542,8 @@ test('Limits keeps unsupported providers calm and shows stale read failures with
     await h.controller.refresh(true)
     await h.flush()
     expect(h.captureCharFrame()).toContain('Stale · refresh failed')
-    expect(h.captureCharFrame()).toContain('Retry')
-    expect(h.captureCharFrame()).toContain('100% used')
+    expect(h.captureCharFrame()).toContain('0% left')
+    expect(h.interaction.available().some((item) => item.id === 'opencode-navigator.limits.refresh')).toBe(true)
   } finally {
     h.destroy()
   }
@@ -534,14 +576,128 @@ test('Limits renders the real nullable Codex account bucket with explicit scope 
 
   try {
     await h.link()
-    expect(h.captureCharFrame()).toContain('Codex account · primary')
-    expect(h.captureCharFrame()).toContain('35% used')
-    expect(h.captureCharFrame()).toContain('Banked resets: 2')
+    expect(h.captureCharFrame()).toContain('Account · 5h')
+    expect(h.captureCharFrame()).toContain('65% left')
+    expect(h.captureCharFrame()).toContain('Banked Resets')
     expect(h.captureCharFrame()).not.toContain('No documented quota bucket')
-    await h.click('Review reset credits')
+    await h.click('Banked Resets')
     expect(h.captureCharFrame()).toContain('2 available')
     expect(h.consumes()).toBe(0)
   } finally {
     h.destroy()
+  }
+})
+
+test('compact Limits puts actions in the header and keeps remaining value, scale, and reset colors distinct', async () => {
+  const h = await harness({ variant: 'high' })
+
+  try {
+    await h.link()
+    const lines = h.captureCharFrame().split('\n')
+    const header = lines.findIndex((line) => line.includes('LIMITS'))
+    const remaining = lines.findIndex((line) => line.includes('0% left'))
+    const reset = lines.findIndex((line) => line.trimStart().startsWith('Resets '))
+    const buffer = h.renderer.currentRenderBuffer
+    const color = (row: number, column: number) => {
+      const offset = (row * buffer.width + column) * 4
+
+      return new RGBA(buffer.buffers.fg.slice(offset, offset + 4))
+    }
+
+    expect(lines[header]).toContain('Banked Resets')
+    expect(lines[header]).not.toContain('3')
+    expect(lines[header + 2]).toContain('[OpenAI] Synthetic Codex')
+    expect(lines[header + 2]).toContain('·')
+    expect(lines[header + 2]).toContain('high')
+    expect(reset).toBe(remaining + 1)
+    expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
+    expect(color(remaining, lines[remaining].indexOf('[----------]')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(color(reset, lines[reset].indexOf('Resets')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(h.captureCharFrame()).not.toContain('Unlink Codex')
+    expect(h.captureCharFrame()).not.toContain('Updated ')
+    const refresh = h.renderer.root.findDescendantById('opencode-navigator.limits.refresh') as BoxRenderable
+
+    expect(refresh.width).toBe(3)
+    expect(refresh.screenY).toBe(header)
+    const previous = h.reads()
+
+    await h.mockMouse.click(refresh.screenX + 1, refresh.screenY)
+    await h.flush()
+    expect(h.reads()).toBe(previous + 1)
+    expect(h.preferences.expanded().limits).toBe(true)
+  } finally {
+    h.destroy()
+  }
+})
+
+test('model and variant controls open native pickers on mouse release and keyboard activation', async () => {
+  const mouse = await harness({ variant: 'high' })
+
+  try {
+    const control = mouse.renderer.root.findDescendantById('opencode-navigator.limits.model') as BoxRenderable
+
+    await mouse.mockMouse.pressDown(control.screenX + 1, control.screenY)
+    expect(mouse.api.ui.dialog.open).toBe(false)
+    await mouse.mockMouse.release(control.screenX + 1, control.screenY)
+    await mouse.flush()
+    expect(mouse.captureCharFrame()).toContain('Native model picker')
+    expect(mouse.api.ui.dialog.open).toBe(true)
+  } finally {
+    mouse.destroy()
+  }
+  const keyboard = await harness({ variant: 'high' })
+
+  try {
+    keyboard.interaction.focus(undefined, 'opencode-navigator.limits.model')
+    await keyboard.flush()
+    expect(keyboard.interaction.ownsFocus()).toBe(true)
+    keyboard.mockInput.pressArrow('right')
+    expect(keyboard.interaction.selectedId()).toBe('opencode-navigator.limits.variant')
+    keyboard.mockInput.pressEnter()
+    await keyboard.flush()
+    expect(keyboard.captureCharFrame()).toContain('Native variant picker')
+  } finally {
+    keyboard.destroy()
+  }
+})
+
+test('Banked Resets remains clickable with narrow header layout and disappears when no credit is available', async () => {
+  const h = await harness({ width: 34, variant: 'high', style: 'nerd' })
+
+  try {
+    await h.link()
+    expect(h.captureCharFrame()).toContain('Banked Resets')
+    expect(h.captureCharFrame()).toContain('high')
+    const credits = h.renderer.root.findDescendantById('opencode-navigator.limits.credits') as BoxRenderable
+
+    await h.mockMouse.pressDown(credits.screenX + 1, credits.screenY)
+    expect(h.api.ui.dialog.open).toBe(false)
+    await h.mockMouse.release(credits.screenX + 1, credits.screenY)
+    await h.flush()
+    expect(h.preferences.expanded().limits).toBe(true)
+    expect(h.captureCharFrame()).toContain('Banked resets · 3')
+    expect(h.captureCharFrame()).toContain('available')
+    expect(h.consumes()).toBe(0)
+  } finally {
+    h.destroy()
+  }
+  const empty = await harness({ creditCount: 0 })
+
+  try {
+    await empty.link()
+    expect(empty.captureCharFrame()).not.toContain('Banked Resets')
+    await empty.preferences.beginResetAttempt({
+      providerID: selected.providerID,
+      modelID: selected.modelID,
+      accountID: 'synthetic-account',
+      idempotencyKey: '00000000-0000-4000-8000-000000000001',
+      createdAt: Date.now(),
+    })
+    await empty.flush()
+    await empty.click('Banked Resets')
+    expect(empty.captureCharFrame()).toContain('Reconcile pending attempt')
+    expect(empty.consumes()).toBe(0)
+  } finally {
+    empty.destroy()
   }
 })

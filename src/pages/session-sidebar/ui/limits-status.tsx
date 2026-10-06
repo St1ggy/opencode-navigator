@@ -15,8 +15,9 @@ export function LimitsStatus(props: {
     const snapshot = props.controller.snapshot()
     const state = props.controller.state()
 
-    if (state.status === 'error')
-      return snapshot ? 'Stale · refresh failed; retry below' : 'Quota read failed · retry below'
+    if (state.status === 'error') return snapshot ? 'Stale · refresh failed' : 'Quota read failed · refresh to retry'
+
+    if (snapshot?.availability === 'ready' && (snapshot.windows.length > 0 || snapshot.balances?.length)) return
 
     if (snapshot?.message)
       return snapshot.availability === 'stale'
@@ -27,7 +28,7 @@ export function LimitsStatus(props: {
 
     if (connection?.status === 'loading') return 'Checking the OpenCode account…'
 
-    if (connection?.status === 'unavailable') return 'OpenCode account metadata unavailable · refresh below'
+    if (connection?.status === 'unavailable') return 'Account metadata unavailable · refresh to retry'
 
     if (connection?.status === 'unsupported') return 'Codex quotas require an active ChatGPT OAuth connection'
 
@@ -49,16 +50,18 @@ export function LimitsStatus(props: {
 
     if (availability === 'rate_limited') return 'Provider rate-limited this read · try again later'
 
-    if (availability === 'stale') return 'Stale provider data · refresh below'
+    if (availability === 'stale') return 'Stale provider data · refresh to update'
 
     return `Updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}`
   }
 
   return (
-    <Show when={props.controller.current().model}>
-      <text fg={props.api.theme.current.textMuted} wrapMode="word">
-        {message()}
-      </text>
+    <Show when={props.controller.current().model && message()}>
+      {(value) => (
+        <text fg={props.api.theme.current.textMuted} wrapMode="word">
+          {value()}
+        </text>
+      )}
     </Show>
   )
 }

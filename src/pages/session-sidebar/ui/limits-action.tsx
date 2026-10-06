@@ -14,19 +14,32 @@ export function LimitsAction(props: {
   label: string
   disabled?: boolean
   onActivate: () => void
+  inline?: boolean
+  flexGrow?: number
+  maxWidth?: number
 }) {
-  const item = useSidebarItem(props.api, props.interaction, {
-    id: props.id,
-    position: () => props.position,
-    disabled: () => props.disabled === true,
-    activate: props.onActivate,
-  })
+  const item = useSidebarItem(
+    props.api,
+    props.interaction,
+    {
+      id: props.id,
+      position: () => props.position,
+      disabled: () => props.disabled === true,
+      activate: props.onActivate,
+    },
+    () => props.api.theme.current.text,
+    props.inline ? 'control' : 'row',
+  )
 
   return (
     <SelectionBox
       ref={(node: BoxRenderable) => item.ref(node)}
       id={props.id}
       height={1}
+      flexGrow={props.flexGrow}
+      maxWidth={props.maxWidth}
+      flexShrink={1}
+      minWidth={3}
       backgroundColor={item.backgroundColor()}
       onMouseOver={item.onMouseOver}
       onMouseOut={item.onMouseOut}

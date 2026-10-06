@@ -1,8 +1,6 @@
 import { normalizeProviderQuota } from '../../../entities/provider-limit'
 import { NavigatorQuotaRpc } from '../../../entities/provider-limit/server'
 
-import { providerQuotaCatalog } from './provider-capabilities'
-
 import type { ProviderQuotaAdapter, ProviderQuotaSnapshot } from '../../../entities/provider-limit'
 import type { Plugin } from '@opencode/plugin/tui'
 
@@ -95,13 +93,6 @@ export function createNativeQuotaAdapter(context: Plugin.Context) {
       listeners.add(listener)
 
       return () => listeners.delete(listener)
-    },
-    async capabilities() {
-      try {
-        return (await rpc.capabilities({})) as unknown as ReturnType<typeof providerQuotaCatalog>
-      } catch {
-        return providerQuotaCatalog(context.data.location.provider?.list?.(context.location) ?? [])
-      }
     },
   }
 }
