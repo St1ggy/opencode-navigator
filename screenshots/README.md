@@ -1,6 +1,6 @@
 # Screenshot Gallery
 
-These 47 deterministic captures render the real OpenCode TUI through Ghostty.
+These deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
 The manual **Prepare Release** workflow generated the gallery, verified every PNG
@@ -18,7 +18,6 @@ against a second capture, and merged the update after CI passed.
 | `44-limits-text.png` | Readable Text fallback |
 | `45-no-corner-font-reset-credits.png` | Nerd Font credit menu without the extra corner font |
 | `46-limits-account-link.png` | Explicit Codex CLI account binding guidance |
-| `47-provider-sources.png` | Audited measurement sources, permissions, and unavailable-provider guidance |
 
 The container uses a synthetic `codex` JSON-RPC executable. It accepts quota reads
 and rejects every consume request; no provider account, credentials, or live reset
@@ -51,10 +50,6 @@ is involved in a screenshot scene.
 ### Explicit Account Link
 
 ![Guidance before linking a Codex CLI account](46-limits-account-link.png)
-
-### Provider Sources
-
-![Provider measurements, prerequisites, and unavailable-source reasons](47-provider-sources.png)
 
 ## Sidebar
 

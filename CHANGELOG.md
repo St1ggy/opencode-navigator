@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.21.2] - 2026-10-06
+
+- Make Limits compact with clickable provider/model and variant controls, remaining-headroom progress rows, and muted reset times. Move Refresh and Banked Resets into the section header, remove the section counter and Provider sources action, and keep reset consumption behind a separate confirmation.
+
 ## [0.21.1] - 2026-10-06
 
 - Fix Codex account quota windows being hidden when the provider omits model metadata. Show ordinary usage as shared account quota, retain banked-reset counts, and keep separate model buckets explicitly associated.
@@ -82,6 +86,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.21.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.1...v0.21.2
 [0.21.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.19.3...v0.20.0

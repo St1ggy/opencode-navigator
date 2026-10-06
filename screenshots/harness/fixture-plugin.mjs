@@ -162,7 +162,7 @@ const plugin = {
       title: 'Navigator product tour',
       directory: DIRECTORY,
       workspaceID: WORKSPACE_ID,
-      ...(SCENE.startsWith('limits-') && { model: { providerID: ['limits-unavailable', 'limits-sources'].includes(SCENE) ? 'synthetic-provider' : 'openai', id: 'synthetic-codex' } }),
+      ...(SCENE.startsWith('limits-') && { model: { providerID: SCENE === 'limits-unavailable' ? 'synthetic-provider' : 'openai', id: 'synthetic-codex', variant: 'high' } }),
       time: { created: FIXTURE_NOW - 900_000, updated: FIXTURE_NOW },
     })
     const sessionState = {
@@ -181,6 +181,9 @@ const plugin = {
         if (property === 'config') return { ...target.config, lsp: true }
 
         if (property === 'session') return sessionState
+
+        if (property === 'provider' && SCENE.startsWith('limits-'))
+          return [{ id: 'openai', name: 'OpenAI', models: { 'synthetic-codex': { name: 'Synthetic Codex', variants: { low: {}, high: {} } } } }]
 
         if (property === 'lsp')
           return () => [
@@ -283,9 +286,9 @@ const plugin = {
         later(1200, 'opencode-navigator.navigation.activate')
       }
 
-      if (['limits-credits', 'limits-confirmation', 'limits-count-only', 'limits-sources'].includes(SCENE)) {
+      if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {
         dispatch('opencode-navigator.focus.limits')
-        later(300, 'opencode-navigator.navigation.next')
+        later(300, 'opencode-navigator.navigation.right')
         later(450, 'opencode-navigator.navigation.activate')
 
         if (SCENE === 'limits-confirmation') later(800, 'opencode-navigator.selection-menu.select')

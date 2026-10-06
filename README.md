@@ -388,8 +388,8 @@ The additional native sources use the **OpenCode 2 Navigator server plugin** alr
 used for Todo. Configure it on the 2.x launch path as described in the installation
 section. OpenCode 1.x retains Codex support; additional sources need the 2.x public
 integration/HTTP APIs. Without the server plugin, Limits shows setup guidance.
-**Provider sources** lists audited capabilities and unsupported-source reasons;
-the [source inventory](PROVIDERS.md) includes public API references and prerequisites.
+The [source inventory](PROVIDERS.md) includes audited public API references,
+permission requirements, and unsupported-source reasons.
 
 The server resolves the active host credential through OpenCode's public API.
 Quota RPCs return measurements, never credentials. Response-header observations
@@ -405,8 +405,6 @@ does not grant permission to spend a reset credit. **Focus Limits** is also
 available from the command palette.
 
 ![Codex quota windows and reset times](screenshots/39-provider-limits.png)
-
-![Audited provider sources and required capabilities](screenshots/47-provider-sources.png)
 
 ### Link the intended Codex account
 
@@ -424,20 +422,27 @@ When the host does not provide a verifiable identity, select **Link Codex CLI
 account** and confirm the reported account ID if it matches this host connection.
 The private, user-wide binding is saved **once per connection**, or once per
 provider on hosts without a connection API, and reused across models, projects,
-and sessions. **Unlink Codex account** removes the manual association; **Relink
-Codex account** is available after an account change. Compatible older model
+and sessions. After an account change, authentication guidance offers **Relink
+Codex account** and **Unlink Codex account** for the outdated manual association. Compatible older model
 bindings are reused; conflicting bindings remain isolated until a deliberate relink.
 
-For an associated connection, Limits shows the ordinary Codex account quota and
-any explicitly associated model buckets, their native units and durations, reset times, and
-the last successful read time. It refreshes quietly every five seconds, even
-when hidden. **Refresh** requests a read immediately; a failed read preserves
-cached windows with a stale label and **Retry**. Unsupported mappings, changed
-sign-in/account, and rate-limited reads have separate muted guidance.
+Limits starts with **[Provider name] Model name · variant**. Activate the model or
+variant with the mouse or keyboard to open OpenCode's native selector. Each quota
+window uses two compact rows: remaining headroom with a muted progress scale,
+then a muted reset time and short scope/window label. Healthy views omit account
+IDs, source explanations, and update timestamps. Balances retain their native
+currency or point unit; a missing total does not become a full progress scale.
+
+The header has no section counter. Its compact **Refresh** control requests a
+read immediately; background reads continue every five seconds, including while
+hidden. Failed reads retain cached windows with stale guidance and the same header
+control for retrying. Unsupported mappings, authentication, and setup states have
+separate muted guidance.
 
 ### Review and manually use a banked reset
 
-**Review reset credits** displays the provider's available count, optional credit
+The header's **Banked Resets** button appears when credits or an unresolved attempt
+exist. It displays the provider's available count, optional credit
 details, statuses, and expiry. Selecting a credit first checks fresh eligibility
 and opens a separate confirmation tied to the current account and model. Cancel
 or Escape returns to the credit list without spending anything.
