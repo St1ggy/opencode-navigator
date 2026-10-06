@@ -1,6 +1,6 @@
 # Screenshot Gallery
 
-These deterministic captures render the real OpenCode TUI through Ghostty.
+These 46 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
 The manual **Prepare Release** workflow generated the gallery, verified every PNG
