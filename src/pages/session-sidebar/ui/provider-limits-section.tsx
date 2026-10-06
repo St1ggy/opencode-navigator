@@ -80,7 +80,7 @@ export function ProviderLimitsSection(props: {
         fallback={<text fg={props.api.theme.current.textMuted}>Open a session to view model limits</text>}
       >
         {(selected) => (
-          <box>
+          <box width="100%" minWidth={0} flexShrink={1} overflow="hidden">
             <LimitsModelRow {...props} model={selected()} selection={props.modelSelection} />
             <CodexAccountControls {...props} model={selected()} />
             <Show when={snapshot() && ['ready', 'stale'].includes(snapshot()!.availability) ? snapshot() : undefined}>

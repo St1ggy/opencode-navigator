@@ -13,13 +13,14 @@ const window: QuotaWindow = {
   durationMinutes: 300,
 }
 
-test('quota presentation shows remaining headroom and retains account scope and native window duration', () => {
+test('quota presentation shows remaining headroom without technical reset suffixes', () => {
   const value = quotaPresentation(window)
 
   expect(value.value).toBe('65% left')
   expect(value.ratio).toBeCloseTo(0.65)
-  expect(value.reset).toContain('Account · 5h')
-  expect(value.reset).toContain('Reset time unknown')
+  expect(value.reset).toBe('Reset time unknown')
+  expect(window.scope).toBe('account')
+  expect(window.durationMinutes).toBe(300)
 })
 
 test('quota presentation preserves explicit native remaining values and never invents a scale for missing totals', () => {

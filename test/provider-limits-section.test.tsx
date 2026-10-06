@@ -43,6 +43,8 @@ async function harness(
     provider?: string
     variant?: string
     width?: number
+    sidebarWidth?: number
+    sidebarPadding?: number
     height?: number
     style?: 'nerd' | 'text'
     creditCount?: number
@@ -262,7 +264,14 @@ async function harness(
           keyed
           when={modal()}
           fallback={
-            <box ref={interaction.setContentRoot} focusable>
+            <box
+              ref={interaction.setContentRoot}
+              id="limits-test-root"
+              width={input.sidebarWidth}
+              paddingLeft={input.sidebarPadding ?? 0}
+              paddingRight={input.sidebarPadding ?? 0}
+              focusable
+            >
               <ProviderLimitsSection
                 api={api}
                 preferences={preferences}
@@ -337,7 +346,7 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
     expect(h.reads()).toBe(0)
     await h.link()
     expect(h.captureCharFrame()).toContain('[OpenAI] Synthetic Codex')
-    expect(h.captureCharFrame()).toContain('0% left [----------]')
+    expect(h.captureCharFrame()).toContain('0% left ---')
     expect(h.captureCharFrame()).toContain('Resets ')
     expect(h.captureCharFrame()).not.toContain('Updated ')
     expect(h.captureCharFrame()).toContain('Banked Resets')
@@ -576,7 +585,7 @@ test('Limits renders the real nullable Codex account bucket with explicit scope 
 
   try {
     await h.link()
-    expect(h.captureCharFrame()).toContain('Account · 5h')
+    expect(h.captureCharFrame()).not.toContain('Account · 5h')
     expect(h.captureCharFrame()).toContain('65% left')
     expect(h.captureCharFrame()).toContain('Banked Resets')
     expect(h.captureCharFrame()).not.toContain('No documented quota bucket')
@@ -611,7 +620,7 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     expect(lines[header + 2]).toContain('high')
     expect(reset).toBe(remaining + 1)
     expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
-    expect(color(remaining, lines[remaining].indexOf('[----------]')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(color(remaining, lines[remaining].indexOf('---')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
     expect(color(reset, lines[reset].indexOf('Resets')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
     expect(h.captureCharFrame()).not.toContain('Unlink Codex')
     expect(h.captureCharFrame()).not.toContain('Updated ')
@@ -699,5 +708,25 @@ test('Banked Resets remains clickable with narrow header layout and disappears w
     expect(empty.consumes()).toBe(0)
   } finally {
     empty.destroy()
+  }
+})
+
+test('Limits fills its sidebar content area without painting into the surrounding terminal', async () => {
+  const h = await harness({ width: 80, sidebarWidth: 38, sidebarPadding: 2, variant: 'high' })
+
+  try {
+    await h.link()
+    const root = h.renderer.root.findDescendantById('limits-test-root') as BoxRenderable
+    const lines = h.captureCharFrame().split('\n')
+    const row = lines.findIndex((line) => line.includes('0% left'))
+    const right = root.screenX + root.width - 2
+
+    expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
+    expect(lines[row + 1].trimStart()).toStartWith('Resets ')
+    expect(lines[row + 1]).not.toContain('Account')
+    expect(lines[row + 1].slice(right).trim()).toBe('')
+    expect(h.captureCharFrame()).not.toContain('1w')
+  } finally {
+    h.destroy()
   }
 })
