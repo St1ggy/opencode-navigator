@@ -13,11 +13,13 @@ import {
   emptyPreferencesDocument,
 } from '../src/entities/preferences'
 import { createProviderLimitsController } from '../src/entities/provider-limit'
+import { createCodexQuotaAdapter } from '../src/features/provider-limits/model/codex-quota-adapter'
 import { ProviderLimitsSection, createSidebarInteraction } from '../src/pages/session-sidebar'
 import { IconProvider } from '../src/shared/ui'
 
 import type { PreferencesController } from '../src/entities/preferences'
 import type { ProviderQuotaAdapter, ProviderQuotaSnapshot, SelectedModel } from '../src/entities/provider-limit'
+import type { CodexAppServerClient } from '../src/features/provider-limits/model/codex-app-server'
 import type { SidebarInteraction } from '../src/pages/session-sidebar'
 import type { TuiDialogConfirmProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { JSX } from 'solid-js'
@@ -31,6 +33,7 @@ async function harness(
     countOnly?: boolean
     provider?: string
     sourceMessage?: string
+    read?: ProviderQuotaAdapter['read']
     consume?: NonNullable<ProviderQuotaAdapter['consumeResetCredit']>
   } = {},
 ) {
@@ -94,13 +97,13 @@ async function harness(
     name: 'Codex CLI',
     supports: (model) => model.providerID === 'openai' && Boolean(model.accountID),
     discoverAccount: async () => 'synthetic-account',
-    read: async (model) => {
+    read: async (model, signal) => {
       reads++
       await Bun.sleep(5)
 
       if (failRead) throw new Error('Synthetic read failure')
 
-      return snapshot(model)
+      return input.read ? input.read(model, signal) : snapshot(model)
     },
     prepareResetCreditConsumption: async (model) => snapshot(model),
     consumeResetCredit: async (model, attempt, signal) => {
@@ -499,6 +502,45 @@ test('Limits keeps unsupported providers calm and shows stale read failures with
     expect(h.captureCharFrame()).toContain('Stale · refresh failed')
     expect(h.captureCharFrame()).toContain('Retry')
     expect(h.captureCharFrame()).toContain('100% used')
+  } finally {
+    h.destroy()
+  }
+})
+
+test('Limits renders the real nullable Codex account bucket with explicit scope and count-only credits', async () => {
+  const native = createCodexQuotaAdapter({
+    async request(method: string) {
+      if (method === 'account/read') return { account: { type: 'chatgpt' } }
+
+      const limit = {
+        limitId: 'codex',
+        limitName: null,
+        normalModelSlug: null,
+        primary: { usedPercent: 35, windowDurationMins: 300, resetsAt: 1_800_000_000 },
+        secondary: null,
+      }
+
+      return {
+        accountId: 'synthetic-account',
+        ordinaryUsageAllowed: true,
+        rateLimits: limit,
+        rateLimitsByLimitId: { codex: limit },
+        rateLimitResetCredits: { availableCount: 2, credits: null },
+      }
+    },
+    dispose() {},
+  } as unknown as CodexAppServerClient)
+  const h = await harness({ read: native.read })
+
+  try {
+    await h.link()
+    expect(h.captureCharFrame()).toContain('Codex account · primary')
+    expect(h.captureCharFrame()).toContain('35% used')
+    expect(h.captureCharFrame()).toContain('Banked resets: 2')
+    expect(h.captureCharFrame()).not.toContain('No documented quota bucket')
+    await h.click('Review reset credits')
+    expect(h.captureCharFrame()).toContain('2 available')
+    expect(h.consumes()).toBe(0)
   } finally {
     h.destroy()
   }

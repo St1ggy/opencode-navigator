@@ -1,21 +1,11 @@
 import { normalizeProviderQuota } from '../../../entities/provider-limit'
 
-import type { CodexAppServerClient } from './codex-app-server'
-import type {
-  ProviderQuotaAdapter,
-  ProviderQuotaSnapshot,
-  QuotaWindow,
-  SelectedModel,
-} from '../../../entities/provider-limit'
+import { codexQuotaWindows } from './codex-quota-windows'
 
-type CodexWindow = { usedPercent: number; windowDurationMins: number | null; resetsAt: number | null }
-type CodexLimit = {
-  limitId: string | null
-  limitName: string | null
-  normalModelSlug: string | null
-  primary: CodexWindow | null
-  secondary: CodexWindow | null
-}
+import type { CodexAppServerClient } from './codex-app-server'
+import type { CodexLimit } from './codex-quota-windows'
+import type { ProviderQuotaAdapter, ProviderQuotaSnapshot, QuotaWindow } from '../../../entities/provider-limit'
+
 type Credit = {
   id: string
   resetType: string
@@ -31,27 +21,6 @@ type RateLimits = {
   rateLimits: CodexLimit
   rateLimitsByLimitId: Record<string, CodexLimit> | null
   rateLimitResetCredits: { availableCount: number; credits: Credit[] | null } | null
-}
-
-function windows(limit: CodexLimit, model: SelectedModel): QuotaWindow[] {
-  return (['primary', 'secondary'] as const).flatMap((name) => {
-    const value = limit[name]
-
-    return value
-      ? [
-          {
-            id: `${limit.limitId ?? model.modelID}.${name}`,
-            label: limit.limitName ? `${limit.limitName} · ${name}` : name,
-            limitID: limit.limitId ?? undefined,
-            modelID: model.modelID,
-            unit: '%',
-            used: value.usedPercent,
-            ...(value.windowDurationMins !== null && { durationMinutes: value.windowDurationMins }),
-            ...(value.resetsAt !== null && { resetsAt: value.resetsAt }),
-          },
-        ]
-      : []
-  })
 }
 
 export function createCodexQuotaAdapter(
@@ -113,21 +82,21 @@ export function createCodexQuotaAdapter(
 
       if (!usage.accountId || usage.accountId !== model.accountID) return { ...base, availability: 'unauthenticated' }
 
-      const candidates = Object.values(usage.rateLimitsByLimitId ?? {})
-      const matched = (candidates.length > 0 ? candidates : [usage.rateLimits]).filter(
-        (limit) => limit.normalModelSlug === model.modelID,
-      )
-
-      if (matched.length === 0) return { ...base, accountId: usage.accountId, availability: 'unsupported' }
-
+      const windows = codexQuotaWindows(usage, model.modelID)
       const creditSummary = usage.rateLimitResetCredits
 
       return normalizeProviderQuota({
         ...base,
         accountId: usage.accountId,
-        availability: 'ready',
+        availability: windows.length > 0 ? 'ready' : 'unavailable',
         ordinaryUsageAllowed: usage.ordinaryUsageAllowed ?? undefined,
-        windows: matched.flatMap((limit) => windows(limit, model)),
+        windows,
+        ...(windows.some((window) => window.scope === 'account') && {
+          message: 'Codex account quota; shared across models, not a model-specific allowance.',
+        }),
+        ...(windows.length === 0 && {
+          message: 'Codex reported no applicable usage windows for this account and model.',
+        }),
         ...(creditSummary && {
           bankedResets: {
             availableCount: creditSummary.availableCount,

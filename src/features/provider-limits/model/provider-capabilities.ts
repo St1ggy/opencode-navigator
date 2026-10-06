@@ -11,7 +11,7 @@ const rows: [string, string, string[], string, string][] = [
     'openai',
     'OpenAI / Codex',
     ['subscription', 'api-rate-limits'],
-    'Codex account RPC; HTTP response request/token limits for API connections.',
+    'Verified Codex account quota shared across models; HTTP response request/token limits for API connections.',
     'https://developers.openai.com/api/docs/guides/rate-limits',
   ],
   [

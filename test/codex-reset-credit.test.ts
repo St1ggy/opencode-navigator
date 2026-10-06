@@ -38,7 +38,7 @@ test('banked reset remains manual and validates eligible model, account and cred
           rateLimits: {
             limitId: 'codex',
             limitName: 'Codex',
-            normalModelSlug: model.modelID,
+            normalModelSlug: null,
             primary: { usedPercent: 100, windowDurationMins: 300, resetsAt: 1_800_000_000 },
             secondary: null,
           },
@@ -103,7 +103,7 @@ test('uncertain redemption retries with its original idempotency key after credi
           rateLimits: {
             limitId: 'codex',
             limitName: 'Codex',
-            normalModelSlug: model.modelID,
+            normalModelSlug: null,
             primary: null,
             secondary: null,
           },

@@ -15,7 +15,7 @@ const window = { usedPercent: 78, windowDurationMins: 300, resetsAt: 1_800_000_0
 const currentLimit = {
   limitId: 'codex',
   limitName: 'Codex',
-  normalModelSlug: 'gpt-5-codex',
+  normalModelSlug: null,
   primary: window,
   secondary: null,
 }
@@ -51,7 +51,7 @@ function adapter(accountId = 'account-1', details: unknown = null) {
   return { client: createCodexQuotaAdapter(client), calls }
 }
 
-test('Codex quota adapter keeps only selected-model windows and count-only reset credits', async () => {
+test('Codex quota adapter keeps verified account windows and count-only reset credits', async () => {
   const { client, calls } = adapter()
   const snapshot = await client.read(selected, new AbortController().signal)
 
@@ -62,8 +62,8 @@ test('Codex quota adapter keeps only selected-model windows and count-only reset
   expect(snapshot.windows).toEqual([
     {
       id: 'codex.primary',
-      label: 'Codex · primary',
-      modelID: selected.modelID,
+      label: 'Codex account · primary',
+      scope: 'account',
       limitID: 'codex',
       unit: '%',
       used: 78,
@@ -75,7 +75,7 @@ test('Codex quota adapter keeps only selected-model windows and count-only reset
   expect(snapshot.bankedResets?.credits).toBeUndefined()
 })
 
-test('Codex quota adapter rejects different accounts and unrelated model buckets', async () => {
+test('Codex quota adapter rejects different accounts and retains only the ordinary quota across models', async () => {
   const mismatched = await adapter('different-account').client.read(selected, new AbortController().signal)
 
   expect(mismatched.availability).toBe('unauthenticated')
@@ -86,9 +86,11 @@ test('Codex quota adapter rejects different accounts and unrelated model buckets
     new AbortController().signal,
   )
 
-  expect(different.availability).toBe('unsupported')
-  expect(different.windows).toEqual([])
-  expect(different.bankedResets).toBeUndefined()
+  expect(different.availability).toBe('ready')
+  expect(different.windows).toHaveLength(1)
+  expect(different.windows[0]).toMatchObject({ limitID: 'codex', scope: 'account' })
+  expect(different.windows[0].modelID).toBeUndefined()
+  expect(different.bankedResets?.availableCount).toBe(3)
 })
 
 test('Codex quota adapter retains provider-supplied credit expiry and detail state', async () => {

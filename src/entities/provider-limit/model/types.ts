@@ -37,7 +37,8 @@ export type ProviderAccountSource = {
 export type QuotaWindow = {
   id: string
   label: string
-  modelID: string
+  modelID?: string
+  scope?: 'account' | 'model'
   limitID?: string
   unit: string
   used?: number
@@ -124,7 +125,10 @@ export function normalizeProviderQuota(snapshot: ProviderQuotaSnapshot): Provide
     if (
       !window.id ||
       !window.label ||
-      window.modelID !== snapshot.model.modelID ||
+      (window.scope !== undefined && window.scope !== 'account' && window.scope !== 'model') ||
+      (window.scope === 'account'
+        ? !snapshot.accountId || window.modelID !== undefined
+        : window.modelID !== snapshot.model.modelID) ||
       !window.unit ||
       (window.used !== undefined && !Number.isFinite(window.used)) ||
       (window.remaining !== undefined && !Number.isFinite(window.remaining)) ||
