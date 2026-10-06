@@ -365,7 +365,7 @@ Codex 0.160.0 protocol also exposes the separate
 `account/rateLimitResetCredit/consume` RPC. Navigator requires explicit
 confirmation before using it and never redeems credits in the background.
 Limits follows the model and verified connection selected in the current OpenCode
-session. Codex's ordinary `codex` windows appear as **Codex account** quota, shared
+session. Codex's ordinary `codex` windows describe verified account quota shared
 across models. The protocol can return `normalModelSlug: null` for this ordinary
 bucket; that field is display metadata for quota aliases, not a prerequisite for
 account usage. Separate model-specific buckets require explicit model association.
@@ -428,9 +428,11 @@ bindings are reused; conflicting bindings remain isolated until a deliberate rel
 
 Limits starts with **[Provider name] Model name · variant**. Activate the model or
 variant with the mouse or keyboard to open OpenCode's native selector. Each quota
-window uses two compact rows: remaining headroom with a muted progress scale,
-then a muted reset time and short scope/window label. Healthy views omit account
-IDs, source explanations, and update timestamps. Balances retain their native
+window uses two compact rows: remaining headroom with an adaptive muted thin-line
+scale spanning the available sidebar content width, then a muted reset time.
+Both rows stay within the sidebar's padding when it resizes. Healthy views omit
+account IDs, technical scope/window-duration suffixes, source explanations, and update timestamps. Account scope and native window durations remain in the data model;
+durations describe provider quota windows, not time remaining until reset. Balances retain their native
 currency or point unit; a missing total does not become a full progress scale.
 
 The header has no section counter. Its compact **Refresh** control requests a
