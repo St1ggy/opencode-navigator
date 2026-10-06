@@ -14,7 +14,7 @@ permissions, region, transport, and supported host APIs.
 
 | Provider | Native source | Scope and prerequisites | Reference |
 | --- | --- | --- | --- |
-| OpenAI / Codex ChatGPT | Codex app-server account/rate-limit RPC and manual reset credits | Verified account identity; exact provider-reported model bucket | [Codex protocol](https://github.com/openai/codex/tree/main/codex-rs/app-server-protocol) |
+| OpenAI / Codex ChatGPT | Codex app-server account/rate-limit RPC and manual reset credits | Verified account identity; ordinary `codex` quota explicitly labelled account-scoped even with null model metadata; separate model buckets need explicit association | [Codex protocol](https://github.com/openai/codex/tree/main/codex-rs/app-server-protocol) |
 | OpenAI API | HTTP request/token/project-token rate-limit headers | Actual response for the selected model/account; HTTP transport | [Rate limits](https://developers.openai.com/api/docs/guides/rate-limits) |
 | Anthropic API | Native response headers and organization rate-limits API | Per-model headers; configured limits need an eligible org/admin credential and explicit model association | [Rate limits API](https://platform.claude.com/docs/en/manage-claude/rate-limits-api) |
 | Azure OpenAI | Native remaining request/token headers | Actual deployment response; does not expose a ChatGPT subscription | [Quotas and limits](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/quotas-limits) |

@@ -13,9 +13,9 @@ const credit = {
   description: 'Provider-issued credit for eligible Codex usage windows',
 }
 const limit = {
-  limitId: 'synthetic-codex',
-  limitName: 'Codex',
-  normalModelSlug: 'synthetic-codex',
+  limitId: 'codex',
+  limitName: null,
+  normalModelSlug: null,
   primary: { usedPercent: 100, windowDurationMins: 300, resetsAt: now + 7200 },
   secondary: { usedPercent: 74, windowDurationMins: 10_080, resetsAt: now + 172_800 },
 }
@@ -35,7 +35,7 @@ function response(request) {
         accountId: 'synthetic-codex-account',
         ordinaryUsageAllowed: false,
         rateLimits: limit,
-        rateLimitsByLimitId: { 'synthetic-codex': limit },
+        rateLimitsByLimitId: { codex: limit },
         rateLimitResetCredits: { availableCount: 2, credits: scene === 'limits-count-only' ? null : [credit] },
       }
     }

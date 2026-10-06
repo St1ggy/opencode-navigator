@@ -364,9 +364,11 @@ times, account identity, and any available banked reset credits. The installed
 Codex 0.160.0 protocol also exposes the separate
 `account/rateLimitResetCredit/consume` RPC. Navigator requires explicit
 confirmation before using it and never redeems credits in the background.
-Limits follows the model selected in the current OpenCode session. A Codex
-account's windows appear only if the provider explicitly maps them to that
-model; otherwise the section explains that a matching quota is unavailable.
+Limits follows the model and verified connection selected in the current OpenCode
+session. Codex's ordinary `codex` windows appear as **Codex account** quota, shared
+across models. The protocol can return `normalModelSlug: null` for this ordinary
+bucket; that field is display metadata for quota aliases, not a prerequisite for
+account usage. Separate model-specific buckets require explicit model association.
 Switching provider, model, session, or account invalidates stale reads and credit actions.
 CodexBar is useful for discovering providers, but its cookie, credential-file,
 and undocumented endpoint integrations are not Navigator data sources.
@@ -402,7 +404,7 @@ worktree scope. Hiding or collapsing it does not stop background refreshes, and
 does not grant permission to spend a reset credit. **Focus Limits** is also
 available from the command palette.
 
-![Model-specific Codex quota windows and reset times](screenshots/39-provider-limits.png)
+![Codex quota windows and reset times](screenshots/39-provider-limits.png)
 
 ![Audited provider sources and required capabilities](screenshots/47-provider-sources.png)
 
@@ -426,8 +428,8 @@ and sessions. **Unlink Codex account** removes the manual association; **Relink
 Codex account** is available after an account change. Compatible older model
 bindings are reused; conflicting bindings remain isolated until a deliberate relink.
 
-For an associated model, Limits shows only buckets with a provider-reported model
-association, their native usage units and window durations, reset times, and
+For an associated connection, Limits shows the ordinary Codex account quota and
+any explicitly associated model buckets, their native units and durations, reset times, and
 the last successful read time. It refreshes quietly every five seconds, even
 when hidden. **Refresh** requests a read immediately; a failed read preserves
 cached windows with a stale label and **Retry**. Unsupported mappings, changed
@@ -440,7 +442,7 @@ details, statuses, and expiry. Selecting a credit first checks fresh eligibility
 and opens a separate confirmation tied to the current account and model. Cancel
 or Escape returns to the credit list without spending anything.
 
-The provider must report ordinary usage blocked, a matching quota window, and an
+The provider must report ordinary usage blocked, an applicable account or model window, and an
 available reset credit. A displayed percentage alone does not establish
 eligibility. A reset can affect other eligible Codex windows as well. Navigator
 checks the account and eligibility again before submission. Read-only providers
