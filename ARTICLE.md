@@ -134,7 +134,7 @@ Banked resets need a stronger boundary. The credit list shows the available coun
 
 Limits is first and expanded by default, and I can hide or reorder it in the same scoped section settings. The OpenCode 2 server plugin also reads documented sources for MiniMax, NanoGPT, Copilot, OpenRouter, and several API balance providers. Native HTTP response counters give me API limits without an extra model call. Subscription windows, configured capacities, and balances have separate labels. Provider sources explains the prerequisites and the gaps. CodexBar helped me discover possible integrations; the data reads use public provider contracts and OpenCode's active connection APIs.
 
-![Model-specific quota windows and banked resets](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/39-provider-limits.png)
+![Codex account quota windows and banked resets](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/39-provider-limits.png)
 
 ## Why Rounded Corners Required a Separate Font
 

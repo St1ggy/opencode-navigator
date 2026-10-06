@@ -10,7 +10,7 @@ against a second capture, and merged the update after CI passed.
 
 | File | Synthetic interaction |
 | --- | --- |
-| `39-provider-limits.png` | Account-bound model windows, native units, reset times, freshness |
+| `39-provider-limits.png` | Ordinary Codex account windows with nullable model metadata, native units, reset times, freshness |
 | `40-reset-credits.png` | Available count, individual credit, expiry, and provider-selected next credit |
 | `41-reset-confirmation.png` | Separate account/model-bound manual confirmation |
 | `42-reset-count-only.png` | Nonzero count without a credit detail list |
@@ -24,7 +24,7 @@ The container uses a synthetic `codex` JSON-RPC executable. It accepts quota rea
 and rejects every consume request; no provider account, credentials, or live reset
 is involved in a screenshot scene.
 
-### Model Quota Windows
+### Codex Account Quota Windows
 
 ![Account-bound provider quota windows](39-provider-limits.png)
 

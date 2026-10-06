@@ -163,7 +163,7 @@ verification workflow before expanding the product surface.
 - [x] Reuse public host integration/account metadata for automatic identity matching where supported; otherwise confirm a connection/provider binding once across models and migrate legacy model-specific bindings without crossing account boundaries.
 - [x] Add a broad audited provider inventory and documented native quota/balance adapters beyond Codex through the OpenCode 2 server plugin; distinguish subscription windows, observed API rate limits, configured capacities, and balances, and expose explicit capability guidance for unverified or API-dependent sources.
 - [x] Fix ordinary Codex account quotas being hidden when `normalModelSlug` is null; distinguish account scope from model-specific buckets and verify the real app-server response against the built artifact plus rendering regressions and both host smokes.
-- [ ] Refresh the Codex account-quota captures through Prepare Release before publishing the nullable-model-metadata fix; the synthetic app-server now mirrors ordinary account buckets instead of fabricating matching model slugs.
+- [x] Refresh the Codex account-quota captures through Prepare Release before publishing the nullable-model-metadata fix; screenshot PR #19 passed CI and merged with all 47 captures reproducible and ordinary account buckets instead of fabricated matching model slugs.
 - [x] Generate and verify the new Provider sources screenshot plus updated account-binding captures through Prepare Release; screenshot PR #18 passed CI and merged with all 47 captures reproducible.
 - [ ] Extend native-balance and configured-capacity screenshot scenes when the harness supports the OpenCode 2 server path.
 
