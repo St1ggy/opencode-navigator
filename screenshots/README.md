@@ -1,9 +1,9 @@
 # Screenshot Gallery
 
-These 46 deterministic captures render the real OpenCode TUI through Ghostty.
+These 47 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
-The v0.21.4 manual **Prepare Release** workflow generated the gallery, verified every PNG
+The v0.21.5 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed.
 
 ## Provider Limits
@@ -131,6 +131,13 @@ The Actions tab uses the same user-wide bookmarks and availability state as the 
 ### Behavior
 
 ![Settings Behavior tab](16-settings-behavior.png)
+
+### Limits Refresh Interval
+
+The selected scope's automatic Limits refresh defaults to five minutes and accepts
+whole-minute intervals of at least one minute. Manual Refresh stays immediate.
+
+![Scoped Limits refresh interval prompt](47-limits-refresh-settings.png)
 
 ### Defaults And Help
 

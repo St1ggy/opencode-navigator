@@ -154,7 +154,7 @@ verification workflow before expanding the product surface.
 ### Agents And Limits
 
 - [x] Add a scoped Limits refresh interval with a five-minute default and one-minute minimum, and verify immediate prompt-model switching on the supported OpenCode 2 API without extra polling from unrelated preferences or provider observations; full checks and both reference host smokes pass.
-- [~] Generate and verify a deterministic Limits refresh-settings capture and refresh the gallery through Prepare Release before publishing the interval setting.
+- [x] Generate and verify a deterministic Limits refresh-settings capture and refresh the gallery through Prepare Release before publishing the interval setting; screenshot PR #23 passed CI and merged with all 47 captures reproducible.
 - Use OpenCode's existing agent/model display above the prompt; omit a duplicate sidebar overview.
 - [~] Define independent adapters for OpenCode, stable provider quota APIs, and machine-readable external agent CLIs: host-selected model adapters and the documented Codex app-server source are implemented; other providers remain API-dependent.
 - [x] Preserve provider-native units and reset windows while showing freshness, unsupported, authentication, stale, and rate-limited states.

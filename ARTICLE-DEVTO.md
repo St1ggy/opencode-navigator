@@ -156,7 +156,7 @@ The test suite now builds the unminified `dist/tui.js` that users load. Renderin
 
 This takes longer than testing source modules alone, but it covers the boundary where my most confusing bug actually lived: bundling and host integration.
 
-Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery contains 46 scenes, including eight Limits states generated and verified by the manual release workflow. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
+Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery contains 47 scenes, including eight Limits states generated and verified by the manual release workflow. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
 
 Every displayed task, session, workspace, path, skill, server, error, and preset is synthetic and deterministic. Verification renders the scenes again to a temporary directory and fails if any PNG differs.
 
@@ -250,6 +250,6 @@ I would rather state those boundaries plainly than add controls that pretend the
 
 Navigator now covers the sidebar workflow I wanted: monitor current work, find hidden or limited items quickly, and keep configuration close to the controls it affects. That workflow is personal, though. Some people never touch a mouse. Some have two MCP servers; others have fifty. Some do not use Todo at all.
 
-The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [38-state screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
+The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [47-state screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
 
 If you try it, I'd like to know what still feels hard to reach, which section you'd remove, and what breaks with your terminal, theme, or configuration. Bugs and feature requests are welcome in [GitHub Issues](https://github.com/St1ggy/opencode-navigator/issues), or tell me in the comments how you use OpenCode's sidebar.

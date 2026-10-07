@@ -145,7 +145,7 @@ the uninstalled-font result remains visible rather than being documented only in
 
 ![Nerd Font without Navigator corner font](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/35-no-corner-font-layout-preview.png)
 
-The [complete 38-state screenshot gallery](screenshots/README.md) shows every
+The [complete 47-state screenshot gallery](screenshots/README.md) shows every
 Todo and Subagent filter, sidebar section, Search and Settings tab, preset menu
 and preview, confirmation, keyboard-help, setup, and icon-fallback state.
 
@@ -450,6 +450,8 @@ updates and provider-response observations do not trigger extra quota polling.
 Failed reads retain cached windows with stale guidance and the same header
 control for retrying. Unsupported mappings, authentication, and setup states have
 separate muted guidance.
+
+![Scoped Limits refresh interval setting](screenshots/47-limits-refresh-settings.png)
 
 ### Review and manually use a banked reset
 
