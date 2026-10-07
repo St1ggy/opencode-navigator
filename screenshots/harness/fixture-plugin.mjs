@@ -121,6 +121,13 @@ function fixtureReadyDelay() {
   return 2800
 }
 
+function renderFullFixtureTree(renderable) {
+  // Offscreen render hooks must run too, so the host scrollbar measures the full synthetic layout.
+  if ('viewportCulling' in renderable) renderable.viewportCulling = false
+
+  for (const child of renderable.getChildren()) renderFullFixtureTree(child)
+}
+
 function openSearchScene(api, dispatch, later) {
   if (!['search-skills', 'search-subagents', 'search-mcp', 'search-actions', 'skill-confirmation'].includes(SCENE))
     return
@@ -274,6 +281,7 @@ const plugin = {
       Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: originalFetch })
     }
     setTimeout(() => {
+      renderFullFixtureTree(api.renderer.root)
       const dispatch = (command) => api.keymap.dispatchCommand(command)
       const later = (delay, command) => setTimeout(() => dispatch(command), delay)
       const openSettings = () => {
@@ -402,7 +410,11 @@ const plugin = {
         for (let index = 0; index < 6; index++) later(400 + index * 500, 'opencode-navigator.wizard.select')
       }
     }, 1200)
-    setTimeout(() => void Bun.write('/tmp/navigator-fixture.ready', 'ready\n'), fixtureReadyDelay())
+    setTimeout(() => {
+      renderFullFixtureTree(api.renderer.root)
+      api.renderer.requestRender()
+      void Bun.write('/tmp/navigator-fixture.ready', 'ready\n')
+    }, fixtureReadyDelay())
   },
 }
 
