@@ -60,3 +60,113 @@ test('version updates require confirmation and report restart and update failure
     message: 'Package download failed',
   })
 })
+
+test('manual check/update commands report results, require confirmation, and reject stale or duplicate installs', async () => {
+  let version: string | undefined = '1.2.4'
+  let result: 'update' | 'current' | 'unavailable' = 'update'
+  let confirm: TuiDialogConfirmProps | undefined
+  let installations = 0
+  let remembered = 0
+  let rejectRead = false
+  const disposers: (() => void)[] = []
+  const commands: { name: string; run: () => void }[] = []
+  const messages: string[] = []
+  const api = {
+    ui: {
+      DialogConfirm: (props: TuiDialogConfirmProps) => {
+        confirm = props
+
+        return null
+      },
+      dialog: { replace: (render: () => unknown) => render(), clear() {} },
+      toast: (toast: { message: string }) => messages.push(toast.message),
+    },
+    keymap: {
+      registerLayer: (layer: { commands: typeof commands }) => {
+        commands.push(...layer.commands)
+
+        return () => {}
+      },
+    },
+    lifecycle: { onDispose: (dispose: () => void) => disposers.push(dispose) },
+  } as unknown as TuiPluginApi
+
+  createVersionUpdateActions(
+    api,
+    {
+      openCodeUpdate: () => '2.1.0',
+      navigatorUpdate: () => version,
+      refreshNavigator: async () => {
+        if (rejectRead) throw new Error('Network error')
+
+        return result
+      },
+    },
+    {
+      openCode: async () => {},
+      navigator: async () => {
+        installations++
+        await Bun.sleep(10)
+      },
+    },
+    async () => {
+      remembered++
+    },
+  )
+  const run = async (name: string) => {
+    commands.find((command) => command.name === `opencode-navigator.${name}`)?.run()
+    await Bun.sleep(0)
+  }
+
+  await run('check-update')
+  expect(messages.at(-1)).toContain('1.2.4 is available')
+  expect(installations).toBe(0)
+  result = 'current'
+  await run('update-navigator')
+  expect(messages.at(-1)).toContain('up to date')
+  expect(confirm).toBeUndefined()
+  result = 'unavailable'
+  await run('check-update')
+  expect(messages.at(-1)).toContain('Could not check')
+  rejectRead = true
+  await run('update-navigator')
+  expect(messages.at(-1)).toContain('Could not check')
+  rejectRead = false
+  result = 'update'
+  await run('update-navigator')
+  expect(confirm?.title).toBe('Update Navigator')
+  expect(installations).toBe(0)
+  const cancelled = confirm!
+
+  cancelled.onCancel?.()
+  cancelled.onConfirm?.()
+  await Bun.sleep(0)
+  expect(installations).toBe(0)
+  await run('update-navigator')
+  const stale = confirm!
+
+  version = '1.2.5'
+  stale.onConfirm?.()
+  await Bun.sleep(0)
+  expect(installations).toBe(0)
+  await run('update-navigator')
+  confirm?.onConfirm?.()
+  confirm?.onConfirm?.()
+  await Bun.sleep(20)
+  expect(installations).toBe(1)
+  expect(remembered).toBe(1)
+  expect(messages.at(-1)).toContain('Restart OpenCode')
+  confirm?.onConfirm?.()
+  await run('update-navigator')
+  expect(installations).toBe(1)
+  expect(messages.at(-1)).toContain('installed update')
+  version = '1.2.6'
+  await run('update-navigator')
+  for (const dispose of disposers) dispose()
+  confirm?.onConfirm?.()
+  const messageCount = messages.length
+
+  await run('check-update')
+  expect(installations).toBe(1)
+  expect(messages).toHaveLength(messageCount)
+})
