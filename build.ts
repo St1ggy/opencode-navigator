@@ -247,6 +247,7 @@ const dialogs = await Bun.build({
     'src/trusted-skills.ts',
     'src/layout-preset-actions.ts',
     'src/provider-limits.ts',
+    'src/navigator-updates.ts',
   ],
   outdir: 'dist',
   target: 'bun',

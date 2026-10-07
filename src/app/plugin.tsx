@@ -9,12 +9,7 @@ import { SearchBinding } from '../features/search-everything'
 import { PermissionModeBinding, SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
 import { StartupSessionBinding, createStartupSessionController } from '../features/startup-session'
 import { UpgradeNotesBinding } from '../features/upgrade-notes'
-import {
-  VersionFooter,
-  VersionSummary,
-  createVersionStatus,
-  createVersionUpdateActions,
-} from '../features/version-footer'
+import { VersionFooter, VersionSummary } from '../features/version-footer'
 import {
   FirstRunWizardPersistence,
   McpPersistence,
@@ -32,9 +27,9 @@ import { IconProvider } from '../shared/ui'
 import { loadConfiguredDefaults } from './configured-defaults'
 import { LimitsPersistence } from './limits-persistence'
 import { createOpenCodeV2Api } from './opencode-v2'
-import { createOpenCodeV1VersionUpdater, createOpenCodeV2VersionUpdater } from './version-updaters'
 
 import type { createProviderQuotaIntegration as CreateQuotaIntegration } from './provider-quota'
+import type * as NavigatorUpdates from '../navigator-updates'
 import type { ProviderLimitsSection as LimitsComponent } from '../pages/session-sidebar'
 import type { Plugin as OpenCodeV2Plugin } from '@opencode/plugin/tui'
 import type { TuiPlugin, TuiPluginMeta, TuiPluginModule } from '@opencode-ai/plugin/tui'
@@ -68,6 +63,12 @@ export {
 } from '../features/sidebar-settings'
 export { FOCUS_COMMAND } from '../shared/config'
 export { lspIcon } from '../shared/ui'
+
+function loadNavigatorUpdates(): Promise<typeof NavigatorUpdates> {
+  const path = import.meta.url.includes('/dist/tui.js') ? './navigator-updates.js' : '../navigator-updates'
+
+  return import(path)
+}
 
 async function setupNavigator(
   api: Parameters<TuiPlugin>[0],
@@ -209,6 +210,8 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMe
 
     return result.data?.type === 'text' ? result.data.content : undefined
   })
+  const { createVersionStatus, createVersionUpdateActions, createOpenCodeV1VersionUpdater } =
+    await loadNavigatorUpdates()
   const versionStatus = createVersionStatus(api, __NAVIGATOR_VERSION__)
   const versionUpdates = createVersionUpdateActions(api, versionStatus, createOpenCodeV1VersionUpdater(api, meta), () =>
     preferences.rememberNavigatorVersionBeforeUpdate(__NAVIGATOR_VERSION__),
@@ -252,6 +255,8 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
     todo,
     context,
   )
+  const { createVersionStatus, createVersionUpdateActions, createOpenCodeV2VersionUpdater } =
+    await loadNavigatorUpdates()
   const versionStatus = createVersionStatus(adapter.api, __NAVIGATOR_VERSION__)
   const versionUpdates = createVersionUpdateActions(
     adapter.api,

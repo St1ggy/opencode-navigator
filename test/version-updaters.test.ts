@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test'
+import { fileURLToPath } from 'node:url'
 
 import { createOpenCodeV1VersionUpdater, createOpenCodeV2VersionUpdater } from '../src/app/version-updaters'
 
+import type * as NavigatorUpdates from '../src/navigator-updates'
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi, TuiPluginMeta } from '@opencode-ai/plugin/tui'
 
@@ -129,4 +131,41 @@ test('OpenCode 2 keeps an absolute directory package source when updating a pinn
 
   await updater.navigator(target)
   expect(calls[0].slice(2)).toEqual(['/snapshots/opencode-navigator/tui.js', target])
+})
+
+test('the packaged update chunk resolves the shipped pinned-snapshot installer for both hosts', async () => {
+  const updates = (await import(
+    new URL('../dist/navigator-updates.js', import.meta.url).href
+  )) as typeof NavigatorUpdates
+  const calls: (readonly string[])[] = []
+  const execute = async (command: readonly string[]) => {
+    calls.push(command)
+  }
+  const wrapper = '/snapshots/opencode-navigator/tui.js'
+  const target = '1.2.4'
+  const v1 = updates.createOpenCodeV1VersionUpdater(
+    {} as TuiPluginApi,
+    { source: 'file', spec: wrapper } as TuiPluginMeta,
+    execute,
+  )
+  const v2 = updates.createOpenCodeV2VersionUpdater(
+    {
+      client: {
+        plugin: {
+          list: async () => ({ data: [{ id: 'opencode-navigator', source: { type: 'local', path: wrapper } }] }),
+        },
+      },
+    } as unknown as Plugin.Context,
+    execute,
+  )
+
+  await v1.navigator(target)
+  await v2.navigator(target)
+  const installer = fileURLToPath(new URL('../scripts/update-local-snapshot.mjs', import.meta.url))
+
+  expect(calls).toEqual([
+    ['node', installer, wrapper, target],
+    ['node', installer, wrapper, target],
+  ])
+  expect(await Bun.file(installer).exists()).toBe(true)
 })
