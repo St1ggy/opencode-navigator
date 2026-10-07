@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [0.21.5] - 2026-10-07
+
+- Make automatic Limits refresh configurable in scoped Behavior settings and portable configuration, with a five-minute default and one-minute minimum. Keep manual Refresh and supported model/account switches immediate.
+- Avoid extra quota polling from unrelated preference changes and unchanged provider-account metadata observations.
+
 ## [0.21.4] - 2026-10-07
 
 - Add `c` to Navigator shortcuts for a manual update check and `u` to check then confirm a Navigator update. Report available, current, or unavailable results, preserve the installation method and scope, and require a restart after updating.
@@ -95,6 +100,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.21.5]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.4...v0.21.5
 [0.21.4]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.3...v0.21.4
 [0.21.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.2...v0.21.3
 [0.21.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.1...v0.21.2

@@ -109,10 +109,21 @@ function focusPortableSettings(dispatch) {
   if (SCENE === 'settings-portability') setTimeout(() => dispatch('opencode-navigator.settings.next'), 650)
 }
 
+function openLimitsRefreshSettings(dispatch) {
+  if (SCENE !== 'settings-limits-refresh') return
+
+  setTimeout(() => {
+    for (let index = 0; index < 9; index++) dispatch('opencode-navigator.settings.next')
+    dispatch('opencode-navigator.settings.select')
+  }, 750)
+}
+
 function fixtureReadyDelay() {
   if (SCENE === 'setup-sections') return 4800
 
   if (SCENE === 'settings-import-preview') return 3400
+
+  if (SCENE === 'settings-limits-refresh') return 3400
 
   if (['mcp-presets', 'mcp-preset-actions', 'mcp-preset-preview'].includes(SCENE)) return 3500
 
@@ -336,6 +347,7 @@ const plugin = {
           'settings-scope': 1,
           'settings-presets': 2,
           'settings-behavior': 3,
+          'settings-limits-refresh': 3,
           'settings-defaults': 4,
           'settings-portability': 4,
           'settings-import-preview': 4,
@@ -356,6 +368,8 @@ const plugin = {
             dispatch('opencode-navigator.settings.quick-actions')
           }, 400)
         }
+
+        openLimitsRefreshSettings(dispatch)
 
         if (SCENE === 'settings-mcp-groups') {
           setTimeout(() => {

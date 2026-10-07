@@ -5,7 +5,7 @@ set -Eeuo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 image="opencode-navigator-screenshots:local"
 mode="${1:-generate}"
-scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link)
+scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link settings-limits-refresh)
 
 file_for_scene() {
   case "$1" in
@@ -55,6 +55,7 @@ file_for_scene() {
     limits-text) printf '%s\n' 44-limits-text.png ;;
     no-corner-limits-credits) printf '%s\n' 45-no-corner-font-reset-credits.png ;;
     limits-link) printf '%s\n' 46-limits-account-link.png ;;
+    settings-limits-refresh) printf '%s\n' 47-limits-refresh-settings.png ;;
     *) return 1 ;;
   esac
 }

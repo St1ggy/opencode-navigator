@@ -78,7 +78,7 @@ sleep 1
 case "$scene" in
   search-skills | search-subagents | search-mcp | search-actions) sleep 1 ;;
   limits-ready | limits-credits | limits-confirmation | limits-count-only | limits-unavailable | limits-text | limits-link) ;;
-  hero | todo-active | todo-finished | subagents-all | subagents-errors | sidebar-skills | sidebar-actions-lsp | sidebar-mcp | search-skills | search-subagents | search-mcp | search-actions | settings-sections | settings-scope | settings-presets | settings-behavior | settings-defaults | settings-portability | settings-trusted-skills | settings-skill-groups | settings-mcp-groups | settings-control-hover | quick-actions-settings | layout-preset-menu | layout-preset-preview | mcp-presets | mcp-preset-actions | mcp-preset-preview | mcp-error | skill-confirmation | keyboard-help | text-fallback) ;;
+  hero | todo-active | todo-finished | subagents-all | subagents-errors | sidebar-skills | sidebar-actions-lsp | sidebar-mcp | search-skills | search-subagents | search-mcp | search-actions | settings-sections | settings-scope | settings-presets | settings-behavior | settings-defaults | settings-portability | settings-trusted-skills | settings-skill-groups | settings-mcp-groups | settings-limits-refresh | settings-control-hover | quick-actions-settings | layout-preset-menu | layout-preset-preview | mcp-presets | mcp-preset-actions | mcp-preset-preview | mcp-error | skill-confirmation | keyboard-help | text-fallback) ;;
   settings-import-preview)
     sleep 1
     xdotool type --clearmodifiers --delay 5 '{"format":"opencode-navigator/settings","version":1,"layout":{"sections":{"todo":false,"skills":true},"expanded":{"mcp":true},"order":["mcp","todo","future"]},"mcp":{"docs":"disabled","metrics":"enabled"},"futureCategory":true}'
