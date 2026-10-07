@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [0.21.4] - 2026-10-07
+
+- Add `c` to Navigator shortcuts for a manual update check and `u` to check then confirm a Navigator update. Report available, current, or unavailable results, preserve the installation method and scope, and require a restart after updating.
+- Ignore cancelled, outdated, and repeated update confirmations, and recover from stalled update checks without blocking later checks.
+
 ## [0.21.3] - 2026-10-06
 
 - Replace block quota meters with full-width adaptive thin-line scales and keep quota rows inside the sidebar's padding after resize. Show only reset time below each meter, removing technical account and window-duration suffixes.
@@ -90,6 +95,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.21.4]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.3...v0.21.4
 [0.21.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.2...v0.21.3
 [0.21.2]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.1...v0.21.2
 [0.21.1]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.0...v0.21.1
