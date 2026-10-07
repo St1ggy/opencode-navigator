@@ -42,3 +42,11 @@ test('corner font defaults on and can be disabled independently of Nerd Font ico
     lspIconStyle: 'nerd',
   })
 })
+
+test('Limits polling defaults to five minutes and rejects unsafe or sub-minute intervals', () => {
+  expect(pluginConfig(undefined).limitsRefreshMinutes).toBe(5)
+  expect(pluginConfig({ limits_refresh_minutes: 1 }).limitsRefreshMinutes).toBe(1)
+  expect(pluginConfig({ limits_refresh_minutes: 15 }).limitsRefreshMinutes).toBe(15)
+  for (const value of [0, -1, 0.5, NaN, Infinity, 35_792, '5'])
+    expect(pluginConfig({ limits_refresh_minutes: value }).limitsRefreshMinutes).toBe(5)
+})

@@ -20,6 +20,7 @@ function pluginDefaults(sections: Omit<SectionVisibility, 'limits'> & Partial<Pi
     focusKey: 'ctrl+shift+f',
     searchKey: 'ctrl+shift+k',
     persistMcp: true,
+    limitsRefreshMinutes: 5,
     startInChat: false,
     showSessionTitle: true,
     showSessionDate: true,
@@ -108,6 +109,40 @@ test('row density updates immediately with scoped inheritance and reset', async 
     expect(restarted.rowDensity()).toBe('compact')
     restarted.resetPluginSettings()
     expect(restarted.rowDensity()).toBe('comfortable')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('Limits refresh minutes persist per scope, inherit portable defaults, and reject sub-minute settings', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'navigator-refresh-'))
+  const api = { ui: { toast() {} } } as unknown as TuiPluginApi
+  const defaults = pluginConfig({ limits_refresh_minutes: 15 })
+
+  try {
+    const controller = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
+    expect(controller.limitsRefreshMinutes()).toBe(15)
+    controller.setLimitsRefreshMinutes(5)
+    await controller.load()
+    controller.setActiveScope('/workspace')
+    controller.setPreferenceScope('worktree')
+    controller.setLimitsRefreshMinutes(1)
+    expect(controller.limitsRefreshMinutes()).toBe(1)
+    expect(() => controller.setLimitsRefreshMinutes(0)).toThrow('at least 1')
+    expect(() => controller.setLimitsRefreshMinutes(0.5)).toThrow('whole minutes')
+    await controller.flush()
+    const restored = createPreferencesController(api, defaults, createPreferencesStore(directory))
+
+    await restored.load()
+    restored.setActiveScope('/workspace')
+    restored.setPreferenceScope('worktree')
+    expect(restored.selectedLimitsRefreshMinutes()).toBe(1)
+    restored.resetPluginSettings()
+    expect(restored.limitsRefreshMinutes()).toBe(5)
+    restored.setPreferenceScope('global')
+    restored.resetPluginSettings()
+    expect(restored.limitsRefreshMinutes()).toBe(15)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

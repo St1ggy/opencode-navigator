@@ -31,6 +31,7 @@ export type PluginSettings = {
   focusKey: string
   searchKey: string
   persistMcp: boolean
+  limitsRefreshMinutes: number
   startInChat: boolean
   showSessionTitle: boolean
   showSessionDate: boolean

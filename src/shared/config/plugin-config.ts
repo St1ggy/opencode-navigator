@@ -10,6 +10,7 @@ import {
   parseSectionOrder,
   parseSectionVisibility,
 } from './contracts'
+import { DEFAULT_LIMITS_REFRESH_MINUTES, parseLimitsRefreshMinutes } from './limits-refresh'
 import { DEFAULT_SEARCH_KEY } from './plugin-identity'
 
 export type PluginConfig = PluginSettings & {
@@ -31,6 +32,7 @@ export function pluginConfig(options: Record<string, unknown> | undefined): Plug
         ? options.search_key.trim()
         : DEFAULT_SEARCH_KEY,
     persistMcp: options?.persist_mcp !== false,
+    limitsRefreshMinutes: parseLimitsRefreshMinutes(options?.limits_refresh_minutes) ?? DEFAULT_LIMITS_REFRESH_MINUTES,
     startInChat: options?.start_in_chat === true,
     showSessionTitle: options?.show_session_title !== false,
     showSessionDate: options?.show_session_date !== false,

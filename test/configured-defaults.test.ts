@@ -107,6 +107,19 @@ test('keeps flat plugin options compatible and gives canonical values precedence
   expect(configured.desiredMcpStates).toEqual({ docs: 'enabled' })
 })
 
+test('Limits refresh settings merge across portable sources and reject invalid overrides', () => {
+  const configured = mergeConfiguredDefaults(
+    configuredDefaultsFromPluginOptions({ limits_refresh_minutes: 1, behavior: { limitsRefreshMinutes: 10 } }),
+    parseConfiguredDefaults({ behavior: { limitsRefreshMinutes: 15 } }),
+    parseConfiguredDefaults({ behavior: { limitsRefreshMinutes: 5 } }),
+  )
+
+  expect(configured.behavior?.limitsRefreshMinutes).toBe(5)
+  expect(configuredDefaultsFromPluginOptions({ limits_refresh_minutes: 1 }).behavior?.limitsRefreshMinutes).toBe(1)
+  for (const value of [0, 0.5, -1, Infinity, '1'])
+    expect(parseConfiguredDefaults({ behavior: { limitsRefreshMinutes: value } }).behavior).toBeUndefined()
+})
+
 test('loads user and project files above plugin options without coupling failures', async () => {
   const root = await mkdtemp(join(tmpdir(), 'navigator-config-'))
   const config = join(root, 'opencode')

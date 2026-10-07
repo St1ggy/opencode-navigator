@@ -6,6 +6,7 @@ import {
   type QuickActionId,
   SIDEBAR_SECTIONS,
   type SidebarSection,
+  parseLimitsRefreshMinutes,
 } from '../../../shared/config'
 import { layoutPresetPreview } from '../../../shared/lib/preset-preview'
 
@@ -94,6 +95,7 @@ export function createPreferencesController(
       focusKey: defaults.focusKey,
       searchKey: defaults.searchKey,
       persistMcp: defaults.persistMcp,
+      limitsRefreshMinutes: defaults.limitsRefreshMinutes,
       startInChat: defaults.startInChat,
       showSessionTitle: defaults.showSessionTitle,
       showSessionDate: defaults.showSessionDate,
@@ -527,6 +529,7 @@ export function createPreferencesController(
     focusKey: () => resolved().behavior.focusKey,
     searchKey: () => resolved().behavior.searchKey,
     persistMcp: () => resolved().behavior.persistMcp,
+    limitsRefreshMinutes: () => resolved().behavior.limitsRefreshMinutes,
     showSessionTitle: () => resolved().behavior.showSessionTitle,
     showSessionDate: () => resolved().behavior.showSessionDate,
     startInChatForScope: (scope: string) => {
@@ -541,6 +544,14 @@ export function createPreferencesController(
     selectedFocusKey: () => selectedResolved().behavior.focusKey,
     selectedSearchKey: () => selectedResolved().behavior.searchKey,
     selectedPersistMcp: () => selectedResolved().behavior.persistMcp,
+    selectedLimitsRefreshMinutes: () => selectedResolved().behavior.limitsRefreshMinutes,
+    setLimitsRefreshMinutes(value: number) {
+      if (parseLimitsRefreshMinutes(value) === undefined)
+        throw new Error('Enter whole minutes (at least 1 minute, within the supported timer range)')
+
+      void load()
+      update({ target: selectedTarget(), behavior: { limitsRefreshMinutes: value } })
+    },
     selectedStartInChat: () => selectedResolved().behavior.startInChat,
     selectedShowSessionTitle: () => selectedResolved().behavior.showSessionTitle,
     selectedShowSessionDate: () => selectedResolved().behavior.showSessionDate,

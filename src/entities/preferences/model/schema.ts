@@ -11,6 +11,7 @@ import {
   type SectionVisibility,
   type SidebarSection,
   type SkillGroups,
+  parseLimitsRefreshMinutes,
   parseQuickActionOrder,
   parseQuickActionVisibility,
   parseSectionItemLimits,
@@ -118,6 +119,9 @@ export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
     ...(typeof input.focusKey === 'string' && input.focusKey.trim() && { focusKey: input.focusKey.trim() }),
     ...(typeof input.searchKey === 'string' && input.searchKey.trim() && { searchKey: input.searchKey.trim() }),
     ...(typeof input.persistMcp === 'boolean' && { persistMcp: input.persistMcp }),
+    ...(parseLimitsRefreshMinutes(input.limitsRefreshMinutes) !== undefined && {
+      limitsRefreshMinutes: parseLimitsRefreshMinutes(input.limitsRefreshMinutes),
+    }),
     ...(typeof input.startInChat === 'boolean' && { startInChat: input.startInChat }),
     ...(typeof input.showSessionTitle === 'boolean' && { showSessionTitle: input.showSessionTitle }),
     ...(typeof input.showSessionDate === 'boolean' && { showSessionDate: input.showSessionDate }),
