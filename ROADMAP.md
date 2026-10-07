@@ -187,7 +187,7 @@ verification workflow before expanding the product surface.
 
 ### Release Polish
 
-- [~] Stabilize full-content measurement in synthetic screenshot fixtures so the host sidebar scrollbar cannot vary between repeated captures.
+- [x] Stabilize full-content measurement in synthetic screenshot fixtures so the host sidebar scrollbar cannot vary between repeated captures; all 46 captures reproduced in the v0.21.4 Prepare Release workflow.
 - [x] Maintain current screenshots and a complete public gallery linked from the README.
 - [x] Automate deterministic screenshot capture and merge through the manual pre-release GitHub Actions workflow instead of local agent runs.
 - [x] Include `CHANGELOG.md` in npm packages and publish generated GitHub Release notes with upgrade guidance from v0.16.1 onward; earlier releases retain their GitHub Release notes.
