@@ -1,16 +1,18 @@
 import { expect, test } from 'bun:test'
 
 import { createSidebarShortcutMode } from '../src/features/sidebar-shortcuts'
+import { setHostCapabilities } from '../src/shared/lib/host-capabilities'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Command, Layer } from '@opentui/keymap'
 
 type TestLayer = Layer & { mode?: string }
 
-function setup(timeoutMs = 5000) {
+function setup(timeoutMs = 5000, lsp = true) {
   const layers: TestLayer[] = []
   const activeLayers = new Set<TestLayer>()
   const dispatched: string[] = []
+  const dispatchModes: string[] = []
   const modes = ['base']
   const toasts: { message: string }[] = []
   const api = {
@@ -40,11 +42,14 @@ function setup(timeoutMs = 5000) {
       },
       dispatchCommand(name: string) {
         dispatched.push(name)
+        dispatchModes.push(modes.at(-1)!)
 
         return { ok: true as const }
       },
     },
   } as unknown as TuiPluginApi
+
+  setHostCapabilities(api, { todo: true, lsp })
   const controller = createSidebarShortcutMode(api, { timeoutMs })
 
   function command(name: string, mode = 'base') {
@@ -76,7 +81,7 @@ function setup(timeoutMs = 5000) {
     command(binding?.cmd as string, mode)?.run?.({} as never)
   }
 
-  return { controller, dispatched, modes, toasts, layers, activeLayers, command, press }
+  return { controller, dispatched, dispatchModes, modes, toasts, layers, activeLayers, command, press }
 }
 
 test('only the configured binding enters mode while palette and legacy toggles stay direct', () => {
@@ -96,6 +101,8 @@ test('only the configured binding enters mode while palette and legacy toggles s
     expect(harness.controller.active()).toBe(true)
     expect(harness.modes).toEqual(['base', 'opencode-navigator.sidebar-shortcuts'])
     expect(harness.toasts.at(-1)?.message).toContain('h toggle')
+    expect(harness.toasts.at(-1)?.message).toContain('c check update')
+    expect(harness.toasts.at(-1)?.message).toContain('u update')
   } finally {
     harness.controller.dispose()
   }
@@ -111,6 +118,8 @@ test('shortcut actions dispatch existing commands and exit mode', () => {
     q: 'opencode-navigator.focus.quick_actions',
     l: 'opencode-navigator.focus.lsp',
     m: 'opencode-navigator.focus.mcp',
+    c: 'opencode-navigator.check-update',
+    u: 'opencode-navigator.update-navigator',
   }
 
   try {
@@ -119,6 +128,7 @@ test('shortcut actions dispatch existing commands and exit mode', () => {
       harness.press('ctrl+shift+b')
       harness.press(key)
       expect(harness.dispatched.at(-1)).toBe(command)
+      expect(harness.dispatchModes.at(-1)).toBe('base')
       expect(harness.controller.active()).toBe(false)
       expect(harness.modes).toEqual(['base'])
     }
@@ -148,6 +158,22 @@ test('Escape cancels, reentry replaces the mode, and inactivity times out', asyn
     await Bun.sleep(25)
     expect(harness.controller.active()).toBe(false)
     expect(harness.modes).toEqual(['base'])
+  } finally {
+    harness.controller.dispose()
+  }
+})
+
+test('shortcut hints and bindings omit unsupported sections without hiding update actions', () => {
+  const harness = setup(5000, false)
+
+  try {
+    harness.controller.bind('ctrl+shift+b')
+    harness.press('ctrl+shift+b')
+    expect(harness.toasts.at(-1)?.message).not.toContain('l LSP')
+    expect(harness.toasts.at(-1)?.message).toContain('c check update | u update')
+    expect(harness.layers.at(-1)?.bindings?.some(({ key }) => key === 'l')).toBe(false)
+    harness.press('c')
+    expect(harness.dispatched.at(-1)).toBe('opencode-navigator.check-update')
   } finally {
     harness.controller.dispose()
   }

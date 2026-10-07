@@ -72,6 +72,7 @@ verification workflow before expanding the product surface.
 - [x] Navigate interactive sections and rows with arrow keys or `j` and `k`, activate with `Enter`, and return focus with `Escape`.
 - [x] Add direct section palette commands, visible focus states, focused-row scrolling, and compact keyboard help.
 - [x] Turn the configured sidebar shortcut into a temporary, discoverable section/action mode while preserving direct palette toggle commands.
+- [x] Add `c` manual update checking and `u` confirmed Navigator updating to shortcut mode, with repeatable bounded checks, user-visible results, synchronized help, and the existing installation/source guards.
 - [x] Navigate controls on one visual row with Left/Right and move between rows with Up/Down or `j`/`k`.
 
 ### Smoke Coverage
@@ -193,6 +194,7 @@ verification workflow before expanding the product surface.
 - [x] Ignore project-local OpenCode TUI and CLI config files and stop tracking the old source-plugin override without removing the user's local file.
 - [x] Stop tracking local `vibe/` plans and trackers, ignore the directory, and preserve existing local copies.
 - [x] Let confirmed Navigator updates advance a recognized local pinned snapshot without changing its installation source or touching the running version.
+- [~] Identify the reported Navigator update error if it recurs: the full published-package snapshot update and installed snapshot import checks pass, but the original message is unavailable and a specific cause has not been reproduced.
 - [x] Remove release-number assertions across all tests and make optional live-update verification follow the published npm version rather than a fixed release.
 - [x] Persist the prior installed Navigator version and show the intervening bundled changelog once after the first launch of an updated plugin.
 - [x] Restrict changelog and GitHub Release highlights to user-facing changes and exclude technical screenshot pull requests from generated notes.

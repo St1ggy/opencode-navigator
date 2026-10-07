@@ -17,6 +17,7 @@ export function KeyboardHelpDialog(props: { api: TuiPluginApi }) {
     'Show all / Show less expands or limits the filtered list',
     `Skills: ${icons.icon('info')} opens source · ${icons.icon('recent')} marks recent skills`,
     'Navigator Settings: Ctrl+,',
+    'Navigator shortcuts: c checks for updates · u updates Navigator after confirmation',
     `Search Everything: shortcut in Settings ${icons.icon('right')} Behavior`,
     `Search: type · ${icons.key('up/down')} results · ${icons.key('tab/shift+tab')} tabs · ${icons.key('enter')} run`,
     `${icons.key('esc')} leaves the sidebar · ${icons.key('?')} opens this help`,

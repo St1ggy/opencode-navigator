@@ -9,13 +9,15 @@ const MODE = `${PLUGIN_ID}.sidebar-shortcuts`
 const DEFAULT_TIMEOUT_MS = 5000
 
 const ACTIONS = [
-  { key: 'h', command: 'session.sidebar.toggle', section: undefined },
-  { key: 't', command: `${PLUGIN_ID}.focus.todo`, section: 'todo' },
-  { key: 'a', command: `${PLUGIN_ID}.focus.subagents`, section: 'subagents' },
-  { key: 's', command: `${PLUGIN_ID}.focus.skills`, section: 'skills' },
-  { key: 'q', command: `${PLUGIN_ID}.focus.quick_actions`, section: 'quick_actions' },
-  { key: 'l', command: `${PLUGIN_ID}.focus.lsp`, section: 'lsp' },
-  { key: 'm', command: `${PLUGIN_ID}.focus.mcp`, section: 'mcp' },
+  { key: 'h', hint: 'toggle', command: 'session.sidebar.toggle', section: undefined },
+  { key: 't', hint: 'todo', command: `${PLUGIN_ID}.focus.todo`, section: 'todo' },
+  { key: 'a', hint: 'agents', command: `${PLUGIN_ID}.focus.subagents`, section: 'subagents' },
+  { key: 's', hint: 'skills', command: `${PLUGIN_ID}.focus.skills`, section: 'skills' },
+  { key: 'q', hint: 'actions', command: `${PLUGIN_ID}.focus.quick_actions`, section: 'quick_actions' },
+  { key: 'l', hint: 'LSP', command: `${PLUGIN_ID}.focus.lsp`, section: 'lsp' },
+  { key: 'm', hint: 'MCP', command: `${PLUGIN_ID}.focus.mcp`, section: 'mcp' },
+  { key: 'c', hint: 'check update', command: `${PLUGIN_ID}.check-update`, section: undefined },
+  { key: 'u', hint: 'update', command: `${PLUGIN_ID}.update-navigator`, section: undefined },
 ] as const
 
 export type SidebarShortcutModeOptions = {
@@ -24,6 +26,7 @@ export type SidebarShortcutModeOptions = {
 
 export function createSidebarShortcutMode(api: TuiPluginApi, options: SidebarShortcutModeOptions = {}) {
   const actions = ACTIONS.filter(({ section }) => !section || supportsSidebarSection(api, section))
+  const hints = actions.map(({ key, hint }) => `${key} ${hint}`).join(' | ')
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   let shortcutKey = ''
   let unregisterBinding: (() => void) | undefined
@@ -74,7 +77,7 @@ export function createSidebarShortcutMode(api: TuiPluginApi, options: SidebarSho
     api.ui?.toast?.({
       variant: 'info',
       title: 'Navigator shortcuts',
-      message: 'h toggle | t todo | a agents | s skills | q actions | l LSP | m MCP | Esc cancel',
+      message: `${hints} | Esc cancel`,
       duration: timeoutMs,
     })
 

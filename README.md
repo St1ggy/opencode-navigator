@@ -33,7 +33,7 @@ See the [changelog](CHANGELOG.md) for release-by-release changes.
 - Save visibility, expansion, and order globally or for the current worktree
 - Copy the selected scope's layout and MCP states as versioned JSON, then validate and preview imports
 - Focus the sidebar with `Ctrl+Shift+F`, then navigate with arrows or `j`/`k`
-- Open sidebar shortcut mode with `Ctrl+Shift+B`; press `h` to toggle the panel
+- Open sidebar shortcut mode with `Ctrl+Shift+B`; press `h` to toggle the panel, `c` to check Navigator updates, or `u` to check and confirm an update
 - Optionally open new sessions directly in an empty chat with the sidebar, skipping Home on startup and from New session
 - Keep OpenCode's compact footer while showing host and Navigator versions with independent update indicators; click a version label or its update icon to confirm an in-place update through the current installation method and scope
 
@@ -635,6 +635,25 @@ contrasting focus palette; the field follows actual input focus and blur.
 The command palette also exposes `Focus sidebar` and direct commands for Todo,
 Subagents, Skills, Quick Actions, LSP, and MCP. Both sidebar shortcuts can be
 changed at runtime in settings.
+
+Press `Ctrl+Shift+B` to enter Navigator shortcuts, then choose an action:
+
+| Key | Action |
+| --- | --- |
+| `h` | Toggle sidebar visibility |
+| `t` / `a` / `s` / `q` / `l` / `m` | Focus Todo / Subagents / Skills / Quick Actions / LSP / MCP |
+| `c` | Check for a Navigator update and report whether one is available |
+| `u` | Check for a Navigator update, then open its confirmation if available |
+| `Escape` | Cancel shortcut mode |
+
+The mode ends after an action or five seconds of inactivity. Its toast lists only
+actions supported by the current host; LSP is omitted on OpenCode 2.x. Change the
+entry shortcut under **Settings → Behavior**. The command palette also offers
+**Check Navigator updates** and **Update Navigator**.
+
+Manual checks report when Navigator is current or the update source is unavailable.
+Updates require confirmation, preserve the existing installation method and scope,
+and show a restart reminder after completion. Background check failures stay quiet.
 
 ### Search Everything
 
