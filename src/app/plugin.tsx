@@ -126,7 +126,12 @@ async function setupNavigator(
         return (
           <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
             <PreferencesPersistence api={api} controller={preferences} />
-            <LimitsPersistence controller={limits} accountSource={accountSource} selectedModel={selectModel} />
+            <LimitsPersistence
+              controller={limits}
+              accountSource={accountSource}
+              selectedModel={selectModel}
+              refreshMinutes={preferences.limitsRefreshMinutes}
+            />
             {supportsPermissionMode(api) && <PermissionModeBinding api={api} preferences={preferences} />}
             <SettingsBinding api={api} preferences={preferences} mcp={mcp} skills={skills} />
             <SidebarToggleBinding api={api} preferences={preferences} />

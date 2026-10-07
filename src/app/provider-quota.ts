@@ -41,12 +41,6 @@ export function createProviderQuotaIntegration(
       }),
   )
 
-  native?.onUpdated((providerID, modelID) => {
-    const selected = selectModel()
-
-    if (selected?.providerID === providerID && selected.modelID === modelID) void controller.refresh()
-  })
-
   return {
     controller,
     codex,

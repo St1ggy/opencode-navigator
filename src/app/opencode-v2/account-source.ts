@@ -84,9 +84,15 @@ export function createOpenCodeV2AccountSource(context: Plugin.Context, lifecycle
     }
   }
 
-  function invalidate() {
+  function invalidate(eager = true) {
     generation++
-    setConnections({})
+
+    if (eager) setConnections({})
+    else {
+      const active = lastModel && key(lastModel)
+
+      setConnections((values) => Object.fromEntries(Object.entries(values).filter(([target]) => target === active)))
+    }
 
     if (lastModel && !disposed) void read(lastModel)
   }
@@ -98,7 +104,9 @@ export function createOpenCodeV2AccountSource(context: Plugin.Context, lifecycle
     'provider.updated',
     'server.connected',
   ] as const
-  const unsubscribes = events.map((event) => context.data.on(event, () => untrack(invalidate)))
+  const unsubscribes = events.map((event) =>
+    context.data.on(event, () => untrack(() => invalidate(event !== 'provider.updated'))),
+  )
 
   return {
     current(model) {

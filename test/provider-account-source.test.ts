@@ -122,6 +122,27 @@ test('account switches eagerly invalidate old targets and live validation reject
   }
 })
 
+test('provider metadata observations preserve the active identity until a real account change is confirmed', async () => {
+  const h = harness()
+
+  try {
+    await h.source.refresh(model)
+    const previous = h.source.current(model)
+
+    h.callbacks.get('provider.updated')?.()
+    expect(h.source.current(model).hostConnection).toEqual(previous.hostConnection)
+    await h.source.refresh(model)
+    expect(h.source.current(model).hostConnection).toEqual(previous.hostConnection)
+    h.setCredentials([{ ...h.credentials()[0], id: 'two' }])
+    h.callbacks.get('provider.updated')?.()
+    await h.source.refresh(model)
+    expect(h.source.current(model).hostConnection?.id).toBe('credential:two')
+    expect(await h.source.validate(previous, new AbortController().signal)).toBe(false)
+  } finally {
+    h.source.dispose()
+  }
+})
+
 test('an API key, ambiguous active accounts, and stale catalog headers never automatically match Codex', async () => {
   const h = harness()
 
