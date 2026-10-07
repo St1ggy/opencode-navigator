@@ -1009,6 +1009,7 @@ test('the built settings dialog saves the current layout as default', async () =
     lspIconStyle: () => 'nerd',
     selectedLspIconStyle: () => 'nerd',
     rowDensity: () => 'compact',
+    selectedLimitsRefreshMinutes: () => 5,
     selectedRowDensity: () => 'compact',
     toggleKey: () => 'ctrl+shift+b',
     selectedToggleKey: () => 'ctrl+shift+b',

@@ -1,6 +1,8 @@
 import { SECTION_DEFINITIONS, type SidebarSection } from '../../../entities/sidebar-layout'
 import { FirstRunWizard } from '../ui/first-run-wizard'
 
+import { openLimitsRefreshPrompt } from './limits-refresh-prompt'
+
 import type { SettingsOption } from './settings-groups'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
@@ -190,6 +192,11 @@ export function createSettingsSelection(input: {
 
         case 'persist_mcp': {
           input.preferences.toggleMcpPersistence()
+          break
+        }
+
+        case 'limits_refresh': {
+          openLimitsRefreshPrompt(input.api, input.preferences, input.dialogs)
           break
         }
 
