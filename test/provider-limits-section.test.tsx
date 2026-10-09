@@ -17,7 +17,7 @@ import {
 import { createProviderLimitsController } from '../src/entities/provider-limit'
 import { createCodexQuotaAdapter } from '../src/features/provider-limits/model/codex-quota-adapter'
 import { ProviderLimitsSection, createSidebarInteraction } from '../src/pages/session-sidebar'
-import { IconProvider } from '../src/shared/ui'
+import { IconProvider, subtleLineColor } from '../src/shared/ui'
 
 import type { PreferencesController } from '../src/entities/preferences'
 import type { ProviderQuotaAdapter, ProviderQuotaSnapshot, SelectedModel } from '../src/entities/provider-limit'
@@ -619,7 +619,9 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     expect(lines[header + 2]).toContain('high')
     expect(lines[remaining]).toContain('Resets ')
     expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
-    expect(color(remaining - 1, lines[remaining - 1].indexOf('---')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(
+      color(remaining - 1, lines[remaining - 1].indexOf('---')).equals(subtleLineColor('#111111', '#555555')),
+    ).toBe(true)
     expect(lines[remaining - 1]).not.toMatch(/[│|]/)
     expect(color(remaining, lines[remaining].indexOf('Resets')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
     expect(h.captureCharFrame()).not.toContain('Unlink Codex')

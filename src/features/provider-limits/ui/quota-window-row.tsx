@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js'
 
-import { useIcons } from '../../../shared/ui'
+import { subtleLineColor, useIcons } from '../../../shared/ui'
 import { quotaPresentation } from '../model/quota-presentation'
 
 import type { QuotaWindow } from '../../../entities/provider-limit'
@@ -14,14 +14,16 @@ export function QuotaWindowRow(props: { api: TuiPluginApi; window: QuotaWindow }
   const scale = () => {
     const ratio = view().ratio
 
-    if (ratio === undefined) return 'Scale unknown'
+    if (ratio === undefined) return { filled: 'Scale unknown', unfilled: '' }
 
     const width = columns()
     const filled = Math.round(ratio * width)
     const symbols = icons.style() === 'text' ? ['=', '-'] : ['━', '─']
 
-    return symbols[0].repeat(filled) + symbols[1].repeat(width - filled)
+    return { filled: symbols[0].repeat(filled), unfilled: symbols[1].repeat(width - filled) }
   }
+  const unfilledColor = () =>
+    subtleLineColor(props.api.theme.current.backgroundPanel, props.api.theme.current.borderSubtle)
   const valueWidth = () => Math.min(columns(), Bun.stringWidth(view().value))
   const gap = () => (columns() > valueWidth() ? 1 : 0)
   const resetWidth = () => Math.max(0, columns() - valueWidth() - gap())
@@ -38,7 +40,8 @@ export function QuotaWindowRow(props: { api: TuiPluginApi; window: QuotaWindow }
       }}
     >
       <text width="100%" minWidth={0} height={1} fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
-        {scale()}
+        {scale().filled}
+        <span style={{ fg: unfilledColor() }}>{scale().unfilled}</span>
       </text>
       <box width="100%" minWidth={0} height={1} flexDirection="row" overflow="hidden">
         <text

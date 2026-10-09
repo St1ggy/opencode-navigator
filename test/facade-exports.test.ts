@@ -74,6 +74,7 @@ test('the built bundle preserves its public exports', async () => {
     'openKeyboardHelp',
     'openSettings',
     'showFirstRunWizard',
+    'subtleLineColor',
     'useDialogScroll',
     'useDialogState',
     'useDialogs',

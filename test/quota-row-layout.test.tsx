@@ -5,6 +5,7 @@ import { expect, test } from 'bun:test'
 import { createSignal } from 'solid-js'
 
 import { QuotaWindowGroup } from '../src/features/provider-limits/ui/quota-window-group'
+import { SectionBoundary } from '../src/pages/session-sidebar/ui/section-boundary'
 import { IconProvider } from '../src/shared/ui'
 
 import type { QuotaWindow } from '../src/entities/provider-limit'
@@ -19,15 +20,18 @@ const window: QuotaWindow = {
   durationMinutes: 10_080,
   resetsAt: 1_800_000_000,
 }
-const api = { theme: { current: { text: '#ffffff', textMuted: '#aaaaaa' } } } as unknown as TuiPluginApi
+const darkTheme = { text: '#ffffff', textMuted: '#aaaaaa', backgroundPanel: '#111111', borderSubtle: '#555555' }
+const api = { theme: { current: darkTheme } } as unknown as TuiPluginApi
 
-async function harness(style: 'nerd' | 'text' = 'nerd', windows: readonly QuotaWindow[] = [window]) {
+async function harness(style: 'nerd' | 'text' = 'nerd', windows: readonly QuotaWindow[] = [window], themeApi = api) {
   const [width, setWidth] = createSignal(34)
   const setup = await testRender(
     () => (
       <IconProvider style={() => style}>
         <box width={width()} paddingLeft={3} paddingRight={2} marginLeft={7} id="sidebar">
-          <QuotaWindowGroup api={api} windows={windows} />
+          <SectionBoundary api={themeApi} divided>
+            <QuotaWindowGroup api={themeApi} windows={windows} />
+          </SectionBoundary>
         </box>
       </IconProvider>
     ),
@@ -99,6 +103,51 @@ test('quota lines recompute their scale on shrink and growth without painting ou
     h.renderer.destroy()
   }
 })
+
+test.each(['nerd', 'text'] as const)(
+  'unfilled scales share the quieter divider tone and track theme changes (%s)',
+  async (style) => {
+    const [theme, setTheme] = createSignal(darkTheme)
+    const themeApi = {
+      theme: {
+        get current() {
+          return theme()
+        },
+      },
+    } as unknown as TuiPluginApi
+    const h = await harness(style, [window], themeApi)
+
+    try {
+      for (const palette of [
+        darkTheme,
+        { text: '#111111', textMuted: '#666666', backgroundPanel: '#fafafa', borderSubtle: '#dddddd' },
+      ]) {
+        setTheme(palette)
+        await h.flush()
+        const lines = h.captureCharFrame().split('\n')
+        const details = lines.findIndex((line) => line.includes('71% left'))
+        const unfilled = lines[details - 1].lastIndexOf(style === 'nerd' ? '─' : '-')
+        const filled = lines[details - 1].indexOf(style === 'nerd' ? '━' : '=')
+        const divider = lines.findIndex((line, row) => row > details && line.includes('─'))
+        const buffer = h.renderer.currentRenderBuffer
+        const color = (row: number, column: number) => {
+          const offset = (row * buffer.width + column) * 4
+
+          return new RGBA(buffer.buffers.fg.slice(offset, offset + 4))
+        }
+
+        expect(unfilled).toBeGreaterThan(filled)
+        expect(divider).toBeGreaterThan(details)
+        expect(color(details - 1, unfilled).equals(color(divider, lines[divider].indexOf('─')))).toBe(true)
+        expect(color(details - 1, unfilled).equals(RGBA.fromHex(palette.textMuted))).toBe(false)
+        expect(color(details - 1, filled).equals(RGBA.fromHex(palette.textMuted))).toBe(true)
+        expect(color(details, lines[details].indexOf('71%')).equals(RGBA.fromHex(palette.text))).toBe(true)
+      }
+    } finally {
+      h.renderer.destroy()
+    }
+  },
+)
 
 test('reset text is clipped at the padded sidebar edge even when the terminal is wider', async () => {
   const h = await harness()

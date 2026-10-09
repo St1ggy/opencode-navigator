@@ -8,6 +8,7 @@ export {
   SelectionMenu,
   SelectionBox,
   createDialogStack,
+  subtleLineColor,
   useDialogScroll,
   useDialogState,
   useDialogs,
