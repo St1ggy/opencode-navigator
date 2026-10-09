@@ -3,7 +3,7 @@
 These 47 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
-The v0.21.7 manual **Prepare Release** workflow generated the gallery, verified every PNG
+The v0.21.8 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed.
 
 ## Provider Limits
@@ -27,6 +27,8 @@ is involved in a screenshot scene.
 
 Full-width quota scales have reset time on the left below each scale, with the
 remaining value reserved and aligned on the right.
+Filled segments use muted text; unfilled segments recede into the same subtle
+theme-derived tone as the section dividers.
 
 ![Account-bound provider quota windows](39-provider-limits.png)
 
