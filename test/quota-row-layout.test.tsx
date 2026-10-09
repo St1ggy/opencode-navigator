@@ -48,16 +48,14 @@ test.each(['nerd', 'text'] as const)(
       const sidebar = h.renderer.root.findDescendantById('sidebar') as BoxRenderable
       const lines = h.captureCharFrame().split('\n')
       const row = lines.findIndex((line) => line.includes('71% left'))
-      const guide = sidebar.screenX + 3
-      const left = guide + 2
+      const left = sidebar.screenX + 3
       const right = sidebar.screenX + sidebar.width - 2
 
       expect(lines[row].slice(left, right)).toContain('71% left')
       expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
       expect(lines[row].slice(right - 8, right)).toBe('71% left')
       expect(lines[row - 1].slice(left, right)).toMatch(style === 'nerd' ? /^[━─]+$/ : /^[=-]+$/)
-      expect(lines[row - 1][guide]).toBe(style === 'nerd' ? '│' : '|')
-      expect(lines[row][guide]).toBe(style === 'nerd' ? '│' : '|')
+      expect(h.captureCharFrame()).not.toMatch(/[│|]/)
       expect(lines[row - 1]).not.toMatch(/[[\]█░#]/)
       expect(lines[row - 1].slice(right).trim()).toBe('')
       expect(lines[row]).not.toContain('Account')
@@ -113,15 +111,15 @@ test('reset text is clipped at the padded sidebar edge even when the terminal is
 
     expect(lines[row].slice(7 + 26 - 2).trim()).toBe('')
     expect(lines[row].trimEnd()).toEndWith('71% left')
-    expect(lines[row].slice(12, 22).trim()).not.toContain('71%')
-    expect(lines[row]).toContain('Res...')
+    expect(lines[row].slice(10, 23).trim()).not.toContain('71%')
+    expect(lines[row].slice(10, 23)).toContain('...')
   } finally {
     h.renderer.destroy()
   }
 })
 
 test.each(['nerd', 'text'] as const)(
-  'quota windows share a continuous guide and one guide-only gap (%s)',
+  'quota windows keep one blank gap without a vertical guide or gutter (%s)',
   async (style) => {
     const h = await harness(style, [window, { ...window, id: 'second', used: 74 }])
 
@@ -129,13 +127,15 @@ test.each(['nerd', 'text'] as const)(
       const lines = h.captureCharFrame().split('\n')
       const first = lines.findIndex((line) => line.includes('71% left'))
       const second = lines.findIndex((line) => line.includes('26% left'))
-      const guide = style === 'nerd' ? '│' : '|'
 
       expect(second).toBe(first + 3)
-      expect(lines[first + 1].trim()).toBe(guide)
-      const column = lines[first].indexOf(guide)
+      expect(lines[first + 1].trim()).toBe('')
+      expect(h.captureCharFrame()).not.toMatch(/[│|]/)
+      const sidebar = h.renderer.root.findDescendantById('sidebar') as BoxRenderable
+      const left = sidebar.screenX + 3
 
-      for (let row = first - 1; row <= second; row++) expect(lines[row][column]).toBe(guide)
+      expect(lines[first - 1][left]).toBe(style === 'nerd' ? '━' : '=')
+      expect(lines[second - 1][left]).toBe(style === 'nerd' ? '━' : '=')
     } finally {
       h.renderer.destroy()
     }
@@ -154,7 +154,7 @@ test('unknown scales and long native measurements stay inside extremely narrow c
     const lines = h.captureCharFrame().split('\n')
 
     for (const line of lines) expect(line.slice(right).trim()).toBe('')
-    expect(lines[1].trimStart()).toStartWith('| ')
+    expect(lines[1].trimStart()).toStartWith('1234')
     expect(lines[1].trimEnd()).not.toContain('Resets')
   } finally {
     h.renderer.destroy()

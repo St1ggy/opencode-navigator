@@ -620,7 +620,7 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     expect(lines[remaining]).toContain('Resets ')
     expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
     expect(color(remaining - 1, lines[remaining - 1].indexOf('---')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
-    expect(lines[remaining - 1]).toContain('| ')
+    expect(lines[remaining - 1]).not.toMatch(/[│|]/)
     expect(color(remaining, lines[remaining].indexOf('Resets')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
     expect(h.captureCharFrame()).not.toContain('Unlink Codex')
     expect(h.captureCharFrame()).not.toContain('Updated ')
