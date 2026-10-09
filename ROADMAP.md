@@ -153,7 +153,7 @@ verification workflow before expanding the product surface.
 
 ### Agents And Limits
 
-- [~] Remove the vertical guide and its gutter from Limits in both icon modes following the updated design choice, while retaining full-width thin scales, reset-left/value-right details, and one blank row between windows; verify layout and refresh the release captures.
+- [x] Remove the vertical guide and its gutter from Limits in both icon modes following the updated design choice, while retaining full-width thin scales, reset-left/value-right details, and one blank row between windows; full checks and both reference host smokes pass, and screenshot PR #25 passed CI and merged with all 47 captures reproducible.
 - [x] Refresh and verify the hybrid Limits screenshot scenes through Prepare Release before publishing the redesigned layout; screenshot PR #24 passed CI and merged with all 47 captures reproducible, including Nerd Font and Text fallback layouts.
 - [x] Add a scoped Limits refresh interval with a five-minute default and one-minute minimum, and verify immediate prompt-model switching on the supported OpenCode 2 API without extra polling from unrelated preferences or provider observations; full checks and both reference host smokes pass.
 - [x] Generate and verify a deterministic Limits refresh-settings capture and refresh the gallery through Prepare Release before publishing the interval setting; screenshot PR #23 passed CI and merged with all 47 captures reproducible.
