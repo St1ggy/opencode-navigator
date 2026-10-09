@@ -153,6 +153,8 @@ verification workflow before expanding the product surface.
 
 ### Agents And Limits
 
+- [x] Implement the selected hybrid of Limits designs 3 and 5: full-width thin scales, reset-left/value-right details, and a continuous muted vertical guide with an ASCII fallback; verify native-unit clipping, padded/narrow sidebar layout, resize, colors, existing controls, full checks, and both reference host smokes.
+- [ ] Refresh and verify the hybrid Limits screenshot scenes through Prepare Release before publishing the redesigned layout.
 - [x] Add a scoped Limits refresh interval with a five-minute default and one-minute minimum, and verify immediate prompt-model switching on the supported OpenCode 2 API without extra polling from unrelated preferences or provider observations; full checks and both reference host smokes pass.
 - [x] Generate and verify a deterministic Limits refresh-settings capture and refresh the gallery through Prepare Release before publishing the interval setting; screenshot PR #23 passed CI and merged with all 47 captures reproducible.
 - Use OpenCode's existing agent/model display above the prompt; omit a duplicate sidebar overview.

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.21.6] - 2026-10-07
+
+- Refine Limits with a continuous muted guide, full-width thin-line quota scales, and reset-left/remaining-right details. Keep long reset text from overlapping the remaining value and preserve Text fallback, resize clipping, and existing controls.
+
 ## [0.21.5] - 2026-10-07
 
 - Make automatic Limits refresh configurable in scoped Behavior settings and portable configuration, with a five-minute default and one-minute minimum. Keep manual Refresh and supported model/account switches immediate.
@@ -100,6 +104,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.21.6]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.5...v0.21.6
 [0.21.5]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.4...v0.21.5
 [0.21.4]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.3...v0.21.4
 [0.21.3]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.2...v0.21.3
