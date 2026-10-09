@@ -1,7 +1,7 @@
-import { For } from 'solid-js'
+import { For, Show } from 'solid-js'
 
 import { QuotaBalanceRow } from './quota-balance-row'
-import { QuotaWindowRow } from './quota-window-row'
+import { QuotaWindowGroup } from './quota-window-group'
 
 import type { ProviderQuotaSnapshot } from '../../../entities/provider-limit'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -9,7 +9,9 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 export function QuotaSnapshotRows(props: { api: TuiPluginApi; snapshot: ProviderQuotaSnapshot }) {
   return (
     <>
-      <For each={props.snapshot.windows}>{(window) => <QuotaWindowRow api={props.api} window={window} />}</For>
+      <Show when={props.snapshot.windows.length > 0}>
+        <QuotaWindowGroup api={props.api} windows={props.snapshot.windows} />
+      </Show>
       <For each={props.snapshot.balances}>{(balance) => <QuotaBalanceRow api={props.api} balance={balance} />}</For>
     </>
   )

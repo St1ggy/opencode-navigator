@@ -346,7 +346,7 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
     expect(h.reads()).toBe(0)
     await h.link()
     expect(h.captureCharFrame()).toContain('[OpenAI] Synthetic Codex')
-    expect(h.captureCharFrame()).toContain('0% left ---')
+    expect(h.captureCharFrame()).toContain('0% left')
     expect(h.captureCharFrame()).toContain('Resets ')
     expect(h.captureCharFrame()).not.toContain('Updated ')
     expect(h.captureCharFrame()).toContain('Banked Resets')
@@ -605,7 +605,6 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     const lines = h.captureCharFrame().split('\n')
     const header = lines.findIndex((line) => line.includes('LIMITS'))
     const remaining = lines.findIndex((line) => line.includes('0% left'))
-    const reset = lines.findIndex((line) => line.trimStart().startsWith('Resets '))
     const buffer = h.renderer.currentRenderBuffer
     const color = (row: number, column: number) => {
       const offset = (row * buffer.width + column) * 4
@@ -618,10 +617,11 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     expect(lines[header + 2]).toContain('[OpenAI] Synthetic Codex')
     expect(lines[header + 2]).toContain('·')
     expect(lines[header + 2]).toContain('high')
-    expect(reset).toBe(remaining + 1)
+    expect(lines[remaining]).toContain('Resets ')
     expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
-    expect(color(remaining, lines[remaining].indexOf('---')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
-    expect(color(reset, lines[reset].indexOf('Resets')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(color(remaining - 1, lines[remaining - 1].indexOf('---')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(lines[remaining - 1]).toContain('| ')
+    expect(color(remaining, lines[remaining].indexOf('Resets')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
     expect(h.captureCharFrame()).not.toContain('Unlink Codex')
     expect(h.captureCharFrame()).not.toContain('Updated ')
     const refresh = h.renderer.root.findDescendantById('opencode-navigator.limits.refresh') as BoxRenderable
@@ -722,9 +722,10 @@ test('Limits fills its sidebar content area without painting into the surroundin
     const right = root.screenX + root.width - 2
 
     expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
-    expect(lines[row + 1].trimStart()).toStartWith('Resets ')
-    expect(lines[row + 1]).not.toContain('Account')
-    expect(lines[row + 1].slice(right).trim()).toBe('')
+    expect(lines[row]).toContain('Resets ')
+    expect(lines[row]).not.toContain('Account')
+    expect(lines[row - 1].slice(right).trim()).toBe('')
+    expect(Bun.stringWidth(lines[row - 1].trimEnd())).toBe(right)
     expect(h.captureCharFrame()).not.toContain('1w')
   } finally {
     h.destroy()

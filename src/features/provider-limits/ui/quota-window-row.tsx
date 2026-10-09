@@ -14,32 +14,54 @@ export function QuotaWindowRow(props: { api: TuiPluginApi; window: QuotaWindow }
   const scale = () => {
     const ratio = view().ratio
 
-    if (ratio === undefined) return ' · scale unknown'
+    if (ratio === undefined) return 'Scale unknown'
 
-    const width = Math.max(0, columns() - Bun.stringWidth(view().value) - 1)
+    const width = columns()
     const filled = Math.round(ratio * width)
     const symbols = icons.style() === 'text' ? ['=', '-'] : ['━', '─']
 
-    return width ? ` ${symbols[0].repeat(filled)}${symbols[1].repeat(width - filled)}` : ''
+    return symbols[0].repeat(filled) + symbols[1].repeat(width - filled)
   }
+  const valueWidth = () => Math.min(columns(), Bun.stringWidth(view().value))
+  const gap = () => (columns() > valueWidth() ? 1 : 0)
+  const resetWidth = () => Math.max(0, columns() - valueWidth() - gap())
 
   return (
     <box
       width="100%"
       minWidth={0}
       flexShrink={1}
+      height={2}
       overflow="hidden"
       onSizeChange={function (this: BoxRenderable) {
         setColumns(this.width)
       }}
     >
       <text width="100%" minWidth={0} height={1} fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
-        <span style={{ fg: props.api.theme.current.text }}>{view().value}</span>
         {scale()}
       </text>
-      <text width="100%" minWidth={0} height={1} fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
-        {view().reset}
-      </text>
+      <box width="100%" minWidth={0} height={1} flexDirection="row" overflow="hidden">
+        <text
+          width={resetWidth()}
+          minWidth={0}
+          height={1}
+          fg={props.api.theme.current.textMuted}
+          wrapMode="none"
+          truncate
+        >
+          {view().reset}
+        </text>
+        <text
+          width={valueWidth()}
+          marginLeft={gap()}
+          height={1}
+          fg={props.api.theme.current.text}
+          wrapMode="none"
+          truncate
+        >
+          {view().value}
+        </text>
+      </box>
     </box>
   )
 }
