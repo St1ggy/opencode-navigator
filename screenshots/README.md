@@ -25,8 +25,8 @@ is involved in a screenshot scene.
 
 ### Codex Account Quota Windows
 
-The continuous muted guide joins full-width quota scales. Reset time sits on the
-left below each scale, with the remaining value reserved and aligned on the right.
+Full-width quota scales have reset time on the left below each scale, with the
+remaining value reserved and aligned on the right.
 
 ![Account-bound provider quota windows](39-provider-limits.png)
 

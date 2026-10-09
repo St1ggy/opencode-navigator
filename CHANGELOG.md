@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.21.7] - 2026-10-09
+
+- Remove the vertical guide and its reserved gutter from Limits in both icon modes. Keep full-width quota scales, reset-left/remaining-right details, and one blank row between quota windows.
+
 ## [0.21.6] - 2026-10-09
 
 - Refine Limits with a continuous muted guide, full-width thin-line quota scales, and reset-left/remaining-right details. Keep long reset text from overlapping the remaining value and preserve Text fallback, resize clipping, and existing controls.
@@ -104,6 +108,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.21.7]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.6...v0.21.7
 [0.21.6]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.5...v0.21.6
 [0.21.5]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.4...v0.21.5
 [0.21.4]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.3...v0.21.4
