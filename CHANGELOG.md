@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## [0.21.6] - 2026-10-07
+## [0.21.6] - 2026-10-09
 
 - Refine Limits with a continuous muted guide, full-width thin-line quota scales, and reset-left/remaining-right details. Keep long reset text from overlapping the remaining value and preserve Text fallback, resize clipping, and existing controls.
 
