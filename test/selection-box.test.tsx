@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { BoxRenderable, RGBA, type ScrollBoxRenderable } from '@opentui/core'
+import { BoxRenderable, type OptimizedBuffer, RGBA, type ScrollBoxRenderable } from '@opentui/core'
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { createSignal } from 'solid-js'
@@ -7,6 +7,16 @@ import { createSignal } from 'solid-js'
 import { IconProvider } from '../src/icons/context'
 import { type IconStyle, uiIcon } from '../src/icons/ui'
 import { SelectionBox } from '../src/shared/ui'
+
+function readChannel(buffer: OptimizedBuffer, offset: number, channel: 'fg' | 'bg'): RGBA {
+  const frame = buffer as OptimizedBuffer & {
+    withBuffers?: <T>(read: (cells: OptimizedBuffer['buffers']) => T) => T
+  }
+
+  return frame.withBuffers
+    ? frame.withBuffers((cells) => new RGBA(cells[channel].slice(offset, offset + 4)))
+    : new RGBA(buffer.buffers[channel].slice(offset, offset + 4))
+}
 
 test('rounded selections preserve layout, clicks, backdrop colors and live text fallback', async () => {
   const [style, setStyle] = createSignal<IconStyle>('nerd')
@@ -48,6 +58,12 @@ test('rounded selections preserve layout, clicks, backdrop colors and live text 
   )
 
   try {
+    Object.defineProperty(setup.renderer.nextRenderBuffer, 'buffers', {
+      configurable: true,
+      get() {
+        throw new Error('Paint hooks record drawing and cannot read the frame.')
+      },
+    })
     await setup.flush()
     expect(row).toBeInstanceOf(BoxRenderable)
     const bounds = [row.x, row.y, row.width, row.height]
@@ -60,7 +76,7 @@ test('rounded selections preserve layout, clicks, backdrop colors and live text 
       const buffer = setup.renderer.currentRenderBuffer
       const offset = (row.y * buffer.width + x) * 4
 
-      return new RGBA(buffer.buffers[channel].slice(offset, offset + 4))
+      return readChannel(buffer, offset, channel)
     }
 
     expect(colorAt(row.x, 'bg').equals(RGBA.fromHex(backdrop()))).toBe(true)
@@ -147,11 +163,11 @@ test('multiline font corners respect clipping and nested selection backgrounds',
     const buffer = setup.renderer.currentRenderBuffer
     const edgeOffset = buffer.width * 4
 
-    expect(new RGBA(buffer.buffers.bg.slice(edgeOffset, edgeOffset + 4)).equals(RGBA.fromHex('#abcdef'))).toBe(true)
-    expect(new RGBA(buffer.buffers.fg.slice(edgeOffset, edgeOffset + 4)).equals(RGBA.fromHex('#123456'))).toBe(true)
+    expect(readChannel(buffer, edgeOffset, 'bg').equals(RGBA.fromHex('#abcdef'))).toBe(true)
+    expect(readChannel(buffer, edgeOffset, 'fg').equals(RGBA.fromHex('#123456'))).toBe(true)
     const nestedOffset = (2 * buffer.width + 1) * 4
 
-    expect(new RGBA(buffer.buffers.bg.slice(nestedOffset, nestedOffset + 4)).equals(RGBA.fromHex('#abcdef'))).toBe(true)
+    expect(readChannel(buffer, nestedOffset, 'bg').equals(RGBA.fromHex('#abcdef'))).toBe(true)
     scroll.scrollTo(1)
     await setup.flush()
     const frame = setup.captureCharFrame()
@@ -191,7 +207,7 @@ test('two-line selections keep a continuous background under all corner masks', 
       for (let x = 1; x <= 18; x++) {
         const offset = (y * buffer.width + x) * 4
 
-        expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex('#292e42'))).toBe(true)
+        expect(readChannel(buffer, offset, 'bg').equals(RGBA.fromHex('#292e42'))).toBe(true)
       }
     }
     const frame = setup.captureCharFrame()

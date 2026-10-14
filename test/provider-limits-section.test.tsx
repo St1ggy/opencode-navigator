@@ -605,11 +605,16 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     const lines = h.captureCharFrame().split('\n')
     const header = lines.findIndex((line) => line.includes('LIMITS'))
     const remaining = lines.findIndex((line) => line.includes('0% left'))
-    const buffer = h.renderer.currentRenderBuffer
+    const buffer = h.renderer.currentRenderBuffer as typeof h.renderer.currentRenderBuffer & {
+      withBuffers?: <T>(read: (cells: typeof h.renderer.currentRenderBuffer.buffers) => T) => T
+    }
     const color = (row: number, column: number) => {
       const offset = (row * buffer.width + column) * 4
+      const fg = buffer.withBuffers
+        ? buffer.withBuffers((cells) => cells.fg.slice(offset, offset + 4))
+        : buffer.buffers.fg.slice(offset, offset + 4)
 
-      return new RGBA(buffer.buffers.fg.slice(offset, offset + 4))
+      return new RGBA(fg)
     }
 
     expect(lines[header]).toContain('Banked Resets')

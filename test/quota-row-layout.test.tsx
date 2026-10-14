@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { type BoxRenderable, RGBA } from '@opentui/core'
+import { type BoxRenderable, type OptimizedBuffer, RGBA } from '@opentui/core'
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { createSignal } from 'solid-js'
@@ -10,6 +10,16 @@ import { IconProvider } from '../src/shared/ui'
 
 import type { QuotaWindow } from '../src/entities/provider-limit'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+
+function readForeground(buffer: OptimizedBuffer, offset: number): RGBA {
+  const frame = buffer as OptimizedBuffer & {
+    withBuffers?: <T>(read: (cells: OptimizedBuffer['buffers']) => T) => T
+  }
+
+  return frame.withBuffers
+    ? frame.withBuffers((cells) => new RGBA(cells.fg.slice(offset, offset + 4)))
+    : new RGBA(buffer.buffers.fg.slice(offset, offset + 4))
+}
 
 const window: QuotaWindow = {
   id: 'quota',
@@ -66,14 +76,10 @@ test.each(['nerd', 'text'] as const)(
       expect(lines[row]).not.toContain('1w')
       const offset = (row * h.renderer.currentRenderBuffer.width + right - 8) * 4
 
-      expect(
-        new RGBA(h.renderer.currentRenderBuffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex('#ffffff')),
-      ).toBe(true)
+      expect(readForeground(h.renderer.currentRenderBuffer, offset).equals(RGBA.fromHex('#ffffff'))).toBe(true)
       const muted = ((row - 1) * h.renderer.currentRenderBuffer.width + left) * 4
 
-      expect(
-        new RGBA(h.renderer.currentRenderBuffer.buffers.fg.slice(muted, muted + 4)).equals(RGBA.fromHex('#aaaaaa')),
-      ).toBe(true)
+      expect(readForeground(h.renderer.currentRenderBuffer, muted).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
     } finally {
       h.renderer.destroy()
     }
@@ -133,7 +139,7 @@ test.each(['nerd', 'text'] as const)(
         const color = (row: number, column: number) => {
           const offset = (row * buffer.width + column) * 4
 
-          return new RGBA(buffer.buffers.fg.slice(offset, offset + 4))
+          return readForeground(buffer, offset)
         }
 
         expect(unfilled).toBeGreaterThan(filled)

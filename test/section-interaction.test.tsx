@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { RGBA, type ScrollBoxRenderable } from '@opentui/core'
+import { type OptimizedBuffer, RGBA, type ScrollBoxRenderable } from '@opentui/core'
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { batch, createSignal } from 'solid-js'
@@ -37,6 +37,16 @@ import type { NavigatorTodoController } from '../src/entities/todo'
 import type { SubagentViewItem } from '../src/subagent-view'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { JSX } from 'solid-js'
+
+function readChannel(buffer: OptimizedBuffer, offset: number, channel: 'fg' | 'bg'): RGBA {
+  const frame = buffer as OptimizedBuffer & {
+    withBuffers?: <T>(read: (cells: OptimizedBuffer['buffers']) => T) => T
+  }
+
+  return frame.withBuffers
+    ? frame.withBuffers((cells) => new RGBA(cells[channel].slice(offset, offset + 4)))
+    : new RGBA(buffer.buffers[channel].slice(offset, offset + 4))
+}
 
 const sidebarTheme = {
   accent: '#ff9e64',
@@ -207,11 +217,9 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
     const offset = (y * buffer.width + x) * 4
     const countOffset = (y * buffer.width + x + label.length - 1) * 4
 
-    expect(new RGBA(buffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex(foreground))).toBe(true)
-    expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex(background))).toBe(true)
-    expect(
-      new RGBA(buffer.buffers.fg.slice(countOffset, countOffset + 4)).equals(RGBA.fromHex(sidebarTheme.textMuted)),
-    ).toBe(true)
+    expect(readChannel(buffer, offset, 'fg').equals(RGBA.fromHex(foreground))).toBe(true)
+    expect(readChannel(buffer, offset, 'bg').equals(RGBA.fromHex(background))).toBe(true)
+    expect(readChannel(buffer, countOffset, 'fg').equals(RGBA.fromHex(sidebarTheme.textMuted))).toBe(true)
   }
   try {
     await setup.flush()
@@ -438,9 +446,8 @@ test('section boundaries add a subtle divider only between adjacent sections', a
     const divider = lines.findIndex((line) => /─{10}/.test(line))
 
     expect(lines.filter((line) => /─{10}/.test(line))).toHaveLength(1)
-    const foreground = setup.renderer.currentRenderBuffer.buffers.fg
     const offset = (divider * 20 + 10) * 4
-    const color = new RGBA(foreground.slice(offset, offset + 4))
+    const color = readChannel(setup.renderer.currentRenderBuffer, offset, 'fg')
 
     expect(color.equals(border)).toBe(false)
     expect(color.equals(panel)).toBe(false)

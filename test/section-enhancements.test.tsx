@@ -25,8 +25,18 @@ import type { PreferencesController } from '../src/controllers/preferences'
 import type { SubagentController } from '../src/controllers/subagents'
 import type { SidebarInteraction } from '../src/sidebar-interaction'
 import type { TuiPluginApi, TuiSidebarLspItem } from '@opencode-ai/plugin/tui'
-import type { BoxRenderable } from '@opentui/core'
+import type { BoxRenderable, OptimizedBuffer } from '@opentui/core'
 import type { JSX } from 'solid-js'
+
+function readChannel(buffer: OptimizedBuffer, offset: number, channel: 'fg' | 'bg'): RGBA {
+  const frame = buffer as OptimizedBuffer & {
+    withBuffers?: <T>(read: (cells: OptimizedBuffer['buffers']) => T) => T
+  }
+
+  return frame.withBuffers
+    ? frame.withBuffers((cells) => new RGBA(cells[channel].slice(offset, offset + 4)))
+    : new RGBA(buffer.buffers[channel].slice(offset, offset + 4))
+}
 
 const theme = {
   text: '#ffffff',
@@ -210,7 +220,7 @@ test('MCP favorite toggles reorder rows without changing server state', async ()
     const buffer = setup.renderer.currentRenderBuffer
     const offset = (row * buffer.width + column) * 4
 
-    expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex(theme.primary))).toBe(true)
+    expect(readChannel(buffer, offset, 'bg').equals(RGBA.fromHex(theme.primary))).toBe(true)
     await setup.mockMouse.click(column, row)
     await setup.flush()
     const frame = setup.captureCharFrame()
@@ -765,11 +775,9 @@ test('sidebar settings uses a three-cell control aligned to the title edge', asy
     const offset = (dateRow * setup.renderer.currentRenderBuffer.width + dateColumn) * 4
 
     expect(frame).not.toContain(uiIcon('idle'))
-    expect(
-      new RGBA(setup.renderer.currentRenderBuffer.buffers.fg.slice(offset, offset + 4)).equals(
-        RGBA.fromHex(theme.textMuted),
-      ),
-    ).toBe(true)
+    expect(readChannel(setup.renderer.currentRenderBuffer, offset, 'fg').equals(RGBA.fromHex(theme.textMuted))).toBe(
+      true,
+    )
     await setup.mockMouse.moveTo(control.screenX + 1, control.screenY)
     await setup.flush()
     expect(setup.captureCharFrame()).toContain(

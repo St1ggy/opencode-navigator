@@ -453,10 +453,15 @@ test('filter enter takes real focus, j/k type, and two escapes return then leave
     const lines = setup.captureCharFrame().split('\n')
     const y = lines.findIndex((line) => line.includes(text))
     const x = lines[y].indexOf(text)
-    const buffer = setup.renderer.currentRenderBuffer
+    const buffer = setup.renderer.currentRenderBuffer as typeof setup.renderer.currentRenderBuffer & {
+      withBuffers?: <T>(read: (cells: typeof setup.renderer.currentRenderBuffer.buffers) => T) => T
+    }
     const offset = (y * buffer.width + x) * 4
+    const fg = buffer.withBuffers
+      ? buffer.withBuffers((cells) => cells.fg.slice(offset, offset + 4))
+      : buffer.buffers.fg.slice(offset, offset + 4)
 
-    expect(new RGBA(buffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex(color))).toBe(true)
+    expect(new RGBA(fg).equals(RGBA.fromHex(color))).toBe(true)
   }
 
   try {
