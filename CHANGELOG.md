@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## [0.22.0] - 2026-10-22
+
+- Pin Quick Actions and Skills to a compact sidebar toolbar independently of bookmarks. Choose icons in a searchable picker, customize supported state icons, reorder buttons, and select a More menu or wrapping rows. Preserve Skill confirmations, unavailable reasons, keyboard navigation, and Text fallback; hide the toolbar entirely when empty.
+- Use OpenCode 2's built-in Todo history for the sidebar, with native completed-write and revert semantics, existing filters/progress, and manual Refresh. Keep edits in ordinary chat, preserve previous Navigator tasks as a read-only archive, and retain the independent provider-quota server integration.
+- Support OpenCode 2.1's plugin and rendering APIs while retaining the OpenCode 1.x adapter; restore custom dialogs and rounded selections on the newer native renderer.
+- Replace the shortcut toast with an icon-led hint featuring highlighted keys, navigation/update groups, a distinct Escape action, and responsive Text/no-corner-font layouts. Keep prompt focus and share its action list with scrollable keyboard help.
+- Update Subagent status immediately from OpenCode 2's execution lifecycle and keep unresolved external credentials separate from verified provider accounts.
+- Keep OpenCode updates on the current major line and preserve pinned-source Navigator updates when a target release needs newer runtime dependencies.
 
 ## [0.21.8] - 2026-10-09
 
@@ -112,6 +119,7 @@
 
 Earlier release notes are available on [GitHub Releases](https://github.com/St1ggy/opencode-navigator/releases).
 
+[0.22.0]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.8...v0.22.0
 [0.21.8]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.7...v0.21.8
 [0.21.7]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.6...v0.21.7
 [0.21.6]: https://github.com/St1ggy/opencode-navigator/compare/v0.21.5...v0.21.6

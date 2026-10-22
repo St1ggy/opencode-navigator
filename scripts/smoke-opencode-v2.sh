@@ -93,6 +93,11 @@ cat >"$temporary/workspace/.opencode/navigator.json" <<JSON
 }
 JSON
 
+# Never inherit a developer's alternate client/server configuration.
+unset OPENCODE_CONFIG OPENCODE_CONFIG_CONTENT OPENCODE_TUI_CONFIG OPENCODE_TUI_CONFIG_CONTENT OPENCODE_CLI_CONFIG
+export OPENCODE_DISABLE_PROJECT_CONFIG=true
+export OPENCODE_DISABLE_EXTERNAL_SKILLS=true
+export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=true
 export HOME="$temporary/home"
 export XDG_CACHE_HOME="$temporary/cache"
 export XDG_CONFIG_HOME="$temporary/config"
@@ -126,24 +131,22 @@ TODO_JSON="$todo_json" bun --eval '
   const value = JSON.parse(process.env.TODO_JSON)
   const todo = value.output ?? value.data?.output
   if (!todo || !Array.isArray(todo.todos) || todo.guidance !== false)
-    throw new Error("Navigator Todo server RPC did not initialize with instructions off")
+    throw new Error("Navigator legacy Todo archive did not initialize")
 '
 
-"$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.todo --param method=replace --data "{\"input\":{\"sessionID\":\"$session_id\",\"todos\":[{\"content\":\"Smoke task\",\"status\":\"pending\"}]},\"location\":{\"directory\":\"$temporary/workspace\"}}" >/dev/null
-todo_json="$("$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.todo --param method=list --data "{\"input\":{\"sessionID\":\"$session_id\"},\"location\":{\"directory\":\"$temporary/workspace\"}}")"
-TODO_JSON="$todo_json" bun --eval '
-  const value = JSON.parse(process.env.TODO_JSON)
-  const todo = value.output ?? value.data?.output
-  if (todo?.todos?.[0]?.content !== "Smoke task" || todo.guidance !== false)
-    throw new Error("Navigator Todo did not persist across server processes")
+quota_json="$("$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.quotas --param method=capabilities --data "{\"input\":{},\"location\":{\"directory\":\"$temporary/workspace\"}}")"
+QUOTA_JSON="$quota_json" bun --eval '
+  const value = JSON.parse(process.env.QUOTA_JSON)
+  if (!Array.isArray(value.output ?? value.data?.output))
+    throw new Error("The provider quota server did not initialize independently of Todo")
 '
 
 expect <<'EXPECT'
   log_user 0
   log_file -a -noappend $env(OPENCODE_V2_SMOKE_TRANSCRIPT)
   set timeout 30
+  set stty_init "rows 40 columns 120"
   spawn -noecho $env(OPENCODE_V2_SMOKE_BIN) $env(OPENCODE_V2_SMOKE_WORKSPACE) --standalone --session $env(OPENCODE_V2_SMOKE_SESSION_ID) --print-logs --log-level debug
-  stty rows 40 columns 120
   after 100
   send -- "\033]10;rgb:ffff/ffff/ffff\007"
   send -- "\033]11;rgb:0000/0000/0000\007"
@@ -154,6 +157,11 @@ expect <<'EXPECT'
   send -- "\033\[?0u\033\[?1;2c\033\[4;800;1200t\033\[1;3R\033\[1;3R"
   send -- "\033]99;i=opentui-notifications:p=0;\007"
   send -- "\033]1337;Capabilities=\007"
+  expect {
+    -re {OpenCode Navigator 2.x smoke} {}
+    eof { puts stderr "OpenCode 2 exited before rendering the existing session"; exit 1 }
+    timeout { puts stderr "OpenCode 2 did not render the existing session"; exit 1 }
+  }
   set deadline [expr {[clock seconds] + 30}]
   while {![file exists $env(OPENCODE_V2_SMOKE_MARKER)]} {
     if {[clock seconds] >= $deadline} {
@@ -175,7 +183,7 @@ expect <<'EXPECT'
     }
   }
   after 1000
-  send -- "\033"
+  send -- "\033\[27u"
   after 200
   send -- "\033\[44;5u"
   set timeout 10
@@ -184,16 +192,38 @@ expect <<'EXPECT'
     timeout { puts stderr "Navigator Settings did not open in OpenCode 2"; exit 1 }
     eof { puts stderr "OpenCode 2 exited while opening Navigator Settings"; exit 1 }
   }
-  send -- "\033"
-  # OpenCode 2 tears down dialog keymap layers asynchronously.
-  after 1000
-  send -- "\033"
+  after 300
+  send -- "\t\t\t"
+  after 300
+  for {set index 0} {$index < 10} {incr index} { send -- "\033\[B"; after 40 }
+  send -- "\r"
+  expect {
+    -re {Add Quick Action} {}
+    timeout { puts stderr "Pinned toolbar manager did not open in OpenCode 2"; exit 1 }
+    eof { puts stderr "OpenCode 2 exited while opening the toolbar manager"; exit 1 }
+  }
+  send -- "\r"
+  expect { -re {Choose icons before pinning} {} timeout { puts stderr "Toolbar action inventory did not open in OpenCode 2"; exit 1 } }
+  send -- "\r"
+  expect { -re {Base icon} {} timeout { puts stderr "Toolbar pin configuration did not open in OpenCode 2"; exit 1 } }
+  send -- "\r"
+  expect { -re {Choose an icon} {} timeout { puts stderr "Toolbar icon picker did not open in OpenCode 2"; exit 1 } }
+  for {set index 0} {$index < 4} {incr index} { send -- "\033\[27u"; after 500 }
+  send -- "\033\[27u"
+  after 300
+  send -- "\033\[66;6u"
+  expect {
+    -re {Navigator shortcuts} {}
+    timeout { puts stderr "Navigator shortcut hint did not render in OpenCode 2"; exit 1 }
+    eof { puts stderr "OpenCode 2 exited while opening Navigator shortcuts"; exit 1 }
+  }
+  send -- "\033\[27u"
   after 300
   send -- "\033y"
   expect {
     -re {Search Everything} {}
     timeout {
-      send -- "\033"
+      send -- "\033\[27u"
       after 1000
       send -- "\033y"
       expect {
@@ -204,7 +234,7 @@ expect <<'EXPECT'
     }
     eof { puts stderr "OpenCode 2 exited while opening Search Everything"; exit 1 }
   }
-  send -- "\033"
+  send -- "\033\[27u"
   after 200
   send -- "\003"
   after 200
@@ -246,8 +276,8 @@ expect <<'EXPECT'
   log_user 0
   log_file -a -noappend $env(OPENCODE_V2_SMOKE_NEW_TRANSCRIPT)
   set timeout 30
+  set stty_init "rows 40 columns 120"
   spawn -noecho $env(OPENCODE_V2_SMOKE_BIN) $env(OPENCODE_V2_SMOKE_WORKSPACE) --standalone --session $env(OPENCODE_V2_SMOKE_SESSION_ID) --print-logs --log-level debug
-  stty rows 40 columns 120
   after 100
   send -- "\033]10;rgb:ffff/ffff/ffff\007"
   send -- "\033]11;rgb:0000/0000/0000\007"

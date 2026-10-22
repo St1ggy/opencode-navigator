@@ -94,6 +94,14 @@ Search does close when the session or workspace changes. Preserving the window i
 
 There is no universal sidebar. One session revolves around subagents, another around MCP, and sometimes Todo is enough. I therefore made visibility, order, expansion, and row count configurable for every section. Quick Actions can also be hidden and reordered.
 
+For actions I reach for repeatedly, I added a small pinned toolbar above the sections.
+I can pin a Quick Action or a Skill, choose its icon, and leave its regular bookmark
+alone. The picker lets me give the 1.x auto-approve toggle separate On and Off
+icons; on 2.x, the Compact action can show when compaction is running. Buttons
+without an observable state keep their base icon. I can wrap a longer toolbar into
+rows or keep one row with a More menu. Removing the last pin removes the panel
+and its spacing. Skill confirmations still apply when I launch from an icon.
+
 Navigator works with an explicit allowlist of argument-free OpenCode commands. It includes `Rename`, `Timeline`, `Copy transcript`, `Export`, `Compact`, session navigation, creating and forking sessions, copying the last response, and message navigation. In OpenCode 1.x, the permissions action toggles auto-approve directly and Navigator can remember that choice as a user-wide default for future sessions. In 2.x, it opens the host Settings dialog so I can switch Session → Permissions between `prompt` and `auto accept` there; `cli.json` sets the default for new sessions. Actions can be bookmarked to place them first, in configured order, both in the sidebar and in search. Usage frequency never changes that order, and even a bookmarked action can be hidden. If a command is unavailable on the current screen or in the installed OpenCode version, its row remains visible and explains why.
 
 ![Section settings](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/13-settings-sections.png)
@@ -117,6 +125,8 @@ The layout and desired MCP states for the selected scope can be copied as versio
 A mouse is optional. `Ctrl+Shift+F` moves focus into the sidebar. `Up`/`Down` and `j`/`k` move between visual rows, `Left`/`Right` move among controls on one row, `Enter` activates the selection, and `Escape` returns focus.
 
 Pressing `?` opens keyboard help. `Ctrl+Shift+B` starts a temporary shortcut mode: `h` toggles sidebar visibility, while `t`, `a`, `s`, `q`, `l`, and `m` focus Todo, Subagents, Skills, Quick Actions, LSP, and MCP. The shortcuts for this mode, direct focus, and search can be changed in settings when the terminal intercepts the defaults.
+
+I replaced the long shortcut toast with a compact hint: an icon beside each action, highlighted keys, navigation in one group, and updates in another. `c` checks for a Navigator update; `u` checks and opens the confirmation. Escape has its own row. The hint leaves focus in the prompt and fits a narrow terminal, including in Text fallback. It closes after a choice or five seconds, so I can glance at it without opening another dialog.
 
 ![Keyboard navigation help](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/25-keyboard-help.png)
 
@@ -220,9 +230,9 @@ OpenCode 1.x uses `.opencode/tui.json` for a project installation and `~/.config
 }
 ```
 
-OpenCode 2.0.16 does not expose host Todo or LSP data to TUI plugins. To keep my tasks when I reopen a session, I added a separate server plugin. Put `"plugin": ["opencode-navigator"]` in `~/.config/opencode/opencode.json` alongside the TUI entry in `cli.json`, then restart OpenCode.
+In OpenCode 2.1 I enable `"experimental": { "todo": true }` in the host's server configuration and ask the agent to use its built-in `todowrite`. Navigator reads the same completed tool calls as the native sidebar and follows the current revert boundary. I keep filters, grouping, progress, and Refresh in the sidebar; task edits happen in chat. The native schema has text and four statuses, without priorities.
 
-The agent can update that session's list with `navigator_todo_write`. **Todo instructions** is a separate switch: it starts Off and adds task guidance to model context only when I turn it on. Without the server plugin, Todo explains how to connect it. LSP remains hidden on 2.x.
+Native Todo viewing needs no Navigator server plugin. I still use the optional server entry `"plugin": ["opencode-navigator"]` for provider quotas and read-only access to the earlier Navigator task archive. For a 2.x-only installation it can live in `~/.config/opencode/opencode.json`; when running both major versions, I pass the 2.x-only settings through `OPENCODE_CONFIG`. Earlier tasks remain available for an explicit transfer through chat. OpenCode owns the native tool's instructions, and LSP remains hidden on 2.x.
 
 For rounded multiline highlights in Nerd Font mode, install the additional font on the machine running the terminal:
 
@@ -232,7 +242,7 @@ npx --yes --package=opencode-navigator opencode-navigator-font
 
 The installer requires Node.js 20+ and npm. After installation, fully quit and reopen the terminal application, not only OpenCode. You do not need to change your primary Nerd Font. If you prefer not to install the fallback font, disable `Settings → Behavior → Multiline corner font`; Nerd Font icons remain enabled.
 
-The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is published on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains a [gallery of all 38 states](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots): Todo and Subagent filters, all four search tabs, settings, saved presets, Skill confirmation, first-run onboarding, and text mode.
+The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is published on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains a [gallery of interface states](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots): Todo and Subagent filters, all four search tabs, settings, saved presets, Skill confirmation, first-run onboarding, and text mode.
 
 ## What Comes Next
 

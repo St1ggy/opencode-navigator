@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 
 const scene = process.env.SCREENSHOT_SCENE ?? 'hero'
 const hasCornerFont = process.env.SCREENSHOT_NO_CORNER_FONT !== 'true'
+const textStyle = ['text-fallback', 'limits-text', 'sidebar-shortcuts-text', 'toolbar-text'].includes(scene)
 const stateRoot = process.env.XDG_STATE_HOME
 const workspace = '/workspace/atlas-console'
 const sessionID = 'ses_01J00000000000000000000000'
@@ -46,7 +47,8 @@ const preferences = {
       searchKey: 'alt+y',
       persistMcp: false,
       cornerFont: hasCornerFont,
-      lspIconStyle: scene === 'text-fallback' || scene === 'limits-text' ? 'text' : 'nerd',
+      lspIconStyle: textStyle ? 'text' : 'nerd',
+      toolbarOverflow: scene === 'toolbar-wrap' ? 'wrap' : 'menu',
       sectionItemLimits: { todo: 3, subagents: 2, skills: 2, quick_actions: 3, lsp: 3, mcp: 3 },
     },
     layout: {
@@ -65,6 +67,15 @@ const preferences = {
     },
   },
   user: {
+    ...(scene.startsWith('toolbar-') && { toolbarPins: [
+      { kind: 'action', id: 'permission.mode', icon: 'shield', stateIcons: { on: 'unlock', off: 'lock' } },
+      { kind: 'action', id: 'session.new', icon: 'plus' },
+      { kind: 'skill', name: 'review-changes', location: `${workspace}/.opencode/skills/review-changes/SKILL.md`, icon: 'code' },
+      ...(['toolbar-wrap', 'toolbar-overflow'].includes(scene) ? [
+        ...['session.rename', 'session.timeline', 'session.copy', 'session.export', 'session.compact', 'session.list', 'session.fork', 'messages.copy', 'session.first', 'session.last', 'session.messages_last_user', 'session.message.next', 'session.message.previous'].map((id) => ({ kind: 'action', id, icon: 'bolt' })),
+        { kind: 'skill', name: 'write-docs', location: `${workspace}/.opencode/skills/write-docs/SKILL.md`, icon: 'book' },
+      ] : []),
+    ] }),
     ...(scene.startsWith('limits-') && !['limits-link', 'limits-unavailable'].includes(scene) && {
       codexAccountBindings: { '["openai","synthetic-codex"]': 'synthetic-codex-account' },
     }),
@@ -126,7 +137,7 @@ const config = {
       'file:///harness/fixture-plugin.mjs',
       {
         persist_mcp: false,
-        icon_style: scene === 'text-fallback' || scene === 'limits-text' ? 'text' : 'nerd',
+        icon_style: textStyle ? 'text' : 'nerd',
         focus_key: 'ctrl+shift+f',
         search_key: 'alt+y',
         toggle_key: 'ctrl+shift+b',

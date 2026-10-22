@@ -1,4 +1,4 @@
-import navigator from '/workspace/dist/tui.js'
+import navigator, { TodoSection, createNativeTodoController } from '/workspace/dist/tui.js'
 
 const FIXTURE_NOW = 1_893_456_000_000
 const DIRECTORY = '/workspace/atlas-console'
@@ -119,6 +119,8 @@ function openLimitsRefreshSettings(dispatch) {
 }
 
 function fixtureReadyDelay() {
+  if (SCENE.startsWith('toolbar-')) return 5000
+
   if (SCENE === 'setup-sections') return 4800
 
   if (SCENE === 'settings-import-preview') return 3400
@@ -155,6 +157,35 @@ function openSearchScene(api, dispatch, later) {
   if (SCENE === 'skill-confirmation') later(500, 'opencode-navigator.search-dialog.select')
 
   if (SCENE.startsWith('search-')) setTimeout(() => api.renderer.currentFocusedRenderable?.blur(), 1000)
+}
+
+function openToolbarScene(api, dispatch, later) {
+  if (['toolbar-manager', 'toolbar-pin', 'toolbar-picker'].includes(SCENE)) {
+    dispatch('opencode-navigator.toolbar')
+
+    if (SCENE !== 'toolbar-manager') {
+      setTimeout(() => {
+        dispatch('opencode-navigator.selection-menu.next')
+        dispatch('opencode-navigator.selection-menu.next')
+        dispatch('opencode-navigator.selection-menu.select')
+      }, 700)
+      later(1200, 'opencode-navigator.selection-menu.select')
+
+      if (SCENE === 'toolbar-picker') later(1900, 'opencode-navigator.selection-menu.select')
+    }
+  }
+
+  if (SCENE === 'toolbar-overflow') {
+    dispatch('opencode-navigator.focus')
+    setTimeout(() => {
+      dispatch('opencode-navigator.navigation.next')
+      const toolbar = api.renderer.root.findDescendantById('opencode-navigator.toolbar')
+      const columns = Math.max(1, Math.floor(((toolbar?.width ?? 3) + 1) / 4))
+
+      for (let index = 1; index < columns; index++) dispatch('opencode-navigator.navigation.right')
+      dispatch('opencode-navigator.navigation.activate')
+    }, 650)
+  }
 }
 
 function service(target, methods) {
@@ -249,7 +280,7 @@ const plugin = {
           const unsubscribe = target.on(eventType, callback)
 
           if (eventType === 'installation.update-available')
-            setTimeout(() => callback({ properties: { version: '999.0.0' } }), 100)
+            setTimeout(() => callback({ properties: { version: `${api.app.version.split('.', 1)[0]}.999.0` } }), 100)
 
           if (SCENE === 'subagents-errors' && eventType === 'session.error')
             setTimeout(
@@ -282,9 +313,33 @@ const plugin = {
           : originalFetch(input, init),
     })
 
+    const slots = service(api.slots, {
+      register(contribution) {
+        if (SCENE !== 'todo-native' || !contribution.slots.sidebar_content) return api.slots.register(contribution)
+
+        return api.slots.register({ ...contribution, slots: { ...contribution.slots, sidebar_content(_context, input) {
+          const nativeMessages = [{
+            id: 'msg_fixture_native', type: 'assistant', agent: 'build', model: { providerID: 'synthetic-provider', id: 'synthetic-model' }, time: { created: FIXTURE_NOW },
+            content: [{ type: 'tool', id: 'call_fixture_native', name: 'todowrite', time: { created: FIXTURE_NOW }, state: { status: 'completed', input: { todos: todos.map(({ content, status }) => ({ content, status })) }, content: [{ type: 'text', text: 'Synthetic native task list' }] } }],
+          }]
+          const context = { data: { session: { get: () => ({}), sync: async () => {}, message: { list: () => nativeMessages, sync: async () => {} } } } }
+          const controller = createNativeTodoController(context, fixtureApi)
+
+          return TodoSection({ api: fixtureApi, controller, sessionID: input.session_id, preferences: { expanded: () => ({ todo: true }), toggleSectionExpanded: () => {} } })
+        } } })
+      },
+    })
+
+    const keymap = service(api.keymap, { getCommands(input) {
+      return api.keymap.getCommands(input).map((command) => command.name === 'permission.mode' && SCENE.startsWith('toolbar-')
+        ? { ...command, title: `${SCENE === 'toolbar-on' ? 'Disable' : 'Enable'} auto-approve permissions` }
+        : command)
+    } })
+    const fixtureApi = new Proxy(api, { get: (target, property) => ({ state, client, event, slots, keymap })[property] ?? target[property] })
+
     try {
       await navigator.tui(
-        new Proxy(api, { get: (target, property) => ({ state, client, event })[property] ?? target[property] }),
+        fixtureApi,
         options,
         meta,
       )
@@ -304,6 +359,8 @@ const plugin = {
         later(1000, 'opencode-navigator.navigation.right')
         later(1200, 'opencode-navigator.navigation.activate')
       }
+
+      openToolbarScene(api, dispatch, later)
 
       if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {
         dispatch('opencode-navigator.focus.limits')
@@ -426,6 +483,9 @@ const plugin = {
     }, 1200)
     setTimeout(() => {
       renderFullFixtureTree(api.renderer.root)
+
+      if (SCENE.startsWith('sidebar-shortcuts')) api.keymap.dispatchCommand('opencode-navigator.sidebar-shortcuts.enter')
+
       api.renderer.requestRender()
       void Bun.write('/tmp/navigator-fixture.ready', 'ready\n')
     }, fixtureReadyDelay())

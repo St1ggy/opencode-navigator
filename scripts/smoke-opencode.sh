@@ -84,6 +84,11 @@ cat >"$config" <<JSON
 }
 JSON
 
+# Never inherit a developer's alternate client/server configuration.
+unset OPENCODE_CONFIG OPENCODE_CONFIG_CONTENT OPENCODE_CLI_CONFIG OPENCODE_CLI_CONFIG_CONTENT OPENCODE_TUI_CONFIG_CONTENT
+export OPENCODE_DISABLE_PROJECT_CONFIG=true
+export OPENCODE_DISABLE_EXTERNAL_SKILLS=true
+export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=true
 export HOME="$temporary/home"
 export XDG_CACHE_HOME="$temporary/cache"
 export XDG_CONFIG_HOME="$temporary/config"
@@ -122,8 +127,8 @@ expect <<'EXPECT'
   log_user 0
   log_file -a -noappend $env(OPENCODE_SMOKE_TRANSCRIPT)
   set timeout 20
+  set stty_init "rows 40 columns 120"
   spawn -noecho opencode $env(OPENCODE_SMOKE_WORKSPACE) --session $env(OPENCODE_SMOKE_SESSION_ID) --print-logs --log-level DEBUG
-  stty rows 40 columns 120
   after 100
   send -- "\033]10;rgb:ffff/ffff/ffff\007"
   send -- "\033]11;rgb:0000/0000/0000\007"
@@ -156,7 +161,7 @@ expect <<'EXPECT'
   }
   # Preferences can be persisted before the app slot finishes registering keymaps.
   after 1000
-  send -- "\033"
+  send -- "\033\[27u"
   after 200
   send -- "\033y"
   set timeout 10
@@ -188,7 +193,7 @@ expect <<'EXPECT'
     timeout { puts stderr "Search Everything did not filter its results"; exit 1 }
     eof { puts stderr "OpenCode exited while searching"; exit 1 }
   }
-  send -- "\033"
+  send -- "\033\[27u"
   after 200
   send -- "\033\[44;5u"
   expect {
@@ -196,8 +201,31 @@ expect <<'EXPECT'
     timeout { puts stderr "Navigator Settings did not open via Ctrl+,"; exit 1 }
     eof { puts stderr "OpenCode exited while opening Navigator Settings"; exit 1 }
   }
-  send -- "\033"
-  after 1000
+  after 300
+  send -- "\t\t\t"
+  after 300
+  for {set index 0} {$index < 11} {incr index} { send -- "\033\[B"; after 40 }
+  send -- "\r"
+  expect {
+    -re {Add Quick Action} {}
+    timeout { puts stderr "Pinned toolbar manager did not open"; exit 1 }
+    eof { puts stderr "OpenCode exited while opening the toolbar manager"; exit 1 }
+  }
+  send -- "\r"
+  expect { -re {Choose icons before pinning} {} timeout { puts stderr "Toolbar action inventory did not open"; exit 1 } }
+  send -- "\r"
+  expect { -re {Base icon} {} timeout { puts stderr "Toolbar pin configuration did not open"; exit 1 } }
+  send -- "\r"
+  expect { -re {Choose an icon} {} timeout { puts stderr "Toolbar icon picker did not open"; exit 1 } }
+  for {set index 0} {$index < 5} {incr index} { send -- "\033\[27u"; after 350 }
+  send -- "\033\[66;6u"
+  expect {
+    -re {Navigator shortcuts} {}
+    timeout { puts stderr "Navigator shortcut hint did not render"; exit 1 }
+    eof { puts stderr "OpenCode exited while opening Navigator shortcuts"; exit 1 }
+  }
+  send -- "\033\[27u"
+  after 300
   send -- "\030"
   after 100
   send -- "n"

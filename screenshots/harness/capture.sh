@@ -65,7 +65,10 @@ ghostty --config-default-files=false --config-file=/harness/ghostty.conf -e /har
 ghostty_pid=$!
 
 window_id=$(timeout 30s xdotool search --sync --onlyvisible --limit 1 --class org.opencode.navigator.screenshot)
-xdotool windowsize "$window_id" 1440 900
+capture_width=1440
+if [[ "$scene" == "sidebar-shortcuts-narrow" ]]; then capture_width=480; fi
+if [[ "$scene" == "toolbar-narrow" ]]; then capture_width=760; fi
+xdotool windowsize "$window_id" "$capture_width" 900
 xdotool windowmove "$window_id" 0 0
 if ! timeout 80s bash -c 'until [[ -e /tmp/navigator-fixture.ready ]]; do sleep 0.05; done'; then
   import -display "$DISPLAY" -window root -crop 1440x900+0+0 /tmp/timeout.png
@@ -78,6 +81,9 @@ sleep 1
 case "$scene" in
   search-skills | search-subagents | search-mcp | search-actions) sleep 1 ;;
   limits-ready | limits-credits | limits-confirmation | limits-count-only | limits-unavailable | limits-text | limits-link) ;;
+  sidebar-shortcuts | sidebar-shortcuts-text | sidebar-shortcuts-narrow) ;;
+  todo-native) ;;
+  toolbar-off | toolbar-on | toolbar-manager | toolbar-pin | toolbar-picker | toolbar-overflow | toolbar-wrap | toolbar-text | toolbar-narrow) ;;
   hero | todo-active | todo-finished | subagents-all | subagents-errors | sidebar-skills | sidebar-actions-lsp | sidebar-mcp | search-skills | search-subagents | search-mcp | search-actions | settings-sections | settings-scope | settings-presets | settings-behavior | settings-defaults | settings-portability | settings-trusted-skills | settings-skill-groups | settings-mcp-groups | settings-limits-refresh | settings-control-hover | quick-actions-settings | layout-preset-menu | layout-preset-preview | mcp-presets | mcp-preset-actions | mcp-preset-preview | mcp-error | skill-confirmation | keyboard-help | text-fallback) ;;
   settings-import-preview)
     sleep 1
@@ -98,6 +104,6 @@ else
   xdotool mousemove 1599 999
 fi
 sleep 0.25
-import -display "$DISPLAY" -window root -crop 1440x900+0+0 /tmp/capture.png
+import -display "$DISPLAY" -window root -crop "${capture_width}x900+0+0" /tmp/capture.png
 convert /tmp/capture.png +repage -alpha off -strip PNG24:/out/"$output"
 identify /out/"$output"

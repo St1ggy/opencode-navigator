@@ -6,6 +6,42 @@ Every task, session, workspace, path, skill, server, error, and preset is synthe
 The v0.21.8 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed.
 
+## Shortcut Hint Capture Coverage
+
+The harness also registers four shortcut-hint scenes for the next manual
+**Prepare Release** run. They cover grouped actions and highlighted keys with
+Nerd Font icons, Text fallback, a narrow Ghostty window, and Nerd Font icons
+without the additional corner font. The expected filenames are
+`48-sidebar-shortcuts.png`, `49-sidebar-shortcuts-text.png`,
+`50-sidebar-shortcuts-narrow.png`, and `51-no-corner-font-sidebar-shortcuts.png`.
+These new captures must be generated and checked for reproducibility before
+publication; the committed gallery above still describes the last verified set.
+
+The `todo-native` scene additionally renders the real native-history projection
+and Todo component from fully synthetic OpenCode 2 message snapshots. Its
+`52-native-todo.png` capture covers native statuses, read-only chat guidance,
+filters/progress, and Refresh without creating host tool events or invoking a
+model. It uses the pinned Ghostty harness host for deterministic presentation;
+real OpenCode 2 compatibility is checked separately by the PTY matrix.
+
+## Pending Toolbar Captures
+
+The next **Prepare Release** run also generates the following synthetic scenes.
+These PNG files have not yet been captured or checked for reproducibility.
+
+| File | Interaction |
+| --- | --- |
+| `53-toolbar-permissions-off.png` | Pinned actions and Skill, permissions Off icon |
+| `54-toolbar-permissions-on.png` | Same pin with the observed On icon |
+| `55-toolbar-manager.png` | Private ordered pin inventory |
+| `56-toolbar-pin-icons.png` | Base and supported state-icon configuration |
+| `57-toolbar-icon-picker.png` | Searchable icon catalogue and selected preview |
+| `58-toolbar-overflow.png` | More menu with remaining buttons |
+| `59-toolbar-wrapping.png` | Multiple compact button rows |
+| `60-toolbar-text.png` | Single-cell Text fallbacks |
+| `61-toolbar-narrow.png` | Narrow-terminal toolbar |
+| `62-no-corner-font-icon-picker.png` | Nerd Font picker without Navigator corner masks |
+
 ## Provider Limits
 
 | File | Synthetic interaction |

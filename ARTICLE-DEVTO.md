@@ -102,6 +102,17 @@ Quick Actions call an explicit allowlist of OpenCode's argument-free commands ra
 
 The focus, search, and sidebar shortcuts can all be changed at runtime. By default, `Ctrl+Shift+B` opens a temporary shortcut mode: `h` toggles the panel, while `t`, `a`, `s`, `q`, `l`, and `m` focus Todo, Subagents, Skills, Quick Actions, LSP, and MCP. Some terminals do not distinguish `Ctrl+Shift+B` from `Ctrl+B`, so the mode may need a terminal-friendly binding such as `Alt+S`.
 
+For a shorter path to frequently used commands, I added a pinned icon toolbar at
+the top of the sidebar content. A pin is separate from a bookmark: I can put a
+Skill in the toolbar without moving it in its normal list. The searchable icon
+picker includes text-mode fallbacks and per-state choices where the host exposes
+them, including the 1.x permissions toggle and 2.x compaction. Overflow is a
+Behavior setting: one row with More, or wrapping rows. Skill confirmation still
+runs, unavailable buttons explain why they cannot run, and an empty toolbar uses
+no space. On 2.x, the host title stays above it.
+
+The hint now has icons and highlighted key tokens instead of a pipe-separated paragraph. Section navigation and updates have their own groups, with Escape on a separate row. I use `c` to check for an update and `u` to check then confirm it. The panel keeps focus in the prompt, wraps for narrower terminals, and respects the icon and corner-font settings. Keyboard help gets its action list from the same source.
+
 Settings cover section visibility, order, item limits, global or current-worktree scope, named layout presets, MCP persistence, icon style, and Quick Action ordering. Behavior changes apply immediately. A seven-step first-run guide introduces the same controls, then lets me choose the visible sections on its final screen.
 
 If I change saved settings in another OpenCode window, **Reload settings from file** brings them into this one without restarting. It waits for my local writes, then refreshes the layout, behavior, favorites, groups, and presets. I save a layout as the default before reloading it elsewhere; temporary per-session layout edits are intentionally discarded by the reload.
@@ -218,13 +229,19 @@ The command updates the `plugins` array in the global `~/.config/opencode/cli.js
 
 OpenCode 2.x has no project-local `cli.json`. Navigator replaces the `sidebar.content` slot, so the built-in sidebar overrides required for OpenCode 1.x are not needed.
 
-OpenCode 2.0.16 does not expose host Todo or LSP state to TUI plugins. To use Todo,
-I put `"plugin": ["opencode-navigator"]` in `~/.config/opencode/opencode.json` as
-well as the TUI entry above, then restart OpenCode. The server plugin keeps tasks
-per session and gives the agent a `navigator_todo_write` tool. A separate
-**Todo instructions** switch starts Off; turning it on adds task guidance to the
-model context for that session. If the server plugin is missing, the sidebar
-explains how to enable it. LSP remains hidden on OpenCode 2.x.
+On OpenCode 2.1, I enable `"experimental": { "todo": true }` in the host server
+configuration and use its built-in `todowrite` through ordinary chat. Navigator
+reads the same completed calls as the native sidebar, including the session's
+revert boundary. Filters, status groups, progress, Refresh, and retry stay in the
+sidebar. The host's Todo schema has content and four statuses, without priority.
+
+The optional Navigator server entry `"plugin": ["opencode-navigator"]` now serves
+provider quotas and the read-only archive of earlier Navigator tasks; native Todo
+viewing works without it. On a 2.x-only installation it can live in
+`~/.config/opencode/opencode.json`. When keeping 1.x too, I pass these 2.x-only
+settings through `OPENCODE_CONFIG`. I can review the archive and transfer its
+content/statuses through chat. OpenCode owns the native tool's instructions;
+LSP remains hidden on 2.x.
 
 ### Rounded selections and the corner font
 

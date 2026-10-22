@@ -62,7 +62,7 @@ verification workflow before expanding the product surface.
 - [x] Enforce a 360,000-byte raw bundle budget through `bun run check` and CI.
 - [x] Add verified runtime and package compatibility for both OpenCode 1.18.30+ and OpenCode 2.x, with explicit adapters for host API differences and a real local OpenCode 2.0.16 client smoke.
 - [x] Verify a user-managed 2.x transition with parallel 1.x `tui.json` and 2.x `cli.json` client configurations.
-- [x] Refresh the development SDK/runtime dependencies and compatibility fixtures for OpenCode 1.18.34 and the latest stable OpenCode 2.x.
+- [x] Refresh the development SDK/runtime dependencies and compatibility fixtures for OpenCode 1.18.34 and the OpenCode 2.0.21 reference baseline.
 
 ### Keyboard Navigation
 
@@ -86,11 +86,40 @@ verification workflow before expanding the product surface.
 - [x] Keep deterministic layout, MCP, and import previews with Nerd Font icons but rectangular multiline highlights when the additional corner font is disabled.
 - [x] Verify the migrated global `cli.json` and Navigator package wrapper in the real OpenCode 2.0.16 TUI while retaining the separate OpenCode 1.x `tui.json` configuration.
 - [x] Restore OpenCode 2.x visual parity for Navigator and keep Todo visible with setup guidance when its server Todo API is unavailable.
-- [x] Provide a Navigator-owned OpenCode 2 Todo server plugin with durable per-session RPC, an agent Todo tool, reactive sidebar updates, and an off-by-default per-session control for model-context Todo guidance; keep OpenCode 1.x host Todo unchanged.
+- [x] Preserve the initial Navigator-owned OpenCode 2 task storage as a read-only archive after moving the primary view to native Todo; the former agent tool and extra context guidance are retired, while OpenCode 1.x host Todo remains unchanged.
 - [x] Show quiet OpenCode 2 Todo server setup guidance without a request error or Retry when its RPC is not installed; retain retry for other errors and configure local dual-host OpenCode clients without loading the v2 server plugin in 1.x.
 - [x] Add a separate required real-host OpenCode 2.x PTY smoke while retaining the OpenCode 1.x compatibility smoke.
 - [x] Establish separate local `oc`/`opencode` and `oc2`/`opencode2` launch routing; verify both interactive zsh wrappers and executable PATH commands with `--version`.
 - [x] Replace the local npm-managed OpenCode 1.x and 2.x installs with Homebrew 1.18.34 and 2.0.21 while retaining the same four command names, compatibility with already-open shells, and separate startup configurations.
+
+### Pinned Action And Skill Toolbar
+
+- [x] Add an icon toolbar at the top of sidebar content, below the host title on OpenCode 2.x, with pins separate from existing bookmarks; render no toolbar or reserved spacing when it is empty.
+- [x] Add an icon picker to pin configuration, with separately configurable icons for each supported observable function state and reactive state changes.
+- [x] Reuse existing action/Skill invocation, confirmations and scope guards; support mouse and keyboard, themes, Text fallback, unavailable items and narrow terminals.
+- [x] Offer configurable single-row overflow with a More menu or wrapping toolbar rows.
+- [x] Verify private atomic preference persistence, nested picker drafts/cancellation, row navigation, light/narrow rendering, and shared deferred host registries. Full check: 429 passing tests, one opt-in skip; 350,726 / 360,000-byte main bundle. Expanded real-host smokes pass on 1.18.30, 1.19.3, 2.0.21, and 2.1.0.
+- [x] Register ten fully synthetic toolbar/picker/state/menu/wrapping/Text/narrow/no-corner scenes and update public documentation.
+- [ ] Generate and verify the new PNG captures through Prepare Release, then complete the existing CI/publication gates.
+
+### Native OpenCode 2 Todo Migration
+
+- [x] Audit the exact OpenCode 2.1.0 native Todo tool, public plugin/client interfaces, and built-in sidebar projection: `experimental.todo` enables a content/status-only `todowrite`; the host reads its latest completed call before the revert boundary.
+- [x] Replace Navigator-owned Todo as the primary OpenCode 2 source with public native message snapshots and revert semantics; retain legacy data behind a read-only archive RPC, retire the custom writer/guidance, and remove the server dependency from native viewing.
+- [x] Resolve the management interaction: the user selected native viewing only, retaining filters/grouping/progress and normal chat edits through `todowrite`; no agent-application workflow or fabricated CRUD. Direct UI writes and priorities remain dependent on future host capabilities.
+- [x] Verify native completed/running/streaming/error calls, clearing, duplicate/large-list fidelity, reactive snapshots, revert, stale refresh failures, lifecycle disposal, filters/progress and mouse Refresh. Full check: 415 passing tests and one opt-in skip; all four real-host smokes pass. Public documents are updated and the synthetic native-view capture is registered for Prepare Release.
+
+### Current Host Compatibility Delivery
+
+- [x] Upgrade the local Homebrew hosts to stable OpenCode 1.19.3 and 2.1.0, verify all four executable names and interactive launch routing, and preserve the pinned Navigator installation and all 14 recorded configuration/preference/launcher paths.
+- [x] Run the current bundle against OpenCode 1.19.3 and the 2.0.21 regression reference; both real-host smokes pass. Reproduce the 2.1.0 failure to open Navigator Settings after successful plugin setup and durable Todo RPC checks; compatibility with 2.1.0 remains unverified.
+- [x] Audit the published 1.19.3 TUI surface and the 2.1.0 SDK/runtime contracts, and record an ordered implementation plan and progress tracker under ignored `vibe/`.
+- [x] Complete the explicit OpenCode 2.0.21-to-2.1.0 plugin API inventory and isolate the Settings failure: OpenTUI 0.6.6 paint hooks cannot sample the destination frame. Resolve selection backdrops from presentation ancestors and use scoped framebuffer access in pixel tests.
+- [x] Align SDKs with OpenCode 1.19.3/2.1.0 and OpenTUI 0.6.6, retain the separate Effect families, and verify target-runtime snapshot migration, legacy-installer compatibility, cached-target validation, and a real packed installation.
+- [x] Verify keymaps, dialogs, slots, model/variant controls, and source-preserving updates on both host lines; reject cross-major host updates and retain the 1.18.30 minimum and 2.0.21 reference.
+- [x] Map public execution events to immediate Subagent status, handle external credential references explicitly, and verify Todo RPC/tool/context, native quota HTTP hooks, account-switch invalidation, and reset-credit guards with version-faithful fixtures.
+- [x] Replace the shortcut toast with an icon-led hint, highlighted keys, navigation/update groups, a separate Escape row, Text/no-corner fallback, and responsive layout; preserve prompt focus and share its action inventory with keyboard help, including keyboard scrolling.
+- [~] Configure the required four-host CI matrix and pass all four local real-host smokes plus the full check pipeline (415 passing tests, one opt-in skip). Four shortcut scenes and one native Todo scene are registered; updated GitHub CI and Prepare Release PNG generation/reproducibility remain release gates before publication.
 
 ## Product Direction
 
@@ -173,7 +202,7 @@ verification workflow before expanding the product surface.
 - [x] Replace block quota meters with adaptive full-width thin lines, remove technical account/window-duration suffixes from reset rows, and verify clipping inside narrow, padded sidebar containers and after resize.
 - [x] Regenerate and verify the adaptive thin-line quota captures through Prepare Release; screenshot PR #21 passed CI and merged with all 46 captures reproducible.
 - [x] Refresh the compact Limits captures and remove the obsolete Provider sources PNG through Prepare Release; screenshot PR #20 passed CI and merged with all 46 captures reproducible.
-- [ ] Investigate the newly installed OpenCode 2.0.22 local smoke behavior and update the current host compatibility baseline; the existing 2.0.21 reference smoke passes, while the 2.0.22 run completes Navigator setup but does not open Settings through the smoke shortcut.
+- [x] Resolve the previous 2.0.22/2.1.0 Settings-smoke follow-up through the native-paint API migration; Settings, Search, shortcut mode, and New session pass on 1.18.30, 1.19.3, 2.0.21, and 2.1.0. The remaining publication gates are tracked above.
 - [x] Refresh the Codex account-quota captures through Prepare Release before publishing the nullable-model-metadata fix; screenshot PR #19 passed CI and merged with all 47 captures reproducible and ordinary account buckets instead of fabricated matching model slugs.
 - [x] Generate and verify the new Provider sources screenshot plus updated account-binding captures through Prepare Release; screenshot PR #18 passed CI and merged with all 47 captures reproducible.
 - [ ] Extend native-balance and configured-capacity screenshot scenes when the harness supports the OpenCode 2 server path.
@@ -218,7 +247,7 @@ public OpenCode TUI or stable authenticated provider API:
 - Editing Todo status or priority.
 - Restarting LSP servers or exposing diagnostic counters.
 - Switching agents or models when no public TUI command is available.
-- Following OpenCode 1.x prompt-model selection before message submission; versions through 1.18.35 expose only the saved session model, so an immediate read requires a new public host accessor or event.
+- Following OpenCode 1.x prompt-model selection before message submission; the public TUI surface rechecked at 1.19.3 still exposes only the saved session model, so an immediate read requires a new public host accessor or event.
 - Showing session or subagent token, context-window, and cost summaries.
 - Reading provider quota data without a stable authenticated API.
 - Showing recently changed files or workspace diagnostics.
@@ -226,7 +255,7 @@ public OpenCode TUI or stable authenticated provider API:
 
 ## Suggested Delivery Order
 
-1. Complete the remaining section improvements.
-2. Add portable project-local profiles after the settings schema has settled.
+1. Deliver the pinned Action/Skill toolbar, then finish the remaining publication gates in Current Host Compatibility Delivery.
+2. Complete the remaining section improvements.
 3. Add provider and CLI adapters only where stable supported quota APIs are available.
 4. Finish performance, accessibility, bundle, and release polish for 1.0.

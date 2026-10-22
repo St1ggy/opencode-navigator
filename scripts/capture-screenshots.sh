@@ -5,7 +5,7 @@ set -Eeuo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 image="opencode-navigator-screenshots:local"
 mode="${1:-generate}"
-scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link settings-limits-refresh)
+scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link settings-limits-refresh sidebar-shortcuts sidebar-shortcuts-text sidebar-shortcuts-narrow no-corner-sidebar-shortcuts todo-native toolbar-off toolbar-on toolbar-manager toolbar-pin toolbar-picker toolbar-overflow toolbar-wrap toolbar-text toolbar-narrow no-corner-toolbar-picker)
 
 file_for_scene() {
   case "$1" in
@@ -56,6 +56,21 @@ file_for_scene() {
     no-corner-limits-credits) printf '%s\n' 45-no-corner-font-reset-credits.png ;;
     limits-link) printf '%s\n' 46-limits-account-link.png ;;
     settings-limits-refresh) printf '%s\n' 47-limits-refresh-settings.png ;;
+    sidebar-shortcuts) printf '%s\n' 48-sidebar-shortcuts.png ;;
+    sidebar-shortcuts-text) printf '%s\n' 49-sidebar-shortcuts-text.png ;;
+    sidebar-shortcuts-narrow) printf '%s\n' 50-sidebar-shortcuts-narrow.png ;;
+    no-corner-sidebar-shortcuts) printf '%s\n' 51-no-corner-font-sidebar-shortcuts.png ;;
+    todo-native) printf '%s\n' 52-native-todo.png ;;
+    toolbar-off) printf '%s\n' 53-toolbar-permissions-off.png ;;
+    toolbar-on) printf '%s\n' 54-toolbar-permissions-on.png ;;
+    toolbar-manager) printf '%s\n' 55-toolbar-manager.png ;;
+    toolbar-pin) printf '%s\n' 56-toolbar-pin-icons.png ;;
+    toolbar-picker) printf '%s\n' 57-toolbar-icon-picker.png ;;
+    toolbar-overflow) printf '%s\n' 58-toolbar-overflow.png ;;
+    toolbar-wrap) printf '%s\n' 59-toolbar-wrapping.png ;;
+    toolbar-text) printf '%s\n' 60-toolbar-text.png ;;
+    toolbar-narrow) printf '%s\n' 61-toolbar-narrow.png ;;
+    no-corner-toolbar-picker) printf '%s\n' 62-no-corner-font-icon-picker.png ;;
     *) return 1 ;;
   esac
 }
@@ -87,6 +102,8 @@ for scene in "${scenes[@]}"; do
     no-corner-mcp-preview) fixture_scene=mcp-preset-preview; no_corner_font=true ;;
     no-corner-import-preview) fixture_scene=settings-import-preview; no_corner_font=true ;;
     no-corner-limits-credits) fixture_scene=limits-credits; no_corner_font=true ;;
+    no-corner-sidebar-shortcuts) fixture_scene=sidebar-shortcuts; no_corner_font=true ;;
+    no-corner-toolbar-picker) fixture_scene=toolbar-picker; no_corner_font=true ;;
   esac
   docker run --rm --platform linux/arm64 \
     -e "SCREENSHOT_SCENE=$fixture_scene" \
