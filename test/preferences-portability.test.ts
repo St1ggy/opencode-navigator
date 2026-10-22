@@ -35,7 +35,7 @@ describe('portable settings', () => {
           density: 'wide',
         },
         mcp: { future: 'enabled' },
-        behavior: {},
+        behavior: { future: true },
       }),
     )
 
@@ -45,7 +45,12 @@ describe('portable settings', () => {
       order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
     })
     expect(result.settings.mcp).toEqual({ future: 'enabled' })
-    expect(result.unsupported).toEqual(['/behavior', '/layout/density', '/layout/order/0', '/layout/sections/agents'])
+    expect(result.unsupported).toEqual([
+      '/behavior/future',
+      '/layout/density',
+      '/layout/order/0',
+      '/layout/sections/agents',
+    ])
   })
 
   test('supports partial and explicit empty imports', () => {

@@ -41,6 +41,7 @@ export function pluginConfig(options: Record<string, unknown> | undefined): Plug
     sectionOrder: parseSectionOrder(options?.section_order) ?? [...SIDEBAR_SECTIONS],
     lspIconStyle: iconStyle === 'text' ? 'text' : 'nerd',
     rowDensity: options?.row_density === 'comfortable' ? 'comfortable' : 'compact',
+    toolbarOverflow: options?.toolbar_overflow === 'wrap' ? 'wrap' : 'menu',
     sectionItemLimits: parseSectionItemLimits(options?.section_item_limits),
     quickActionOrder: parseQuickActionOrder(options?.quick_action_order) ?? [...QUICK_ACTION_IDS],
     quickActionVisibility: parseQuickActionVisibility(options?.quick_action_visibility),

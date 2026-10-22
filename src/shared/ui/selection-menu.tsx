@@ -1,4 +1,5 @@
 import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
+import { useTerminalDimensions } from '@opentui/solid'
 import { For, createEffect, onCleanup } from 'solid-js'
 
 import { PLUGIN_ID } from '../config'
@@ -17,11 +18,14 @@ export function SelectionMenu(props: {
   title: string
   options: SelectionOption[]
   height?: number
+  lift?: boolean
+  adaptive?: boolean
   onSelect: (option: SelectionOption) => void
 }) {
   const icons = useIcons()
   const dialogs = useDialogs(props.api)
   const scroll = useDialogScroll()
+  const dimensions = useTerminalDimensions()
   const [active, setActive] = useDialogState('selection', 0)
   const theme = () => props.api.theme.current
   let body: ScrollBoxRenderable | undefined
@@ -57,7 +61,7 @@ export function SelectionMenu(props: {
   onCleanup(unregister)
 
   return (
-    <DialogSurface api={props.api}>
+    <DialogSurface api={props.api} lift={props.lift}>
       <box flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={theme().text}>
           {icons.icon('presets')} {props.title}
@@ -73,7 +77,14 @@ export function SelectionMenu(props: {
         }}
         renderBefore={scroll.restore}
         renderAfter={scroll.save}
-        height={props.height ?? Math.min(props.options.length * 3, 15)}
+        height={
+          props.adaptive
+            ? Math.min(
+                props.height ?? Math.min(props.options.length * 3, 15),
+                Math.max(2, Math.floor(dimensions().height * 0.75) - 8),
+              )
+            : (props.height ?? Math.min(props.options.length * 3, 15))
+        }
         scrollX={false}
       >
         <box gap={1}>

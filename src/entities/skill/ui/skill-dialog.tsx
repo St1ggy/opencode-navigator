@@ -1,16 +1,17 @@
-import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core'
-import { createSignal, onCleanup } from 'solid-js'
+import { type ScrollBoxRenderable } from '@opentui/core'
+import { onCleanup } from 'solid-js'
 
 import { PLUGIN_ID } from '../../../shared/config'
-import { BookmarkControl, DialogSurface, useDialogs, useIcons } from '../../../shared/ui'
+import { type DialogNavigation, DialogSurface, useDialogState, useDialogs } from '../../../shared/ui'
 
 import { SkillConfirmation } from './skill-confirmation'
 import { SkillDetails } from './skill-details'
+import { SkillDialogHeader } from './skill-dialog-header'
 
 import type { SkillInfo } from '../model/controller'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-type SkillDialogAction = 'accept' | 'cancel' | 'favorite'
+type SkillDialogAction = 'accept' | 'cancel' | 'favorite' | 'configure'
 
 export function SkillDialog(props: {
   api: TuiPluginApi
@@ -19,12 +20,11 @@ export function SkillDialog(props: {
   favoriteDisabled: boolean
   onToggleFavorite: () => void
   onAccept: (skipConfirmation: boolean) => void
+  onConfigure?: (navigation: DialogNavigation) => void
 }) {
-  const icons = useIcons()
   const dialogs = useDialogs(props.api)
-  const [skipConfirmation, setSkipConfirmation] = createSignal(false)
-  const [active, setActive] = createSignal<SkillDialogAction>('accept')
-  const theme = () => props.api.theme.current
+  const [skipConfirmation, setSkipConfirmation] = useDialogState('skill-skip', false)
+  const [active, setActive] = useDialogState<SkillDialogAction>('skill-action', 'accept')
   let body: ScrollBoxRenderable | undefined
 
   function accept() {
@@ -42,6 +42,9 @@ export function SkillDialog(props: {
     const actions: SkillDialogAction[] = props.favoriteDisabled
       ? ['accept', 'cancel']
       : ['accept', 'cancel', 'favorite']
+
+    if (props.onConfigure) actions.push('configure')
+
     const index = actions.indexOf(active())
 
     setActive(actions[(index + offset + actions.length) % actions.length])
@@ -50,13 +53,14 @@ export function SkillDialog(props: {
   function submit() {
     if (active() === 'accept') accept()
     else if (active() === 'cancel') cancel()
+    else if (active() === 'configure') props.onConfigure?.(dialogs)
     else if (!props.favoriteDisabled) props.onToggleFavorite()
   }
 
   function confirmationAction(): 'accept' | 'cancel' | undefined {
     const action = active()
 
-    return action === 'favorite' ? undefined : action
+    return action === 'favorite' || action === 'configure' ? undefined : action
   }
 
   const unregister = props.api.keymap.registerLayer({
@@ -99,40 +103,17 @@ export function SkillDialog(props: {
 
   return (
     <DialogSurface api={props.api}>
-      <box flexDirection="row" justifyContent="space-between" alignItems="center">
-        <text attributes={TextAttributes.BOLD} fg={theme().text}>
-          {icons.icon('skills')} {props.skill.name}
-        </text>
-        <box flexDirection="row" gap={1} alignItems="center">
-          <BookmarkControl
-            bookmarked={props.favorite}
-            backgroundColor={active() === 'favorite' ? theme().primary : undefined}
-            foregroundColor={
-              props.favoriteDisabled
-                ? theme().textMuted
-                : active() === 'favorite'
-                  ? theme().selectedListItemText
-                  : theme().warning
-            }
-            onMouseOver={() => {
-              if (!props.favoriteDisabled) setActive('favorite')
-            }}
-            onMouseUp={() => {
-              if (!props.favoriteDisabled) props.onToggleFavorite()
-            }}
-          />
-          <text
-            fg={theme().textMuted}
-            onMouseDown={(event) => event.stopPropagation()}
-            onMouseUp={(event) => {
-              event.stopPropagation()
-              cancel()
-            }}
-          >
-            {icons.key('esc')}
-          </text>
-        </box>
-      </box>
+      <SkillDialogHeader
+        api={props.api}
+        name={props.skill.name}
+        favorite={props.favorite}
+        favoriteDisabled={props.favoriteDisabled}
+        active={active()}
+        onActive={setActive}
+        onFavorite={props.onToggleFavorite}
+        onConfigure={props.onConfigure ? () => props.onConfigure?.(dialogs) : undefined}
+        onCancel={cancel}
+      />
       <SkillDetails api={props.api} skill={props.skill} ref={(node) => (body = node)} />
       <SkillConfirmation
         api={props.api}

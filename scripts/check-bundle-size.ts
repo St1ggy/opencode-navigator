@@ -25,6 +25,10 @@ for (const name of [
   'layout-preset-actions',
   'provider-limits',
   'navigator-updates',
+  'sidebar-shortcuts',
+  'icon-picker',
+  'sidebar-settings',
+  'toolbar-settings',
 ]) {
   const dialog = Bun.file(new URL(`../dist/${name}.js`, import.meta.url))
 

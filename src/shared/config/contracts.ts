@@ -39,6 +39,7 @@ export type PluginSettings = {
   // Legacy persisted key; the style now controls every Navigator icon.
   lspIconStyle: 'nerd' | 'text'
   rowDensity: SidebarRowDensity
+  toolbarOverflow: 'menu' | 'wrap'
   sectionItemLimits: SectionItemLimits
   quickActionOrder: QuickActionId[]
   quickActionVisibility: QuickActionVisibility

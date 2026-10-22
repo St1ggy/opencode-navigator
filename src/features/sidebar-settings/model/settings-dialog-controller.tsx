@@ -104,7 +104,7 @@ export function createSettingsDialogController(props: {
   }
 
   function runPresetAction(action: 'open' | 'prompt', name?: string) {
-    const path = import.meta.url.includes('/dist/tui.js') ? './layout-preset-actions.js' : './layout-preset-actions'
+    const path = import.meta.url.includes('/dist/') ? './layout-preset-actions.js' : './layout-preset-actions'
 
     void import(path)
       .then((module) => {

@@ -2,11 +2,13 @@ import { For, Match, Switch, createMemo, onCleanup } from 'solid-js'
 
 import { PLUGIN_ID } from '../../../shared/config'
 import { supportsSidebarSection } from '../../../shared/lib/host-capabilities'
+import { ToolbarProvider } from '../model/toolbar-context'
 
 import { LspSection } from './lsp-section'
 import { McpSection } from './mcp-section'
 import { QuickActionsSection } from './quick-actions-section'
 import { SectionBoundary } from './section-boundary'
+import { SidebarToolbar } from './sidebar-toolbar'
 import { SkillsSection } from './skill-section'
 import { SubagentSection } from './subagent-section'
 import { TodoSection } from './todo-section'
@@ -43,48 +45,51 @@ export function SidebarContent(props: {
   onCleanup(() => props.interaction.setContentRoot(undefined))
 
   return (
-    <box
-      ref={(node: BoxRenderable) => props.interaction.setContentRoot(node)}
-      id={`${PLUGIN_ID}.root`}
-      focusable
-      gap={1}
-      on:focused={props.interaction.syncFocus}
-      on:blurred={props.interaction.syncFocus}
-      onKeyDown={(event) => {
-        if (event.name !== 'escape' || event.defaultPrevented) return
+    <ToolbarProvider api={props.api} preferences={props.preferences} skills={props.skills}>
+      <box
+        ref={(node: BoxRenderable) => props.interaction.setContentRoot(node)}
+        id={`${PLUGIN_ID}.root`}
+        focusable
+        gap={1}
+        on:focused={props.interaction.syncFocus}
+        on:blurred={props.interaction.syncFocus}
+        onKeyDown={(event) => {
+          if (event.name !== 'escape' || event.defaultPrevented) return
 
-        event.preventDefault()
-        event.stopPropagation()
-        props.interaction.leave()
-      }}
-    >
-      <For each={visibleSections()}>
-        {(section, index) => (
-          <SectionBoundary api={props.api} divided={index() < visibleSections().length - 1}>
-            <Switch>
-              <Match when={section === 'limits'}>{props.limitsSection(index() + 1)}</Match>
-              <Match when={section === 'todo'}>
-                <TodoSection {...props} navigationSection={index() + 1} controller={props.todo} />
-              </Match>
-              <Match when={section === 'subagents'}>
-                <SubagentSection {...props} navigationSection={index() + 1} controller={props.subagents} />
-              </Match>
-              <Match when={section === 'skills'}>
-                <SkillsSection {...props} navigationSection={index() + 1} controller={props.skills} />
-              </Match>
-              <Match when={section === 'quick_actions'}>
-                <QuickActionsSection {...props} navigationSection={index() + 1} />
-              </Match>
-              <Match when={section === 'lsp'}>
-                <LspSection {...props} navigationSection={index() + 1} />
-              </Match>
-              <Match when={section === 'mcp'}>
-                <McpSection {...props} navigationSection={index() + 1} controller={props.mcp} />
-              </Match>
-            </Switch>
-          </SectionBoundary>
-        )}
-      </For>
-    </box>
+          event.preventDefault()
+          event.stopPropagation()
+          props.interaction.leave()
+        }}
+      >
+        <SidebarToolbar {...props} />
+        <For each={visibleSections()}>
+          {(section, index) => (
+            <SectionBoundary api={props.api} divided={index() < visibleSections().length - 1}>
+              <Switch>
+                <Match when={section === 'limits'}>{props.limitsSection(index() + 1)}</Match>
+                <Match when={section === 'todo'}>
+                  <TodoSection {...props} navigationSection={index() + 1} controller={props.todo} />
+                </Match>
+                <Match when={section === 'subagents'}>
+                  <SubagentSection {...props} navigationSection={index() + 1} controller={props.subagents} />
+                </Match>
+                <Match when={section === 'skills'}>
+                  <SkillsSection {...props} navigationSection={index() + 1} controller={props.skills} />
+                </Match>
+                <Match when={section === 'quick_actions'}>
+                  <QuickActionsSection {...props} navigationSection={index() + 1} />
+                </Match>
+                <Match when={section === 'lsp'}>
+                  <LspSection {...props} navigationSection={index() + 1} />
+                </Match>
+                <Match when={section === 'mcp'}>
+                  <McpSection {...props} navigationSection={index() + 1} controller={props.mcp} />
+                </Match>
+              </Switch>
+            </SectionBoundary>
+          )}
+        </For>
+      </box>
+    </ToolbarProvider>
   )
 }

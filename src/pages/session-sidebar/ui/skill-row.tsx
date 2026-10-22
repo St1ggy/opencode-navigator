@@ -1,8 +1,12 @@
+import { Show } from 'solid-js'
+
 import { PLUGIN_ID } from '../../../shared/config'
 import { ListRow, useIcons } from '../../../shared/ui'
+import { useToolbar } from '../model/toolbar-context'
 
 import { createSidebarBookmark } from './sidebar-bookmark'
 import { useSidebarItem } from './sidebar-item'
+import { SidebarPinControl } from './sidebar-pin-control'
 import { useSidebarList } from './sidebar-row-list'
 
 import type { SkillInfo } from '../../../entities/skill'
@@ -21,6 +25,7 @@ export function SkillRow(props: {
 }) {
   const { api, interaction, grouped } = useSidebarList()
   const icons = useIcons()
+  const toolbar = useToolbar()
   const id = () => `${PLUGIN_ID}.skill.${props.item.location || props.item.name}`
   const row = useSidebarItem(api, interaction, {
     id: id(),
@@ -56,6 +61,15 @@ export function SkillRow(props: {
           {props.recent ? `${icons.icon('recent')} ` : ''}
           {props.item.name}
         </text>
+      }
+      trailing={
+        <Show when={toolbar}>
+          <SidebarPinControl
+            id={id()}
+            position={props.position}
+            pin={{ kind: 'skill', name: props.item.name, location: props.item.location, icon: 'book' }}
+          />
+        </Show>
       }
     />
   )

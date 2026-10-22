@@ -1,9 +1,19 @@
 export { default } from './app'
+export * from './entities/quick-action'
+export * from './shared/lib/host-capabilities'
+export { createNativeTodoController } from './app/opencode-v2'
+export { TodoSection } from './pages/session-sidebar'
 export {
   DialogSurface,
   DialogAction,
   DialogHeader,
   GuardedConfirmation,
+  IconControl,
+  IconPicker,
+  Tab,
+  terminalIcon,
+  terminalIconIDs,
+  terminalIconLabel,
   PresetMenu,
   SelectionMenu,
   SelectionBox,
@@ -21,7 +31,6 @@ export {
   KeyboardHelpDialog,
   LspBadge,
   McpSection,
-  QUICK_ACTIONS,
   Section,
   SectionFilter,
   SettingsDialog,

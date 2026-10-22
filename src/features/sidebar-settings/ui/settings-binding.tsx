@@ -1,6 +1,7 @@
 import { onCleanup } from 'solid-js'
 
 import { PLUGIN_ID } from '../../../shared/config'
+import { openToolbarManager } from '../model/toolbar-dialog-loader'
 
 import { openSettings } from './settings-dialog'
 
@@ -25,6 +26,16 @@ export function SettingsBinding(props: {
         namespace: 'palette',
         enabled: () => ['home', 'session'].includes(props.api.route.current.name),
         run: () => openSettings(props.api, props.preferences, undefined, props.mcp, props.skills),
+      },
+      {
+        name: `${PLUGIN_ID}.toolbar`,
+        title: 'Manage pinned toolbar',
+        category: 'Navigator',
+        namespace: 'palette',
+        enabled: () => ['home', 'session'].includes(props.api.route.current.name),
+        run: () => {
+          void openToolbarManager(props)
+        },
       },
     ],
     // String bindings treat commas as separators, so punctuation uses an object stroke.

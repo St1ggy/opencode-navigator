@@ -1,6 +1,5 @@
 import solidPlugin from '@opentui/solid/bun-plugin'
-import { readdir, unlink } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import { rm } from 'node:fs/promises'
 
 type ScannerState = 'code' | 'single' | 'double' | 'template' | 'line-comment' | 'block-comment'
 type ScannerTransition = { state: ScannerState; escaped: boolean; consumeNext?: boolean }
@@ -204,11 +203,15 @@ function consolidateGeneratedHelpers(source: string) {
   )
 }
 
+// Never package obsolete chunks or a previous build's inferred directory tree.
+await rm('dist', { recursive: true, force: true })
+
 const result = await Bun.build({
   entrypoints: ['src/tui.tsx'],
   outdir: 'dist',
   target: 'bun',
   format: 'esm',
+  naming: { entry: '[name].[ext]' },
   external: [
     '@opencode-ai/plugin',
     '@opencode/plugin',
@@ -248,11 +251,16 @@ const dialogs = await Bun.build({
     'src/layout-preset-actions.ts',
     'src/provider-limits.ts',
     'src/navigator-updates.ts',
+    'src/sidebar-shortcuts.ts',
+    'src/icon-picker.ts',
+    'src/sidebar-settings.ts',
+    'src/toolbar-settings.ts',
   ],
   outdir: 'dist',
   target: 'bun',
   format: 'esm',
   splitting: true,
+  naming: { entry: '[name].[ext]' },
   external: [
     '@opencode-ai/plugin',
     '@opencode/plugin',
@@ -266,7 +274,13 @@ const dialogs = await Bun.build({
     {
       name: 'share-navigator-ui',
       setup(build) {
-        build.onResolve({ filter: /shared\/ui(?:$|\/)/ }, () => ({ path: './tui.js', external: true }))
+        build.onResolve({ filter: /(?:shared\/lib\/host-capabilities|entities\/quick-action)$/ }, () => ({
+          path: './tui.js',
+          external: true,
+        }))
+        build.onResolve({ filter: /shared\/ui(?:$|\/)/ }, (args) =>
+          args.importer.endsWith('/src/icon-picker.ts') ? undefined : { path: './tui.js', external: true },
+        )
       },
     },
   ],
@@ -282,19 +296,13 @@ for (const output of dialogs.outputs) {
     await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
 }
 
-const generated = new Set(dialogs.outputs.map((output) => basename(output.path)))
-const outputFiles = await readdir('dist')
-
-for (const name of outputFiles) {
-  if (/^chunk-[\da-z]+\.js$/u.test(name) && !generated.has(name)) await unlink(join('dist', name))
-}
-
 for (const entrypoint of ['src/server.ts', 'src/rpc.ts', 'src/project-profile.ts']) {
   const server = await Bun.build({
     entrypoints: [entrypoint],
     outdir: 'dist',
     target: 'bun',
     format: 'esm',
+    naming: { entry: '[name].[ext]' },
     external: [
       '@opencode/plugin',
       '@github/copilot-sdk',
@@ -315,3 +323,12 @@ for (const entrypoint of ['src/server.ts', 'src/rpc.ts', 'src/project-profile.ts
     if (output.kind === 'entry-point') await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
   }
 }
+
+const metadata = (await Bun.file('package.json').json()) as { devDependencies: Record<string, string> }
+const runtimePackages = ['@opencode/plugin', '@opentui/core', '@opentui/keymap', '@opentui/solid', 'solid-js']
+const runtimeDependencies = Object.fromEntries(runtimePackages.map((name) => [name, metadata.devDependencies[name]]))
+
+await Bun.write(
+  'dist/runtime-dependencies.json',
+  `${JSON.stringify({ version: 1, dependencies: runtimeDependencies }, null, 2)}\n`,
+)

@@ -1,9 +1,10 @@
 import { For, Show, createSignal } from 'solid-js'
 
-import { SkillDialog } from '../../../entities/skill'
+import { activateSkill } from '../../../entities/skill'
 import { PLUGIN_ID } from '../../../shared/config'
 import { useDialogs } from '../../../shared/ui'
 import { createSkillSectionModel } from '../model/skill-section-model'
+import { useToolbar } from '../model/toolbar-context'
 
 import { ListVisibilityControl } from './list-visibility'
 import { SectionRequestBody } from './request-body'
@@ -25,35 +26,23 @@ export function SkillsSection(props: {
   navigationSection?: number
 }) {
   const dialogs = useDialogs(props.api)
+  const toolbar = useToolbar()
   const [query, setQuery] = createSignal('')
   const model = createSkillSectionModel(props, query)
   const navigationSection = () => props.navigationSection ?? 3
 
   function selectSkill(item: SkillInfo) {
-    if (!props.preferences.shouldConfirmSkill(item)) {
-      void model.useSkill(item)
-
-      return
-    }
-
-    showSkillDetails(item)
-  }
-
-  function showSkillDetails(item: SkillInfo) {
-    dialogs.open(() => (
-      <SkillDialog
-        api={props.api}
-        skill={item}
-        favorite={props.preferences.isFavoriteSkill?.(item) ?? false}
-        favoriteDisabled={props.preferences.ready?.() === false}
-        onToggleFavorite={() => props.preferences.toggleFavoriteSkill?.(item)}
-        onAccept={(skipConfirmation) => {
-          if (skipConfirmation) props.preferences.skipSkillConfirmation(item)
-
-          void model.useSkill(item)
-        }}
-      />
-    ))
+    activateSkill({
+      api: props.api,
+      controller: props.controller,
+      access: props.preferences,
+      dialogs,
+      skill: item,
+      onConfigure: toolbar
+        ? (navigation) =>
+            toolbar.configure({ kind: 'skill', name: item.name, location: item.location, icon: 'book' }, navigation)
+        : undefined,
+    })
   }
 
   return (

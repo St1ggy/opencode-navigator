@@ -2,9 +2,11 @@ import { Show, createMemo, createSignal } from 'solid-js'
 
 import { PLUGIN_ID } from '../../../shared/config'
 import { ListRow, useIcons } from '../../../shared/ui'
+import { useToolbar } from '../model/toolbar-context'
 
 import { createSidebarBookmark } from './sidebar-bookmark'
 import { useSidebarItem } from './sidebar-item'
+import { SidebarPinControl } from './sidebar-pin-control'
 import { useSidebarList } from './sidebar-row-list'
 
 import type { QUICK_ACTIONS } from '../../../entities/quick-action'
@@ -23,6 +25,7 @@ export function QuickActionRow(props: {
 }) {
   const { api, interaction } = useSidebarList()
   const icons = useIcons()
+  const toolbar = useToolbar()
   const theme = () => api.theme.current
   const [width, setWidth] = createSignal(0)
   const shortcut = createMemo(() => {
@@ -37,7 +40,9 @@ export function QuickActionRow(props: {
     const value = shortcut()
 
     // Row padding, the leading bookmark and icon, and their gap consume eight cells.
-    return value && width() >= Bun.stringWidth(props.action.label) + Bun.stringWidth(value) + 8 ? value : undefined
+    return value && width() >= Bun.stringWidth(props.action.label) + Bun.stringWidth(value) + (toolbar ? 11 : 8)
+      ? value
+      : undefined
   })
 
   function run() {
@@ -114,6 +119,15 @@ export function QuickActionRow(props: {
               {value()}
             </text>
           )}
+        </Show>
+      }
+      trailing={
+        <Show when={toolbar}>
+          <SidebarPinControl
+            id={id()}
+            position={props.position}
+            pin={{ kind: 'action', id: props.action.command, icon: 'bolt' }}
+          />
         </Show>
       }
       details={

@@ -21,6 +21,7 @@ import {
 } from '../../../shared/config'
 
 import { migrateCodexAccountBindings as parseCodexAccountBindings } from './codex-account-bindings'
+import { type ToolbarPin, parseToolbarPins } from './toolbar-pins'
 
 export type {
   DesiredMcpState,
@@ -72,6 +73,7 @@ export type PreferencesDocument = {
     mcpServerGroups?: McpServerGroups
     skillGroups?: SkillGroups
     autoApprovePermissions?: boolean
+    toolbarPins?: ToolbarPin[]
     codexAccountBindings?: Record<string, string>
     pendingResetAttempt?: PendingResetAttempt
   }
@@ -123,6 +125,9 @@ export function parsePluginSettings(value: unknown): Partial<PluginSettings> {
       limitsRefreshMinutes: parseLimitsRefreshMinutes(input.limitsRefreshMinutes),
     }),
     ...(typeof input.startInChat === 'boolean' && { startInChat: input.startInChat }),
+    ...((input.toolbarOverflow === 'menu' || input.toolbarOverflow === 'wrap') && {
+      toolbarOverflow: input.toolbarOverflow,
+    }),
     ...(typeof input.showSessionTitle === 'boolean' && { showSessionTitle: input.showSessionTitle }),
     ...(typeof input.showSessionDate === 'boolean' && { showSessionDate: input.showSessionDate }),
     ...(typeof input.cornerFont === 'boolean' && { cornerFont: input.cornerFont }),
@@ -374,6 +379,9 @@ export function parsePreferencesDocument(value: unknown): PreferencesDocument {
         autoApprovePermissions: userInput.autoApprovePermissions,
       }),
       ...(Object.keys(workspaceProfiles).length > 0 && { workspaceProfiles }),
+      ...(parseToolbarPins(userInput?.toolbarPins).length > 0 && {
+        toolbarPins: parseToolbarPins(userInput?.toolbarPins),
+      }),
     },
   }
 }

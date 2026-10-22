@@ -9,6 +9,7 @@ import { createV2Keymap } from './keymap-adapter'
 import { createV2SessionAdapter } from './session-adapter'
 import { createV2Slots } from './slots-adapter'
 import { legacyTheme } from './theme-adapter'
+import { bindToolbarActionState } from './toolbar-action-state'
 import { createV2UI } from './ui-adapter'
 
 import type { Plugin } from '@opencode/plugin/tui'
@@ -121,6 +122,7 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     titleVisibility: false,
     permissionMode: false,
   })
+  bindToolbarActionState(context, api)
 
   return {
     api,

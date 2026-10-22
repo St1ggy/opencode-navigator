@@ -33,6 +33,7 @@ import {
   parseSkillGroups,
   parseWorkspaceProfiles,
 } from './schema'
+import { type ToolbarPinUpdate, changeToolbarPins } from './toolbar-pins'
 
 type LockOwner = {
   token: string
@@ -69,6 +70,7 @@ export type PreferencesUpdate = {
     mcpServerGroup?: { name: string; group?: string }
     skillGroup?: { location: string; group?: string }
     autoApprovePermissions?: boolean
+    toolbarPin?: ToolbarPinUpdate
     codexAccountBinding?: { providerID: string; modelID?: string; connectionID?: string; accountID?: string }
     pendingResetAttempt?: PendingResetAttempt
     clearPendingResetAttempt?: string
@@ -125,7 +127,10 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     update.target ?? (update.mcp?.scope ? targetForLegacyScope(update.mcp.scope) : { kind: 'global' as const })
   const existing = targetPreferences(current, target)
 
-  if (update.expectedScope && update.expectedScope !== JSON.stringify({ layout: existing.layout, mcp: existing.mcp })) {
+  if (
+    update.expectedScope &&
+    update.expectedScope !== JSON.stringify({ layout: existing.layout, mcp: existing.mcp, behavior: existing.behavior })
+  ) {
     throw new Error('Settings changed after this preview; reopen the import preview')
   }
 
@@ -343,6 +348,9 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
     typeof update.user?.onboardingCompleted === 'boolean'
       ? update.user.onboardingCompleted
       : current.user.onboardingCompleted
+  const toolbarPins = update.user?.toolbarPin
+    ? changeToolbarPins(current.user.toolbarPins, update.user.toolbarPin)
+    : current.user.toolbarPins
 
   return {
     global: target.kind === 'global' ? scope : current.global,
@@ -352,6 +360,7 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
         skippedSkillConfirmations: [...skippedSkillConfirmations].sort(),
       }),
       ...(typeof onboardingCompleted === 'boolean' && { onboardingCompleted }),
+      ...(toolbarPins?.length && { toolbarPins }),
       ...((update.user?.lastNavigatorVersion ?? current.user.lastNavigatorVersion) && {
         lastNavigatorVersion: update.user?.lastNavigatorVersion ?? current.user.lastNavigatorVersion,
       }),

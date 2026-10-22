@@ -31,6 +31,7 @@ import {
   resolvePreferences,
 } from './schema'
 import { type PreferenceTarget, type PreferencesStore, type PreferencesUpdate, applyPreferencesUpdate } from './store'
+import { type ToolbarPinUpdate } from './toolbar-pins'
 
 import type { ConfiguredDefaults } from './configured-defaults'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -102,6 +103,7 @@ export function createPreferencesController(
       cornerFont: defaults.cornerFont,
       lspIconStyle: defaults.lspIconStyle,
       rowDensity: defaults.rowDensity,
+      toolbarOverflow: defaults.toolbarOverflow,
       sectionItemLimits: defaults.sectionItemLimits,
       quickActionOrder: defaults.quickActionOrder,
       quickActionVisibility: defaults.quickActionVisibility,
@@ -229,7 +231,7 @@ export function createPreferencesController(
   function scopeSnapshot(target = selectedTarget()) {
     const scope = target.kind === 'global' ? document.global : document.worktrees[target.key]
 
-    return JSON.stringify({ layout: scope?.layout, mcp: scope?.mcp })
+    return JSON.stringify({ layout: scope?.layout, mcp: scope?.mcp, behavior: scope?.behavior })
   }
 
   function update(change: PreferencesUpdate) {
@@ -523,6 +525,15 @@ export function createPreferencesController(
 
   return {
     sections: () => resolved().layout.sections,
+    toolbarPins() {
+      revision()
+
+      return document.user.toolbarPins ?? []
+    },
+    changeToolbarPin(change: ToolbarPinUpdate) {
+      requireHydration()
+      update({ user: { toolbarPin: change } })
+    },
     expanded: () => resolved().layout.expanded,
     sectionOrder: () => resolved().layout.order,
     toggleKey: () => resolved().behavior.toggleKey,
@@ -540,6 +551,15 @@ export function createPreferencesController(
     cornerFont: () => resolved().behavior.cornerFont,
     lspIconStyle: () => resolved().behavior.lspIconStyle,
     rowDensity: () => resolved().behavior.rowDensity,
+    toolbarOverflow: () => resolved().behavior.toolbarOverflow,
+    selectedToolbarOverflow: () => selectedResolved().behavior.toolbarOverflow,
+    toggleToolbarOverflow() {
+      void load()
+      update({
+        target: selectedTarget(),
+        behavior: { toolbarOverflow: selectedResolved().behavior.toolbarOverflow === 'menu' ? 'wrap' : 'menu' },
+      })
+    },
     selectedToggleKey: () => selectedResolved().behavior.toggleKey,
     selectedFocusKey: () => selectedResolved().behavior.focusKey,
     selectedSearchKey: () => selectedResolved().behavior.searchKey,
@@ -595,7 +615,9 @@ export function createPreferencesController(
     mcpPresets,
     workspaceProfiles,
     exportPortableSettings() {
-      return serializePortableSettings(selectedLayoutResolved().layout, selectedResolved().desiredMcpStates)
+      return serializePortableSettings(selectedLayoutResolved().layout, selectedResolved().desiredMcpStates, {
+        toolbarOverflow: selectedResolved().behavior.toolbarOverflow,
+      })
     },
     previewPortableSettings(source: string) {
       requireHydration()
@@ -605,6 +627,7 @@ export function createPreferencesController(
       const scope = target.kind === 'global' ? document.global : (document.worktrees[target.key] ?? {})
       const imported: ScopedPreferences = {
         ...scope,
+        ...(parsed.settings.behavior && { behavior: { ...scope.behavior, ...parsed.settings.behavior } }),
         ...(parsed.settings.layout && { layout: parsed.settings.layout }),
         ...(parsed.settings.mcp && { mcp: parsed.settings.mcp }),
       }
@@ -627,6 +650,9 @@ export function createPreferencesController(
         expectedScope: scopeSnapshot(target),
         layoutChanged,
         mcpChanged,
+        behaviorChanged: Boolean(
+          parsed.settings.behavior && next.behavior.toolbarOverflow !== current.behavior.toolbarOverflow,
+        ),
       }
     },
     async applyPortableSettings(preview: { settings: PortableSettings; target: string; expectedScope: string }) {
@@ -638,6 +664,7 @@ export function createPreferencesController(
       const change: PreferencesUpdate = {
         target,
         expectedScope: preview.expectedScope,
+        ...(preview.settings.behavior && { behavior: preview.settings.behavior }),
         ...(preview.settings.layout && { layout: preview.settings.layout, clearLayout: true }),
         ...(preview.settings.mcp && { mcp: { states: preview.settings.mcp }, clearMcp: true }),
       }

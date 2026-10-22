@@ -13,6 +13,7 @@ export type PortableSettings = {
   version: 1
   layout?: SectionLayoutDefault
   mcp?: DesiredMcpStates
+  behavior?: { toolbarOverflow?: 'menu' | 'wrap' }
 }
 
 function object(value: unknown, path: string) {
@@ -111,17 +112,33 @@ export function parsePortableSettings(source: string) {
 
   const unsupported: string[] = []
 
-  unknownKeys(input, ['format', 'version', 'layout', 'mcp'], '', unsupported)
+  unknownKeys(input, ['format', 'version', 'layout', 'mcp', 'behavior'], '', unsupported)
   const hasLayout = Object.hasOwn(input, 'layout')
   const hasMcp = Object.hasOwn(input, 'mcp')
+  const behavior: PortableSettings['behavior'] = {}
 
-  if (!hasLayout && !hasMcp) throw new Error('Settings JSON contains no supported settings')
+  if (input.behavior !== undefined) {
+    const raw = object(input.behavior, '/behavior')
+
+    unknownKeys(raw, ['toolbarOverflow'], '/behavior', unsupported)
+
+    if (raw.toolbarOverflow !== undefined) {
+      if (raw.toolbarOverflow !== 'menu' && raw.toolbarOverflow !== 'wrap')
+        throw new Error('/behavior/toolbarOverflow must be menu or wrap')
+
+      behavior.toolbarOverflow = raw.toolbarOverflow
+    }
+  }
+
+  if (!hasLayout && !hasMcp && !behavior.toolbarOverflow)
+    throw new Error('Settings JSON contains no supported settings')
 
   const settings = {
     format: PORTABLE_SETTINGS_FORMAT,
     version: 1,
     ...(hasLayout && { layout: parseLayout(input.layout, unsupported) }),
     ...(hasMcp && { mcp: parseMcp(input.mcp) }),
+    ...(behavior.toolbarOverflow && { behavior }),
   } satisfies PortableSettings
 
   unsupported.sort()
@@ -129,12 +146,17 @@ export function parsePortableSettings(source: string) {
   return { settings, unsupported }
 }
 
-export function serializePortableSettings(layout: SectionLayoutDefault, mcp: DesiredMcpStates) {
+export function serializePortableSettings(
+  layout: SectionLayoutDefault,
+  mcp: DesiredMcpStates,
+  behavior?: PortableSettings['behavior'],
+) {
   return `${JSON.stringify(
     {
       format: PORTABLE_SETTINGS_FORMAT,
       version: 1,
       layout,
+      ...(behavior && { behavior }),
       mcp: Object.fromEntries(Object.entries(mcp).sort(([left], [right]) => left.localeCompare(right))),
     } satisfies PortableSettings,
     undefined,

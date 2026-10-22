@@ -121,6 +121,7 @@ test('Skills keep favorites before recent, use bookmark controls, and record onl
   let uses = 0
   let isFail = false
   const api = {
+    route: { current: { name: 'home' } },
     theme: {
       current: {
         text: '#ffffff',
@@ -209,6 +210,7 @@ test('Skill groups show Favorites, named groups and Ungrouped independently of f
   const groups = { [items[1].location]: 'Docs', [items[2].location]: 'Docs' }
   let uses = 0
   const api = {
+    route: { current: { name: 'home' } },
     theme: { current: { text: '#ffffff', textMuted: '#888888', accent: '#00ffff', backgroundPanel: '#111111' } },
     ui: { toast() {}, dialog: { replace() {}, clear() {}, setSize() {} } },
   } as unknown as TuiPluginApi

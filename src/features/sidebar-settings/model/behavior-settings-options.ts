@@ -69,5 +69,15 @@ export function behaviorSettingsOptions(
       value: 'limits_refresh',
       description: `${preferences.selectedLimitsRefreshMinutes()} min · minimum 1 min`,
     },
+    {
+      title: `${icons.icon('sections')} Toolbar overflow`,
+      value: 'toolbar_overflow',
+      description: preferences.selectedToolbarOverflow?.() === 'wrap' ? 'Wrap into rows' : 'Single row with More menu',
+    },
+    {
+      title: `${icons.icon('edit')} Pinned toolbar…`,
+      value: 'toolbar_manager',
+      description: 'Add, reorder, or configure action and Skill buttons',
+    },
   ]
 }

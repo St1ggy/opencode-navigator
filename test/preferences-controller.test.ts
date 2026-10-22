@@ -27,6 +27,7 @@ function pluginDefaults(sections: Omit<SectionVisibility, 'limits'> & Partial<Pi
     cornerFont: true,
     lspIconStyle: 'nerd' as const,
     rowDensity: 'compact' as const,
+    toolbarOverflow: 'menu' as const,
     sectionItemLimits: {},
     quickActionOrder: [...QUICK_ACTION_IDS],
     quickActionVisibility: {},

@@ -23,6 +23,7 @@ async function harness(height = 40) {
   let api!: TuiPluginApi
   let preferences!: PreferencesController
   let prompt!: TuiDialogPromptProps
+  const toasts: unknown[] = []
 
   function Harness() {
     const renderer = useRenderer()
@@ -60,7 +61,7 @@ async function harness(height = 40) {
         },
       },
       ui: {
-        toast() {},
+        toast: (value: unknown) => toasts.push(value),
         dialog: {
           get open() {
             return Boolean(modal())
@@ -130,6 +131,7 @@ async function harness(height = 40) {
     size: () => size,
     layers: () => layers,
     prompt: () => prompt,
+    toasts,
     async escape() {
       setup.mockInput.pressEscape()
       await Bun.sleep(60)
@@ -147,7 +149,7 @@ async function waitForDialog(h: Awaited<ReturnType<typeof harness>>, label: stri
     await Bun.sleep(5)
   }
 
-  expect(h.captureCharFrame()).toContain(label)
+  expect(h.captureCharFrame(), JSON.stringify(h.toasts)).toContain(label)
 }
 
 test('dialog stack restores frame state and size, handles native closes, and unregisters modal bindings', async () => {
@@ -217,6 +219,7 @@ test('settings preserve their tab through nested preset actions, rename cancella
   try {
     h.preferences.saveLayoutPreset('Work')
     openSettings(h.api, h.preferences, 'preset:custom:Work')
+    await waitForDialog(h, 'Navigator settings')
     await h.flush()
     h.mockInput.pressEnter()
     await waitForDialog(h, 'Update from current')
@@ -255,6 +258,7 @@ test('portable settings preview skipped fields and apply only after confirmation
 
   try {
     openSettings(h.api, h.preferences, 'import_settings')
+    await waitForDialog(h, 'Navigator settings')
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()
@@ -339,6 +343,7 @@ test('layout presets are previewed without mutation and only applied after confi
     h.preferences.saveLayoutPreset('Focus')
     h.preferences.toggleSelectedSection('mcp')
     openSettings(h.api, h.preferences, 'preset:custom:Focus')
+    await waitForDialog(h, 'Navigator settings')
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()
@@ -387,6 +392,7 @@ test('workspace profiles preview and apply linked layout and MCP presets togethe
     h.preferences.saveMcpPreset('Work', { wiki: 'enabled' })
     h.preferences.linkWorkspaceProfile('Focus', 'Work')
     openSettings(h.api, h.preferences, 'preset:custom:Focus', controller)
+    await waitForDialog(h, 'Navigator settings')
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()
@@ -423,6 +429,7 @@ test('layout preset actions link and unlink an MCP preset through the profile pr
     h.preferences.saveLayoutPreset('Focus')
     h.preferences.saveMcpPreset('Work', { wiki: 'enabled' })
     openSettings(h.api, h.preferences, 'preset:custom:Focus', controller)
+    await waitForDialog(h, 'Navigator settings')
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()
@@ -452,6 +459,7 @@ test('preset preview keeps its actions visible in a 24-row terminal', async () =
   try {
     h.preferences.saveLayoutPreset('Focus')
     openSettings(h.api, h.preferences, 'preset:custom:Focus')
+    await waitForDialog(h, 'Navigator settings')
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()
@@ -474,6 +482,7 @@ test('layout preview disables a removed preset and closes when its preference sc
 
   async function open() {
     openSettings(h.api, h.preferences, 'preset:custom:Focus')
+    await waitForDialog(h, 'Navigator settings')
     await h.flush()
     h.mockInput.pressEnter()
     await h.flush()

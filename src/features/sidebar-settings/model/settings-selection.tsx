@@ -2,6 +2,7 @@ import { SECTION_DEFINITIONS, type SidebarSection } from '../../../entities/side
 import { FirstRunWizard } from '../ui/first-run-wizard'
 
 import { openLimitsRefreshPrompt } from './limits-refresh-prompt'
+import { openToolbarManager } from './toolbar-dialog-loader'
 
 import type { SettingsOption } from './settings-groups'
 import type { McpController } from '../../../entities/mcp'
@@ -107,12 +108,12 @@ export function createSettingsSelection(input: {
     input.api.ui.toast({
       variant: copied ? 'success' : 'warning',
       title: 'Portable settings',
-      message: copied ? 'Layout and MCP settings copied as JSON' : 'Terminal clipboard is unavailable',
+      message: copied ? 'Layout, MCP, and toolbar overflow copied as JSON' : 'Terminal clipboard is unavailable',
       duration: 4000,
     })
   }
   function importSettings() {
-    const path = import.meta.url.includes('/dist/tui.js') ? './settings-import.js' : '../ui/settings-import-dialog'
+    const path = import.meta.url.includes('/dist/') ? './settings-import.js' : '../ui/settings-import-dialog'
 
     void import(path)
       .then((module) => {
@@ -133,6 +134,16 @@ export function createSettingsSelection(input: {
       input.openPreset(decodeURIComponent(value.slice('preset:custom:'.length)))
     else
       switch (value) {
+        case 'toolbar_manager': {
+          void openToolbarManager(input)
+          break
+        }
+
+        case 'toolbar_overflow': {
+          input.preferences.toggleToolbarOverflow()
+          break
+        }
+
         case 'save_preset': {
           input.promptPreset()
           break
@@ -251,7 +262,7 @@ export function createSettingsSelection(input: {
         }
 
         case 'trusted_skills': {
-          const path = import.meta.url.includes('/dist/tui.js') ? './trusted-skills.js' : '../ui/trusted-skills-dialog'
+          const path = import.meta.url.includes('/dist/') ? './trusted-skills.js' : '../ui/trusted-skills-dialog'
 
           void import(path)
             .then((module) => {
@@ -276,7 +287,7 @@ export function createSettingsSelection(input: {
   }
   function openQuickActions() {
     input.setActive(input.options().findIndex((option) => option.value === 'quick_actions'))
-    const path = import.meta.url.includes('/dist/tui.js') ? './quick-actions-settings.js' : '../ui/quick-actions-dialog'
+    const path = import.meta.url.includes('/dist/') ? './quick-actions-settings.js' : '../ui/quick-actions-dialog'
 
     void import(path)
       .then((module) => {
@@ -294,7 +305,7 @@ export function createSettingsSelection(input: {
     if (!input.mcp) return
 
     input.setActive(input.options().findIndex((option) => option.value === 'mcp'))
-    const path = import.meta.url.includes('/dist/tui.js') ? './mcp-groups.js' : '../ui/mcp-groups-dialog'
+    const path = import.meta.url.includes('/dist/') ? './mcp-groups.js' : '../ui/mcp-groups-dialog'
 
     void import(path)
       .then((module) => {
@@ -313,7 +324,7 @@ export function createSettingsSelection(input: {
     if (!input.skills) return
 
     input.setActive(input.options().findIndex((option) => option.value === 'skills'))
-    const path = import.meta.url.includes('/dist/tui.js') ? './skill-groups.js' : '../ui/skill-groups-dialog'
+    const path = import.meta.url.includes('/dist/') ? './skill-groups.js' : '../ui/skill-groups-dialog'
 
     void import(path)
       .then((module) => {

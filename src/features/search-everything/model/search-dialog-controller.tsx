@@ -8,7 +8,7 @@ import {
   quickActionDisabledReason,
   quickActionLabel,
 } from '../../../entities/quick-action'
-import { type SkillController, SkillDialog, type SkillInfo } from '../../../entities/skill'
+import { type SkillController, activateSkill } from '../../../entities/skill'
 import { type SubagentController, buildSubagentView } from '../../../entities/subagent'
 import { PLUGIN_ID } from '../../../shared/config'
 import { isAbortError } from '../../../shared/lib/request-state'
@@ -177,11 +177,6 @@ export function createSearchDialogController(props: SearchServices & { returnTar
       duration: 4000,
     })
   }
-  async function insertSkill(skill: SkillInfo) {
-    if (!sameContext()) return
-
-    if (await props.skills.use(skillTarget, skill.name)) await props.preferences.recordSkillUse(skill)
-  }
   function activate(id = active()?.id) {
     if (isDisposed || !sameContext()) return
 
@@ -193,23 +188,15 @@ export function createSearchDialogController(props: SearchServices & { returnTar
 
     if (body) setScrollTop(body.scrollTop)
 
-    if (item.group === 'Skills' && props.preferences.shouldConfirmSkill(item.skill)) {
-      dialogs.open(() => (
-        <SkillDialog
-          api={props.api}
-          skill={item.skill}
-          favorite={props.preferences.isFavoriteSkill?.(item.skill) ?? false}
-          favoriteDisabled={props.preferences.ready ? !props.preferences.ready() : false}
-          onToggleFavorite={() => props.preferences.toggleFavoriteSkill?.(item.skill)}
-          onAccept={(skip) => {
-            if (!sameContext()) return
-
-            if (skip) props.preferences.skipSkillConfirmation(item.skill)
-
-            void insertSkill(item.skill).catch(report)
-          }}
-        />
-      ))
+    if (item.group === 'Skills') {
+      activateSkill({
+        api: props.api,
+        controller: props.skills,
+        access: props.preferences,
+        dialogs,
+        skill: item.skill,
+        beforeInsert: dialogs.close,
+      })
 
       return
     }
@@ -223,11 +210,6 @@ export function createSearchDialogController(props: SearchServices & { returnTar
     dialogs.close()
 
     switch (item.group) {
-      case 'Skills': {
-        void insertSkill(item.skill).catch(report)
-        break
-      }
-
       case 'Subagents': {
         props.subagents.open(item.sessionID)
         break
@@ -277,6 +259,7 @@ export function createSearchDialogController(props: SearchServices & { returnTar
     isDisposed = true
     unregister()
   })
+  onCleanup(props.skills.activate?.(skillTarget) ?? (() => {}))
   onMount(() => {
     input?.focus()
     void refresh().catch(report)

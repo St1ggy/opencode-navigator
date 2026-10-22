@@ -14,6 +14,7 @@ export function createSkillController(api: TuiPluginApi) {
   const requests = createRequestState(api.lifecycle.signal)
   const promptRequests = createRequestState(api.lifecycle.signal)
   let activeTarget: string | undefined
+  let leases = new Set<symbol>()
 
   function target() {
     return currentLocation(api)
@@ -91,19 +92,28 @@ export function createSkillController(api: TuiPluginApi) {
         promptRequests.abortAll()
         refreshing.clear()
         activeTarget = current.key
+        leases = new Set()
+        targets.clear()
+        targets.set(current.key, current)
       }
 
+      const lease = Symbol(current.key)
+
+      leases.add(lease)
+
       return () => {
-        if (activeTarget !== current.key) return
+        if (activeTarget !== current.key || !leases.delete(lease) || leases.size > 0) return
 
         activeTarget = undefined
+        targets.delete(current.key)
         requests.abortAll()
         promptRequests.abortAll()
         refreshing.clear()
       }
     },
     async use(current: ReturnType<typeof currentLocation>, name: string) {
-      if (activeTarget && activeTarget !== current.key) throw new DOMException('Sidebar context changed', 'AbortError')
+      if ((activeTarget && activeTarget !== current.key) || target().key !== current.key)
+        throw new DOMException('Sidebar context changed', 'AbortError')
 
       const request = promptRequests.start(current.key, 'insert skill', false, true)
 

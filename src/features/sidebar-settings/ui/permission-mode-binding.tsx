@@ -1,19 +1,9 @@
 import { createEffect, onCleanup } from 'solid-js'
 
+import { currentPermissionMode } from '../../../entities/quick-action'
+
 import type { PreferencesController } from '../../../entities/preferences'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
-
-function currentPermissionMode(api: TuiPluginApi): boolean | undefined {
-  const title = api.keymap
-    .getCommands?.({ visibility: 'registered' })
-    .find((command) => command.name === 'permission.mode')?.title
-
-  if (typeof title !== 'string') return
-
-  if (title.startsWith('Disable auto-approve permissions')) return true
-
-  return title.startsWith('Enable auto-approve permissions') ? false : undefined
-}
 
 export function PermissionModeBinding(props: { api: TuiPluginApi; preferences: PreferencesController }) {
   let applying = false

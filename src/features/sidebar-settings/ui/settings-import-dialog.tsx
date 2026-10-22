@@ -14,6 +14,16 @@ export function openSettingsImport(input: {
     onConfirm(source) {
       const preview = input.preferences.previewPortableSettings(source)
       const options: SelectionOption[] = [
+        ...(preview.settings.behavior
+          ? [
+              {
+                title: `Toolbar overflow · ${preview.behaviorChanged ? 'CHANGED' : 'UNCHANGED'}`,
+                value: 'status',
+                description: preview.settings.behavior.toolbarOverflow ?? 'unchanged',
+                icon: 'settings' as const,
+              },
+            ]
+          : []),
         ...(preview.settings.layout
           ? [
               {
@@ -40,7 +50,7 @@ export function openSettingsImport(input: {
           description: path,
           icon: 'error' as const,
         })),
-        ...(preview.layoutChanged || preview.mcpChanged
+        ...(preview.layoutChanged || preview.mcpChanged || preview.behaviorChanged
           ? [{ title: 'Apply imported settings', value: 'apply', description: preview.target, icon: 'done' as const }]
           : []),
         { title: 'Cancel', value: 'cancel', description: 'return without changes', icon: 'close' },
@@ -54,7 +64,7 @@ export function openSettingsImport(input: {
           input.api.ui.toast({
             variant: 'success',
             title: 'Portable settings',
-            message: 'Layout and MCP settings imported',
+            message: 'Supported settings imported',
             duration: 3000,
           })
           input.dialogs.back()

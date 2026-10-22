@@ -1,81 +1,27 @@
-import { TextAttributes } from '@opentui/core'
-import { For } from 'solid-js'
+import { Suspense, lazy } from 'solid-js'
 
-import { PLUGIN_ID } from '../../../shared/config'
-import { DialogSurface, Tab, createDialogStack } from '../../../shared/ui'
-import { createSettingsDialogController } from '../model/settings-dialog-controller'
+import { createDialogStack } from '../../../shared/ui'
 
-import { SettingsOptionRow } from './settings-option-row'
-
+import type { SettingsDialog as SettingsContent } from './settings-dialog-content'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
-import type { SettingsTab } from '../../../shared/ui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-export function SettingsDialog(props: {
-  api: TuiPluginApi
-  preferences: PreferencesController
-  mcp?: McpController
-  skills?: SkillController
-  activeValue?: string
-}) {
-  const model = createSettingsDialogController(props)
+const Content = lazy(async () => {
+  const path = import.meta.url.includes('/dist/') ? './sidebar-settings.js' : './settings-dialog-content'
+  const module = (await import(path)) as { SettingsDialog: typeof SettingsContent }
 
+  return { default: module.SettingsDialog }
+})
+
+export function SettingsDialog(props: Parameters<typeof SettingsContent>[0]) {
   return (
-    <DialogSurface api={props.api}>
-      <box flexDirection="row" justifyContent="space-between">
-        <text attributes={TextAttributes.BOLD} fg={model.theme().text}>
-          {model.icons.icon('settings')} Navigator settings
-        </text>
-        <text
-          fg={model.theme().textMuted}
-          onMouseDown={(event) => event.stopPropagation()}
-          onMouseUp={(event) => {
-            event.stopPropagation()
-            model.dialogs.back()
-          }}
-        >
-          {model.icons.key('esc')}
-        </text>
-      </box>
-      <text fg={model.theme().textMuted}>Adjust sections and behavior. Changes apply immediately.</text>
-      <box flexDirection="row" gap={1}>
-        <For each={model.orderedGroups()}>
-          {(group) => (
-            <Tab
-              api={props.api}
-              selected={model.activeGroup() === group.id}
-              paddingLeft={1}
-              paddingRight={1}
-              onMouseDown={() => {
-                model.setActiveGroup(group.id)
-                model.setActive(0)
-              }}
-            >
-              {model.icons.tab(group.id as SettingsTab)} {group.tab}
-            </Tab>
-          )}
-        </For>
-      </box>
-      <scrollbox
-        id={`${PLUGIN_ID}.settings.body`}
-        ref={model.setBody}
-        renderBefore={model.restoreScroll}
-        renderAfter={model.saveScroll}
-        height={model.contentHeight()}
-        scrollX={false}
-        verticalScrollbarOptions={{ visible: true }}
-        horizontalScrollbarOptions={{ visible: false }}
-      >
-        <box gap={1}>
-          <For each={model.options()}>
-            {(option) => <SettingsOptionRow preferences={props.preferences} controller={model} option={option} />}
-          </For>
-        </box>
-      </scrollbox>
-      <text fg={model.theme().textMuted}>{model.footerHint()}</text>
-    </DialogSurface>
+    <box>
+      <Suspense>
+        <Content {...props} />
+      </Suspense>
+    </box>
   )
 }
 
