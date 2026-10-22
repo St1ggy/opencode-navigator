@@ -34,81 +34,94 @@ test('Navigator Todo persists isolated session lists and serializes simultaneous
   expect(events.map((event) => event.sessionID)).toEqual(['ses_one', 'ses_one', 'ses_two'])
 })
 
-test('the server exposes Todo RPC and agent tool independently of opt-in context instructions', async () => {
-  const stored = new Map<string, unknown>()
-  const emitted: unknown[] = []
-  const disposed: string[] = []
+test('the server preserves the previous Todo list as a read-only archive without a parallel agent tool', async () => {
+  const saved: NavigatorTodoState = { todos: [{ content: 'Previous task', status: 'pending' }], guidance: true }
+  const stored = new Map<string, unknown>([['session.todo.ses_one', saved]])
+  let disposed = 0
   let methods!: Record<string, (input: unknown) => Promise<NavigatorTodoState>>
-  let execute!: (input: unknown, context: { sessionID: string }) => Promise<{ content: string }>
-  let contextHook!: (event: { sessionID: string; system: { type: string; text: string }[] }) => Promise<void>
   const host = {
     storage: {
       get: async (key: string) => stored.get(key),
-      set: async (key: string, value: unknown) => {
-        stored.set(key, value)
+      set: async () => {
+        throw new Error('Archive must never write storage')
       },
     },
     rpc: {
-      register: async (_definition: unknown, handlers: typeof methods) => {
+      register: async (definition: { methods: object }, handlers: typeof methods) => {
+        expect(Object.keys(definition.methods)).toEqual(['list'])
         methods = handlers
 
         return {
-          events: {
-            emit: async (_name: string, data: unknown) => {
-              emitted.push(data)
-            },
-          },
           dispose: async () => {
-            disposed.push('rpc')
+            disposed++
           },
         }
       },
     },
     tool: {
-      transform: async (register: (editor: unknown) => void) => {
-        register({
-          namespace: () => {},
-          add: (tool: { execute: typeof execute }) => {
-            execute = tool.execute
-          },
-        })
-
-        return {
-          dispose: async () => {
-            disposed.push('tool')
-          },
-        }
+      transform: async () => {
+        throw new Error('Native Todo must remain the host tool')
       },
     },
     session: {
-      hook: async (_name: string, handler: typeof contextHook) => {
-        contextHook = handler
-
-        return {
-          dispose: async () => {
-            disposed.push('context')
-          },
-        }
+      hook: async () => {
+        throw new Error('Navigator Todo guidance must be retired')
       },
     },
   } as unknown as Plugin.Context
   const dispose = await server.setup(host)
-  const session = { sessionID: 'ses_one', system: [] as { type: string; text: string }[] }
 
-  await contextHook(session)
-  expect(session.system).toEqual([])
-  expect(await methods.list({ sessionID: 'ses_one' })).toEqual({ todos: [], guidance: false })
-  expect(await execute({ todos: [{ content: 'Review', status: 'in_progress' }] }, { sessionID: 'ses_one' })).toEqual({
-    content: 'Navigator Todo updated: 1 tasks.',
-  })
+  expect(await methods.list({ sessionID: 'ses_one' })).toEqual(saved)
   expect((await methods.list({ sessionID: 'ses_two' })).todos).toEqual([])
-  await contextHook(session)
-  expect(session.system).toEqual([])
-  await methods.guidance({ sessionID: 'ses_one', enabled: true })
-  await contextHook(session)
-  expect(session.system[0].text).toContain('navigator_todo_write')
-  expect(session.system[0].text).toContain('Review')
-  expect(emitted).toHaveLength(2)
+  expect(stored.get('session.todo.ses_one')).toBe(saved)
+  expect(stored.size).toBe(1)
   await dispose?.()
-  expect(disposed).toEqual(['context', 'tool', 'rpc'])
+  expect(disposed).toBe(1)
+})
+
+test('the provider-quota server keeps its RPC and HTTP hooks independently of native Todo', async () => {
+  const registrations = new Map<string, Record<string, (input: unknown) => Promise<unknown>>>()
+  const hooks: string[] = []
+  const disposed: string[] = []
+  const host = {
+    storage: { get: async () => {} },
+    rpc: {
+      register: async (definition: { id: string }, methods: Record<string, (input: unknown) => Promise<unknown>>) => {
+        registrations.set(definition.id, methods)
+
+        return {
+          events: { emit: async () => {} },
+          dispose: async () => {
+            disposed.push(definition.id)
+          },
+        }
+      },
+    },
+    provider: { get: async () => ({}), list: async () => ({ data: [] }) },
+    integration: { connection: { active: async () => {} } },
+    session: {
+      hook: async (name: string) => {
+        hooks.push(name)
+
+        return {
+          dispose: async () => {
+            disposed.push(name)
+          },
+        }
+      },
+    },
+    event: {
+      async *subscribe() {
+        yield* []
+      },
+    },
+  } as unknown as Plugin.Context
+  const dispose = await server.setup(host)
+
+  expect(hooks).toEqual(['http.request', 'http.response'])
+  expect(Array.isArray(await registrations.get('opencode-navigator.quotas')!.capabilities({}))).toBe(true)
+  expect(Object.keys(registrations.get('opencode-navigator.todo')!)).toEqual(['list'])
+  await dispose?.()
+  expect(disposed).toContain('opencode-navigator.quotas')
+  expect(disposed).toContain('opencode-navigator.todo')
 })

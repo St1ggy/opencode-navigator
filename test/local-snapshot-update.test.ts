@@ -96,6 +96,89 @@ test('failed or unrecognized pinned updates preserve the currently installed wra
   }
 })
 
+test('a target runtime manifest advances dependencies without changing the predecessor', async () => {
+  const { temporary, root, current, wrapper } = await fixture()
+  const dependencies = Object.fromEntries(
+    ['@opencode/plugin', '@opentui/core', '@opentui/keymap', '@opentui/solid', 'solid-js'].map((name) => [
+      name,
+      '1.2.7',
+    ]),
+  )
+
+  try {
+    // A predecessor installed by the old updater may declare newer pins than
+    // its installed metadata. Updating it must repair the target, not get stuck.
+    await writeFile(join(current, 'dist', 'runtime-dependencies.json'), JSON.stringify({ version: 1, dependencies }))
+    await updateLocalSnapshot(wrapper, TARGET_VERSION, {
+      async stage(staging: string) {
+        await mkdir(join(staging, 'dist'))
+        await writeFile(
+          join(staging, 'package.json'),
+          JSON.stringify({ name: 'opencode-navigator', version: TARGET_VERSION }),
+        )
+        await writeFile(join(staging, 'dist', 'tui.js'), 'export default { id: "opencode-navigator" };\n')
+        await writeFile(
+          join(staging, 'dist', 'runtime-dependencies.json'),
+          JSON.stringify({ version: 1, dependencies }),
+        )
+        await writeFile(join(staging, 'CHANGELOG.md'), `## [${TARGET_VERSION}]\n`)
+      },
+      async install(staging: string) {
+        expect(JSON.parse(await readFile(join(staging, 'package.json'), 'utf8')).dependencies).toEqual(dependencies)
+        for (const name of ['@opentui/core', '@opentui/solid', 'solid-js'])
+          await mkdir(join(staging, 'node_modules', name), { recursive: true })
+      },
+      async verify() {},
+    })
+
+    expect(await readFile(wrapper, 'utf8')).toContain(`v${TARGET_VERSION}`)
+    expect(JSON.parse(await readFile(join(current, 'package.json'), 'utf8')).dependencies).not.toEqual(dependencies)
+    expect((await readdir(join(root, 'releases'))).sort()).toEqual([`v${SOURCE_VERSION}`, `v${TARGET_VERSION}`])
+    const targetMetadataPath = join(root, 'releases', `v${TARGET_VERSION}`, 'package.json')
+    const targetMetadata = JSON.parse(await readFile(targetMetadataPath, 'utf8'))
+
+    targetMetadata.dependencies['@opentui/core'] = '0.0.1'
+    await writeFile(targetMetadataPath, JSON.stringify(targetMetadata))
+    await writeFile(wrapper, `export { default } from "./releases/v${SOURCE_VERSION}/dist/tui.js";\n`)
+    await expect(updateLocalSnapshot(wrapper, TARGET_VERSION)).rejects.toThrow('mismatched runtime dependencies')
+    expect(await readFile(wrapper, 'utf8')).toContain(`v${SOURCE_VERSION}`)
+  } finally {
+    await rm(temporary, { recursive: true, force: true })
+  }
+})
+
+test.each([
+  { version: 2, dependencies: {} },
+  { version: 1, dependencies: { 'arbitrary-package': '1.2.3' } },
+  { version: 1, dependencies: { '@opentui/core': 'https://example.test/runtime.tgz' } },
+])('an invalid target runtime manifest never installs or switches the active snapshot: %j', async (manifest) => {
+  const { temporary, root, wrapper } = await fixture()
+  let installs = 0
+
+  try {
+    await expect(
+      updateLocalSnapshot(wrapper, TARGET_VERSION, {
+        async stage(staging: string) {
+          await mkdir(join(staging, 'dist'))
+          await writeFile(
+            join(staging, 'package.json'),
+            JSON.stringify({ name: 'opencode-navigator', version: TARGET_VERSION }),
+          )
+          await writeFile(join(staging, 'dist', 'runtime-dependencies.json'), JSON.stringify(manifest))
+        },
+        async install() {
+          installs++
+        },
+      }),
+    ).rejects.toThrow('invalid runtime dependency manifest')
+    expect(installs).toBe(0)
+    expect(await readFile(wrapper, 'utf8')).toContain(`v${SOURCE_VERSION}`)
+    expect(await readdir(join(root, 'releases'))).toEqual([`v${SOURCE_VERSION}`])
+  } finally {
+    await rm(temporary, { recursive: true, force: true })
+  }
+})
+
 const liveTest = process.env.NAVIGATOR_LIVE_SNAPSHOT_UPDATE === '1' ? test : test.skip
 
 liveTest(

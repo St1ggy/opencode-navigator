@@ -16,3 +16,10 @@ export function isNewerVersion(latest: string, current: string) {
 
   return installed.prerelease !== undefined && next.prerelease === undefined
 }
+
+export function isSameMajorVersion(left: string, right: string) {
+  const first = versionParts(left)
+  const second = versionParts(right)
+
+  return Boolean(first && second && first.numbers[0] === second.numbers[0])
+}

@@ -60,7 +60,7 @@ test('rounded selections preserve layout, clicks, backdrop colors and live text 
       const buffer = setup.renderer.currentRenderBuffer
       const offset = (row.y * buffer.width + x) * 4
 
-      return new RGBA(buffer.buffers[channel].slice(offset, offset + 4))
+      return buffer.withBuffers((cells) => new RGBA(cells[channel].slice(offset, offset + 4)))
     }
 
     expect(colorAt(row.x, 'bg').equals(RGBA.fromHex(backdrop()))).toBe(true)
@@ -147,11 +147,19 @@ test('multiline font corners respect clipping and nested selection backgrounds',
     const buffer = setup.renderer.currentRenderBuffer
     const edgeOffset = buffer.width * 4
 
-    expect(new RGBA(buffer.buffers.bg.slice(edgeOffset, edgeOffset + 4)).equals(RGBA.fromHex('#abcdef'))).toBe(true)
-    expect(new RGBA(buffer.buffers.fg.slice(edgeOffset, edgeOffset + 4)).equals(RGBA.fromHex('#123456'))).toBe(true)
+    expect(
+      buffer.withBuffers(({ bg }) => new RGBA(bg.slice(edgeOffset, edgeOffset + 4))).equals(RGBA.fromHex('#abcdef')),
+    ).toBe(true)
+    expect(
+      buffer.withBuffers(({ fg }) => new RGBA(fg.slice(edgeOffset, edgeOffset + 4))).equals(RGBA.fromHex('#123456')),
+    ).toBe(true)
     const nestedOffset = (2 * buffer.width + 1) * 4
 
-    expect(new RGBA(buffer.buffers.bg.slice(nestedOffset, nestedOffset + 4)).equals(RGBA.fromHex('#abcdef'))).toBe(true)
+    expect(
+      buffer
+        .withBuffers(({ bg }) => new RGBA(bg.slice(nestedOffset, nestedOffset + 4)))
+        .equals(RGBA.fromHex('#abcdef')),
+    ).toBe(true)
     scroll.scrollTo(1)
     await setup.flush()
     const frame = setup.captureCharFrame()
@@ -191,7 +199,9 @@ test('two-line selections keep a continuous background under all corner masks', 
       for (let x = 1; x <= 18; x++) {
         const offset = (y * buffer.width + x) * 4
 
-        expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex('#292e42'))).toBe(true)
+        expect(
+          buffer.withBuffers(({ bg }) => new RGBA(bg.slice(offset, offset + 4))).equals(RGBA.fromHex('#292e42')),
+        ).toBe(true)
       }
     }
     const frame = setup.captureCharFrame()

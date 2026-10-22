@@ -1,4 +1,4 @@
-import { type BoxRenderable, type OptimizedBuffer, RGBA } from '@opentui/core'
+import { BoxRenderable, type OptimizedBuffer, RGBA } from '@opentui/core'
 import { createEffect, splitProps, untrack } from 'solid-js'
 
 import { useIcons } from './icons'
@@ -7,6 +7,16 @@ import type { UiIcon } from './icons'
 import type { BoxProps } from '@opentui/solid'
 
 type Corner = { x: number; y: number; icon: UiIcon; backdrop: RGBA }
+
+function selectionBackdrop(node: BoxRenderable) {
+  // Paint hooks are drawing-only on native-scene hosts. Resolve the surrounding
+  // presentation color from ancestors instead of sampling the destination frame.
+  for (let parent = node.parent; parent; parent = parent.parent) {
+    if (parent instanceof BoxRenderable && parent.backgroundColor.a > 0) return parent.backgroundColor
+  }
+
+  return RGBA.fromValues(0, 0, 0, 1)
+}
 
 // Paint shaped edges inside the existing padding, preserving layout and mouse targets.
 export function SelectionBox(props: BoxProps & { iconOnly?: boolean }) {
@@ -52,13 +62,10 @@ export function SelectionBox(props: BoxProps & { iconOnly?: boolean }) {
             [left, bottom, 'selectionBottomLeft'],
             [right, bottom, 'selectionBottomRight'],
           ]
-    const background = buffer.buffers.bg
+    const backdrop = selectionBackdrop(this)
 
     for (const [x, y, icon] of positions) {
       if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) continue
-
-      const offset = (y * buffer.width + x) * 4
-      const backdrop = new RGBA(background.slice(offset, offset + 4))
 
       if (!this.backgroundColor.equals(backdrop)) corners.push({ x, y, icon, backdrop })
     }

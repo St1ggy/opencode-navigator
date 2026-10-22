@@ -609,7 +609,7 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     const color = (row: number, column: number) => {
       const offset = (row * buffer.width + column) * 4
 
-      return new RGBA(buffer.buffers.fg.slice(offset, offset + 4))
+      return buffer.withBuffers(({ fg }) => new RGBA(fg.slice(offset, offset + 4)))
     }
 
     expect(lines[header]).toContain('Banked Resets')

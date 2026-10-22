@@ -3,30 +3,16 @@ import { createSignal } from 'solid-js'
 
 import { PLUGIN_ID } from '../../shared/config'
 
+import { belongsTo, enabled, v2LayerCommands } from './keymap-commands'
+
+import type { Enablement, LegacyCommand, LegacyLayer } from './keymap-commands'
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
-import type { KeyEvent, Renderable } from '@opentui/core'
+import type { KeyEvent } from '@opentui/core'
 
 type LegacyKeymap = TuiPluginApi['keymap']
-type LegacyLayer = Parameters<LegacyKeymap['registerLayer']>[0]
-type LegacyCommand = NonNullable<LegacyLayer['commands']>[number]
-type Enablement = boolean | (() => boolean) | undefined
 const SETTINGS_COMMAND = 'opencode.settings'
 const PERMISSIONS_ACTION = 'permission.mode'
-
-function belongsTo(renderable: Renderable | null | undefined, ancestor: Renderable | null | undefined) {
-  if (!renderable || !ancestor) return false
-
-  for (let current: Renderable | null = renderable; current; current = current.parent) {
-    if (current === ancestor) return true
-  }
-
-  return false
-}
-
-function enabled(value: Enablement) {
-  return typeof value === 'function' ? value() : value !== false
-}
 
 export function createV2Keymap(context: Plugin.Context) {
   const [revision, setRevision] = createSignal(0)
@@ -83,35 +69,8 @@ export function createV2Keymap(context: Plugin.Context) {
 
   context.renderer.keyInput.on('keypress', onKeypress)
 
-  function v2Commands(id: number, layer: LegacyLayer) {
-    const available = () => layerActive(layer)
-    const named = (layer.commands ?? []).map((command) => ({
-      id: command.name,
-      bind: command.name === 'session.new' ? '<leader>n' : undefined,
-      title: command.title as string | undefined,
-      description: command.desc as string | undefined,
-      group: command.category as string | undefined,
-      palette: command.namespace === 'palette' ? (true as const) : undefined,
-      suggested: command.suggested as Enablement,
-      enabled: () => available() && enabled(command.enabled as Enablement),
-      run: (input?: string, event?: KeyEvent) => runV2(command, input, event),
-    }))
-    const bindings = (layer.bindings ?? []).flatMap((binding, index) =>
-      typeof binding.key === 'string'
-        ? [
-            {
-              id: `${PLUGIN_ID}.v2-binding.${id}.${index}`,
-              bind: binding.key,
-              enabled: available,
-              run: () => {
-                context.keymap.dispatch(String(binding.cmd))
-              },
-            },
-          ]
-        : [],
-    )
-
-    return [...named, ...bindings]
+  function layerCommands([id, layer]: [number, LegacyLayer]) {
+    return v2LayerCommands(id, layer, () => layerActive(layer), runV2, context.keymap.dispatch)
   }
 
   function Bridge() {
@@ -122,7 +81,7 @@ export function createV2Keymap(context: Plugin.Context) {
       const current = [...layers].sort(
         ([leftID, left], [rightID, right]) => (right.priority ?? 0) - (left.priority ?? 0) || rightID - leftID,
       )
-      const commands = current.flatMap(([id, layer]) => v2Commands(id, layer))
+      const commands = current.flatMap((entry) => layerCommands(entry))
       const bindings = commands.flatMap((command) => (command.id ? [command.id] : []))
 
       return { mode: 'global', priority: 2000, commands, bindings }

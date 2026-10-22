@@ -5,7 +5,7 @@ import { createNativeQuotaService } from '../src/features/provider-limits/server
 import type { Context } from '@opencode/plugin/promise/plugin'
 import type { SessionHttpRequest, SessionHttpResponse } from '@opencode/plugin/promise/session'
 
-function harness(providerID = 'deepseek') {
+function harness(providerID = 'deepseek', external = false) {
   let connection = { type: 'credential' as const, id: 'one', label: 'Synthetic', method: 'key' as const }
   let token = 'synthetic-secret'
   const requests: { url: string; auth: string | null }[] = []
@@ -16,7 +16,13 @@ function harness(providerID = 'deepseek') {
     model: {
       list: async () => ({ data: [{ id: 'selected-model', modelID: 'native-model', providerID, enabled: true }] }),
     },
-    integration: { connection: { active: async () => connection, resolve: async () => ({ type: 'key', key: token }) } },
+    integration: {
+      connection: {
+        active: async () => connection,
+        resolve: async () =>
+          external ? { type: 'external', methodID: 'synthetic-external' } : { type: 'key', key: token },
+      },
+    },
   } as unknown as Context
   const fetcher = Object.assign(
     async (url: string | URL | Request, options?: RequestInit) => {
@@ -72,6 +78,22 @@ test('native provider reads reuse only the active integration credential and ret
     expect(h.requests).toHaveLength(1)
     await h.service.read({ ...target, connectionID: 'credential:two' }, new AbortController().signal)
     expect(h.requests[1].auth).toBe('Bearer second-synthetic-secret')
+  } finally {
+    await h.service.dispose()
+  }
+})
+
+test('unresolved external credentials never trigger native quota requests', async () => {
+  const h = harness('deepseek', true)
+
+  try {
+    const result = await h.service.read(
+      { providerID: 'deepseek', modelID: 'selected-model', sessionID: 'session', connectionID: 'credential:one' },
+      new AbortController().signal,
+    )
+
+    expect(result.availability).toBe('unauthenticated')
+    expect(h.requests).toHaveLength(0)
   } finally {
     await h.service.dispose()
   }

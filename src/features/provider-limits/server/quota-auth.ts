@@ -6,6 +6,12 @@ import type { NativeQuotaRequest } from './native-context'
 import type { SelectedModel } from '../../../entities/provider-limit'
 import type { Context } from '@opencode/plugin/promise/plugin'
 
+function credentialToken(credential: NativeQuotaRequest['credential'] | undefined) {
+  if (!credential || credential.type === 'external') return
+
+  return credential.type === 'oauth' ? credential.access : credential.key
+}
+
 export async function nativeQuotaContext(
   host: Context,
   model: SelectedModel,
@@ -27,7 +33,7 @@ export async function nativeQuotaContext(
   if (!connection) return
 
   const credential = await host.integration.connection.resolve(connection)
-  const token = credential?.type === 'oauth' ? credential.access : credential?.key
+  const token = credentialToken(credential)
 
   if (!credential || !token) return
 
@@ -54,7 +60,7 @@ export async function sameNativeConnection(host: Context, input: NativeQuotaRequ
   if (!current || connectionKey(current) !== input.connectionID) return false
 
   const credential = await host.integration.connection.resolve(current)
-  const token = credential?.type === 'oauth' ? credential.access : credential?.key
+  const token = credentialToken(credential)
 
   return token === input.token
 }

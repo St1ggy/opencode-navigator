@@ -1,3 +1,5 @@
+import { executionStatus } from './session-status'
+
 import type { createV2SessionAdapter } from './session-adapter'
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -11,6 +13,7 @@ const SESSION_UPDATE_EVENTS = new Set([
   'session.moved',
   'session.renamed',
   'session.permissions',
+  'session.metadata.updated',
 ])
 
 export function createV2EventAdapter(context: Plugin.Context, sessions: SessionAdapter) {
@@ -19,6 +22,17 @@ export function createV2EventAdapter(context: Plugin.Context, sessions: SessionA
       let active = true
       const unsubscribe = context.data.listen(({ details }) => {
         const event = details as { type: string; data: Record<string, unknown> }
+        const execution = executionStatus(name, event)
+
+        if (execution) {
+          sessions.setStatus(execution.sessionID, execution.status)
+          handler({
+            type: name,
+            properties: execution.properties,
+          })
+
+          return
+        }
 
         if (name === 'server.connected' && event.type === 'server.connected') {
           handler({ type: name, properties: {} })

@@ -117,4 +117,4 @@ export function createTodoController(api: TuiPluginApi) {
   }
 }
 
-export type TodoController = ReturnType<typeof createTodoController>
+export type TodoController = ReturnType<typeof createTodoController> & { source?: 'native' }

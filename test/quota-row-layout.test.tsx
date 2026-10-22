@@ -67,12 +67,16 @@ test.each(['nerd', 'text'] as const)(
       const offset = (row * h.renderer.currentRenderBuffer.width + right - 8) * 4
 
       expect(
-        new RGBA(h.renderer.currentRenderBuffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex('#ffffff')),
+        h.renderer.currentRenderBuffer
+          .withBuffers(({ fg }) => new RGBA(fg.slice(offset, offset + 4)))
+          .equals(RGBA.fromHex('#ffffff')),
       ).toBe(true)
       const muted = ((row - 1) * h.renderer.currentRenderBuffer.width + left) * 4
 
       expect(
-        new RGBA(h.renderer.currentRenderBuffer.buffers.fg.slice(muted, muted + 4)).equals(RGBA.fromHex('#aaaaaa')),
+        h.renderer.currentRenderBuffer
+          .withBuffers(({ fg }) => new RGBA(fg.slice(muted, muted + 4)))
+          .equals(RGBA.fromHex('#aaaaaa')),
       ).toBe(true)
     } finally {
       h.renderer.destroy()
@@ -133,7 +137,7 @@ test.each(['nerd', 'text'] as const)(
         const color = (row: number, column: number) => {
           const offset = (row * buffer.width + column) * 4
 
-          return new RGBA(buffer.buffers.fg.slice(offset, offset + 4))
+          return buffer.withBuffers(({ fg }) => new RGBA(fg.slice(offset, offset + 4)))
         }
 
         expect(unfilled).toBeGreaterThan(filled)

@@ -11,6 +11,7 @@ import { hostCapabilityUnavailable } from '../../../shared/lib/host-capabilities
 import { createListVisibility } from '../../../shared/lib/list-visibility'
 import { useIcons } from '../../../shared/ui'
 
+import { NativeTodoNotice } from './native-todo-notice'
 import { SectionRequestBody } from './request-body'
 import { Section } from './section'
 import { TodoContents } from './todo-contents'
@@ -33,6 +34,7 @@ export function TodoSection(props: {
   const unavailable = () => hostCapabilityUnavailable(props.api, 'todo')
   const managed = (): NavigatorTodoController | undefined =>
     'guidance' in props.controller ? props.controller : undefined
+  const native = () => 'source' in props.controller && props.controller.source === 'native'
   const [mode, setMode] = createSignal<TodoViewMode>('all')
   const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
 
@@ -73,6 +75,18 @@ export function TodoSection(props: {
       summary={
         unavailable() || managed()?.missing(props.sessionID) ? '—' : `${view().counts.completed}/${list().length}`
       }
+      headerAction={
+        native()
+          ? {
+              id: `${PLUGIN_ID}.todo.refresh`,
+              label: () => `${icons.icon('retry')} Refresh`,
+              disabled: () => state().status === 'loading' || state().status === 'refreshing',
+              onActivate: () => {
+                void props.controller.refresh(props.sessionID).catch(() => {})
+              },
+            }
+          : undefined
+      }
       open={props.preferences.expanded().todo}
       onToggle={() => props.preferences.toggleSectionExpanded('todo')}
     >
@@ -80,6 +94,9 @@ export function TodoSection(props: {
         when={unavailable()}
         fallback={
           <box gap={1}>
+            <Show when={native()}>
+              <NativeTodoNotice api={props.api} empty={list().length === 0} />
+            </Show>
             <Show when={managed()?.guidance(props.sessionID).available}>
               <TodoGuidanceControl
                 api={props.api}

@@ -173,3 +173,31 @@ test('an API key, ambiguous active accounts, and stale catalog headers never aut
     h.source.dispose()
   }
 })
+
+test('external credential references are not treated as a verified OAuth account', async () => {
+  const h = harness()
+
+  try {
+    await h.source.refresh(model)
+    const previous = h.source.current(model)
+
+    h.setCredentials([
+      {
+        ...h.credentials()[0],
+        value: { type: 'external', methodID: 'synthetic-external', metadata: { accountID: 'account-a' } },
+      },
+    ])
+    h.callbacks.get('credential.switched')?.()
+    await h.source.refresh(model)
+    expect(h.source.current(model).hostConnection).toEqual({ status: 'unsupported', id: 'credential:one' })
+    expect(await h.source.validate(previous, new AbortController().signal)).toBe(false)
+    h.setCredentials([
+      { ...h.credentials()[0], value: { type: 'key', key: 'synthetic-key', metadata: { region: 'synthetic' } } },
+    ])
+    await h.source.refresh(model)
+    expect(h.source.current(model).hostConnection).toMatchObject({ status: 'ready', method: 'api' })
+    expect(h.source.current(model).hostConnection?.accountID).toBeUndefined()
+  } finally {
+    h.source.dispose()
+  }
+})

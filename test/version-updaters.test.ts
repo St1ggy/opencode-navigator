@@ -8,12 +8,13 @@ import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi, TuiPluginMeta } from '@opencode-ai/plugin/tui'
 
 test('OpenCode 1 updates through the current executable and preserves the global plugin scope', async () => {
-  const hostTarget = '2.1.0'
+  const hostTarget = '1.3.0'
   const packageTarget = '1.2.4'
   const projectTarget = '1.3.0'
   const commands: (readonly string[])[] = []
   const installs: { spec: string; global?: boolean }[] = []
   const api = {
+    app: { version: '1.2.3' },
     state: { path: { config: '/workspace/.opencode/tui.json', worktree: '/workspace' } },
     plugins: {
       install: async (spec: string, options: { global?: boolean }) => {
@@ -168,4 +169,22 @@ test('the packaged update chunk resolves the shipped pinned-snapshot installer f
     ['node', installer, wrapper, target],
   ])
   expect(await Bun.file(installer).exists()).toBe(true)
+})
+
+test.each([
+  { host: '1.2.3', target: '2.0.0', accepted: '1.3.0', v2: false },
+  { host: '2.0.21', target: '3.0.0', accepted: '2.1.0', v2: true },
+])('host $host updates cannot cross the major-version boundary', async ({ host, target, accepted, v2 }) => {
+  const commands: (readonly string[])[] = []
+  const execute = async (command: readonly string[]) => {
+    commands.push(command)
+  }
+  const updater = v2
+    ? createOpenCodeV2VersionUpdater({ app: { version: host } } as Plugin.Context, execute)
+    : createOpenCodeV1VersionUpdater({ app: { version: host } } as TuiPluginApi, {} as TuiPluginMeta, execute)
+
+  await expect(updater.openCode(target)).rejects.toThrow('current major version')
+  expect(commands).toHaveLength(0)
+  await updater.openCode(accepted)
+  expect(commands).toEqual([[process.execPath, 'upgrade', accepted]])
 })

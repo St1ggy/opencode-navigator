@@ -12,6 +12,7 @@ function isMissingServer(error: unknown) {
   return typeof error === 'object' && error !== null && 'type' in error && error.type === 'rpc.unavailable'
 }
 
+// Compatibility adapter for pre-native task backends; production 2.x uses the host source.
 export function createNavigatorTodoController(context: Plugin.Context, api: TuiPluginApi) {
   const rpc = context.client.rpc(NavigatorTodoRpc)
   const [sessions, setSessions] = createSignal<Record<string, NavigatorTodoState>>({})

@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 
 import packageJSON from '../package.json' with { type: 'json' }
 import { createOpenCodeV2Api } from '../src/app/opencode-v2'
+import { createV2EventAdapter } from '../src/app/opencode-v2/event-adapter'
 import { createV2SessionAdapter } from '../src/app/opencode-v2/session-adapter'
 import { legacyTheme } from '../src/app/opencode-v2/theme-adapter'
 import { QUICK_ACTIONS, quickActionDisabledReason, quickActionLabel } from '../src/entities/quick-action'
@@ -354,4 +355,47 @@ test('the OpenCode 2 keymap adapter exposes reachable host commands for discover
   expect(adapter.api.keymap.dispatchCommand('permission.mode').ok).toBe(true)
   expect(dispatched).toEqual(['session.new', 'opencode.settings'])
   await adapter.dispose()
+})
+
+test('public execution events update session status immediately without requiring legacy host events', () => {
+  const listeners = new Set<(event: { details: unknown }) => void>()
+  const context = {
+    data: {
+      listen(listener: (event: { details: unknown }) => void) {
+        listeners.add(listener)
+
+        return () => listeners.delete(listener)
+      },
+      session: { status: () => 'idle' },
+    },
+  } as unknown as Plugin.Context
+  const sessions = createV2SessionAdapter(context)
+  const events = createV2EventAdapter(context, sessions)
+  const statuses: unknown[] = []
+  const idle: unknown[] = []
+  const unsubscribe = [
+    events.on('session.status', (event) => statuses.push(event)),
+    events.on('session.idle', (event) => idle.push(event)),
+  ]
+  const emit = (type: string) => {
+    const details = { id: 'evt_synthetic', created: 1, type, data: { sessionID: 'ses_synthetic' } }
+
+    for (const listener of listeners) listener({ details })
+  }
+
+  try {
+    for (const end of ['succeeded', 'failed', 'interrupted']) {
+      emit('session.execution.started')
+      expect(sessions.state.status('ses_synthetic')).toEqual({ type: 'busy' })
+      emit(`session.execution.${end}`)
+      expect(sessions.state.status('ses_synthetic')).toEqual({ type: 'idle' })
+    }
+    expect(statuses).toHaveLength(6)
+    expect(idle).toHaveLength(3)
+    emit('session.compaction.ended')
+    expect(statuses).toHaveLength(6)
+  } finally {
+    for (const dispose of unsubscribe) dispose()
+  }
+  expect(listeners.size).toBe(0)
 })

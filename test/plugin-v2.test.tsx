@@ -184,6 +184,8 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
           list: () => [session],
           get: (sessionID: string) => (sessionID === session.id ? session : undefined),
           status: () => 'idle',
+          sync: async () => {},
+          message: { list: () => [], sync: async () => {} },
         },
         location: {
           default: () => ({ directory: '/workspace' }),
@@ -272,7 +274,8 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     expect(frame).toContain('[synthetic-provider] synthetic-model')
     expect(frame.replaceAll(/\s+/g, ' ')).toContain('server plugin for native provider quotas and balances')
     expect(frame).not.toContain('Review reset credits')
-    expect(frame.replaceAll(/\s+/g, ' ')).toContain('separate OpenCode 2 server plugin')
+    expect(frame.replaceAll(/\s+/g, ' ')).toContain('Native OpenCode Todo')
+    expect(frame.replaceAll(/\s+/g, ' ')).not.toContain('Todo needs a separate')
     expect(frame).not.toContain('Retry')
     expect(frame).toContain('SUBAGENTS')
     expect(frame).toContain('SKILLS')

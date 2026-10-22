@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js'
 
-import { isNewerVersion } from '../../../shared/lib/version'
+import { isNewerVersion, isSameMajorVersion } from '../../../shared/lib/version'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor } from 'solid-js'
@@ -48,7 +48,9 @@ export function createVersionStatus(
   const unsubscribe = api.event.on('installation.update-available', (event) => {
     const version = event.properties.version
 
-    setOpenCodeUpdate(isNewerVersion(version, api.app.version) ? version : undefined)
+    setOpenCodeUpdate(
+      isSameMajorVersion(version, api.app.version) && isNewerVersion(version, api.app.version) ? version : undefined,
+    )
   })
 
   api.lifecycle.onDispose(() => {

@@ -106,3 +106,25 @@ test('the update-check deadline also covers a stalled response body and permits 
     for (const dispose of h.disposers) dispose()
   }
 })
+
+test('host update indicators remain on the running major line', () => {
+  let announce!: (event: { properties: { version: string } }) => void
+  const h = api()
+
+  h.host.event.on = ((_name: string, callback: typeof announce) => {
+    announce = callback
+
+    return () => {}
+  }) as TuiPluginApi['event']['on']
+  const request = Object.assign(async () => Response.json({ version: '1.2.3' }), { preconnect() {} }) as typeof fetch
+  const status = createVersionStatus(h.host, '1.2.3', request)
+
+  try {
+    announce({ properties: { version: '3.0.0' } })
+    expect(status.openCodeUpdate()).toBeUndefined()
+    announce({ properties: { version: '2.1.0' } })
+    expect(status.openCodeUpdate()).toBe('2.1.0')
+  } finally {
+    for (const dispose of h.disposers) dispose()
+  }
+})

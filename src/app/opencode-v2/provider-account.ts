@@ -16,6 +16,8 @@ export function providerAccountIdentity(
   const credential = active[0]
   const id = `credential:${credential.id}`
 
+  if (credential.value.type === 'external') return { status: 'unsupported', id }
+
   const providerID = provider.canonical ?? provider.id
 
   if (credential.value.type === 'key') return { status: 'ready', id, method: 'api', providerID }

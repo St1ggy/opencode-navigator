@@ -207,10 +207,16 @@ test('Todo filters compose with limits, live updates, and session changes', asyn
     const offset = (y * buffer.width + x) * 4
     const countOffset = (y * buffer.width + x + label.length - 1) * 4
 
-    expect(new RGBA(buffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex(foreground))).toBe(true)
-    expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex(background))).toBe(true)
     expect(
-      new RGBA(buffer.buffers.fg.slice(countOffset, countOffset + 4)).equals(RGBA.fromHex(sidebarTheme.textMuted)),
+      buffer.withBuffers(({ fg }) => new RGBA(fg.slice(offset, offset + 4))).equals(RGBA.fromHex(foreground)),
+    ).toBe(true)
+    expect(
+      buffer.withBuffers(({ bg }) => new RGBA(bg.slice(offset, offset + 4))).equals(RGBA.fromHex(background)),
+    ).toBe(true)
+    expect(
+      buffer
+        .withBuffers(({ fg }) => new RGBA(fg.slice(countOffset, countOffset + 4)))
+        .equals(RGBA.fromHex(sidebarTheme.textMuted)),
     ).toBe(true)
   }
   try {
@@ -438,7 +444,7 @@ test('section boundaries add a subtle divider only between adjacent sections', a
     const divider = lines.findIndex((line) => /─{10}/.test(line))
 
     expect(lines.filter((line) => /─{10}/.test(line))).toHaveLength(1)
-    const foreground = setup.renderer.currentRenderBuffer.buffers.fg
+    const foreground = setup.renderer.currentRenderBuffer.withBuffers(({ fg }) => new Uint16Array(fg))
     const offset = (divider * 20 + 10) * 4
     const color = new RGBA(foreground.slice(offset, offset + 4))
 

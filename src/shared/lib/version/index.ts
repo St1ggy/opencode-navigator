@@ -1,1 +1,1 @@
-export { isNewerVersion } from './semver'
+export { isNewerVersion, isSameMajorVersion } from './semver'

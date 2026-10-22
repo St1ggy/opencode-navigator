@@ -3,6 +3,7 @@ import { basename, dirname, isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { PLUGIN_ID } from '../shared/config'
+import { isSameMajorVersion } from '../shared/lib/version'
 
 import type { VersionUpdater } from '../features/version-footer'
 import type { Plugin } from '@opencode/plugin/tui'
@@ -10,6 +11,12 @@ import type { TuiPluginApi, TuiPluginMeta } from '@opencode-ai/plugin/tui'
 
 type Run = (command: readonly string[]) => Promise<void>
 type ReadConfig = (path: string) => Promise<unknown>
+
+async function upgradeHost(current: string, target: string, execute: Run) {
+  if (!isSameMajorVersion(current, target)) throw new Error('OpenCode updates must stay on the current major version')
+
+  await execute([process.execPath, 'upgrade', target])
+}
 
 const run: Run = async (command) => {
   const child = Bun.spawn([...command], { stdout: 'ignore', stderr: 'pipe' })
@@ -79,7 +86,7 @@ export function createOpenCodeV1VersionUpdater(
   read: ReadConfig = readConfig,
 ): VersionUpdater {
   return {
-    openCode: (target) => execute([process.execPath, 'upgrade', target]),
+    openCode: (target) => upgradeHost(api.app.version, target, execute),
     async navigator(target) {
       if (meta.source === 'file') {
         const wrapper = meta.spec.startsWith('file://') ? fileURLToPath(meta.spec) : meta.spec
@@ -100,7 +107,7 @@ export function createOpenCodeV1VersionUpdater(
 
 export function createOpenCodeV2VersionUpdater(context: Plugin.Context, execute: Run = run): VersionUpdater {
   return {
-    openCode: (target) => execute([process.execPath, 'upgrade', target]),
+    openCode: (target) => upgradeHost(context.app.version, target, execute),
     async navigator(target) {
       const response = await context.client.plugin.list(context.location ? { location: context.location } : {})
       const item = response.data.find((plugin) => plugin.id === PLUGIN_ID)

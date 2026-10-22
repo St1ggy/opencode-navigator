@@ -5,6 +5,8 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { snapshotRuntime } from './snapshot-runtime.mjs'
+
 function command(program, args) {
   return new Promise((resolveCommand, reject) => {
     const child = spawn(program, args, { stdio: ['ignore', 'ignore', 'pipe'] })
@@ -33,7 +35,7 @@ export function pinnedSnapshot(wrapper, read = readFile) {
   })
 }
 
-async function validate(directory, version) {
+async function validate(directory, version, { checkRuntime = true } = {}) {
   const metadata = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
 
   if (
@@ -48,6 +50,15 @@ async function validate(directory, version) {
   const changelog = await readFile(join(directory, 'CHANGELOG.md'), 'utf8')
 
   if (!changelog.includes(`## [${version}]`)) throw new Error(`Snapshot ${version} has no bundled changelog entry`)
+
+  // Older installers inherited the predecessor's pins even when a new package
+  // declared a runtime manifest. Accept that running source; verify the target.
+  if (!checkRuntime) return
+
+  const runtime = await snapshotRuntime(directory, metadata.dependencies)
+
+  if (runtime && Object.entries(runtime).some(([name, pinned]) => metadata.dependencies?.[name] !== pinned))
+    throw new Error(`Snapshot ${version} has mismatched runtime dependencies`)
 }
 
 export async function updateLocalSnapshot(wrapper, target, operations = {}) {
@@ -59,7 +70,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
 
   if (target === version) return
 
-  await validate(previous, version)
+  await validate(previous, version, { checkRuntime: false })
   const previousMetadata = JSON.parse(await readFile(join(previous, 'package.json'), 'utf8'))
   const dependencies = previousMetadata.dependencies
 
@@ -99,7 +110,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
           version: target,
           private: true,
           type: 'module',
-          dependencies,
+          dependencies: await snapshotRuntime(staging, dependencies),
           optionalDependencies: { ...previousMetadata.optionalDependencies, ...metadata.optionalDependencies },
         }),
       )

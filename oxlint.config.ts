@@ -119,7 +119,7 @@ export default defineConfig({
       rules: { 'eslint/no-console': 'off', 'unicorn/no-process-exit': 'off' },
     },
     {
-      files: ['test/local-snapshot-update.test.ts'],
+      files: ['test/local-snapshot-update.test.ts', 'scripts/update-local-snapshot.mjs'],
       // Node's standalone ESM updater requires explicit .mjs extensions.
       rules: { 'import-x-js/extensions': 'off' },
     },
