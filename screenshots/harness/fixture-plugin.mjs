@@ -160,6 +160,9 @@ function openSearchScene(api, dispatch, later) {
 }
 
 function openToolbarScene(api, dispatch, later) {
+  // The host automatically hides its sidebar in narrow terminals; use its public toggle.
+  if (SCENE === 'toolbar-narrow') dispatch('session.sidebar.toggle')
+
   if (['toolbar-manager', 'toolbar-pin', 'toolbar-picker'].includes(SCENE)) {
     dispatch('opencode-navigator.toolbar')
 
