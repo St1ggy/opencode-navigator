@@ -489,6 +489,8 @@ const plugin = {
 
       if (SCENE.startsWith('sidebar-shortcuts')) api.keymap.dispatchCommand('opencode-navigator.sidebar-shortcuts.enter')
 
+      if (SCENE === 'toolbar-picker') api.renderer.currentFocusedRenderable?.blur()
+
       api.renderer.requestRender()
       void Bun.write('/tmp/navigator-fixture.ready', 'ready\n')
     }, fixtureReadyDelay())
