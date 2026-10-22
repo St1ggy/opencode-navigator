@@ -70,7 +70,7 @@ if [[ "$scene" == "sidebar-shortcuts-narrow" ]]; then capture_width=480; fi
 if [[ "$scene" == "toolbar-narrow" ]]; then capture_width=760; fi
 xdotool windowsize "$window_id" "$capture_width" 900
 xdotool windowmove "$window_id" 0 0
-if ! timeout 80s bash -c 'until [[ -e /tmp/navigator-fixture.ready ]]; do sleep 0.05; done'; then
+if ! timeout 80s bash -c 'until [[ -e /tmp/navigator-fixture.ready ]]; do if [[ -e /tmp/navigator-fixture.error ]]; then cat /tmp/navigator-fixture.error >&2; exit 1; fi; sleep 0.05; done'; then
   import -display "$DISPLAY" -window root -crop 1440x900+0+0 /tmp/timeout.png
   convert /tmp/timeout.png +repage -alpha off -strip PNG24:/out/"$scene-timeout.png"
   printf 'Timed out waiting for the Navigator fixture plugin.\n' >&2

@@ -1,4 +1,5 @@
 import navigator, { TodoSection, createNativeTodoController } from '/workspace/dist/tui.js'
+import { createFixtureDispatch } from './fixture-commands.mjs'
 
 const FIXTURE_NOW = 1_893_456_000_000
 const DIRECTORY = '/workspace/atlas-console'
@@ -145,7 +146,7 @@ function openSearchScene(api, dispatch, later) {
   if (!['search-skills', 'search-subagents', 'search-mcp', 'search-actions', 'skill-confirmation'].includes(SCENE))
     return
 
-  api.keymap.dispatchCommand('opencode-navigator.search')
+  dispatch('opencode-navigator.search')
   const tab = { 'search-subagents': 1, 'search-mcp': 2, 'search-actions': 3 }[SCENE] ?? 0
 
   if (tab > 0) {
@@ -349,9 +350,13 @@ const plugin = {
     } finally {
       Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: originalFetch })
     }
+    const commands = createFixtureDispatch(api)
+    const fullTree = setInterval(() => renderFullFixtureTree(api.renderer.root), 50)
+
+    api.lifecycle.onDispose(() => clearInterval(fullTree))
     setTimeout(() => {
       renderFullFixtureTree(api.renderer.root)
-      const dispatch = (command) => api.keymap.dispatchCommand(command)
+      const dispatch = commands.dispatch
       const later = (delay, command) => setTimeout(() => dispatch(command), delay)
       const openSettings = () => {
         dispatch('opencode-navigator.focus')
@@ -485,14 +490,16 @@ const plugin = {
       }
     }, 1200)
     setTimeout(() => {
-      renderFullFixtureTree(api.renderer.root)
+      void commands.idle().then(async () => {
+        renderFullFixtureTree(api.renderer.root)
 
-      if (SCENE.startsWith('sidebar-shortcuts')) api.keymap.dispatchCommand('opencode-navigator.sidebar-shortcuts.enter')
+        if (SCENE.startsWith('sidebar-shortcuts')) await commands.dispatch('opencode-navigator.sidebar-shortcuts.enter')
 
-      if (SCENE === 'toolbar-picker') api.renderer.currentFocusedRenderable?.blur()
+        if (SCENE === 'toolbar-picker') api.renderer.currentFocusedRenderable?.blur()
 
-      api.renderer.requestRender()
-      void Bun.write('/tmp/navigator-fixture.ready', 'ready\n')
+        api.renderer.requestRender()
+        await Bun.write('/tmp/navigator-fixture.ready', 'ready\n')
+      }).catch((error) => Bun.write('/tmp/navigator-fixture.error', String(error)))
     }, fixtureReadyDelay())
   },
 }
