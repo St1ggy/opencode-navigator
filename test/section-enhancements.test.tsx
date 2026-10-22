@@ -210,7 +210,9 @@ test('MCP favorite toggles reorder rows without changing server state', async ()
     const buffer = setup.renderer.currentRenderBuffer
     const offset = (row * buffer.width + column) * 4
 
-    expect(new RGBA(buffer.buffers.bg.slice(offset, offset + 4)).equals(RGBA.fromHex(theme.primary))).toBe(true)
+    expect(
+      buffer.withBuffers(({ bg }) => new RGBA(bg.slice(offset, offset + 4))).equals(RGBA.fromHex(theme.primary)),
+    ).toBe(true)
     await setup.mockMouse.click(column, row)
     await setup.flush()
     const frame = setup.captureCharFrame()
@@ -766,9 +768,9 @@ test('sidebar settings uses a three-cell control aligned to the title edge', asy
 
     expect(frame).not.toContain(uiIcon('idle'))
     expect(
-      new RGBA(setup.renderer.currentRenderBuffer.buffers.fg.slice(offset, offset + 4)).equals(
-        RGBA.fromHex(theme.textMuted),
-      ),
+      setup.renderer.currentRenderBuffer
+        .withBuffers(({ fg }) => new RGBA(fg.slice(offset, offset + 4)))
+        .equals(RGBA.fromHex(theme.textMuted)),
     ).toBe(true)
     await setup.mockMouse.moveTo(control.screenX + 1, control.screenY)
     await setup.flush()

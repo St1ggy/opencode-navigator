@@ -1,2 +1,5 @@
 export { createSidebarShortcutMode } from './model/sidebar-shortcut-mode'
 export type { SidebarShortcutMode, SidebarShortcutModeOptions } from './model/sidebar-shortcut-mode'
+export { sidebarShortcutActions } from './model/shortcut-actions'
+export { SidebarShortcutHint } from './ui/shortcut-hint-loader'
+export { SidebarShortcutHint as ShortcutHintView } from './ui/shortcut-hint'

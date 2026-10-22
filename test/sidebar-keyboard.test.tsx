@@ -456,7 +456,9 @@ test('filter enter takes real focus, j/k type, and two escapes return then leave
     const buffer = setup.renderer.currentRenderBuffer
     const offset = (y * buffer.width + x) * 4
 
-    expect(new RGBA(buffer.buffers.fg.slice(offset, offset + 4)).equals(RGBA.fromHex(color))).toBe(true)
+    expect(buffer.withBuffers(({ fg }) => new RGBA(fg.slice(offset, offset + 4))).equals(RGBA.fromHex(color))).toBe(
+      true,
+    )
   }
 
   try {

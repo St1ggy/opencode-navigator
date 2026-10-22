@@ -81,7 +81,7 @@ function setup(timeoutMs = 5000, lsp = true) {
     command(binding?.cmd as string, mode)?.run?.({} as never)
   }
 
-  return { controller, dispatched, dispatchModes, modes, toasts, layers, activeLayers, command, press }
+  return { api, controller, dispatched, dispatchModes, modes, toasts, layers, activeLayers, command, press }
 }
 
 test('only the configured binding enters mode while palette and legacy toggles stay direct', () => {
@@ -100,9 +100,8 @@ test('only the configured binding enters mode while palette and legacy toggles s
     harness.press('ctrl+shift+b')
     expect(harness.controller.active()).toBe(true)
     expect(harness.modes).toEqual(['base', 'opencode-navigator.sidebar-shortcuts'])
-    expect(harness.toasts.at(-1)?.message).toContain('h toggle')
-    expect(harness.toasts.at(-1)?.message).toContain('c check update')
-    expect(harness.toasts.at(-1)?.message).toContain('u update')
+    expect(harness.controller.actions.map(({ key }) => key)).toEqual(['h', 't', 'a', 's', 'q', 'l', 'm', 'c', 'u'])
+    expect(harness.toasts).toHaveLength(0)
   } finally {
     harness.controller.dispose()
   }
@@ -169,12 +168,37 @@ test('shortcut hints and bindings omit unsupported sections without hiding updat
   try {
     harness.controller.bind('ctrl+shift+b')
     harness.press('ctrl+shift+b')
-    expect(harness.toasts.at(-1)?.message).not.toContain('l LSP')
-    expect(harness.toasts.at(-1)?.message).toContain('c check update | u update')
+    expect(harness.controller.actions.some(({ key }) => key === 'l')).toBe(false)
+    expect(harness.controller.actions.filter(({ group }) => group === 'updates').map(({ key }) => key)).toEqual([
+      'c',
+      'u',
+    ])
     expect(harness.layers.at(-1)?.bindings?.some(({ key }) => key === 'l')).toBe(false)
     harness.press('c')
     expect(harness.dispatched.at(-1)).toBe('opencode-navigator.check-update')
   } finally {
     harness.controller.dispose()
+  }
+})
+
+test('route changes and dialogs invalidate actions before a stale shortcut can dispatch', () => {
+  const h = setup()
+
+  try {
+    h.controller.bind('ctrl+shift+b')
+    h.press('ctrl+shift+b')
+    Object.assign(h.api.route, { current: { name: 'home' } })
+    h.press('u')
+    expect(h.controller.active()).toBe(false)
+    expect(h.dispatched).toHaveLength(0)
+    Object.assign(h.api.route, { current: { name: 'session' } })
+    h.press('ctrl+shift+b')
+    Object.assign(h.api.ui.dialog, { open: true })
+    h.press('c')
+    expect(h.controller.active()).toBe(false)
+    expect(h.dispatched).toHaveLength(0)
+    expect(h.controller.enter()).toBe(false)
+  } finally {
+    h.controller.dispose()
   }
 })

@@ -3,10 +3,11 @@ import { createMcpController } from '../entities/mcp'
 import { createPreferencesController, createPreferencesStore } from '../entities/preferences'
 import { createSkillController } from '../entities/skill'
 import { createSubagentController } from '../entities/subagent'
-import { type NavigatorTodoController, createNavigatorTodoController, createTodoController } from '../entities/todo'
+import { type TodoController, createTodoController } from '../entities/todo'
 import { openKeyboardHelp } from '../features/keyboard-help'
 import { SearchBinding } from '../features/search-everything'
 import { PermissionModeBinding, SettingsBinding, SettingsFooterButton } from '../features/sidebar-settings'
+import { sidebarShortcutActions } from '../features/sidebar-shortcuts'
 import { StartupSessionBinding, createStartupSessionController } from '../features/startup-session'
 import { UpgradeNotesBinding } from '../features/upgrade-notes'
 import { VersionFooter, VersionSummary } from '../features/version-footer'
@@ -26,7 +27,7 @@ import { IconProvider } from '../shared/ui'
 
 import { loadConfiguredDefaults } from './configured-defaults'
 import { LimitsPersistence } from './limits-persistence'
-import { createOpenCodeV2Api } from './opencode-v2'
+import { createNativeTodoController, createOpenCodeV2Api } from './opencode-v2'
 
 import type { createProviderQuotaIntegration as CreateQuotaIntegration } from './provider-quota'
 import type * as NavigatorUpdates from '../navigator-updates'
@@ -74,12 +75,12 @@ async function setupNavigator(
   api: Parameters<TuiPlugin>[0],
   options: Parameters<TuiPlugin>[1],
   readProject?: () => Promise<string | undefined>,
-  managedTodo?: NavigatorTodoController,
+  todoController?: TodoController,
   hostContext?: OpenCodeV2Plugin.Context,
 ) {
   const config = pluginConfig(undefined)
   const configured = await loadConfiguredDefaults(api, options, readProject)
-  const todo = managedTodo ?? createTodoController(api)
+  const todo = todoController ?? createTodoController(api)
   const subagents = createSubagentController(api)
   const skills = createSkillController(api)
   const preferences = createPreferencesController(api, config, createPreferencesStore(api.state.path.state), configured)
@@ -98,7 +99,7 @@ async function setupNavigator(
   } = limitsModule.createProviderQuotaIntegration(api, preferences, __NAVIGATOR_VERSION__, hostContext)
   const mcp = createMcpController(api, preferences.persistMcp, preferences)
   const interaction = createSidebarInteraction(api, () =>
-    openKeyboardHelp(api, preferences.lspIconStyle, preferences.cornerFont),
+    openKeyboardHelp(api, preferences.lspIconStyle, preferences.cornerFont, sidebarShortcutActions(api)),
   )
   const startup = createStartupSessionController(api, preferences)
 
@@ -246,7 +247,7 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMe
 
 export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (context) => {
   const adapter = createOpenCodeV2Api(context)
-  const todo = createNavigatorTodoController(context, adapter.api)
+  const todo = createNativeTodoController(context, adapter.api)
   const { mcp, skills, preferences } = await setupNavigator(
     adapter.api,
     context.options as never,
