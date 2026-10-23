@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.22.0] - 2026-10-22
+## [0.22.0] - 2026-10-23
 
 - Pin Quick Actions and Skills to a compact sidebar toolbar independently of bookmarks. Choose icons in a searchable picker, customize supported state icons, reorder buttons, and select a More menu or wrapping rows. Preserve Skill confirmations, unavailable reasons, keyboard navigation, and Text fallback; hide the toolbar entirely when empty.
 - Use OpenCode 2's built-in Todo history for the sidebar, with native completed-write and revert semantics, existing filters/progress, and manual Refresh. Keep edits in ordinary chat, preserve previous Navigator tasks as a read-only archive, and retain the independent provider-quota server integration.
