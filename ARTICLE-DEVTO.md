@@ -111,6 +111,10 @@ Behavior setting: one row with More, or wrapping rows. Skill confirmation still
 runs, unavailable buttons explain why they cannot run, and an empty toolbar uses
 no space. On 2.x, the host title stays above it.
 
+![Pinned Quick Actions and Skill](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/53-toolbar-permissions-off.png)
+
+![Searchable icon picker](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/57-toolbar-icon-picker.png)
+
 The hint now has icons and highlighted key tokens instead of a pipe-separated paragraph. Section navigation and updates have their own groups, with Escape on a separate row. I use `c` to check for an update and `u` to check then confirm it. The panel keeps focus in the prompt, wraps for narrower terminals, and respects the icon and corner-font settings. Keyboard help gets its action list from the same source.
 
 Settings cover section visibility, order, item limits, global or current-worktree scope, named layout presets, MCP persistence, icon style, and Quick Action ordering. Behavior changes apply immediately. A seven-step first-run guide introduces the same controls, then lets me choose the visible sections on its final screen.

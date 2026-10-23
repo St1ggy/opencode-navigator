@@ -102,6 +102,10 @@ without an observable state keep their base icon. I can wrap a longer toolbar in
 rows or keep one row with a More menu. Removing the last pin removes the panel
 and its spacing. Skill confirmations still apply when I launch from an icon.
 
+![Pinned actions and Skill above the sidebar sections](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/53-toolbar-permissions-off.png)
+
+![Choosing a toolbar icon](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/57-toolbar-icon-picker.png)
+
 Navigator works with an explicit allowlist of argument-free OpenCode commands. It includes `Rename`, `Timeline`, `Copy transcript`, `Export`, `Compact`, session navigation, creating and forking sessions, copying the last response, and message navigation. In OpenCode 1.x, the permissions action toggles auto-approve directly and Navigator can remember that choice as a user-wide default for future sessions. In 2.x, it opens the host Settings dialog so I can switch Session → Permissions between `prompt` and `auto accept` there; `cli.json` sets the default for new sessions. Actions can be bookmarked to place them first, in configured order, both in the sidebar and in search. Usage frequency never changes that order, and even a bookmarked action can be hidden. If a command is unavailable on the current screen or in the installed OpenCode version, its row remains visible and explains why.
 
 ![Section settings](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/13-settings-sections.png)

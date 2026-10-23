@@ -1,21 +1,26 @@
 # Screenshot Gallery
 
-These 47 deterministic captures render the real OpenCode TUI through Ghostty.
+These 62 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
-The v0.21.8 manual **Prepare Release** workflow generated the gallery, verified every PNG
+The v0.22.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed.
 
-## Shortcut Hint Capture Coverage
+## Navigator Shortcut Hint
 
-The harness also registers four shortcut-hint scenes for the next manual
-**Prepare Release** run. They cover grouped actions and highlighted keys with
+Four shortcut-hint scenes cover grouped actions and highlighted keys with
 Nerd Font icons, Text fallback, a narrow Ghostty window, and Nerd Font icons
-without the additional corner font. The expected filenames are
+without the additional corner font. The files are
 `48-sidebar-shortcuts.png`, `49-sidebar-shortcuts-text.png`,
 `50-sidebar-shortcuts-narrow.png`, and `51-no-corner-font-sidebar-shortcuts.png`.
-These new captures must be generated and checked for reproducibility before
-publication; the committed gallery above still describes the last verified set.
+
+![Grouped Navigator shortcuts](48-sidebar-shortcuts.png)
+
+![Shortcut hint in Text fallback](49-sidebar-shortcuts-text.png)
+
+![Shortcut hint in a narrow terminal](50-sidebar-shortcuts-narrow.png)
+
+![Shortcut hint without the corner font](51-no-corner-font-sidebar-shortcuts.png)
 
 The `todo-native` scene additionally renders the real native-history projection
 and Todo component from fully synthetic OpenCode 2 message snapshots. Its
@@ -24,10 +29,14 @@ filters/progress, and Refresh without creating host tool events or invoking a
 model. It uses the pinned Ghostty harness host for deterministic presentation;
 real OpenCode 2 compatibility is checked separately by the PTY matrix.
 
-## Pending Toolbar Captures
+![Native Todo with filters and Refresh](52-native-todo.png)
 
-The next **Prepare Release** run also generates the following synthetic scenes.
-These PNG files have not yet been captured or checked for reproducibility.
+## Pinned Toolbar
+
+The toolbar scenes keep pins independent of bookmarks and exercise the actual
+manager, state-icon configuration, searchable picker, and overflow menu. The
+narrow-terminal fixture uses the host's public sidebar toggle to keep the panel
+visible below its automatic visibility threshold.
 
 | File | Interaction |
 | --- | --- |
@@ -41,6 +50,26 @@ These PNG files have not yet been captured or checked for reproducibility.
 | `60-toolbar-text.png` | Single-cell Text fallbacks |
 | `61-toolbar-narrow.png` | Narrow-terminal toolbar |
 | `62-no-corner-font-icon-picker.png` | Nerd Font picker without Navigator corner masks |
+
+![Pinned toolbar with permissions off](53-toolbar-permissions-off.png)
+
+![Pinned toolbar with permissions on](54-toolbar-permissions-on.png)
+
+![Toolbar manager](55-toolbar-manager.png)
+
+![Per-state icon configuration](56-toolbar-pin-icons.png)
+
+![Searchable icon picker](57-toolbar-icon-picker.png)
+
+![Toolbar More menu](58-toolbar-overflow.png)
+
+![Wrapping toolbar rows](59-toolbar-wrapping.png)
+
+![Toolbar Text fallback](60-toolbar-text.png)
+
+![Toolbar in a narrow terminal](61-toolbar-narrow.png)
+
+![Icon picker without the corner font](62-no-corner-font-icon-picker.png)
 
 ## Provider Limits
 

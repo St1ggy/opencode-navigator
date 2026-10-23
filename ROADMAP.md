@@ -98,9 +98,9 @@ verification workflow before expanding the product surface.
 - [x] Add an icon picker to pin configuration, with separately configurable icons for each supported observable function state and reactive state changes.
 - [x] Reuse existing action/Skill invocation, confirmations and scope guards; support mouse and keyboard, themes, Text fallback, unavailable items and narrow terminals.
 - [x] Offer configurable single-row overflow with a More menu or wrapping toolbar rows.
-- [x] Verify private atomic preference persistence, nested picker drafts/cancellation, row navigation, light/narrow rendering, and shared deferred host registries. Full check: 429 passing tests, one opt-in skip; 350,726 / 360,000-byte main bundle. Expanded real-host smokes pass on 1.18.30, 1.19.3, 2.0.21, and 2.1.0.
+- [x] Verify private atomic preference persistence, nested picker drafts/cancellation, row navigation, light/narrow rendering, shared deferred host registries, and delayed screenshot command registration. Full check: 431 passing tests, one opt-in skip; 350,726 / 360,000-byte main bundle. Expanded real-host smokes pass on 1.18.30, 1.19.3, 2.0.21, and 2.1.0.
 - [x] Register ten fully synthetic toolbar/picker/state/menu/wrapping/Text/narrow/no-corner scenes and update public documentation.
-- [ ] Generate and verify the new PNG captures through Prepare Release, then complete the existing CI/publication gates.
+- [x] Generate and verify all 62 PNG captures through Prepare Release run 39803593194; screenshot PR #29 passed the four-host CI matrix and merged. The narrow fixture uses the host's public sidebar toggle, icon-picker captures exclude caret timing, and lazy fixture commands wait for registration.
 
 ### Native OpenCode 2 Todo Migration
 
@@ -112,14 +112,14 @@ verification workflow before expanding the product surface.
 ### Current Host Compatibility Delivery
 
 - [x] Upgrade the local Homebrew hosts to stable OpenCode 1.19.3 and 2.1.0, verify all four executable names and interactive launch routing, and preserve the pinned Navigator installation and all 14 recorded configuration/preference/launcher paths.
-- [x] Run the current bundle against OpenCode 1.19.3 and the 2.0.21 regression reference; both real-host smokes pass. Reproduce the 2.1.0 failure to open Navigator Settings after successful plugin setup and durable Todo RPC checks; compatibility with 2.1.0 remains unverified.
+- [x] Establish the pre-migration baseline on OpenCode 1.19.3 and the 2.0.21 regression reference, and reproduce the original 2.1.0 Settings failure after successful plugin setup; the migration and verification below resolve that failure.
 - [x] Audit the published 1.19.3 TUI surface and the 2.1.0 SDK/runtime contracts, and record an ordered implementation plan and progress tracker under ignored `vibe/`.
 - [x] Complete the explicit OpenCode 2.0.21-to-2.1.0 plugin API inventory and isolate the Settings failure: OpenTUI 0.6.6 paint hooks cannot sample the destination frame. Resolve selection backdrops from presentation ancestors and use scoped framebuffer access in pixel tests.
 - [x] Align SDKs with OpenCode 1.19.3/2.1.0 and OpenTUI 0.6.6, retain the separate Effect families, and verify target-runtime snapshot migration, legacy-installer compatibility, cached-target validation, and a real packed installation.
 - [x] Verify keymaps, dialogs, slots, model/variant controls, and source-preserving updates on both host lines; reject cross-major host updates and retain the 1.18.30 minimum and 2.0.21 reference.
-- [x] Map public execution events to immediate Subagent status, handle external credential references explicitly, and verify Todo RPC/tool/context, native quota HTTP hooks, account-switch invalidation, and reset-credit guards with version-faithful fixtures.
+- [x] Map public execution events to immediate Subagent status, handle external credential references explicitly, and verify native Todo, the read-only legacy archive RPC, independent native quota HTTP hooks, account-switch invalidation, and reset-credit guards with version-faithful fixtures.
 - [x] Replace the shortcut toast with an icon-led hint, highlighted keys, navigation/update groups, a separate Escape row, Text/no-corner fallback, and responsive layout; preserve prompt focus and share its action inventory with keyboard help, including keyboard scrolling.
-- [~] Configure the required four-host CI matrix and pass all four local real-host smokes plus the full check pipeline (415 passing tests, one opt-in skip). Four shortcut scenes and one native Todo scene are registered; updated GitHub CI and Prepare Release PNG generation/reproducibility remain release gates before publication.
+- [x] Pass the required four-host local and GitHub CI matrix, the full check pipeline, and font verification. Prepare Release run 39803593194 generated and byte-verified all 62 scenes, including shortcuts, native Todo, and toolbar states; screenshot PR #29 passed CI and merged before publication.
 
 ## Product Direction
 
