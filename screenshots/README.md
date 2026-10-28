@@ -1,18 +1,29 @@
 # Screenshot Gallery
 
-These 62 deterministic captures render the real OpenCode TUI through Ghostty.
+These 66 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
-The v0.22.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
-against a second capture, and merged the update after CI passed.
+The v0.23.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
+against a second capture, and merged the update after CI passed. The final run was
+[40663110695](https://github.com/St1ggy/opencode-navigator/actions/runs/40663110695),
+with [screenshot PR #31](https://github.com/St1ggy/opencode-navigator/pull/31).
 
 The current harness targets OpenCode 1.19.5 with Bun 1.4.4 and Node 26.12.1.
-Four additional synthetic scenes are registered for the next manual Prepare
-Release run: native Console shared/per-model budgets, Go allowance, sign-in
-guidance, and request failure with Retry. They exercise the real public 2.2 usage
+Four native-usage scenes exercise Console shared/per-model budgets, Go allowance,
+sign-in guidance, and request failure with Retry. They use the real public 2.2 usage
 adapter and Limits components with synthetic client DTOs in the Ghostty harness;
-separate real-host smokes verify the 2.2 adapter. Their PNG files will be generated
-and byte-verified by that workflow.
+separate real-host smokes verify the 2.2 adapter. Native millisecond reset times
+are converted to the existing display contract before rendering.
+
+## Native Console And Go Usage
+
+![Console workspace and per-model budgets](63-native-workspace-budgets.png)
+
+![Go rolling, weekly and monthly allowance](64-native-go-allowance.png)
+
+![Native usage sign-in guidance](65-native-usage-auth.png)
+
+![Native request failure with Retry](66-native-usage-retry.png)
 
 ## Navigator Shortcut Hint
 
