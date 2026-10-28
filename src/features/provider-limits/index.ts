@@ -11,3 +11,4 @@ export {
   PROVIDER_QUOTA_CAPABILITIES,
   type ProviderQuotaCapability,
 } from './model/provider-capabilities'
+export { createOpenCodeUsageAdapter } from './model/opencode-usage-adapter'

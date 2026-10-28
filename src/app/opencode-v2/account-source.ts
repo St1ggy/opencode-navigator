@@ -109,6 +109,13 @@ export function createOpenCodeV2AccountSource(context: Plugin.Context, lifecycle
   )
 
   return {
+    suspend() {
+      if (!lastModel) return
+
+      lastModel = undefined
+      generation++
+      pending = undefined
+    },
     current(model) {
       lastModel = model
 

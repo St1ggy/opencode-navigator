@@ -12,3 +12,4 @@ export type {
   QuotaWindow,
   SelectedModel,
 } from './model/types'
+export { projectWorkspaceUsage, type WorkspaceUsage } from './model/workspace-usage'

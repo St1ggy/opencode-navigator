@@ -17,6 +17,7 @@ export type SelectedModel = {
   accountID?: string
   accountSource?: 'host' | 'binding'
   hostConnection?: HostProviderConnection
+  quotaContext?: string
 }
 
 export type HostProviderConnection = {
@@ -28,6 +29,7 @@ export type HostProviderConnection = {
 }
 
 export type ProviderAccountSource = {
+  suspend?(): void
   current(model: SelectedModel): SelectedModel
   refresh(model: SelectedModel): Promise<void>
   validate(model: SelectedModel, signal: AbortSignal): Promise<boolean>
@@ -38,7 +40,9 @@ export type QuotaWindow = {
   id: string
   label: string
   modelID?: string
-  scope?: 'account' | 'model'
+  scope?: 'account' | 'model' | 'workspace'
+  budget?: { scope: 'each' | 'combined'; per: 'set' | 'model'; shared: boolean }
+  limited?: boolean
   limitID?: string
   unit: string
   used?: number
@@ -79,6 +83,8 @@ export type ProviderQuotaSnapshot = {
   providerName: string
   accountId?: string
   accountLabel?: string
+  workspaceId?: string
+  workspaceName?: string
   fetchedAt: number
   availability: QuotaAvailability
   windows: readonly QuotaWindow[]
@@ -109,6 +115,15 @@ export type ProviderQuotaAdapter = {
   dispose?(): void | Promise<void>
 }
 
+function windowScopeMatches(snapshot: ProviderQuotaSnapshot, window: QuotaWindow) {
+  if (window.scope === 'workspace')
+    return Boolean(snapshot.workspaceId) && (window.modelID === undefined || window.modelID === snapshot.model.modelID)
+
+  if (window.scope === 'account') return Boolean(snapshot.accountId) && window.modelID === undefined
+
+  return window.modelID === snapshot.model.modelID
+}
+
 export function normalizeProviderQuota(snapshot: ProviderQuotaSnapshot): ProviderQuotaSnapshot {
   if (
     !snapshot.providerId ||
@@ -116,6 +131,8 @@ export function normalizeProviderQuota(snapshot: ProviderQuotaSnapshot): Provide
     !snapshot.model.providerID ||
     !snapshot.model.modelID ||
     !snapshot.model.sessionID ||
+    (snapshot.workspaceId !== undefined &&
+      (typeof snapshot.workspaceId !== 'string' || !snapshot.workspaceId.trim())) ||
     !Number.isFinite(snapshot.fetchedAt)
   ) {
     throw new Error('Invalid provider quota identity')
@@ -125,10 +142,11 @@ export function normalizeProviderQuota(snapshot: ProviderQuotaSnapshot): Provide
     if (
       !window.id ||
       !window.label ||
-      (window.scope !== undefined && window.scope !== 'account' && window.scope !== 'model') ||
-      (window.scope === 'account'
-        ? !snapshot.accountId || window.modelID !== undefined
-        : window.modelID !== snapshot.model.modelID) ||
+      (window.scope !== undefined &&
+        window.scope !== 'account' &&
+        window.scope !== 'model' &&
+        window.scope !== 'workspace') ||
+      !windowScopeMatches(snapshot, window) ||
       !window.unit ||
       (window.used !== undefined && !Number.isFinite(window.used)) ||
       (window.remaining !== undefined && !Number.isFinite(window.remaining)) ||

@@ -226,10 +226,10 @@ const rows: [string, string, string[], string, string][] = [
   ],
   [
     'opencode',
-    'OpenCode Zen / Go',
-    [],
-    'Session token/cost statistics are not provider quota; no undocumented billing endpoints.',
-    'https://opencode.ai/docs/zen/',
+    'OpenCode Console / Go',
+    ['workspace-budget', 'subscription'],
+    'OpenCode 2.2 public usage API: applicable workspace USD budgets and percent-based Go allowance; not a universal account balance API.',
+    'https://github.com/anomalyco/opencode/blob/v2.2.0/packages/schema/src/usage-limits.ts',
   ],
   [
     'cursor',

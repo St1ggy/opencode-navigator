@@ -24,7 +24,10 @@ export async function setupProviderQuotaServer(host: Context) {
   })
 
   void (async () => {
-    const events = host.event.subscribe({ signal: lifecycle.signal })
+    const events = host.event.subscribe({
+      signal: lifecycle.signal,
+      types: ['credential.updated', 'credential.switched', 'integration.updated', 'provider.updated'],
+    })
 
     for await (const event of events) {
       if (['credential.updated', 'credential.switched', 'integration.updated', 'provider.updated'].includes(event.type))

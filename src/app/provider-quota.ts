@@ -3,6 +3,7 @@ import {
   createCodexAppServerClient,
   createCodexQuotaAdapter,
   createNativeQuotaAdapter,
+  createOpenCodeUsageAdapter,
 } from '../features/provider-limits'
 
 import { bindCodexAccount } from './limits-account-model'
@@ -22,15 +23,41 @@ export function createProviderQuotaIntegration(
   context?: Plugin.Context,
 ) {
   const selectModel = () => (context ? selectedV2Model(context) : selectedV1Model(api))
-  const accountSource = context ? createOpenCodeV2AccountSource(context, api.lifecycle.signal) : undefined
+  const hostAccounts = context ? createOpenCodeV2AccountSource(context, api.lifecycle.signal) : undefined
+  const usage = context ? createOpenCodeUsageAdapter(context) : undefined
+  const accountSource = hostAccounts && {
+    ...hostAccounts,
+    current(model: Parameters<typeof hostAccounts.current>[0]) {
+      if (usage?.adapter.supports(model)) {
+        hostAccounts.suspend?.()
+
+        return usage.target(model)
+      }
+
+      return hostAccounts.current(model)
+    },
+    refresh(model: Parameters<typeof hostAccounts.refresh>[0]) {
+      if (usage?.adapter.supports(model)) {
+        hostAccounts.suspend?.()
+
+        return Promise.resolve()
+      }
+
+      return hostAccounts.refresh(model)
+    },
+  }
   const codex = createCodexQuotaAdapter(createCodexAppServerClient({ version }), accountSource?.validate)
   const native = context ? createNativeQuotaAdapter(context) : undefined
   const controller = createProviderLimitsController(
-    [codex, ...(native ? [native.adapter] : [])],
+    [...(usage ? [usage.adapter] : []), codex, ...(native ? [native.adapter] : [])],
     () => {
       const model = selectModel()
 
-      return model ? bindCodexAccount(accountSource?.current(model) ?? model, preferences) : undefined
+      if (!model) return
+
+      const selected = accountSource?.current(model) ?? model
+
+      return usage?.adapter.supports(model) ? selected : bindCodexAccount(selected, preferences)
     },
     api.lifecycle.signal,
     accountSource &&
