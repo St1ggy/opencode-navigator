@@ -230,6 +230,12 @@ test('switching the shared icon preference updates every section and dialog with
     try {
       await setup.flush()
 
+      // flush settles renderer work, not a cold Suspense import's filesystem I/O.
+      for (let attempt = 0; attempt < 30 && !setup.captureCharFrame().trim(); attempt++) {
+        await Bun.sleep(5)
+        await setup.flush()
+      }
+
       if (entry.name === 'search') {
         const next = commands.find((command) => command.name.endsWith('.next-tab'))!
 
