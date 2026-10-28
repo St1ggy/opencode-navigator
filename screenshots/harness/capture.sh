@@ -83,6 +83,7 @@ case "$scene" in
   limits-ready | limits-credits | limits-confirmation | limits-count-only | limits-unavailable | limits-text | limits-link) ;;
   sidebar-shortcuts | sidebar-shortcuts-text | sidebar-shortcuts-narrow) ;;
   todo-native) ;;
+  host-usage-budgets | host-usage-go | host-usage-auth | host-usage-failure) ;;
   toolbar-off | toolbar-on | toolbar-manager | toolbar-pin | toolbar-picker | toolbar-overflow | toolbar-wrap | toolbar-text | toolbar-narrow) ;;
   hero | todo-active | todo-finished | subagents-all | subagents-errors | sidebar-skills | sidebar-actions-lsp | sidebar-mcp | search-skills | search-subagents | search-mcp | search-actions | settings-sections | settings-scope | settings-presets | settings-behavior | settings-defaults | settings-portability | settings-trusted-skills | settings-skill-groups | settings-mcp-groups | settings-limits-refresh | settings-control-hover | quick-actions-settings | layout-preset-menu | layout-preset-preview | mcp-presets | mcp-preset-actions | mcp-preset-preview | mcp-error | skill-confirmation | keyboard-help | text-fallback) ;;
   settings-import-preview)

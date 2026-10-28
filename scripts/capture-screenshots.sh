@@ -5,7 +5,7 @@ set -Eeuo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 image="opencode-navigator-screenshots:local"
 mode="${1:-generate}"
-scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link settings-limits-refresh sidebar-shortcuts sidebar-shortcuts-text sidebar-shortcuts-narrow no-corner-sidebar-shortcuts todo-native toolbar-off toolbar-on toolbar-manager toolbar-pin toolbar-picker toolbar-overflow toolbar-wrap toolbar-text toolbar-narrow no-corner-toolbar-picker)
+scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link settings-limits-refresh sidebar-shortcuts sidebar-shortcuts-text sidebar-shortcuts-narrow no-corner-sidebar-shortcuts todo-native toolbar-off toolbar-on toolbar-manager toolbar-pin toolbar-picker toolbar-overflow toolbar-wrap toolbar-text toolbar-narrow no-corner-toolbar-picker host-usage-budgets host-usage-go host-usage-auth host-usage-failure)
 
 file_for_scene() {
   case "$1" in
@@ -71,6 +71,10 @@ file_for_scene() {
     toolbar-text) printf '%s\n' 60-toolbar-text.png ;;
     toolbar-narrow) printf '%s\n' 61-toolbar-narrow.png ;;
     no-corner-toolbar-picker) printf '%s\n' 62-no-corner-font-icon-picker.png ;;
+    host-usage-budgets) printf '%s\n' 63-native-workspace-budgets.png ;;
+    host-usage-go) printf '%s\n' 64-native-go-allowance.png ;;
+    host-usage-auth) printf '%s\n' 65-native-usage-auth.png ;;
+    host-usage-failure) printf '%s\n' 66-native-usage-retry.png ;;
     *) return 1 ;;
   esac
 }

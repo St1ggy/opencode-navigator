@@ -1,5 +1,7 @@
 import navigator, { TodoSection, createNativeTodoController } from '/workspace/dist/tui.js'
+import { ProviderLimitsSection, createOpenCodeUsageAdapter, createProviderLimitsController } from '/workspace/dist/provider-limits.js'
 import { createFixtureDispatch } from './fixture-commands.mjs'
+import { createHostUsageFixture } from './host-usage.mjs'
 
 const FIXTURE_NOW = 1_893_456_000_000
 const DIRECTORY = '/workspace/atlas-console'
@@ -308,6 +310,21 @@ const plugin = {
 
     const originalFetch = globalThis.fetch
 
+    let hostUsage
+
+    if (SCENE.startsWith('host-usage-')) {
+      const fixture = createHostUsageFixture(SCENE, FIXTURE_NOW, DIRECTORY)
+      const source = createOpenCodeUsageAdapter(fixture.context)
+      const controller = createProviderLimitsController([source.adapter], () => source.target(fixture.model))
+
+      await controller.refresh()
+      api.lifecycle.onDispose(() => controller.dispose())
+      hostUsage = { controller, codex: source.adapter, modelSelection: {
+        names: () => ({ provider: fixture.model.providerName, model: fixture.model.modelName }),
+        variants: () => [], canOpen: () => false, open: () => false,
+      } }
+    }
+
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       writable: true,
@@ -319,6 +336,13 @@ const plugin = {
 
     const slots = service(api.slots, {
       register(contribution) {
+        if (hostUsage && contribution.slots.sidebar_content)
+          return api.slots.register({ ...contribution, slots: { ...contribution.slots, sidebar_content() {
+            return ProviderLimitsSection({ api: fixtureApi, ...hostUsage, navigationSection: 0,
+              preferences: { expanded: () => ({ limits: true }), pendingResetAttempt: () => {}, toggleSectionExpanded: () => {} },
+            })
+          } } })
+
         if (SCENE !== 'todo-native' || !contribution.slots.sidebar_content) return api.slots.register(contribution)
 
         return api.slots.register({ ...contribution, slots: { ...contribution.slots, sidebar_content(_context, input) {
