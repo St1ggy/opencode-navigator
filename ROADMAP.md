@@ -131,7 +131,7 @@ verification workflow before expanding the product surface.
 - [x] Support and document only OpenCode 1.19.5 and 2.2.0, with version-faithful fixtures and separate real-host smokes. Full check: 445 passing tests, one opt-in skip, 4,271 assertions; typecheck, lint, formatting, font check, package/installer checks and 354,723 / 360,000-byte main bundle pass.
 - [x] Pin the two-target CI matrix and Docker toolchain, retain all 62 existing scenes, and register four tested synthetic native-usage scenes for Console budgets, Go allowance, sign-in guidance and request Retry.
 - [x] Generate and byte-verify all 66 PNGs through Prepare Release 40663110695 and merge screenshot PR #31 after its exact-head CI 40666335595 passed. Visual review caught native millisecond reset timestamps being treated as seconds; the regression and corrected Console/Go captures now pass. Stabilize the icon-style test by waiting for cold lazy content rather than asserting an empty Suspense frame.
-- [ ] Publish v0.23.0 and verify the GitHub Release, npm version and provenance; preserve the local installation and private configuration.
+- [x] Publish v0.23.0 through Publish run 40667256515 after final main CI 40666974094 passed. Verify GitHub tag/release, npm `latest`, registry signatures and provenance, all 37 package files and matching archive integrity, plus a real isolated registry-snapshot installation. Preserve the local installation and private configuration.
 
 ## Product Direction
 
