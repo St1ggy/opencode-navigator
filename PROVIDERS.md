@@ -5,15 +5,21 @@ It never treats session token/cost totals as remaining provider quota. Subscript
 windows, API rate limits, configured capacities, and monetary balances are different
 measurements and are labelled separately.
 
-The implemented contracts were rechecked on 2026-10-06. The runtime also includes providers from
+The external provider contracts were rechecked on 2026-10-06; the public
+OpenCode Console/Go contract was added on 2026-10-28. The runtime also includes providers from
 the host catalog; an unrecognized provider gets an explicit unverified-source state
 rather than fabricated quota values. Availability depends on the selected account,
 permissions, region, transport, and supported host APIs.
 
 ## Audited Read Sources
 
+OpenCode 2.2 adds a direct public `client.usage.limits` source for Console/Go.
+It takes priority for verified host coverage; an auth, permission, rate-limit or
+network failure does not switch to a credential-based or external reader.
+
 | Provider | Native source | Scope and prerequisites | Reference |
 | --- | --- | --- | --- |
+| OpenCode Console / Go | Public OpenCode 2.2 `usage.limits` client API | Workspace identity, applicable USD budgets and percent-based Go windows; no Navigator server required | [Published client](https://cdn.jsdelivr.net/npm/@opencode/client@2.2.0/dist/promise/generated/client.d.ts), [Usage schema](https://github.com/anomalyco/opencode/blob/v2.2.0/packages/schema/src/usage-limits.ts) |
 | OpenAI / Codex ChatGPT | Codex app-server account/rate-limit RPC and manual reset credits | Verified account identity; ordinary `codex` quota is account-scoped even with null model metadata; separate model buckets need explicit association; native durations describe quota windows, not time until reset | [Codex protocol](https://github.com/openai/codex/tree/main/codex-rs/app-server-protocol) |
 | OpenAI API | HTTP request/token/project-token rate-limit headers | Actual response for the selected model/account; HTTP transport | [Rate limits](https://developers.openai.com/api/docs/guides/rate-limits) |
 | Anthropic API | Native response headers and organization rate-limits API | Per-model headers; configured limits need an eligible org/admin credential and explicit model association | [Rate limits API](https://platform.claude.com/docs/en/manage-claude/rate-limits-api) |
@@ -51,7 +57,7 @@ permissions, region, transport, and supported host APIs.
 | Qwen / Alibaba Cloud / DashScope | Model/project/cloud quota and billing permissions; browser OAuth state is not a portable quota source | [Model Studio docs](https://www.alibabacloud.com/help/en/model-studio/) |
 | Hugging Face Inference Providers | Hub request quotas are not automatically inference-model quotas or inference credits | [Hub limits](https://huggingface.co/docs/hub/rate-limits), [Inference pricing](https://huggingface.co/docs/inference-providers/pricing) |
 | Cloudflare Workers AI | Account billing/analytics and model/resource limits; do not derive remaining free allowance from static daily examples | [Workers AI limits](https://developers.cloudflare.com/workers-ai/platform/limits/) |
-| OpenCode Zen / Go | Host session statistics are not the provider's account balance; no undocumented billing endpoints are queried | [OpenCode Zen](https://opencode.ai/docs/zen/) |
+| OpenCode Console / Go boundaries | Native workspace budgets and Go allowance are supported, not an inferred wallet balance; other providers need their own documented source | [Host usage source](https://github.com/anomalyco/opencode/blob/v2.2.0/packages/core/src/usage-limits.ts) |
 | Cursor | Consumer account usage requires a supported external API; no browser cookies or local credential extraction | [Cursor docs](https://docs.cursor.com/) |
 | Windsurf / Codeium | Consumer plan usage is separate from API response rate limits; no private account endpoints | [Windsurf docs](https://docs.windsurf.com/) |
 | Amp | Product credits require a supported external account API; no credential-file or cookie integrations | [Amp manual](https://ampcode.com/manual) |
@@ -80,8 +86,9 @@ permissions, region, transport, and supported host APIs.
   triggers inference, a credit purchase, a reset, or an authorization flow.
 - HTTP-only observations may be absent for WebSocket transports. Report that
   limitation instead of changing the host transport or reading private frames.
-- The native adapters are available through the OpenCode 2 server plugin. OpenCode
-  1.x keeps Codex support and capability guidance without accessing host internals.
+- Console/Go use the host client API directly; other native provider adapters use
+  the OpenCode 2 server plugin. OpenCode 1.x keeps Codex support and capability
+  guidance without accessing host internals.
 - REST credentials are not reused against a native provider origin when the host
   explicitly configures a different gateway origin. Redirects are rejected.
 - Contract fixtures cover endpoint selection, regions, units, pagination, account

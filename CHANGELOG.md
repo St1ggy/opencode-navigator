@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.0] - 2026-10-28
+
+- Support only the latest stable OpenCode 1.x and 2.x releases, currently 1.19.5 and 2.2.0, including the newer terminal renderer.
+- Keep Skills, MCP servers, and Subagents current as OpenCode 2 updates, and launch the intended Skill when multiple sources have the same name.
+- Show OpenCode Console workspace budgets and Go allowance through the public host usage API without a Navigator server plugin. Preserve workspace scope, native units, reset times, and explicit failure/retry states.
+- Preserve Navigator shortcuts and nested-dialog navigation with OpenCode 2.2's keyboard handling.
+- Verify a supported runtime before changing a pinned Navigator snapshot, preserving the installed version when no compatible verifier is available.
+
 ## [0.22.0] - 2026-10-23
 
 - Pin Quick Actions and Skills to a compact sidebar toolbar independently of bookmarks. Choose icons in a searchable picker, customize supported state icons, reorder buttons, and select a More menu or wrapping rows. Preserve Skill confirmations, unavailable reasons, keyboard navigation, and Text fallback; hide the toolbar entirely when empty.

@@ -6,6 +6,14 @@ Every task, session, workspace, path, skill, server, error, and preset is synthe
 The v0.22.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed.
 
+The current harness targets OpenCode 1.19.5 with Bun 1.4.4 and Node 26.12.1.
+Four additional synthetic scenes are registered for the next manual Prepare
+Release run: native Console shared/per-model budgets, Go allowance, sign-in
+guidance, and request failure with Retry. They exercise the real public 2.2 usage
+adapter and Limits components with synthetic client DTOs in the Ghostty harness;
+separate real-host smokes verify the 2.2 adapter. Their PNG files will be generated
+and byte-verified by that workflow.
+
 ## Navigator Shortcut Hint
 
 Four shortcut-hint scenes cover grouped actions and highlighted keys with

@@ -190,13 +190,24 @@ After the two-Solid-instance bug, I stopped treating unit tests as sufficient pr
 
 The tests click with the mouse, type into filters, navigate dialogs with the keyboard, and compare the resulting character frame. Separate checks cover 500-row lists and loading the built plugin into a real OpenCode process through a PTY.
 
-Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; several intentionally omit it. Every task, session, path, Skill, server, error, saved preset, and provider account is synthetic. The gallery contains 47 scenes, including eight Limits states. The manual release workflow renders each scene twice and compares the PNG files byte for byte before merging its update.
+Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; several intentionally omit it. Every task, session, path, Skill, server, error, saved preset, and provider account is synthetic. The published gallery contains 62 scenes. Four more native-usage fixtures await the next release capture. The manual release workflow renders each scene twice and compares the PNG files byte for byte before merging its update.
 
 That setup is not free. It requires Docker with Linux ARM64 support, and pixel-level comparison is sensitive to the environment, so Ghostty and font versions must be pinned. In return, the README screenshots and the tested interface are now produced by exactly the same process.
 
 ## Installation
 
-OpenCode Navigator supports OpenCode `1.18.30` and later, including OpenCode 2.x.
+On OpenCode 2.2, Skills, MCP servers and Subagents read the host's reactive caches.
+Skill launches retain the exact native ID, even when two sources have the same
+name. Keyboard layers also belong to the host; Navigator keeps the nested-dialog
+state and shared cross-host preferences that its public APIs do not yet cover.
+
+Console and Go usage now comes through the public client API. I use that directly:
+Console budgets keep their workspace scope and USD amounts; Go windows keep their
+percentages and reset times. This path needs no Navigator server plugin. A failed
+native read stays an error with Retry rather than triggering another reader.
+
+OpenCode Navigator supports only the latest stable release of each major line:
+OpenCode `1.19.5` and `2.2.0`. I verify these two real hosts separately.
 
 To install it for all projects:
 

@@ -121,6 +121,17 @@ verification workflow before expanding the product surface.
 - [x] Replace the shortcut toast with an icon-led hint, highlighted keys, navigation/update groups, a separate Escape row, Text/no-corner fallback, and responsive layout; preserve prompt focus and share its action inventory with keyboard help, including keyboard scrolling.
 - [x] Pass the required four-host local and GitHub CI matrix, the full check pipeline, and font verification. Prepare Release run 39803593194 generated and byte-verified all 62 scenes, including shortcuts, native Todo, and toolbar states; screenshot PR #29 passed CI and merged before publication.
 
+### Native-API-First Host Update: OpenCode 1.19.5 And 2.2.0
+
+- [x] Identify the new stable targets and inspect their published contracts: 1.19.5 preserves the audited 1.19.4 TUI/SDK declarations; 2.2.0 keeps the published TUI context unchanged, requires OpenTUI 0.7.0, and adds the public Console/Go `client.usage.limits` source.
+- [x] Update the SDK/runtime pins and Bun/Node verification environments, retaining a single host-owned Solid/OpenTUI runtime and safe pinned-snapshot failure behavior on unsupported Node versions.
+- [x] Prefer public native session/Skill/MCP caches and typed events over duplicate snapshots and polling, preserve exact Skill IDs, and delegate keymap modes/priorities/targets to the host.
+- [x] Add a direct public OpenCode Console/Go quota adapter with explicit workspace/model/budget scope; retain external provider sources only outside the host API's coverage and never fall through on authentication or request failures.
+- [x] Record remaining fallbacks, missing capabilities and removal conditions in `HOST_API.md`; preserve shared cross-host preferences, nested dialogs, native read-only Todo, provider credit safeguards and existing visuals.
+- [x] Support and document only OpenCode 1.19.5 and 2.2.0, with version-faithful fixtures and separate real-host smokes. Full check: 445 passing tests, one opt-in skip, 4,269 assertions; typecheck, lint, formatting, font check, package/installer checks and 354,723 / 360,000-byte main bundle pass.
+- [x] Pin the two-target CI matrix and Docker toolchain, retain all 62 existing scenes, and register four tested synthetic native-usage scenes for Console budgets, Go allowance, sign-in guidance and request Retry.
+- [ ] Publish v0.23.0 after GitHub CI and manual Prepare Release generate and byte-verify all 66 PNGs and merge the screenshot PR. Verify the GitHub Release, npm version and provenance; preserve the local installation and private configuration.
+
 ## Product Direction
 
 ### Presets And Layout
@@ -255,7 +266,7 @@ public OpenCode TUI or stable authenticated provider API:
 
 ## Suggested Delivery Order
 
-1. Deliver the pinned Action/Skill toolbar, then finish the remaining publication gates in Current Host Compatibility Delivery.
+1. Complete the native-API-first OpenCode 1.19.5/2.2.0 update and verification of these two current hosts.
 2. Complete the remaining section improvements.
 3. Add provider and CLI adapters only where stable supported quota APIs are available.
 4. Finish performance, accessibility, bundle, and release polish for 1.0.

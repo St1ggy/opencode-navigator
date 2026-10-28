@@ -131,13 +131,15 @@ I can also export the selected scope's effective layout and desired MCP states a
 
 ![Settings import preview](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/34-settings-import-preview.png)
 
-## Quotas need an account and a model
+## Quotas need a verified source
 
 I wanted a quota readout, but OpenCode's session token and cost counters are a different thing. Limits uses provider-owned usage windows and reset times, starting with Codex's documented app-server RPC.
 
 There is an account boundary here that a plugin cannot guess. OpenCode 2 reports its built-in ChatGPT account identity, which Navigator verifies against Codex. Otherwise I confirm the matching CLI account once per connection or provider, and that binding carries across models and projects. Navigator labels ordinary Codex usage as account quota shared across models. Separate model buckets require an explicit association. The section starts first and expanded; Global and Current worktree settings can hide or reorder it, while reads keep refreshing in the background.
 
 The OpenCode 2 server plugin adds documented subscription reads for MiniMax, NanoGPT, and Copilot, plus native balances and key budgets for OpenRouter, DeepSeek, Moonshot, and other API providers. It can observe model-response rate-limit headers without making another inference request. The compact view keeps a clickable model and variant above the remaining headroom, full-width muted thin-line scale, and reset time. Refresh and Banked Resets sit in the header. The public source inventory documents missing APIs or permissions instead of filling those gaps with estimated quota.
+
+For Console and Go on OpenCode 2.2, I call the public `client.usage.limits` API directly. Console budgets stay in USD with workspace scope; Go windows show remaining percentages and native reset times. No Navigator server is needed for this source. Authentication and network failures stay on that path with guidance or Retry, without falling back to credential reads.
 
 For banked resets, the available count survives a missing credit detail list. The review screen shows any supplied details and expiry. Picking a credit opens a separate confirmation after a fresh eligibility check; a full usage bar alone is not permission to redeem one. If the request times out, the pending attempt keeps one idempotency key for reconciliation, including after a restart. Changing the model, session, or linked account closes a stale confirmation.
 
@@ -171,7 +173,7 @@ The test suite now builds the unminified `dist/tui.js` that users load. Renderin
 
 This takes longer than testing source modules alone, but it covers the boundary where my most confusing bug actually lived: bundling and host integration.
 
-Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery contains 47 scenes, including eight Limits states generated and verified by the manual release workflow. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
+Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The published gallery contains 62 scenes; four new Console/Go fixtures await the next manual release capture. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
 
 Every displayed task, session, workspace, path, skill, server, error, and preset is synthetic and deterministic. Verification renders the scenes again to a temporary directory and fails if any PNG differs.
 
@@ -181,7 +183,13 @@ Screenshots are documentation, but in this project they are also rendering regre
 
 ## Installation
 
-OpenCode Navigator supports OpenCode 1.18.30 and newer, including OpenCode 2.x.
+OpenCode Navigator supports only the latest stable release in each major line:
+OpenCode **1.19.5** and **2.2.0**, verified with separate real-host checks.
+
+The 2.2 adapter reads the host's reactive Skill, MCP and session caches and uses
+its keymap layers. I retain exact Skill IDs instead of reconstructing them from
+names. The shared preferences file and nested-dialog restore remain Navigator
+features because the public host APIs do not offer their cross-host semantics.
 
 ### OpenCode 1.x
 
@@ -271,6 +279,6 @@ I would rather state those boundaries plainly than add controls that pretend the
 
 Navigator now covers the sidebar workflow I wanted: monitor current work, find hidden or limited items quickly, and keep configuration close to the controls it affects. That workflow is personal, though. Some people never touch a mouse. Some have two MCP servers; others have fifty. Some do not use Todo at all.
 
-The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [47-state screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
+The source and documentation are on [GitHub](https://github.com/St1ggy/opencode-navigator), and the package is on [npm](https://www.npmjs.com/package/opencode-navigator). The repository also contains the [screenshot gallery](https://github.com/St1ggy/opencode-navigator/tree/main/screenshots).
 
 If you try it, I'd like to know what still feels hard to reach, which section you'd remove, and what breaks with your terminal, theme, or configuration. Bugs and feature requests are welcome in [GitHub Issues](https://github.com/St1ggy/opencode-navigator/issues), or tell me in the comments how you use OpenCode's sidebar.
