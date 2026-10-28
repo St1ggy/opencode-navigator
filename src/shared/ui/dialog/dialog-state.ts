@@ -1,4 +1,5 @@
-import { type Signal, createSignal, useContext } from 'solid-js'
+import { useRenderer } from '@opentui/solid'
+import { type Signal, createSignal, onCleanup, useContext } from 'solid-js'
 
 import { useIcons } from '../icons'
 
@@ -38,22 +39,39 @@ export function useDialogState<T>(key: string, initial: T): Signal<T> {
 }
 
 export function useDialogScroll(key = 'scroll') {
+  const renderer = useRenderer()
   const [position, setPosition] = useDialogState(key, 0)
   let body: ScrollBoxRenderable | undefined
   let isPending = true
 
+  function restore() {
+    if (!isPending || !body || body.isDestroyed) return
+
+    if (position() > 0 && body.scrollHeight === 0) return
+
+    isPending = false
+    body.scrollTo(position())
+  }
+  function save() {
+    if (!isPending && body && !body.isDestroyed) setPosition(body.scrollTop)
+  }
+  const frame = () => {
+    restore()
+    save()
+  }
+
+  renderer.on('frame', frame)
+  onCleanup(() => {
+    save()
+    renderer.off('frame', frame)
+  })
+
   return {
     ref(node: ScrollBoxRenderable) {
       body = node
+      renderer.requestRender()
     },
-    restore() {
-      if (!isPending || !body) return
-
-      isPending = false
-      body.scrollTo(position())
-    },
-    save() {
-      if (body && !body.isDestroyed) setPosition(body.scrollTop)
-    },
+    restore,
+    save,
   }
 }

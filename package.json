@@ -1,10 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "opencode-navigator",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "Search, navigate, and manage OpenCode sessions from the TUI",
   "type": "module",
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.4",
   "license": "MIT",
   "author": "St1ggy",
   "repository": {
@@ -33,9 +33,11 @@
     "scripts/install-font.mjs",
     "scripts/update-local-snapshot.mjs",
     "scripts/snapshot-runtime.mjs",
+    "scripts/snapshot-verifier.mjs",
     "scripts/save-project-profile.mjs",
     "README.md",
     "PROVIDERS.md",
+    "HOST_API.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
@@ -58,7 +60,7 @@
     "access": "public"
   },
   "engines": {
-    "opencode": ">=1.18.30"
+    "opencode": "1.19.5 || 2.2.0"
   },
   "scripts": {
     "build": "bun run build.ts",
@@ -81,8 +83,8 @@
     "check": "bun run test && bun run typecheck && bun run lint && bun run bundle:size && bun run format:check"
   },
   "peerDependencies": {
-    "@opencode-ai/plugin": ">=1.18.30",
-    "@opencode/plugin": ">=2.0.11",
+    "@opencode-ai/plugin": "1.19.5",
+    "@opencode/plugin": "2.2.0",
     "@opentui/core": ">=0.4.5",
     "@opentui/solid": ">=0.4.5",
     "solid-js": ">=1.9.12"
@@ -105,12 +107,12 @@
     }
   },
   "devDependencies": {
-    "@opencode-ai/plugin": "1.19.3",
-    "@opencode-ai/sdk": "1.19.3",
-    "@opencode/plugin": "2.1.0",
-    "@opentui/core": "0.6.6",
-    "@opentui/keymap": "0.6.6",
-    "@opentui/solid": "0.6.6",
+    "@opencode-ai/plugin": "1.19.5",
+    "@opencode-ai/sdk": "1.19.5",
+    "@opencode/plugin": "2.2.0",
+    "@opentui/core": "0.7.0",
+    "@opentui/keymap": "0.7.0",
+    "@opentui/solid": "0.7.0",
     "@st1ggy/linter-config": "8.0.0",
     "@types/bun": "1.4.2",
     "eslint-plugin-solid": "0.18.0",

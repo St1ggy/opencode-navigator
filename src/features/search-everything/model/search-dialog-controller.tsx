@@ -1,5 +1,5 @@
 import { type InputRenderable, RGBA, type Renderable, type ScrollBoxRenderable, parseColor } from '@opentui/core'
-import { useTerminalDimensions } from '@opentui/solid'
+import { useRenderer, useTerminalDimensions } from '@opentui/solid'
 import { batch, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 
 import {
@@ -62,11 +62,27 @@ export function createSearchDialogController(props: SearchServices & { returnTar
     }
   })
   const dimensions = useTerminalDimensions()
+  const renderer = useRenderer()
   let input: InputRenderable | undefined
   let body: ScrollBoxRenderable | undefined
   let pendingScroll: number | string | undefined = scrollTop()
   let isDisposed = false
   let refreshGeneration = 0
+  const onFrame = () => {
+    if (!body || body.isDestroyed) return
+
+    const position = pendingScroll
+
+    pendingScroll = undefined
+
+    if (typeof position === 'number') body.scrollTo(position)
+    else if (typeof position === 'string') body.scrollChildIntoView(`${prefix}.${position}`)
+
+    setScrollTop(body.scrollTop)
+  }
+
+  renderer.on('frame', onFrame)
+  onCleanup(() => renderer.off('frame', onFrame))
   const sameContext = () => searchContext(props.api).key === context.key
   const candidates = createMemo(() => {
     commandRevision()
@@ -298,19 +314,6 @@ export function createSearchDialogController(props: SearchServices & { returnTar
       setSelectedID(undefined)
     },
     setSelectedID,
-    renderBefore() {
-      const position = pendingScroll
-
-      pendingScroll = undefined
-
-      if (!body || position === undefined) return
-
-      if (typeof position === 'number') body.scrollTo(position)
-      else body.scrollChildIntoView(`${prefix}.${position}`)
-    },
-    renderAfter() {
-      if (body) setScrollTop(body.scrollTop)
-    },
     resultHeight: () =>
       Math.min(
         Math.max(3, Math.min(16, Math.floor(dimensions().height * 0.5) - 9)),

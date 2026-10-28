@@ -11,8 +11,6 @@ export function SearchResults(props: { model: SearchDialogController }) {
     <scrollbox
       id={`${model.prefix}.results`}
       ref={model.setBody}
-      renderBefore={model.renderBefore}
-      renderAfter={model.renderAfter}
       height={model.resultHeight()}
       contentOptions={{ minHeight: 0 }}
       scrollX={false}

@@ -332,3 +332,4 @@ await Bun.write(
   'dist/runtime-dependencies.json',
   `${JSON.stringify({ version: 1, dependencies: runtimeDependencies }, null, 2)}\n`,
 )
+await Bun.write('dist/runtime-requirements.json', `${JSON.stringify({ version: 1, bun: '1.3.14', node: '26.4.0' })}\n`)

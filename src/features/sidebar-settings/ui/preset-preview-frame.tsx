@@ -106,8 +106,6 @@ export function PresetPreviewFrame(props: {
           body = node
           scroll.ref(node)
         }}
-        renderBefore={scroll.restore}
-        renderAfter={scroll.save}
         height={Math.min(Math.max(2, Math.floor(dimensions().height * 0.75) - 14), Math.max(1, props.rowCount * 3 - 1))}
         scrollX={false}
         contentOptions={{ minHeight: 0 }}

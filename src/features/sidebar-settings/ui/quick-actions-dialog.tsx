@@ -85,8 +85,6 @@ export function QuickActionsDialog(props: { api: TuiPluginApi; preferences: Pref
           body = node
           scroll.ref(node)
         }}
-        renderBefore={scroll.restore}
-        renderAfter={scroll.save}
         height={Math.min(actions().length * 2 - 1, Math.max(3, Math.floor(dimensions().height * 0.75) - 8))}
         scrollX={false}
       >

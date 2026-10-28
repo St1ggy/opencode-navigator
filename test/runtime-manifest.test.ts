@@ -13,6 +13,12 @@ test('the built package declares its exact target snapshot runtime and ships the
   })
   expect(metadata.files).toContain('dist')
   expect(metadata.files).toContain('scripts/snapshot-runtime.mjs')
+  expect(metadata.files).toContain('scripts/snapshot-verifier.mjs')
+  expect(JSON.parse(await readFile(new URL('../dist/runtime-requirements.json', import.meta.url), 'utf8'))).toEqual({
+    version: 1,
+    bun: '1.3.14',
+    node: '26.4.0',
+  })
 })
 
 test('the packaged shortcut and keyboard-help entrypoint imports from its declared flat path', async () => {

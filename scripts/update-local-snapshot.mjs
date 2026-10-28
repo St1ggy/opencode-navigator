@@ -6,17 +6,22 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { snapshotRuntime } from './snapshot-runtime.mjs'
+import { snapshotVerifier } from './snapshot-verifier.mjs'
 
-function command(program, args) {
+function command(program, args, capture = false) {
   return new Promise((resolveCommand, reject) => {
-    const child = spawn(program, args, { stdio: ['ignore', 'ignore', 'pipe'] })
+    const child = spawn(program, args, { stdio: ['ignore', capture ? 'pipe' : 'ignore', 'pipe'] })
     let error = ''
+    let output = ''
+
+    child.stdout?.setEncoding('utf8')
+    child.stdout?.on('data', (chunk) => (output += chunk))
 
     child.stderr.setEncoding('utf8')
     child.stderr.on('data', (chunk) => (error += chunk))
     child.on('error', reject)
     child.on('close', (code) => {
-      if (code === 0) resolveCommand()
+      if (code === 0) resolveCommand(output.trim())
       else reject(new Error(error.trim() || `${program} exited with code ${code}`))
     })
   })
@@ -61,6 +66,17 @@ async function validate(directory, version, { checkRuntime = true } = {}) {
     throw new Error(`Snapshot ${version} has mismatched runtime dependencies`)
 }
 
+async function verifySnapshot(directory, runtime) {
+  const verifier = runtime ?? (await snapshotVerifier(directory, (program) => command(program, ['--version'], true)))
+  const importURL = JSON.stringify(pathToFileURL(join(directory, 'dist', 'tui.js')).href)
+
+  await command(verifier, [
+    '--input-type=module',
+    '--eval',
+    `const plugin=(await import(${importURL})).default;if(plugin?.id!=='opencode-navigator')throw Error('Invalid Navigator plugin bundle')`,
+  ])
+}
+
 export async function updateLocalSnapshot(wrapper, target, operations = {}) {
   if (!/^\d+\.\d+\.\d+$/.test(target)) throw new Error('Invalid Navigator update version')
 
@@ -81,8 +97,11 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
   const replacement = join(root, `.tui-${randomUUID()}.tmp`)
 
   try {
-    if (existsSync(next)) await validate(next, target)
-    else {
+    if (existsSync(next)) {
+      await validate(next, target)
+
+      await (operations.verify ? operations.verify(next) : verifySnapshot(next))
+    } else {
       await mkdir(staging)
 
       if (operations.stage) await operations.stage(staging, target)
@@ -102,6 +121,10 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
 
       if (metadata.name !== 'opencode-navigator' || metadata.version !== target)
         throw new Error('Downloaded Navigator package does not match the requested version')
+
+      const verifier = operations.verify
+        ? undefined
+        : await snapshotVerifier(staging, (runtime) => command(runtime, ['--version'], true))
 
       await writeFile(
         join(staging, 'package.json'),
@@ -129,17 +152,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
 
       await validate(staging, target)
 
-      if (operations.verify) await operations.verify(staging)
-      else {
-        const bundleURL = pathToFileURL(join(staging, 'dist', 'tui.js')).href
-        const importURL = JSON.stringify(bundleURL)
-
-        await command('node', [
-          '--input-type=module',
-          '--eval',
-          `const plugin=(await import(${importURL})).default;if(plugin?.id!=='opencode-navigator')throw Error('Invalid Navigator plugin bundle')`,
-        ])
-      }
+      await (operations.verify ? operations.verify(staging) : verifySnapshot(staging, verifier))
 
       await rename(staging, next)
     }

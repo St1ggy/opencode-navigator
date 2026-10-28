@@ -61,8 +61,6 @@ export function SettingsDialog(props: {
       <scrollbox
         id={`${PLUGIN_ID}.settings.body`}
         ref={model.setBody}
-        renderBefore={model.restoreScroll}
-        renderAfter={model.saveScroll}
         height={model.contentHeight()}
         scrollX={false}
         verticalScrollbarOptions={{ visible: true }}

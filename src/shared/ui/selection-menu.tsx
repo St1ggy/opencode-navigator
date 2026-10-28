@@ -75,8 +75,6 @@ export function SelectionMenu(props: {
           body = node
           scroll.ref(node)
         }}
-        renderBefore={scroll.restore}
-        renderAfter={scroll.save}
         height={
           props.adaptive
             ? Math.min(
