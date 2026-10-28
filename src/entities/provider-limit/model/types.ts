@@ -50,6 +50,7 @@ export type QuotaWindow = {
   kind?: 'subscription' | 'rate_limit' | 'configured_limit'
   total?: number
   durationMinutes?: number
+  // Unix seconds; provider adapters convert native millisecond timestamps.
   resetsAt?: number
 }
 

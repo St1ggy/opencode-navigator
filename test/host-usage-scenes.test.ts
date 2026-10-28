@@ -28,6 +28,7 @@ test.each(['budgets', 'go', 'auth', 'failure'])('native usage capture: %s withou
     switch (scene) {
       case 'budgets': {
         expect(snapshot?.workspaceId).toBe('synthetic-workspace')
+        expect(snapshot?.windows[1].resetsAt).toBe((1_893_456_000_000 + 3_600_000) / 1000)
         expect(snapshot?.windows.map((window) => [window.unit, window.remaining])).toEqual([
           ['USD', 65],
           ['USD', 15],
@@ -36,6 +37,7 @@ test.each(['budgets', 'go', 'auth', 'failure'])('native usage capture: %s withou
       }
 
       case 'go': {
+        expect(snapshot?.windows[0].resetsAt).toBe((1_893_456_000_000 + 3_600_000) / 1000)
         expect(snapshot?.windows.map((window) => [window.unit, window.remaining])).toEqual([
           ['%', 75],
           ['%', 20],

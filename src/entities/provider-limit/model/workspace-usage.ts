@@ -48,7 +48,7 @@ export function projectWorkspaceUsage(
         total: 100,
         used: meter.percent,
         remaining: 100 - meter.percent,
-        resetsAt: meter.resetsAt,
+        resetsAt: meter.resetsAt / 1000,
         limited: meter.limited,
       }
     })
@@ -78,7 +78,7 @@ export function projectWorkspaceUsage(
           total: budget.limit,
           used: spent,
           remaining: Math.max(0, budget.limit - spent),
-          resetsAt: budget.resetsAt,
+          resetsAt: budget.resetsAt / 1000,
           budget: { scope: budget.scope, per: budget.per, shared: budget.shared },
         },
       ]
