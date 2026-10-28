@@ -1,3 +1,5 @@
+import { createSignal } from 'solid-js'
+
 import type { Plugin } from '@opencode/plugin/tui'
 import type { Session, SessionStatus } from '@opencode-ai/sdk/v2'
 
@@ -5,7 +7,8 @@ type V2Session = NonNullable<ReturnType<Plugin.Context['data']['session']['get']
 type RequestOptions = { signal?: AbortSignal }
 
 export function createV2SessionAdapter(context: Plugin.Context) {
-  const statuses = new Map<string, SessionStatus>()
+  const [retryDetails, setRetryDetails] = createSignal<Record<string, Extract<SessionStatus, { type: 'retry' }>>>({})
+  const projections = new WeakMap<object, Session>()
 
   function normalize(info: V2Session): Session {
     const directory = info.location.directory
@@ -34,24 +37,79 @@ export function createV2SessionAdapter(context: Plugin.Context) {
   }
 
   function status(sessionID: string): SessionStatus {
-    const cached = statuses.get(sessionID)
+    if (context.data.session.status(sessionID) !== 'running') return { type: 'idle' }
 
-    if (cached) return cached
+    const messages = context.data.session.message?.list?.(sessionID) ?? []
+    let message: (typeof messages)[number] | undefined
 
-    return context.data.session.status(sessionID) === 'running' ? { type: 'busy' } : { type: 'idle' }
+    for (let index = messages.length - 1; index >= 0; index--) {
+      const candidate = messages[index]
+
+      if (candidate.type === 'assistant' && !candidate.time.completed) {
+        message = candidate
+        break
+      }
+    }
+
+    if (message?.type === 'assistant' && message.retry)
+      return {
+        type: 'retry',
+        attempt: message.retry.attempt,
+        next: message.retry.at,
+        message: message.retry.error.message,
+      }
+
+    return retryDetails()[sessionID] ?? { type: 'busy' }
+  }
+
+  function project(info: V2Session): Session {
+    let value = projections.get(info)
+
+    if (!value) {
+      value = normalize(info)
+      for (const key of [
+        'id',
+        'slug',
+        'projectID',
+        'workspaceID',
+        'directory',
+        'parentID',
+        'cost',
+        'tokens',
+        'title',
+        'agent',
+        'model',
+        'version',
+        'metadata',
+        'time',
+      ] as const)
+        Object.defineProperty(value, key, { enumerable: true, get: () => normalize(info)[key] })
+      projections.set(info, value)
+    }
+
+    return value
   }
 
   return {
     normalize,
+    project,
+    status,
     setStatus(sessionID: string, value: SessionStatus) {
-      statuses.set(sessionID, value)
+      setRetryDetails((current) => {
+        const next = { ...current }
+
+        if (value.type === 'retry') next[sessionID] = value
+        else delete next[sessionID]
+
+        return next
+      })
     },
     state: {
       count: () => context.data.session.list().length,
       get: (sessionID: string) => {
         const value = context.data.session.get(sessionID)
 
-        return value ? normalize(value) : undefined
+        return value ? project(value) : undefined
       },
       todo: () => [],
       status,
@@ -78,7 +136,9 @@ export function createV2SessionAdapter(context: Plugin.Context) {
             .list()
             .map((session) => [
               session.id,
-              statuses.get(session.id) ?? (active[session.id] ? { type: 'busy' as const } : { type: 'idle' as const }),
+              active[session.id]
+                ? (retryDetails()[session.id] ?? { type: 'busy' as const })
+                : { type: 'idle' as const },
             ]),
         )
 

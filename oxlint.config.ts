@@ -58,6 +58,11 @@ export default defineConfig({
       rules: { 'unicorn-js/no-return-array-push': 'off' },
     },
     {
+      files: ['src/app/opencode-v2/**/*.{ts,tsx}'],
+      // Public host callbacks and their Solid ownership add one adapter boundary.
+      rules: { 'sonarjs/no-nested-functions': ['error', { threshold: 5 }] },
+    },
+    {
       files: ['src/app/opencode-v2/todo-server.ts', 'test/navigator-todo.test.ts'],
       // The session-task API's replace method mutates tasks, not a string replacement pattern.
       rules: { 'unicorn-js/no-unsafe-string-replacement': 'off' },

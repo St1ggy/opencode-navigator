@@ -3,11 +3,12 @@ import { createSignal } from 'solid-js'
 import { currentLocation } from '../../../shared/lib/location'
 import { createRequestState, retryBackgroundRefresh } from '../../../shared/lib/request-state'
 
+import type { SkillSource } from './source'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-export type SkillInfo = { name: string; description?: string; location: string; content: string }
+export type SkillInfo = { id?: string; name: string; description?: string; location: string; content: string }
 
-export function createSkillController(api: TuiPluginApi) {
+export function createSkillController(api: TuiPluginApi, source?: SkillSource) {
   const [skills, setSkills] = createSignal<Record<string, readonly SkillInfo[]>>({})
   const refreshing = new Map<string, Promise<readonly SkillInfo[]>>()
   const targets = new Map<string, ReturnType<typeof currentLocation>>()
@@ -21,7 +22,7 @@ export function createSkillController(api: TuiPluginApi) {
   }
 
   function list(current = target()) {
-    return skills()[current.key] ?? []
+    return source ? source.list(current) : (skills()[current.key] ?? [])
   }
 
   function error(current = target()) {
@@ -39,12 +40,15 @@ export function createSkillController(api: TuiPluginApi) {
 
     if (!requestState) return pending!
 
-    const request = api.client.app
-      .skills(current.routing, { throwOnError: true, signal: requestState.signal })
+    const request = (
+      source
+        ? source.refresh(current, force, requestState.signal).then((data) => ({ data }))
+        : api.client.app.skills(current.routing, { throwOnError: true, signal: requestState.signal })
+    )
       .then((result) => {
         const items = [...(result.data ?? [])].sort((a, b) => a.name.localeCompare(b.name))
 
-        if (requestState.isCurrent()) setSkills((value) => ({ ...value, [current.key]: items }))
+        if (!source && requestState.isCurrent()) setSkills((value) => ({ ...value, [current.key]: items }))
 
         requestState.succeed()
 
@@ -111,7 +115,7 @@ export function createSkillController(api: TuiPluginApi) {
         refreshing.clear()
       }
     },
-    async use(current: ReturnType<typeof currentLocation>, name: string) {
+    async use(current: ReturnType<typeof currentLocation>, name: string, selected?: SkillInfo) {
       if ((activeTarget && activeTarget !== current.key) || target().key !== current.key)
         throw new DOMException('Sidebar context changed', 'AbortError')
 
@@ -120,10 +124,13 @@ export function createSkillController(api: TuiPluginApi) {
       if (!request) return false
 
       try {
-        const result = await api.client.tui.appendPrompt(
-          { ...current.routing, text: `/${name} ` },
-          { throwOnError: true, signal: request.signal },
-        )
+        const result =
+          source && selected
+            ? { data: await source.use(current, selected, request.signal) }
+            : await api.client.tui.appendPrompt(
+                { ...current.routing, text: `/${name} ` },
+                { throwOnError: true, signal: request.signal },
+              )
 
         if (!request.isCurrent()) return false
 

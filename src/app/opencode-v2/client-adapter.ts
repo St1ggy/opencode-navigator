@@ -16,13 +16,7 @@ function mcpItem(server: { name: string; status: { status: string; error?: strin
   }
 }
 
-function skillKey(directory: string, name: string) {
-  return `${directory}\0${name}`
-}
-
 export function createV2ClientAdapter(context: Plugin.Context) {
-  const skillIDs = new Map<string, string>()
-
   return {
     state: {
       mcp: () => (context.data.location.mcp.server.list(context.location) ?? []).map((server) => mcpItem(server)),
@@ -31,17 +25,12 @@ export function createV2ClientAdapter(context: Plugin.Context) {
       app: {
         async skills(input: Routing, options: RequestOptions = {}) {
           const response = await context.client.skill.list(location(input), { signal: options.signal })
-          const directory = input.directory ?? response.location.directory
-          const data = response.data.map((skill) => {
-            skillIDs.set(skillKey(directory, skill.name), skill.id)
-
-            return {
-              name: skill.name,
-              description: skill.description,
-              location: skill.path,
-              content: skill.content,
-            }
-          })
+          const data = response.data.map((skill) => ({
+            name: skill.name,
+            description: skill.description,
+            location: skill.path,
+            content: skill.content,
+          }))
 
           return { data }
         },
@@ -52,7 +41,9 @@ export function createV2ClientAdapter(context: Plugin.Context) {
           const name = /^\/([^\s]+)\s*$/u.exec(input.text)?.[1]
           const directory = input.directory ?? context.location?.directory ?? context.data.location.default().directory
           const session = route.type === 'session' ? context.data.session.get(route.sessionID) : undefined
-          const id = name ? skillIDs.get(skillKey(directory, name)) : undefined
+          const candidates =
+            context.data.location.skill.list({ directory })?.filter((skill) => skill.name === name) ?? []
+          const id = candidates.length === 1 ? candidates[0].id : undefined
 
           if (route.type !== 'session' || session?.location.directory !== directory || !id) return { data: false }
 

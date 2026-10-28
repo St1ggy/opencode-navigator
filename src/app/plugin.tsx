@@ -27,7 +27,7 @@ import { IconProvider } from '../shared/ui'
 
 import { loadConfiguredDefaults } from './configured-defaults'
 import { LimitsPersistence } from './limits-persistence'
-import { createNativeTodoController, createOpenCodeV2Api } from './opencode-v2'
+import { createNativeTodoController, createOpenCodeV2Api, createOpenCodeV2Sources } from './opencode-v2'
 
 import type { createProviderQuotaIntegration as CreateQuotaIntegration } from './provider-quota'
 import type * as NavigatorUpdates from '../navigator-updates'
@@ -81,8 +81,9 @@ async function setupNavigator(
   const config = pluginConfig(undefined)
   const configured = await loadConfiguredDefaults(api, options, readProject)
   const todo = todoController ?? createTodoController(api)
-  const subagents = createSubagentController(api)
-  const skills = createSkillController(api)
+  const nativeSources = hostContext && createOpenCodeV2Sources(hostContext, api)
+  const subagents = createSubagentController(api, { source: nativeSources?.subagents })
+  const skills = createSkillController(api, nativeSources?.skills)
   const preferences = createPreferencesController(api, config, createPreferencesStore(api.state.path.state), configured)
   const limitsPath = import.meta.url.includes('/dist/tui.js') ? './provider-limits.js' : '../provider-limits'
   const limitsModule = (await import(limitsPath)) as {
@@ -97,7 +98,7 @@ async function setupNavigator(
     selectModel,
     modelSelection,
   } = limitsModule.createProviderQuotaIntegration(api, preferences, __NAVIGATOR_VERSION__, hostContext)
-  const mcp = createMcpController(api, preferences.persistMcp, preferences)
+  const mcp = createMcpController(api, preferences.persistMcp, preferences, nativeSources?.mcp)
   const interaction = createSidebarInteraction(api, () =>
     openKeyboardHelp(api, preferences.lspIconStyle, preferences.cornerFont, sidebarShortcutActions(api)),
   )
@@ -109,7 +110,7 @@ async function setupNavigator(
   api.lifecycle.onDispose(() => interaction.dispose())
 
   const unsubscribeMcp = api.event.on('mcp.tools.changed', () => {
-    void mcp.refresh().catch(() => {})
+    if (!nativeSources) void mcp.refresh().catch(() => {})
   })
   const unsubscribeConnected = api.event.on('server.connected', () => {
     if (!api.state.ready || !api.kv.ready) return

@@ -4,6 +4,7 @@ import { createRequestState, retryBackgroundRefresh } from '../../../shared/lib/
 
 import { type SubagentError, createSubagentHistory } from './history'
 
+import type { SubagentSource } from './source'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Session, SessionStatus } from '@opencode-ai/sdk/v2'
 
@@ -22,7 +23,11 @@ function activeStatus(status: SessionStatus | undefined): status is Extract<Sess
   return status?.type === 'busy' || status?.type === 'retry'
 }
 
-export function createSubagentController(api: TuiPluginApi, options: { now?: () => number } = {}) {
+export function createSubagentController(
+  api: TuiPluginApi,
+  options: { now?: () => number; source?: SubagentSource } = {},
+) {
+  const source = options.source
   const now = options.now ?? Date.now
   const history = createSubagentHistory({ now })
   const [children, setChildren] = createSignal<Record<string, readonly Session[]>>({})
@@ -36,6 +41,8 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
   const requests = createRequestState(api.lifecycle.signal)
   let activeTarget: string | undefined
   let pollTimer: ReturnType<typeof setTimeout> | undefined
+  const snapshots = () =>
+    source ? Object.fromEntries([...targets].map(([key, current]) => [key, source.list(current.parentID)])) : children()
 
   function target(parentID: string): SubagentTarget {
     const parent = api.state.session.get(parentID)
@@ -73,11 +80,16 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
       if (mutation.type === 'remove') history.remove(key, sessionID)
     }
     for (const journal of journals) journal.sessions.push(mutation)
-    setChildren((current) =>
-      Object.fromEntries(
-        Object.entries(current).map(([key, items]) => [key, applySession(items, targets.get(key)!.parentID, mutation)]),
-      ),
-    )
+
+    if (!source)
+      setChildren((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([key, items]) => [
+            key,
+            applySession(items, targets.get(key)!.parentID, mutation),
+          ]),
+        ),
+      )
   }
 
   function recordStatus(input: Pick<StatusMutation, 'sessionID' | 'status'>) {
@@ -85,15 +97,17 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
 
     for (const journal of journals) journal.statuses.push(mutation)
     batch(() => {
-      for (const [key, items] of Object.entries(children())) {
+      for (const [key, items] of Object.entries(snapshots())) {
         if (items.every((item) => item.id !== mutation.sessionID)) continue
 
         history.observeStatus(key, mutation.sessionID, mutation.status, mutation.at)
         mutation.observed.add(key)
       }
-      setStatuses((current) =>
-        Object.fromEntries(Object.entries(current).map(([key, value]) => [key, applyStatus(value, mutation)])),
-      )
+
+      if (!source)
+        setStatuses((current) =>
+          Object.fromEntries(Object.entries(current).map(([key, value]) => [key, applyStatus(value, mutation)])),
+        )
     })
   }
 
@@ -103,7 +117,7 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
     const mutation: ErrorMutation = { sessionID: input.sessionID, error: input.error, at: now(), observed: new Set() }
 
     for (const journal of journals) journal.errors.push(mutation)
-    for (const [key, items] of Object.entries(children())) {
+    for (const [key, items] of Object.entries(snapshots())) {
       if (items.every((item) => item.id !== mutation.sessionID)) continue
 
       history.observeError(key, mutation.sessionID, mutation.error, mutation.at)
@@ -133,10 +147,27 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
     }
 
     const signal = AbortSignal.any([requestState.signal, AbortSignal.timeout(5000)])
-    const request = Promise.all([
-      api.client.session.children({ sessionID: current.parentID, ...current.routing }, { throwOnError: true, signal }),
-      api.client.session.status(current.routing, { throwOnError: true, signal }),
-    ])
+    const request = (
+      source
+        ? source.refresh(current.parentID, signal).then(
+            () =>
+              [
+                { data: source.list(current.parentID) },
+                {
+                  data: Object.fromEntries(
+                    source.list(current.parentID).map((item) => [item.id, source.status(item.id)]),
+                  ),
+                },
+              ] as const,
+          )
+        : Promise.all([
+            api.client.session.children(
+              { sessionID: current.parentID, ...current.routing },
+              { throwOnError: true, signal },
+            ),
+            api.client.session.status(current.routing, { throwOnError: true, signal }),
+          ])
+    )
       .then(async ([childResult, statusResult]) => {
         let nextChildren: readonly Session[] = childResult.data ?? []
 
@@ -144,15 +175,17 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
 
         let nextStatuses = { ...statusResult.data }
         const missing: Record<string, boolean> = {}
-        const remoteStatuses = await Promise.all(
-          nextChildren.map((session) => {
-            const key = JSON.stringify([current.key, session.id])
+        const remoteStatuses = source
+          ? []
+          : await Promise.all(
+              nextChildren.map((session) => {
+                const key = JSON.stringify([current.key, session.id])
 
-            return (remoteRetryAt.get(key) ?? 0) <= now()
-              ? fetchDevTeamStatus(session, requestState.signal)
-              : { sessionID: session.id, failed: true, cooldown: true, status: undefined }
-          }),
-        )
+                return (remoteRetryAt.get(key) ?? 0) <= now()
+                  ? fetchDevTeamStatus(session, requestState.signal)
+                  : { sessionID: session.id, failed: true, cooldown: true, status: undefined }
+              }),
+            )
 
         if (!requestState.isCurrent()) return
 
@@ -209,8 +242,12 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
                   history.observeError(current.key, session.id, mutation.error, mutation.at)
               }
             }
-            setChildren((value) => ({ ...value, [current.key]: nextChildren }))
-            setStatuses((value) => ({ ...value, [current.key]: nextStatuses }))
+
+            if (!source) {
+              setChildren((value) => ({ ...value, [current.key]: nextChildren }))
+              setStatuses((value) => ({ ...value, [current.key]: nextStatuses }))
+            }
+
             setUnavailable((value) => ({ ...value, [current.key]: missing }))
           })
         }
@@ -239,9 +276,11 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
 
   function list(parentID: string) {
     const current = target(parentID)
-    const currentStatuses = statuses()[current.key] ?? {}
+    const currentStatuses = source
+      ? Object.fromEntries(source.list(parentID).map((item) => [item.id, source.status(item.id)]))
+      : (statuses()[current.key] ?? {})
 
-    return (children()[current.key] ?? [])
+    return (snapshots()[current.key] ?? [])
       .map((session) => ({
         session,
         status:
@@ -260,7 +299,7 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
 
   function recent(parentID: string) {
     const current = target(parentID)
-    const sessions = new Map((children()[current.key] ?? []).map((session) => [session.id, session]))
+    const sessions = new Map((snapshots()[current.key] ?? []).map((session) => [session.id, session]))
 
     return history.recent(current.key).flatMap((run) => {
       const session = sessions.get(run.sessionID)
@@ -324,7 +363,7 @@ export function createSubagentController(api: TuiPluginApi, options: { now?: () 
           pollTimer = setTimeout(poll, POLL_INTERVAL_MS)
         }
 
-        pollTimer = setTimeout(poll, POLL_INTERVAL_MS)
+        if (!source) pollTimer = setTimeout(poll, POLL_INTERVAL_MS)
       }
 
       return () => {

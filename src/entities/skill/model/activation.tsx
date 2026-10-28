@@ -20,7 +20,10 @@ export function skillUnavailable(controller: SkillController, skill: SkillInfo):
   if (list.every((item) => !(item.name === skill.name && item.location === skill.location)))
     return 'Skill is unavailable in this workspace'
 
-  if (list.filter((item) => item.name === skill.name).length !== 1) return 'Multiple sources share this skill name'
+  if (skill.id) {
+    if (list.every((item) => item.id !== skill.id || item.location !== skill.location)) return 'Skill source changed'
+  } else if (list.filter((item) => item.name === skill.name).length !== 1)
+    return 'Multiple sources share this skill name'
 
   return undefined
 }
@@ -34,6 +37,7 @@ export function activateSkill(input: {
   beforeInsert?: () => void
   onConfigure?: (navigation: DialogNavigation) => void
 }) {
+  input = { ...input, skill: { ...input.skill } }
   const target = input.controller.target()
   const route = JSON.stringify(input.api.route.current)
   const current = () =>
@@ -58,7 +62,8 @@ export function activateSkill(input: {
 
       input.beforeInsert?.()
 
-      if (await input.controller.use(target, input.skill.name)) await input.access.recordSkillUse?.(input.skill)
+      if (await input.controller.use(target, input.skill.name, input.skill))
+        await input.access.recordSkillUse?.(input.skill)
     } catch (error) {
       report(error)
     }

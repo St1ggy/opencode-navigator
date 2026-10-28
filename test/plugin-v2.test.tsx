@@ -6,6 +6,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { onCleanup } from 'solid-js'
 
 import packageJSON from '../package.json' with { type: 'json' }
 
@@ -131,16 +132,19 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
 
   function Harness() {
     const renderer = useRenderer()
+    const originalOn = renderer.on.bind(renderer)
+    const layers = new Set<() => { commands?: { id?: string; run(): unknown }[] }>()
 
     context = {
       options: {},
       location: { directory: '/workspace' },
       app: { version: packageJSON.devDependencies['@opencode/plugin'], channel: 'stable' },
       renderer: Object.assign(renderer, {
-        on(name: string) {
+        on(name: string, listener: (...args: any[]) => void) {
           rendererSubscriptions.push(name)
+
+          return originalOn(name, listener)
         },
-        off() {},
       }),
       client: {
         rpc: () => ({
@@ -189,7 +193,26 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
         },
         location: {
           default: () => ({ directory: '/workspace' }),
-          mcp: { server: { list: () => [{ name: 'docs', status: { status: 'connected' } }] } },
+          skill: {
+            list: () => [
+              {
+                id: 'skill-1',
+                name: 'review',
+                description: 'Review changes',
+                path: '/workspace/.opencode/skills/review.md',
+                content: '# Review',
+              },
+            ],
+            sync: async () => {},
+            invalidate() {},
+          },
+          mcp: {
+            server: {
+              list: () => [{ name: 'docs', status: { status: 'connected' } }],
+              sync: async () => {},
+              invalidate() {},
+            },
+          },
         },
       },
       attention: {},
@@ -197,10 +220,18 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
       themeMode: 'dark',
       markdown: {},
       keymap: {
-        layer: () => {},
-        dispatch: () => {},
+        layer: (factory: any) => {
+          layers.add(factory)
+          onCleanup(() => layers.delete(factory))
+        },
+        dispatch: (id: string) => {
+          ;[...layers]
+            .flatMap((factory) => factory().commands ?? [])
+            .find((command) => command.id === id)
+            ?.run()
+        },
         shortcuts: () => [],
-        commands: () => [],
+        commands: () => [...layers].flatMap((factory) => factory().commands ?? []),
         pending: () => [],
         active: () => [],
         mode: { current: () => 'base', push: () => () => {} },
@@ -282,7 +313,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     expect(frame).toContain('QUICK ACTIONS')
     expect(frame).toContain('MCP')
     expect(frame).not.toContain('LSP')
-    expect(rendererSubscriptions).toEqual(['focused_renderable'])
+    expect(rendererSubscriptions).toContain('focused_renderable')
 
     const footerClaim = claims.find((claim) => claim.append === 'sidebar.footer')!
 

@@ -1,7 +1,7 @@
 import { mcpToggleAction } from './status'
 
+import type { McpItem as TuiSidebarMcpItem } from './source'
 import type { McpServerGroups } from '../../../shared/config'
-import type { TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
 
 export type GroupedMcpItem = TuiSidebarMcpItem & { bucket: string; assignedGroup?: string }
 const BUCKET_RANK: Record<string, number> = { Favorites: 0, Ungrouped: 2 }

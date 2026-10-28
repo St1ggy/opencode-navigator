@@ -7,10 +7,11 @@ import {
 } from '../../../entities/quick-action'
 import { currentLocation } from '../../../shared/lib/location'
 
+import type { McpItem as TuiSidebarMcpItem } from '../../../entities/mcp'
 import type { SidebarSection } from '../../../entities/sidebar-layout'
 import type { SkillInfo } from '../../../entities/skill'
 import type { SubagentViewItem } from '../../../entities/subagent'
-import type { TuiPluginApi, TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export const SEARCH_GROUPS = ['Skills', 'Subagents', 'MCP', 'Actions'] as const
 export type SearchGroup = (typeof SEARCH_GROUPS)[number]

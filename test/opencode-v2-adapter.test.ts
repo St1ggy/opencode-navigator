@@ -155,6 +155,15 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
     data: {
       location: {
         default: () => ({ directory: '/workspace' }),
+        skill: {
+          list: (ref: { directory: string }) => [
+            {
+              id: ref.directory === '/other' ? 'skill-other' : 'skill-1',
+              name: 'review',
+              path: '/workspace/.opencode/skills/review.md',
+            },
+          ],
+        },
         mcp: { server: { list: () => [{ name: 'docs', status: { status: 'connected' } }] } },
       },
       session: {
@@ -227,6 +236,7 @@ test('the OpenCode 2 event adapter translates updates and refreshes missing sess
   const listeners: ((event: { details: unknown }) => void)[] = []
   const sessions = new Map<string, Record<string, unknown>>()
   const synced: string[] = []
+  let nativeStatus = 'running'
   const context = {
     options: {},
     location: { directory: '/workspace', workspaceID: 'workspace' },
@@ -238,7 +248,7 @@ test('the OpenCode 2 event adapter translates updates and refreshes missing sess
       session: {
         list: () => [],
         get: (sessionID: string) => sessions.get(sessionID),
-        status: () => 'running',
+        status: () => nativeStatus,
         async sync(sessionID: string) {
           synced.push(sessionID)
           sessions.set(sessionID, {
@@ -252,7 +262,11 @@ test('the OpenCode 2 event adapter translates updates and refreshes missing sess
           })
         },
       },
-      listen: (listener: (event: { details: unknown }) => void) => {
+      on: (type: string, handler: (event: unknown) => void) => {
+        const listener = (event: { details: any }) => {
+          if (event.details.type === type) handler(event.details)
+        }
+
         listeners.push(listener)
 
         return () => listeners.splice(listeners.indexOf(listener), 1)
@@ -284,6 +298,8 @@ test('the OpenCode 2 event adapter translates updates and refreshes missing sess
     adapter.api.event.on('session.created', (event) => created.push(event)),
   ]
   const emit = (details: unknown) => {
+    if ((details as { type: string }).type === 'session.idle') nativeStatus = 'idle'
+
     for (const listener of listeners) listener({ details })
   }
 
@@ -359,14 +375,19 @@ test('the OpenCode 2 keymap adapter exposes reachable host commands for discover
 
 test('public execution events update session status immediately without requiring legacy host events', () => {
   const listeners = new Set<(event: { details: unknown }) => void>()
+  let nativeStatus = 'idle'
   const context = {
     data: {
-      listen(listener: (event: { details: unknown }) => void) {
+      on(type: string, handler: (event: unknown) => void) {
+        const listener = (event: { details: any }) => {
+          if (event.details.type === type) handler(event.details)
+        }
+
         listeners.add(listener)
 
         return () => listeners.delete(listener)
       },
-      session: { status: () => 'idle' },
+      session: { status: () => nativeStatus },
     },
   } as unknown as Plugin.Context
   const sessions = createV2SessionAdapter(context)
@@ -378,6 +399,7 @@ test('public execution events update session status immediately without requirin
     events.on('session.idle', (event) => idle.push(event)),
   ]
   const emit = (type: string) => {
+    nativeStatus = type === 'session.execution.started' ? 'running' : 'idle'
     const details = { id: 'evt_synthetic', created: 1, type, data: { sessionID: 'ses_synthetic' } }
 
     for (const listener of listeners) listener({ details })

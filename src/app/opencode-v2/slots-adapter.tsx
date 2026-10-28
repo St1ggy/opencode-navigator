@@ -1,28 +1,17 @@
 /** @jsxImportSource @opentui/solid */
-import type { createV2Keymap } from './keymap-adapter'
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-type KeymapAdapter = ReturnType<typeof createV2Keymap>
 type LegacySlotPlugin = Parameters<TuiPluginApi['slots']['register']>[0]
 
-export function createV2Slots(
-  context: Plugin.Context,
-  keymap: KeymapAdapter,
-  onDispose: (dispose: () => void) => void,
-) {
+export function createV2Slots(context: Plugin.Context, onDispose: (dispose: () => void) => void) {
   return {
     register(plugin: LegacySlotPlugin) {
       const slots = plugin.slots
       const cleanups = [
         context.ui.slot({
           append: 'app',
-          render: () => (
-            <>
-              <keymap.Bridge />
-              {slots.app?.(undefined as never, {})}
-            </>
-          ),
+          render: () => <>{slots.app?.(undefined as never, {})}</>,
         }),
         context.ui.slot({
           replace: 'sidebar.content',

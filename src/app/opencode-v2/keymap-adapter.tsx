@@ -1,45 +1,24 @@
-/** @jsxImportSource @opentui/solid */
-import { createSignal } from 'solid-js'
+import { createRoot, createSignal, getOwner } from 'solid-js'
 
 import { PLUGIN_ID } from '../../shared/config'
 
-import { belongsTo, enabled, v2LayerCommands } from './keymap-commands'
+import { enabled, v2LayerCommands } from './keymap-commands'
 
-import type { Enablement, LegacyCommand, LegacyLayer } from './keymap-commands'
+import type { LegacyCommand, LegacyLayer } from './keymap-commands'
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
-import type { KeyEvent } from '@opentui/core'
+import type { KeyEvent, Renderable } from '@opentui/core'
 
 type LegacyKeymap = TuiPluginApi['keymap']
 const SETTINGS_COMMAND = 'opencode.settings'
 const PERMISSIONS_ACTION = 'permission.mode'
 
 export function createV2Keymap(context: Plugin.Context) {
-  const [revision, setRevision] = createSignal(0)
-  const layers = new Map<number, LegacyLayer>()
+  const cleanups = new Set<() => void>()
   let sequence = 0
 
-  function layerActive(layer: LegacyLayer) {
-    const mode = layer.mode ?? 'base'
-    const target = layer.target
-
-    return (
-      (mode === 'global' || context.keymap.mode.current() === mode) &&
-      enabled(layer.enabled as Enablement) &&
-      (!target || belongsTo(context.renderer.currentFocusedRenderable, target))
-    )
-  }
-
-  function legacyCommand(name: string) {
-    return [...layers]
-      .sort(([leftID, left], [rightID, right]) => (right.priority ?? 0) - (left.priority ?? 0) || rightID - leftID)
-      .flatMap(([, layer]) => (layerActive(layer) ? [layer] : []))
-      .flatMap((layer) => layer.commands ?? [])
-      .find((command) => command.name === name && enabled(command.enabled as Enablement))
-  }
-
-  function run(command: LegacyCommand, input = '', event?: unknown) {
-    return command.run({
+  async function run(command: LegacyCommand, input = '', event?: KeyEvent) {
+    await command.run({
       keymap,
       event,
       focused: context.renderer.currentFocusedRenderable,
@@ -50,90 +29,82 @@ export function createV2Keymap(context: Plugin.Context) {
       payload: undefined,
     } as never)
   }
-
-  async function runV2(command: LegacyCommand, input = '', event?: KeyEvent) {
-    await run(command, input, event)
-  }
-
   const onKeypress = (event: KeyEvent) => {
     if (event.name !== ',' || !event.ctrl || event.shift || event.meta || event.super || event.hyper) return
 
-    const command = legacyCommand(`${PLUGIN_ID}.settings`)
+    const command = context.keymap.commands().find((item) => item.id === `${PLUGIN_ID}.settings`)
 
-    if (!command) return
+    if (!command || !enabled(command.enabled)) return
 
     event.preventDefault()
     event.stopPropagation()
-    void runV2(command, '', event)
+    context.keymap.dispatch(command.id!)
   }
 
+  // The public string-only binding grammar expands literal commas as alternatives.
   context.renderer.keyInput.on('keypress', onKeypress)
-
-  function layerCommands([id, layer]: [number, LegacyLayer]) {
-    return v2LayerCommands(id, layer, () => layerActive(layer), runV2, context.keymap.dispatch)
-  }
-
-  function Bridge() {
-    // The v2 host tracks this callback; the analyzer only recognizes Solid-owned callbacks.
-    // eslint-disable-next-line solid/reactivity
-    context.keymap.layer(() => {
-      revision()
-      const current = [...layers].sort(
-        ([leftID, left], [rightID, right]) => (right.priority ?? 0) - (left.priority ?? 0) || rightID - leftID,
-      )
-      const commands = current.flatMap((entry) => layerCommands(entry))
-      const bindings = commands.flatMap((command) => (command.id ? [command.id] : []))
-
-      return { mode: 'global', priority: 2000, commands, bindings }
-    })
-
-    return <box />
-  }
-
   const keymap = {
     registerLayer(layer: LegacyLayer) {
       const id = ++sequence
+      const owner = getOwner()
+      const [active, setActive] = createSignal(true)
+      const install = () => {
+        context.keymap.layer(() => ({
+          mode: typeof layer.mode === 'string' ? layer.mode : 'base',
+          priority: layer.priority,
+          enabled: () => active() && enabled(layer.enabled as boolean | (() => boolean) | undefined),
+          target: layer.target ? () => layer.target : undefined,
+          commands: v2LayerCommands(id, layer, () => true, run, context.keymap.dispatch),
+        }))
+      }
+      let release: (() => void) | undefined
 
-      layers.set(id, layer)
-      setRevision((value) => value + 1)
+      if (owner)
+        release = createRoot((cleanup) => {
+          install()
+
+          return cleanup
+        }, owner)
+      else install()
+
+      const dispose = () => {
+        setActive(false)
+        release?.()
+      }
+
+      cleanups.add(dispose)
 
       return () => {
-        if (!layers.delete(id)) return
-
-        setRevision((value) => value + 1)
+        cleanups.delete(dispose)
+        dispose()
       }
     },
-    dispatchCommand(name: string, options?: { payload?: unknown }) {
+    dispatchCommand(
+      name: string,
+      options?: { payload?: unknown; focused?: Renderable | null; target?: Renderable | null },
+    ) {
+      const target = options?.focused ?? options?.target
+
+      if (target?.parent && !target.isDestroyed) target.focus()
+
       const command = context.keymap
         .commands()
-        .find((candidate) => candidate.id === (name === PERMISSIONS_ACTION ? SETTINGS_COMMAND : name))
+        .find((item) => item.id === (name === PERMISSIONS_ACTION ? SETTINGS_COMMAND : name))
 
-      if (command) {
-        if (!enabled(command.enabled)) return { ok: false, reason: 'disabled', command }
+      if (!command) return { ok: false, reason: 'not-found' }
 
-        context.keymap.dispatch(command.id!, typeof options?.payload === 'string' ? options.payload : undefined)
+      if (!enabled(command.enabled)) return { ok: false, reason: 'disabled', command }
 
-        return { ok: true, command }
-      }
+      context.keymap.dispatch(command.id!, typeof options?.payload === 'string' ? options.payload : undefined)
 
-      const fallback = legacyCommand(name)
-
-      if (!fallback) return { ok: false, reason: 'not-found' }
-
-      run(fallback)
-
-      return { ok: true, command: fallback }
+      return { ok: true, command }
     },
     getCommands() {
       const commands = context.keymap.commands()
-      const result = commands.flatMap((command) => {
-        if (!command.id) return []
-
-        const name = command.id
-
-        return [{ ...command, name, run: () => context.keymap.dispatch(name) }]
-      })
-      const settings = commands.find((command) => command.id === SETTINGS_COMMAND)
+      const result = commands.flatMap((command) =>
+        command.id ? [{ ...command, name: command.id, run: () => context.keymap.dispatch(command.id!) }] : [],
+      )
+      const settings = commands.find((item) => item.id === SETTINGS_COMMAND)
 
       if (settings)
         result.push({
@@ -149,15 +120,13 @@ export function createV2Keymap(context: Plugin.Context) {
     getCommandBindings(input: { commands: readonly string[] }) {
       return new Map(input.commands.map((name) => [name, [...context.keymap.shortcuts(name)]]))
     },
-    parseKeySequence(value: string) {
-      return value.trim() ? value.trim().split(/\s+/u) : []
-    },
   } as unknown as LegacyKeymap
 
   return {
     keymap,
-    Bridge,
-    dispose: () => {
+    dispose() {
+      for (const cleanup of cleanups) cleanup()
+      cleanups.clear()
       context.renderer.keyInput.off('keypress', onKeypress)
     },
   }

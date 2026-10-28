@@ -8,9 +8,9 @@ import { createSidebarBookmark } from './sidebar-bookmark'
 import { useSidebarItem } from './sidebar-item'
 import { useSidebarList } from './sidebar-row-list'
 
+import type { McpItem as TuiSidebarMcpItem } from '../../../entities/mcp'
 import type { TargetRequestState } from '../../../shared/lib/request-state'
 import type { SidebarPosition } from '../model/sidebar-interaction'
-import type { TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
 import type { BoxRenderable } from '@opentui/core'
 
 export function McpRow(props: {

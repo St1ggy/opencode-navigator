@@ -6,6 +6,7 @@ export type HostCapabilities = Readonly<
   Record<HostCapability, boolean> & {
     titleVisibility?: boolean
     permissionMode?: boolean
+    commandsReachableOnly?: boolean
     unavailable?: Partial<Record<HostCapability, string>>
   }
 >

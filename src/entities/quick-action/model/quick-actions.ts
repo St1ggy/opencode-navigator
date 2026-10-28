@@ -1,6 +1,7 @@
 import { createSignal, onCleanup } from 'solid-js'
 
 import { QUICK_ACTION_IDS, type QuickActionId } from '../../../shared/config'
+import { hostCapabilities } from '../../../shared/lib/host-capabilities'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -68,7 +69,10 @@ export function quickActionDisabledReason(api: TuiPluginApi, action: QuickAction
 
   const command = getCommands({ visibility: 'registered' }).find((candidate) => candidate.name === action.command)
 
-  if (!command) return 'Unavailable in this OpenCode version'
+  if (!command)
+    return hostCapabilities(api).commandsReachableOnly
+      ? 'Unavailable in the current session'
+      : 'Unavailable in this OpenCode version'
 
   const enabled = command.enabled
 

@@ -1,4 +1,5 @@
 export * from './model/controller'
+export type { SkillSource } from './model/source'
 export * from './model/grouping'
 export * from './model/activation'
 export { SkillDialog } from './ui/skill-dialog'

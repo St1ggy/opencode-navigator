@@ -111,7 +111,7 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     },
     attention: context.attention,
     lifecycle: { signal: controller.signal, onDispose },
-    slots: createV2Slots(context, keymap, (dispose) => {
+    slots: createV2Slots(context, (dispose) => {
       onDispose(dispose)
     }),
   } as unknown as TuiPluginApi
@@ -121,6 +121,7 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     lsp: false,
     titleVisibility: false,
     permissionMode: false,
+    commandsReachableOnly: true,
   })
   bindToolbarActionState(context, api)
 

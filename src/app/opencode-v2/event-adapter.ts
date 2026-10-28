@@ -4,129 +4,141 @@ import type { createV2SessionAdapter } from './session-adapter'
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-type SessionAdapter = ReturnType<typeof createV2SessionAdapter>
-type LegacyEventBus = TuiPluginApi['event']
-
-const SESSION_UPDATE_EVENTS = new Set([
+type NativeEvent = Parameters<Plugin.Context['data']['on']>[0]
+type EventData = { type: string; data: Record<string, unknown> }
+const updates = [
   'session.agent.selected',
   'session.model.selected',
   'session.moved',
   'session.renamed',
   'session.permissions',
   'session.metadata.updated',
-])
+] as const
+const executions = [
+  'session.execution.started',
+  'session.execution.succeeded',
+  'session.execution.failed',
+  'session.execution.interrupted',
+] as const
 
-export function createV2EventAdapter(context: Plugin.Context, sessions: SessionAdapter) {
+function eventTypes(name: string): readonly NativeEvent[] {
+  if (name === 'session.updated') return updates
+
+  if (name === 'session.status') return ['session.status', 'session.retry.scheduled', ...executions]
+
+  if (name === 'session.idle') return ['session.idle', ...executions.slice(1)]
+
+  if (name === 'session.error') return ['session.execution.failed']
+
+  if (name === 'mcp.tools.changed') return ['mcp.status.changed', 'mcp.resources.changed']
+
+  if (['session.created', 'session.deleted', 'server.connected', 'installation.update-available'].includes(name))
+    return [name as NativeEvent]
+
+  return []
+}
+
+function statusFor(name: string, event: EventData) {
+  if (name === 'session.idle') return { type: 'idle' }
+
+  if (event.type === 'session.retry.scheduled')
+    return {
+      type: 'retry',
+      attempt: Number(event.data.attempt),
+      next: Number(event.data.at),
+      message: (event.data.error as { message?: string })?.message ?? 'Retrying',
+    }
+
+  return event.data.status
+}
+
+export function createV2EventAdapter(context: Plugin.Context, sessions: ReturnType<typeof createV2SessionAdapter>) {
   return {
     on(name: string, handler: (event: unknown) => void) {
       let active = true
-      const unsubscribe = context.data.listen(({ details }) => {
-        const event = details as { type: string; data: Record<string, unknown> }
-        const execution = executionStatus(name, event)
+      const disposers = eventTypes(name).map((type) =>
+        context.data.on(type, (value) => {
+          const event = value as unknown as EventData
+          const data = event.data ?? {}
+          const emit = (properties: unknown) => {
+            if (active) handler({ type: name, properties })
+          }
+          const execution = executionStatus(name, { type: event.type, data })
 
-        if (execution) {
-          sessions.setStatus(execution.sessionID, execution.status)
-          handler({
-            type: name,
-            properties: execution.properties,
-          })
+          if (execution) {
+            sessions.setStatus(execution.sessionID, execution.status)
+            emit(execution.properties)
 
-          return
-        }
-
-        if (name === 'server.connected' && event.type === 'server.connected') {
-          handler({ type: name, properties: {} })
-
-          return
-        }
-
-        if (name === 'mcp.tools.changed' && event.type.startsWith('mcp.')) {
-          handler({ type: name, properties: event.data })
-
-          return
-        }
-
-        if (name === 'installation.update-available' && event.type === 'installation.update-available') {
-          if (typeof event.data.version === 'string') {
-            handler({ type: name, properties: { version: event.data.version } })
+            return
           }
 
-          return
-        }
+          if (name === 'server.connected' || name === 'mcp.tools.changed') {
+            emit(data)
 
-        if (name === 'session.deleted' && event.type === 'session.deleted') {
-          handler({ type: name, properties: { sessionID: event.data.sessionID } })
+            return
+          }
 
-          return
-        }
+          if (name === 'installation.update-available') {
+            if (typeof data.version === 'string') emit({ version: data.version })
 
-        if (name === 'session.status' && event.type === 'session.status') {
-          const sessionID = event.data.sessionID
-          const status = event.data.status
+            return
+          }
 
-          if (typeof sessionID !== 'string' || !status || typeof status !== 'object') return
-
-          sessions.setStatus(sessionID, status as never)
-          handler({ type: name, properties: { sessionID, status } })
-
-          return
-        }
-
-        if (name === 'session.idle' && event.type === 'session.idle') {
-          const sessionID = event.data.sessionID
+          const sessionID = data.sessionID
 
           if (typeof sessionID !== 'string') return
 
-          sessions.setStatus(sessionID, { type: 'idle' })
-          handler({ type: name, properties: { sessionID } })
+          if (name === 'session.status' || name === 'session.idle') {
+            const status = statusFor(name, { type: event.type, data })
 
-          return
-        }
+            if (status && typeof status === 'object') {
+              sessions.setStatus(sessionID, status as never)
+              emit(name === 'session.idle' ? { sessionID } : { sessionID, status })
+            }
 
-        if (name === 'session.error' && event.type === 'session.execution.failed') {
-          const error = event.data.error as { type?: string; message?: string } | undefined
+            return
+          }
 
-          handler({
-            type: name,
-            properties: {
-              sessionID: event.data.sessionID,
+          if (name === 'session.deleted') {
+            emit({ sessionID })
+
+            return
+          }
+
+          if (name === 'session.error') {
+            const error = data.error as { type?: string; message?: string } | undefined
+
+            emit({
+              sessionID,
               error: error && { name: error.type ?? 'Error', data: { message: error.message ?? 'Session error' } },
-            },
-          })
+            })
 
-          return
-        }
+            return
+          }
 
-        const isCreated = name === 'session.created' && event.type === 'session.created'
-        const isUpdated = name === 'session.updated' && SESSION_UPDATE_EVENTS.has(event.type)
+          const info = context.data.session.get(sessionID)
 
-        if (!isCreated && !isUpdated) return
+          if (info) {
+            emit({ info: sessions.project(info) })
 
-        const sessionID = event.data.sessionID
-        const info = typeof sessionID === 'string' ? context.data.session.get(sessionID) : undefined
+            return
+          }
 
-        if (info) {
-          handler({ type: name, properties: { info: sessions.normalize(info) } })
+          void context.data.session
+            .sync(sessionID)
+            .then(() => {
+              const synced = context.data.session.get(sessionID)
 
-          return
-        }
-
-        if (typeof sessionID !== 'string') return
-
-        void context.data.session
-          .sync(sessionID)
-          .then(() => {
-            const synced = context.data.session.get(sessionID)
-
-            if (active && synced) handler({ type: name, properties: { info: sessions.normalize(synced) } })
-          })
-          .catch(() => {})
-      })
+              if (synced) emit({ info: sessions.project(synced) })
+            })
+            .catch(() => {})
+        }),
+      )
 
       return () => {
         active = false
-        unsubscribe()
+        for (const dispose of disposers) dispose()
       }
     },
-  } as unknown as LegacyEventBus
+  } as unknown as TuiPluginApi['event']
 }

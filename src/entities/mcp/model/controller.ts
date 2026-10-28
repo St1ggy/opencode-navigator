@@ -8,7 +8,8 @@ import { createRequestState, isAbortError, retryBackgroundRefresh } from '../../
 import { mcpGroupToggleAction } from './grouping'
 import { mcpToggleAction } from './status'
 
-import type { TuiPluginApi, TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
+import type { McpSource, McpItem as TuiSidebarMcpItem } from './source'
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export type McpPreferencesAccess = {
   load(): Promise<void> | undefined
@@ -73,7 +74,12 @@ function statusError(status: unknown) {
   return typeof error === 'string' ? error : undefined
 }
 
-export function createMcpController(api: TuiPluginApi, persist: () => boolean, preferences: McpPreferencesAccess) {
+export function createMcpController(
+  api: TuiPluginApi,
+  persist: () => boolean,
+  preferences: McpPreferencesAccess,
+  source?: McpSource,
+) {
   const [snapshots, setSnapshots] = createSignal<Record<string, readonly TuiSidebarMcpItem[]>>({})
   const [mutationCounts, setMutationCounts] = createSignal<Record<string, number>>({})
   const [bulkStates, setBulkStates] = createSignal<Record<string, McpBulkState>>({})
@@ -205,7 +211,7 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
   }
 
   function list(current = target()) {
-    return snapshots()[current.key] ?? api.state.mcp()
+    return source ? source.list(current) : (snapshots()[current.key] ?? api.state.mcp())
   }
 
   async function refresh(current = target(), force = false): Promise<readonly TuiSidebarMcpItem[]> {
@@ -217,14 +223,17 @@ export function createMcpController(api: TuiPluginApi, persist: () => boolean, p
 
     if (!requestState) return pending!
 
-    const request = api.client.mcp
-      .status(current.routing, { throwOnError: true, signal: requestState.signal })
-      .then((result) => {
-        const items = Object.entries(result.data ?? {})
-          .map(([name, status]) => ({ name, status: status.status, error: statusError(status) }))
-          .sort((a, b) => a.name.localeCompare(b.name))
-
-        if (requestState.isCurrent()) setSnapshots((value) => ({ ...value, [current.key]: items }))
+    const request = (
+      source
+        ? source.refresh(current, force, requestState.signal)
+        : api.client.mcp.status(current.routing, { throwOnError: true, signal: requestState.signal }).then((result) =>
+            Object.entries(result.data ?? {})
+              .map(([name, status]) => ({ name, status: status.status, error: statusError(status) }))
+              .sort((a, b) => a.name.localeCompare(b.name)),
+          )
+    )
+      .then((items) => {
+        if (!source && requestState.isCurrent()) setSnapshots((value) => ({ ...value, [current.key]: items }))
 
         if (requestState.isCurrent()) reconcileSelectedPreset(current, items)
 
