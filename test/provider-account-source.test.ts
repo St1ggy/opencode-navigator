@@ -9,7 +9,9 @@ import type { Plugin } from '@opencode/plugin/tui'
 const model: SelectedModel = { providerID: 'openai', modelID: 'synthetic-model', sessionID: 'one' }
 
 function harness() {
-  const callbacks = new Map<string, () => void>()
+  type Observation = { location?: { directory: string } }
+  const callbacks = new Map<string, (event?: Observation) => void>()
+  let reads = 0
   let provider: ProviderInfo = {
     id: 'openai',
     name: 'OpenAI',
@@ -40,9 +42,18 @@ function harness() {
   ]
   const context = {
     location: { directory: '/synthetic-workspace' },
-    client: { provider: { get: async () => ({ data: provider }) }, credential: { list: async () => credentials } },
+    client: {
+      provider: {
+        get: async () => {
+          reads++
+
+          return { data: provider }
+        },
+      },
+      credential: { list: async () => credentials },
+    },
     data: {
-      on: (event: string, callback: () => void) => {
+      on: (event: string, callback: (event?: Observation) => void) => {
         callbacks.set(event, callback)
 
         return () => callbacks.delete(event)
@@ -55,6 +66,7 @@ function harness() {
     source,
     context,
     callbacks,
+    reads: () => reads,
     setProvider(value: ProviderInfo) {
       provider = value
     },
@@ -169,6 +181,84 @@ test('an API key, ambiguous active accounts, and stale catalog headers never aut
     ])
     await h.source.refresh(model)
     expect(h.source.current(model).hostConnection?.status).toBe('loading')
+  } finally {
+    h.source.dispose()
+  }
+})
+
+test.each(['provider.updated', 'integration.updated'])(
+  'foreign-location %s does not revalidate or invalidate the active account',
+  async (event) => {
+    const h = harness()
+
+    try {
+      await h.source.refresh(model)
+      const previous = h.source.current(model)
+
+      h.callbacks.get(event)?.({ location: { directory: '/other-workspace' } })
+      expect(h.source.current(model).hostConnection).toEqual(previous.hostConnection)
+      await Bun.sleep(0)
+      expect(h.reads()).toBe(1)
+    } finally {
+      h.source.dispose()
+    }
+  },
+)
+
+test.each(['current', 'unknown'] as const)(
+  'integration updates for the %s location still invalidate eagerly',
+  async (scope) => {
+    const h = harness()
+
+    try {
+      await h.source.refresh(model)
+      h.source.current(model)
+      h.callbacks.get('integration.updated')?.(
+        scope === 'current' ? { location: { directory: '/synthetic-workspace' } } : {},
+      )
+      expect(h.source.current(model).hostConnection?.status).toBe('loading')
+      await h.source.refresh(model)
+      expect(h.reads()).toBe(2)
+      expect(h.source.current(model).hostConnection?.status).toBe('ready')
+    } finally {
+      h.source.dispose()
+    }
+  },
+)
+
+test.each(['credential.updated', 'credential.switched', 'server.connected'])(
+  'global %s remains effective even when it carries another location',
+  async (event) => {
+    const h = harness()
+
+    try {
+      await h.source.refresh(model)
+      const previous = { ...h.source.current(model), accountID: 'account-a' }
+
+      h.setCredentials([{ ...h.credentials()[0], id: 'two' }])
+      h.callbacks.get(event)?.({ location: { directory: '/other-workspace' } })
+      expect(h.source.current(model).hostConnection?.status).toBe('loading')
+      await h.source.refresh(model)
+      expect(h.source.current(model).hostConnection?.id).toBe('credential:two')
+      expect(await h.source.validate(previous, new AbortController().signal)).toBe(false)
+    } finally {
+      h.source.dispose()
+    }
+  },
+)
+
+test('event scoping follows the current location rather than a captured initial directory', async () => {
+  const h = harness()
+
+  try {
+    await h.source.refresh(model)
+    Object.assign(h.context, { location: { directory: '/next-workspace' } })
+    await h.source.refresh(model)
+    h.source.current(model)
+    h.callbacks.get('integration.updated')?.({ location: { directory: '/synthetic-workspace' } })
+    expect(h.source.current(model).hostConnection?.status).toBe('ready')
+    await Bun.sleep(0)
+    expect(h.reads()).toBe(2)
   } finally {
     h.source.dispose()
   }

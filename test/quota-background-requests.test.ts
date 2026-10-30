@@ -86,6 +86,17 @@ test('native quota polling ignores unchanged provider observations and never use
     await Bun.sleep(0)
     expect(reads).toHaveLength(1)
     expect(reads[0].connectionID).toBe('credential:one')
+    const initialSnapshot = integration.controller.snapshot()
+
+    for (let burst = 0; burst < 3; burst++) {
+      h.emit('integration.updated', {}, { directory: '/other-workspace' })
+      h.emit('provider.updated', {}, { directory: '/other-workspace' })
+      expect(integration.controller.snapshot()).toBe(initialSnapshot)
+      expect(integration.controller.state().status).toBe('ready')
+      await Bun.sleep(0)
+      expect(reads).toHaveLength(1)
+      expect(calls.filter((call) => call === 'provider.get')).toHaveLength(1)
+    }
     for (let pulse = 1; pulse <= 100; pulse++) setHostObservation(pulse)
     await Bun.sleep(0)
     expect(reads).toHaveLength(1)

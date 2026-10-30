@@ -109,10 +109,10 @@ export function nativeHostFixture() {
     setRoute,
     dispose: adapter.dispose,
     setSkills: (skills: typeof state.skills) => setState('skills', reconcile(skills)),
-    emit(name: string, data: unknown) {
+    emit(name: string, data: unknown, location?: { directory: string }) {
       const listeners = handlers.get(name) ?? []
 
-      for (const handler of listeners) handler({ type: name, data, created: 10 })
+      for (const handler of listeners) handler({ type: name, data, created: 10, ...(location && { location }) })
     },
   }
 }
