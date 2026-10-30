@@ -1,4 +1,4 @@
-import { BoxRenderable, type OptimizedBuffer, RGBA } from '@opentui/core'
+import { type BoxRenderable, type OptimizedBuffer, RGBA } from '@opentui/core'
 import { createEffect, splitProps, untrack } from 'solid-js'
 
 import { useIcons } from './icons'
@@ -6,16 +6,57 @@ import { useIcons } from './icons'
 import type { UiIcon } from './icons'
 import type { BoxProps } from '@opentui/solid'
 
-type Corner = { x: number; y: number; icon: UiIcon; backdrop: RGBA }
+const transparent = RGBA.fromInts(0, 0, 0, 0)
 
 function selectionBackdrop(node: BoxRenderable) {
   // Paint hooks are drawing-only on native-scene hosts. Resolve the surrounding
   // presentation color from ancestors instead of sampling the destination frame.
   for (let parent = node.parent; parent; parent = parent.parent) {
-    if (parent instanceof BoxRenderable && parent.backgroundColor.a > 0) return parent.backgroundColor
+    if (
+      'backgroundColor' in parent &&
+      parent.backgroundColor instanceof RGBA &&
+      parent.backgroundColor.a > 0 &&
+      (!('shouldFill' in parent) || parent.shouldFill !== false)
+    )
+      return parent.backgroundColor
   }
 
-  return RGBA.fromValues(0, 0, 0, 1)
+  return transparent
+}
+
+function paintCorners(node: BoxRenderable, buffer: OptimizedBuffer, icons: ReturnType<typeof useIcons>) {
+  const backdrop = selectionBackdrop(node)
+
+  if (node.backgroundColor.equals(backdrop)) return
+
+  const left = node.screenX
+  const right = left + node.width - 1
+  const top = node.screenY
+  const bottom = top + node.height - 1
+  const multiline = node.height > 1
+  const positions: [number, number, UiIcon][] = multiline
+    ? [
+        [left, top, 'selectionTopLeft'],
+        [right, top, 'selectionTopRight'],
+        [left, bottom, 'selectionBottomLeft'],
+        [right, bottom, 'selectionBottomRight'],
+      ]
+    : [
+        [left, top, 'selectionLeft'],
+        [right, top, 'selectionRight'],
+      ]
+
+  for (const [x, y, icon] of positions) {
+    if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) continue
+
+    buffer.setCell(
+      x,
+      y,
+      icons.icon(icon),
+      multiline ? backdrop : node.backgroundColor,
+      multiline ? node.backgroundColor : backdrop,
+    )
+  }
 }
 
 // Paint shaped edges inside the existing padding, preserving layout and mouse targets.
@@ -25,7 +66,6 @@ export function SelectionBox(props: BoxProps & { iconOnly?: boolean }) {
   const [local, boxProps] = splitProps(props, ['ref', 'iconOnly'])
   // Icon controls reserve exactly one cell for each cap around one content cell.
   let node: BoxRenderable | undefined
-  let corners: Corner[] = []
 
   createEffect(() => {
     icons.style()
@@ -33,58 +73,16 @@ export function SelectionBox(props: BoxProps & { iconOnly?: boolean }) {
     node?.requestRender()
   })
 
-  function before(this: BoxRenderable, buffer: OptimizedBuffer, delta: number) {
-    props.renderBefore?.call(this, buffer, delta)
-    corners = []
-
-    if (
-      this.buffered ||
-      this.width < 3 ||
-      this.height < 1 ||
-      this.backgroundColor.a === 0 ||
-      (this.height > 1 && !icons.multilineCorners())
-    )
-      return
-
-    const left = this.screenX
-    const right = left + this.width - 1
-    const top = this.screenY
-    const bottom = top + this.height - 1
-    const positions: [number, number, UiIcon][] =
-      this.height === 1
-        ? [
-            [left, top, 'selectionLeft'],
-            [right, top, 'selectionRight'],
-          ]
-        : [
-            [left, top, 'selectionTopLeft'],
-            [right, top, 'selectionTopRight'],
-            [left, bottom, 'selectionBottomLeft'],
-            [right, bottom, 'selectionBottomRight'],
-          ]
-    const backdrop = selectionBackdrop(this)
-
-    for (const [x, y, icon] of positions) {
-      if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) continue
-
-      if (!this.backgroundColor.equals(backdrop)) corners.push({ x, y, icon, backdrop })
-    }
-  }
-
   function after(this: BoxRenderable, buffer: OptimizedBuffer, delta: number) {
-    for (const corner of corners) {
-      // A terminal paints cell backgrounds across line spacing, but not glyph ink.
-      // Multiline corners therefore mask only the outside instead of filling the inside.
-      const multiline = this.height > 1
+    if (
+      !this.buffered &&
+      this.width >= 3 &&
+      this.height >= 1 &&
+      this.backgroundColor.a > 0 &&
+      (this.height === 1 || icons.multilineCorners())
+    )
+      paintCorners(this, buffer, icons)
 
-      buffer.setCell(
-        corner.x,
-        corner.y,
-        icons.icon(corner.icon),
-        multiline ? corner.backdrop : this.backgroundColor,
-        multiline ? this.backgroundColor : corner.backdrop,
-      )
-    }
     props.renderAfter?.call(this, buffer, delta)
   }
 
@@ -100,7 +98,6 @@ export function SelectionBox(props: BoxProps & { iconOnly?: boolean }) {
       }}
       paddingLeft={props.paddingLeft ?? props.padding ?? (local.iconOnly && icons.style() === 'text' ? 0 : 1)}
       paddingRight={props.paddingRight ?? props.padding ?? (local.iconOnly && icons.style() === 'text' ? 0 : 1)}
-      renderBefore={icons.style() === 'nerd' ? before : props.renderBefore}
       renderAfter={icons.style() === 'nerd' ? after : props.renderAfter}
     />
   )

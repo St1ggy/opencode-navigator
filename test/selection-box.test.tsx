@@ -48,6 +48,12 @@ test('rounded selections preserve layout, clicks, backdrop colors and live text 
   )
 
   try {
+    Object.defineProperty(setup.renderer.nextRenderBuffer, 'buffers', {
+      configurable: true,
+      get() {
+        throw new Error('Paint hooks record drawing and cannot read the frame.')
+      },
+    })
     await setup.flush()
     expect(row).toBeInstanceOf(BoxRenderable)
     const bounds = [row.x, row.y, row.width, row.height]
