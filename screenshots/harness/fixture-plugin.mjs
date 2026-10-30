@@ -1,5 +1,6 @@
-import navigator, { TodoSection, createNativeTodoController } from '/workspace/dist/tui.js'
+import navigator, { TodoSection, createNativeTodoController, getNavigatorAboutServices, registerNavigatorAboutServices } from '/workspace/dist/tui.js'
 import { ProviderLimitsSection, createOpenCodeUsageAdapter, createProviderLimitsController } from '/workspace/dist/provider-limits.js'
+import { configureAboutFixture, isAboutScene, openAboutScene } from './about-scenes.mjs'
 import { createFixtureDispatch } from './fixture-commands.mjs'
 import { createHostUsageFixture } from './host-usage.mjs'
 
@@ -122,6 +123,8 @@ function openLimitsRefreshSettings(dispatch) {
 }
 
 function fixtureReadyDelay() {
+  if (isAboutScene(SCENE)) return 4200
+
   if (SCENE.startsWith('toolbar-')) return 5000
 
   if (SCENE === 'setup-sections') return 4800
@@ -163,8 +166,31 @@ function openSearchScene(api, dispatch, later) {
 }
 
 function openToolbarScene(api, dispatch, later) {
+  if (SCENE === 'toolbar-appearance') {
+    dispatch('opencode-navigator.toolbar')
+    setTimeout(() => {
+      dispatch('opencode-navigator.selection-menu.next')
+      dispatch('opencode-navigator.selection-menu.next')
+      dispatch('opencode-navigator.selection-menu.select')
+    }, 700)
+    later(1200, 'opencode-navigator.selection-menu.select')
+    setTimeout(() => {
+      dispatch('opencode-navigator.selection-menu.next')
+      dispatch('opencode-navigator.selection-menu.next')
+      dispatch('opencode-navigator.selection-menu.select')
+    }, 1700)
+  }
+
   // The host automatically hides its sidebar in narrow terminals; use its public toggle.
   if (SCENE === 'toolbar-narrow') dispatch('session.sidebar.toggle')
+
+  if (SCENE.startsWith('toolbar-hint')) {
+    dispatch('opencode-navigator.focus')
+    setTimeout(() => {
+      dispatch('opencode-navigator.navigation.next')
+      dispatch('opencode-navigator.navigation.right')
+    }, 650)
+  }
 
   if (['toolbar-manager', 'toolbar-pin', 'toolbar-picker'].includes(SCENE)) {
     dispatch('opencode-navigator.toolbar')
@@ -210,6 +236,14 @@ const plugin = {
   id: 'opencode-navigator-screenshot-fixture',
   async tui(api, options, meta) {
     Date.now = () => FIXTURE_NOW
+    let latestNavigator = '999.0.0'
+
+    if (isAboutScene(SCENE)) {
+      const packaged = await Bun.file('/workspace/package.json').json()
+
+      latestNavigator = SCENE === 'settings-about-update' ? '9.99.0' : packaged.version
+    }
+
     api.kv.set('dismissed_getting_started', true)
 
     const fixtureSession = (sessionID) => ({
@@ -330,7 +364,7 @@ const plugin = {
       writable: true,
       value: (input, init) =>
         String(input) === 'https://registry.npmjs.org/opencode-navigator/latest'
-          ? Promise.resolve(Response.json({ version: '999.0.0' }))
+          ? Promise.resolve(Response.json({ version: latestNavigator }))
           : originalFetch(input, init),
     })
 
@@ -359,9 +393,20 @@ const plugin = {
     })
 
     const keymap = service(api.keymap, { getCommands(input) {
-      return api.keymap.getCommands(input).map((command) => command.name === 'permission.mode' && SCENE.startsWith('toolbar-')
+      const commands = api.keymap.getCommands(input).map((command) => command.name === 'permission.mode' && SCENE.startsWith('toolbar-')
         ? { ...command, title: `${SCENE === 'toolbar-on' ? 'Disable' : 'Enable'} auto-approve permissions` }
         : command)
+
+      if (SCENE.startsWith('toolbar-hint')) {
+        for (const name of ['session.message.previous', 'session.message.next']) {
+          const index = commands.findIndex((command) => command.name === name)
+
+          if (index === -1) commands.push({ name, title: name, enabled: true, run() { return true } })
+          else commands[index] = { ...commands[index], enabled: true }
+        }
+      }
+
+      return commands
     } })
     const fixtureApi = new Proxy(api, { get: (target, property) => ({ state, client, event, slots, keymap })[property] ?? target[property] })
 
@@ -374,6 +419,7 @@ const plugin = {
     } finally {
       Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: originalFetch })
     }
+    configureAboutFixture(fixtureApi, SCENE, FIXTURE_NOW, { getNavigatorAboutServices, registerNavigatorAboutServices })
     const commands = createFixtureDispatch(api)
     const fullTree = setInterval(() => renderFullFixtureTree(api.renderer.root), 50)
 
@@ -393,6 +439,7 @@ const plugin = {
       }
 
       openToolbarScene(api, dispatch, later)
+      openAboutScene(fixtureApi, SCENE, dispatch)
 
       if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {
         dispatch('opencode-navigator.focus.limits')

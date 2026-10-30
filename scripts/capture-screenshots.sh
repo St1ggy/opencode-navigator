@@ -7,6 +7,10 @@ image="opencode-navigator-screenshots:local"
 mode="${1:-generate}"
 scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-skills sidebar-actions-lsp sidebar-mcp search-skills search-subagents search-mcp search-actions settings-sections settings-scope settings-presets settings-behavior settings-defaults quick-actions-settings layout-preset-menu layout-preset-preview mcp-presets mcp-preset-actions mcp-preset-preview skill-confirmation keyboard-help setup-tour setup-sections text-fallback settings-trusted-skills settings-control-hover settings-mcp-groups mcp-error settings-portability settings-import-preview no-corner-layout-preview no-corner-mcp-preview no-corner-import-preview settings-skill-groups limits-ready limits-credits limits-confirmation limits-count-only limits-unavailable limits-text no-corner-limits-credits limits-link settings-limits-refresh sidebar-shortcuts sidebar-shortcuts-text sidebar-shortcuts-narrow no-corner-sidebar-shortcuts todo-native toolbar-off toolbar-on toolbar-manager toolbar-pin toolbar-picker toolbar-overflow toolbar-wrap toolbar-text toolbar-narrow no-corner-toolbar-picker host-usage-budgets host-usage-go host-usage-auth host-usage-failure)
 
+scenes+=(settings-about settings-about-update settings-about-error settings-about-checking changelog-versions changelog-version bug-report-editor bug-report-confirmation bug-report-browser bug-report-error settings-about-text no-corner-bug-report-confirmation toolbar-hint toolbar-hint-wrap)
+
+scenes+=(toolbar-content toolbar-content-wrap toolbar-appearance)
+
 file_for_scene() {
   case "$1" in
     hero) printf '%s\n' 01-hero-sidebar.png ;;
@@ -75,6 +79,23 @@ file_for_scene() {
     host-usage-go) printf '%s\n' 64-native-go-allowance.png ;;
     host-usage-auth) printf '%s\n' 65-native-usage-auth.png ;;
     host-usage-failure) printf '%s\n' 66-native-usage-retry.png ;;
+    settings-about) printf '%s\n' 67-settings-about.png ;;
+    settings-about-update) printf '%s\n' 68-about-update.png ;;
+    settings-about-error) printf '%s\n' 69-about-update-error.png ;;
+    settings-about-checking) printf '%s\n' 70-about-checking.png ;;
+    changelog-versions) printf '%s\n' 71-changelog-versions.png ;;
+    changelog-version) printf '%s\n' 72-changelog-version.png ;;
+    bug-report-editor) printf '%s\n' 73-bug-report-editor.png ;;
+    bug-report-confirmation) printf '%s\n' 74-bug-report-confirmation.png ;;
+    bug-report-browser) printf '%s\n' 75-bug-report-browser.png ;;
+    bug-report-error) printf '%s\n' 76-bug-report-error.png ;;
+    settings-about-text) printf '%s\n' 77-about-text.png ;;
+    no-corner-bug-report-confirmation) printf '%s\n' 78-no-corner-bug-report.png ;;
+    toolbar-hint) printf '%s\n' 79-toolbar-hint.png ;;
+    toolbar-hint-wrap) printf '%s\n' 80-toolbar-hint-wrap.png ;;
+    toolbar-content) printf '%s\n' 81-toolbar-icons-and-text.png ;;
+    toolbar-content-wrap) printf '%s\n' 82-toolbar-content-wrap.png ;;
+    toolbar-appearance) printf '%s\n' 83-toolbar-appearance.png ;;
     *) return 1 ;;
   esac
 }
@@ -108,6 +129,7 @@ for scene in "${scenes[@]}"; do
     no-corner-limits-credits) fixture_scene=limits-credits; no_corner_font=true ;;
     no-corner-sidebar-shortcuts) fixture_scene=sidebar-shortcuts; no_corner_font=true ;;
     no-corner-toolbar-picker) fixture_scene=toolbar-picker; no_corner_font=true ;;
+    no-corner-bug-report-confirmation) fixture_scene=bug-report-confirmation; no_corner_font=true ;;
   esac
   docker run --rm --platform linux/arm64 \
     -e "SCREENSHOT_SCENE=$fixture_scene" \

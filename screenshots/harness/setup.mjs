@@ -2,13 +2,13 @@ import { mkdir, writeFile } from 'node:fs/promises'
 
 const scene = process.env.SCREENSHOT_SCENE ?? 'hero'
 const hasCornerFont = process.env.SCREENSHOT_NO_CORNER_FONT !== 'true'
-const textStyle = ['text-fallback', 'limits-text', 'sidebar-shortcuts-text', 'toolbar-text'].includes(scene)
+const textStyle = ['text-fallback', 'limits-text', 'sidebar-shortcuts-text', 'toolbar-text', 'settings-about-text'].includes(scene)
 const stateRoot = process.env.XDG_STATE_HOME
 const workspace = '/workspace/atlas-console'
 const sessionID = 'ses_01J00000000000000000000000'
 const preferenceDirectory = `${stateRoot}/opencode/opencode-pretty-sidebar`
 const allSections = {
-  limits: scene.startsWith('limits-'),
+  limits: scene.startsWith('limits-') || scene.startsWith('toolbar-hint'),
   todo: true,
   subagents: true,
   skills: true,
@@ -28,7 +28,7 @@ const sectionOrder = scene.startsWith('subagents')
         ? ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp']
         : defaultOrder
 const collapsedSections = Object.fromEntries(Object.keys(allSections).map((section) => [section, false]))
-const expandedSections = scene.startsWith('limits-')
+const expandedSections = scene.startsWith('limits-') || scene.startsWith('toolbar-hint')
   ? { ...collapsedSections, limits: true }
   : scene.startsWith('subagents')
   ? { ...collapsedSections, subagents: true }
@@ -48,7 +48,7 @@ const preferences = {
       persistMcp: false,
       cornerFont: hasCornerFont,
       lspIconStyle: textStyle ? 'text' : 'nerd',
-      toolbarOverflow: scene === 'toolbar-wrap' ? 'wrap' : 'menu',
+      toolbarOverflow: ['toolbar-wrap', 'toolbar-hint-wrap', 'toolbar-content-wrap'].includes(scene) ? 'wrap' : 'menu',
       sectionItemLimits: { todo: 3, subagents: 2, skills: 2, quick_actions: 3, lsp: 3, mcp: 3 },
     },
     layout: {
@@ -67,7 +67,18 @@ const preferences = {
     },
   },
   user: {
-    ...(scene.startsWith('toolbar-') && { toolbarPins: [
+    ...((scene.startsWith('toolbar-content') || scene === 'toolbar-appearance') && { toolbarPins: [
+      { kind: 'action', id: 'session.new', icon: 'plus', icons: ['plus', 'rocket'], text: 'New' },
+      { kind: 'skill', name: 'review-changes', location: `${workspace}/.opencode/skills/review-changes/SKILL.md`, icon: 'book', icons: [], text: 'Review' },
+      { kind: 'action', id: 'session.rename', icon: 'edit', icons: ['edit', 'check', 'star'], text: 'Rename' },
+      ...(scene === 'toolbar-content-wrap' ? ['session.timeline', 'session.copy', 'session.export', 'session.compact'].map((id) => ({ kind: 'action', id, icon: 'bolt', text: 'Extra' })) : []),
+    ] }),
+    ...(scene.startsWith('toolbar-hint') && { toolbarPins: [
+      { kind: 'action', id: 'session.message.previous', icon: 'arrow-up' },
+      { kind: 'action', id: 'session.message.next', icon: 'arrow-down' },
+      ...(scene === 'toolbar-hint-wrap' ? ['session.rename', 'session.timeline', 'session.copy', 'session.export', 'session.compact', 'session.list', 'session.new', 'session.fork', 'messages.copy', 'session.first', 'session.last'].map((id) => ({ kind: 'action', id, icon: 'bolt' })) : []),
+    ] }),
+    ...(scene.startsWith('toolbar-') && !scene.startsWith('toolbar-hint') && !scene.startsWith('toolbar-content') && scene !== 'toolbar-appearance' && { toolbarPins: [
       { kind: 'action', id: 'permission.mode', icon: 'shield', stateIcons: { on: 'unlock', off: 'lock' } },
       { kind: 'action', id: 'session.new', icon: 'plus' },
       { kind: 'skill', name: 'review-changes', location: `${workspace}/.opencode/skills/review-changes/SKILL.md`, icon: 'code' },

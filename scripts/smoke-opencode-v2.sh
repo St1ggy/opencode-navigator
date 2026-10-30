@@ -28,6 +28,19 @@ cleanup() {
 trap cleanup EXIT
 mkdir -p "$temporary/bin" "$temporary/cache" "$temporary/config/opencode" "$temporary/data" \
   "$temporary/home" "$temporary/state" "$temporary/workspace/.opencode"
+cat >"$temporary/bin/gh" <<'SH'
+#!/bin/sh
+if [ "$1" = '--version' ]; then printf 'gh synthetic smoke fixture\n'; exit 0; fi
+if [ "$1" = 'auth' ]; then exit 0; fi
+if [ "$1" = 'issue' ] && [ "$2" = 'create' ] && [ "$3" = '--help' ]; then printf '%s\n' '--type <name>'; exit 0; fi
+if [ "$1" = 'issue' ] && [ "$2" = 'create' ]; then printf 'blocked-create\n' >> "$NAVIGATOR_SMOKE_GH_ATTEMPTS"; fi
+exit 1
+SH
+chmod +x "$temporary/bin/gh"
+export PATH="$temporary/bin:$PATH"
+export NAVIGATOR_SMOKE_ABOUT_SCRIPT="$root/scripts/smoke-about.tcl"
+export NAVIGATOR_SMOKE_TOOLBAR_SCRIPT="$root/scripts/smoke-toolbar-content.tcl"
+export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
 opencode_bin="${OPENCODE_V2_SMOKE_BIN:-$(command -v opencode2 || command -v opencode || true)}"
 if [[ -z "${OPENCODE_V2_SMOKE_BIN:-}" && -x /opt/homebrew/opt/opencode-v2/bin/opencode ]]; then
@@ -208,6 +221,7 @@ expect <<'EXPECT'
   expect { -re {Base icon} {} timeout { puts stderr "Toolbar pin configuration did not open in OpenCode 2"; exit 1 } }
   send -- "\r"
   expect { -re {Choose an icon} {} timeout { puts stderr "Toolbar icon picker did not open in OpenCode 2"; exit 1 } }
+  source $env(NAVIGATOR_SMOKE_TOOLBAR_SCRIPT)
   for {set index 0} {$index < 4} {incr index} { send -- "\033\[27u"; after 500 }
   send -- "\033\[27u"
   after 300
@@ -236,6 +250,7 @@ expect <<'EXPECT'
   }
   send -- "\033\[27u"
   after 200
+  source $env(NAVIGATOR_SMOKE_ABOUT_SCRIPT)
   send -- "\003"
   after 200
   send -- "\003"
@@ -250,6 +265,11 @@ expect <<'EXPECT'
 EXPECT
 
 plain_transcript="$temporary/transcript.txt"
+if [[ -e "$NAVIGATOR_SMOKE_GH_ATTEMPTS" ]]; then
+  printf 'The smoke must not submit GitHub reports.\n' >&2
+  exit 1
+fi
+bun --eval 'const doc = await Bun.file(process.env.OPENCODE_V2_SMOKE_MARKER).json(); if (!doc.user?.toolbarPins?.some(pin => pin.text === "Smoke label")) throw new Error("Toolbar text was not saved in OpenCode 2")'
 perl -pe 's/\e\[[0-?]*[ -\/]*[@-~]//g; s/\e\][^\a]*(?:\a|\e\\)//g' "$OPENCODE_V2_SMOKE_TRANSCRIPT" >"$plain_transcript"
 
 if ! grep -Eq '"onboardingCompleted"[[:space:]]*:[[:space:]]*true' "$OPENCODE_V2_SMOKE_MARKER"; then

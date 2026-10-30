@@ -26,6 +26,18 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$temporary/bin" "$temporary/cache" "$temporary/config" "$temporary/data" "$temporary/home" "$temporary/state" "$temporary/workspace"
+cat >"$temporary/bin/gh" <<'SH'
+#!/bin/sh
+if [ "$1" = '--version' ]; then printf 'gh synthetic smoke fixture\n'; exit 0; fi
+if [ "$1" = 'auth' ]; then exit 0; fi
+if [ "$1" = 'issue' ] && [ "$2" = 'create' ] && [ "$3" = '--help' ]; then printf '%s\n' '--type <name>'; exit 0; fi
+if [ "$1" = 'issue' ] && [ "$2" = 'create' ]; then printf 'blocked-create\n' >> "$NAVIGATOR_SMOKE_GH_ATTEMPTS"; fi
+exit 1
+SH
+chmod +x "$temporary/bin/gh"
+export NAVIGATOR_SMOKE_ABOUT_SCRIPT="$root/scripts/smoke-about.tcl"
+export NAVIGATOR_SMOKE_TOOLBAR_SCRIPT="$root/scripts/smoke-toolbar-content.tcl"
+export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
 opencode_bin="${OPENCODE_SMOKE_BIN:-$(command -v opencode || true)}"
 if [[ -z "$opencode_bin" || ! -x "$opencode_bin" ]]; then
@@ -217,6 +229,7 @@ expect <<'EXPECT'
   expect { -re {Base icon} {} timeout { puts stderr "Toolbar pin configuration did not open"; exit 1 } }
   send -- "\r"
   expect { -re {Choose an icon} {} timeout { puts stderr "Toolbar icon picker did not open"; exit 1 } }
+  source $env(NAVIGATOR_SMOKE_TOOLBAR_SCRIPT)
   for {set index 0} {$index < 5} {incr index} { send -- "\033\[27u"; after 350 }
   send -- "\033\[66;6u"
   expect {
@@ -226,6 +239,7 @@ expect <<'EXPECT'
   }
   send -- "\033\[27u"
   after 300
+  source $env(NAVIGATOR_SMOKE_ABOUT_SCRIPT)
   send -- "\030"
   after 100
   send -- "n"
@@ -249,6 +263,13 @@ expect <<'EXPECT'
     }
   }
 EXPECT
+
+if [[ -e "$NAVIGATOR_SMOKE_GH_ATTEMPTS" ]]; then
+  printf 'The smoke must not submit GitHub reports.\n' >&2
+  exit 1
+fi
+
+bun --eval 'const doc = await Bun.file(process.env.OPENCODE_SMOKE_MARKER).json(); if (!doc.user?.toolbarPins?.some(pin => pin.text === "Smoke label")) throw new Error("Toolbar text was not saved")'
 
 perl -pe 's/\e\[[0-?]*[ -\/]*[@-~]//g; s/\e\][^\a]*(?:\a|\e\\)//g' "$transcript" >"$plain_transcript"
 
