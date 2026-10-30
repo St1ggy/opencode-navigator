@@ -46,6 +46,8 @@ verification workflow before expanding the product surface.
 
 ### Request And Error Reliability
 
+- [x] Preserve Limits and Quick Actions row identity across equivalent snapshots and registry updates, keeping measured widths, hover state, and surrounding layout stable.
+- [x] Ignore provider/integration events from other directories without weakening current-location, global credential, reconnect, or reset-credit validation guards.
 - [x] Prevent stale Todo refreshes and failures from overwriting newer events or current-target state.
 - [x] Preserve Subagent events that arrive during an in-flight refresh.
 - [x] Scope Skills and MCP snapshots by directory/workspace and ignore superseded MCP activation work.

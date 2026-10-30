@@ -25,13 +25,15 @@ const api = { theme: { current: darkTheme } } as unknown as TuiPluginApi
 
 async function harness(style: 'nerd' | 'text' = 'nerd', windows: readonly QuotaWindow[] = [window], themeApi = api) {
   const [width, setWidth] = createSignal(34)
+  const [currentWindows, setWindows] = createSignal(windows)
   const setup = await testRender(
     () => (
       <IconProvider style={() => style}>
         <box width={width()} paddingLeft={3} paddingRight={2} marginLeft={7} id="sidebar">
           <SectionBoundary api={themeApi} divided>
-            <QuotaWindowGroup api={themeApi} windows={windows} />
+            <QuotaWindowGroup api={themeApi} windows={currentWindows()} />
           </SectionBoundary>
+          <text id="following-section">Following section</text>
         </box>
       </IconProvider>
     ),
@@ -40,8 +42,63 @@ async function harness(style: 'nerd' | 'text' = 'nerd', windows: readonly QuotaW
 
   await setup.flush()
 
-  return { ...setup, setWidth }
+  const rows = () => setup.renderer.root.findDescendantById('sidebar')!.getChildren()[0].getChildren()[0].getChildren()
+
+  return { ...setup, setWidth, setWindows, rows }
 }
+
+test.each(['nerd', 'text'] as const)(
+  'quota refresh preserves measured rows and following content (%s)',
+  async (style) => {
+    const windows = [window, { ...window, id: 'second', used: 74 }]
+    const h = await harness(style, windows)
+
+    try {
+      const rows = h.rows()
+      const frame = h.captureCharFrame()
+      const following = h.renderer.root.findDescendantById('following-section')!
+      const followingY = following.y
+
+      expect(rows).toHaveLength(2)
+      expect(rows[0].width).toBe(29)
+      for (let refresh = 0; refresh < 3; refresh++) {
+        h.setWindows(windows.map((item) => ({ ...item })))
+        expect(h.rows()[0].num).toBe(rows[0].num)
+        expect(h.rows()[1].num).toBe(rows[1].num)
+        await h.flush()
+        expect(h.captureCharFrame()).toBe(frame)
+        expect(following.y).toBe(followingY)
+      }
+
+      h.setWindows([
+        { ...windows[1], used: 75 },
+        { ...window, remaining: 50, used: 50 },
+      ])
+      expect(h.rows()[0].num).toBe(rows[1].num)
+      expect(h.rows()[1].num).toBe(rows[0].num)
+      await h.flush()
+      expect(h.captureCharFrame()).toContain('25% left')
+      expect(h.captureCharFrame()).toContain('50% left')
+      h.setWidth(26)
+      await h.flush()
+      await h.flush()
+      expect(h.rows()[0].num).toBe(rows[1].num)
+      expect(h.rows()[0].width).toBe(21)
+      expect(h.captureCharFrame()).toContain('25% left')
+
+      h.setWindows([{ ...window, id: 'replacement' }])
+      await h.flush()
+      expect(h.rows()).toHaveLength(1)
+      expect(h.rows()[0].num).not.toBe(rows[0].num)
+      expect(h.rows()[0].num).not.toBe(rows[1].num)
+      h.setWindows([])
+      await h.flush()
+      expect(h.rows()).toHaveLength(0)
+    } finally {
+      h.renderer.destroy()
+    }
+  },
+)
 
 test.each(['nerd', 'text'] as const)(
   'quota lines fill the padded sidebar width without block glyphs (%s)',
