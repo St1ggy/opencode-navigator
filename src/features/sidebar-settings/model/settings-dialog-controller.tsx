@@ -1,12 +1,16 @@
 import { useTerminalDimensions } from '@opentui/solid'
-import { createEffect, createMemo, onCleanup, onMount } from 'solid-js'
+import { createEffect, createMemo, onCleanup } from 'solid-js'
 
 import { SIDEBAR_SECTIONS, type SidebarSection } from '../../../entities/sidebar-layout'
 import { PLUGIN_ID } from '../../../shared/config'
 import { useDialogScroll, useDialogState, useDialogs, useIcons } from '../../../shared/ui'
+import { BugReportDialog } from '../ui/bug-report-dialog'
 
+import { getNavigatorAboutServices } from './about-services'
+import { createBugReportController } from './bug-report-controller'
 import { createSettingsGroups } from './settings-groups'
 import { registerSettingsKeymap } from './settings-keymap'
+import { useSettingsReveal } from './settings-scroll'
 import { createSettingsSelection } from './settings-selection'
 
 import type { createLayoutPresetActions as LayoutPresetActionsFactory } from './layout-preset-actions'
@@ -27,6 +31,10 @@ export function createSettingsDialogController(props: {
   const theme = () => props.api.theme.current
   const icons = useIcons()
   const dialogs = useDialogs(props.api)
+  const [report, setReport] = useDialogState<ReturnType<typeof createBugReportController> | undefined>(
+    'bug-report',
+    undefined,
+  )
   const scroll = useDialogScroll()
   const dimensions = useTerminalDimensions()
   const bodyHeight = createMemo(() => Math.max(4, Math.floor(dimensions().height * 0.75) - 10))
@@ -40,10 +48,14 @@ export function createSettingsDialogController(props: {
   const initialActive = options().findIndex((option) => option.value === props.activeValue)
   const [active, setActive] = useDialogState('selection', Math.max(0, initialActive))
 
+  useSettingsReveal({ body: () => body, options, active, group: activeGroup, optionId })
+
   createEffect(() => {
     if (active() >= options().length) setActive(Math.max(0, options().length - 1))
   })
-  const contentHeight = createMemo(() => Math.min(bodyHeight(), Math.max(1, options().length * 2 - 1)))
+  const contentHeight = createMemo(() =>
+    Math.min(bodyHeight(), Math.max(1, options().length * 2 - 1 + (activeGroup() === 'about' ? 5 : 0))),
+  )
   const footerHint = createMemo(() => {
     const common = `${icons.key('tab')} switch · ${icons.key('up/down')} navigate`
 
@@ -57,14 +69,6 @@ export function createSettingsDialogController(props: {
     if (activeGroup() === 'defaults') return `${common} · ${icons.key('enter')} run`
 
     return `${common} · ${icons.key('enter')} select`
-  })
-
-  onMount(() => {
-    queueMicrotask(() => {
-      const option = options()[active()]
-
-      if (option) body?.scrollChildIntoView(optionId(option.value))
-    })
   })
 
   function move(offset: number) {
@@ -130,6 +134,31 @@ export function createSettingsDialogController(props: {
     setActive,
     openPreset: (name) => runPresetAction('open', name),
     promptPreset: () => runPresetAction('prompt'),
+    openBugReport() {
+      let controller = report()
+
+      if (!controller) {
+        const service = getNavigatorAboutServices(props.api)
+
+        if (!service) return
+
+        controller = createBugReportController(
+          {
+            navigatorVersion: service.navigatorVersion,
+            openCodeVersion: service.openCodeVersion,
+            platform: process.platform,
+            runtime: `Bun ${Bun.version}`,
+          },
+          service.bugReportTransport,
+          props.api.lifecycle.signal,
+        )
+        setReport(controller)
+      }
+
+      const selected = controller
+
+      dialogs.open(() => <BugReportDialog api={props.api} controller={selected} />)
+    },
   })
   const unregister = registerSettingsKeymap({
     api: props.api,

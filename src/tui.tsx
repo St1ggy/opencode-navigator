@@ -1,6 +1,7 @@
 export { default } from './app'
 export * from './entities/quick-action'
 export * from './shared/lib/host-capabilities'
+export { registerNavigatorAboutServices, getNavigatorAboutServices } from './features/sidebar-settings'
 export { createNativeTodoController } from './app/opencode-v2'
 export { TodoSection } from './pages/session-sidebar'
 export {

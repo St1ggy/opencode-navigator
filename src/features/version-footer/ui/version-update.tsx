@@ -1,6 +1,11 @@
+import { createSignal } from 'solid-js'
+
 import { PLUGIN_ID } from '../../../shared/config'
 import { createManualUpdateCheck } from '../model/manual-update-check'
 
+import { NestedVersionConfirmation } from './nested-version-confirmation'
+
+import type { DialogNavigation } from '../../../shared/ui'
 import type { VersionStatus, VersionUpdater } from '../model/version-status'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -13,6 +18,8 @@ export function createVersionUpdateActions(
   rememberNavigatorVersion?: () => Promise<void>,
 ) {
   const busy = new Set<UpdateKind>()
+  const [navigatorUpdating, setNavigatorUpdating] = createSignal(false)
+  const [navigatorInstalled, setNavigatorInstalled] = createSignal<string>()
   const installed: Partial<Record<UpdateKind, string>> = {}
   let disposed = false
   let confirmation = 0
@@ -40,6 +47,9 @@ export function createVersionUpdateActions(
 
     api.ui.dialog.clear()
     busy.add(kind)
+
+    if (kind === 'navigator') setNavigatorUpdating(true)
+
     api.ui.toast({ variant: 'info', title: `Updating ${label(kind)}`, message: `Installing ${version}...` })
     void (async () => {
       if (kind === 'navigator') await rememberNavigatorVersion?.()
@@ -50,6 +60,8 @@ export function createVersionUpdateActions(
     })()
       .then(() => {
         installed[kind] = version
+
+        if (kind === 'navigator') setNavigatorInstalled(version)
 
         if (disposed) return
 
@@ -70,10 +82,14 @@ export function createVersionUpdateActions(
           duration: 6000,
         })
       })
-      .finally(() => busy.delete(kind))
+      .finally(() => {
+        busy.delete(kind)
+
+        if (kind === 'navigator') setNavigatorUpdating(false)
+      })
   }
 
-  function open(kind: UpdateKind, version = target(kind)) {
+  function open(kind: UpdateKind, version = target(kind), navigation?: DialogNavigation) {
     if (disposed || !version || version !== target(kind) || busy.has(kind)) return
 
     if (installed[kind] === version) {
@@ -87,6 +103,35 @@ export function createVersionUpdateActions(
     }
 
     const id = ++confirmation
+    const onConfirm = () => {
+      if (id !== confirmation) return
+
+      confirmation++
+      update(kind, version)
+    }
+
+    if (navigation) {
+      navigation.open(() => (
+        <NestedVersionConfirmation
+          api={api}
+          name={label(kind)}
+          version={version}
+          current={() => !disposed && id === confirmation && version === target(kind)}
+          confirm={onConfirm}
+          cancel={() => {
+            if (id !== confirmation) return
+
+            confirmation++
+            navigation.back()
+          }}
+          dismiss={() => {
+            if (id === confirmation) confirmation++
+          }}
+        />
+      ))
+
+      return
+    }
 
     api.ui.dialog.replace(() => (
       <api.ui.DialogConfirm
@@ -151,6 +196,8 @@ export function createVersionUpdateActions(
 
   return {
     openCode: (version: string) => open('openCode', version),
-    navigator: (version: string) => open('navigator', version),
+    navigator: (version: string, navigation?: DialogNavigation) => open('navigator', version, navigation),
+    navigatorUpdating,
+    navigatorInstalled,
   }
 }

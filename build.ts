@@ -251,6 +251,7 @@ const dialogs = await Bun.build({
     'src/layout-preset-actions.ts',
     'src/provider-limits.ts',
     'src/navigator-updates.ts',
+    'src/upgrade-notes.ts',
     'src/sidebar-shortcuts.ts',
     'src/icon-picker.ts',
     'src/sidebar-settings.ts',
@@ -274,6 +275,7 @@ const dialogs = await Bun.build({
     {
       name: 'share-navigator-ui',
       setup(build) {
+        build.onResolve({ filter: /\/about-services$/ }, () => ({ path: './tui.js', external: true }))
         build.onResolve({ filter: /(?:shared\/lib\/host-capabilities|entities\/quick-action)$/ }, () => ({
           path: './tui.js',
           external: true,

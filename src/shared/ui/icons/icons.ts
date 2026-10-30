@@ -48,6 +48,7 @@ const ICONS = {
   mcpFavoriteEmpty: ['\u{F00C3}', '+'],
   recent: ['\u{EA82}', '~'],
   info: ['\u{EA74}', 'i'],
+  bug: ['\u{EAAF}', 'b'],
   search: ['\u{EA6D}', '/'],
   update: ['\u{F005F}', '^'],
   up: ['\u{EAA1}', '^'],
@@ -112,6 +113,7 @@ const SETTINGS_ICONS = {
   presets: 'presets',
   behavior: 'settings',
   defaults: 'reset',
+  about: 'info',
 } as const
 
 export type SettingsTab = keyof typeof SETTINGS_ICONS

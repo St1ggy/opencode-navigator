@@ -1,6 +1,7 @@
 import { SECTION_DEFINITIONS, type SidebarSection } from '../../../entities/sidebar-layout'
 import { FirstRunWizard } from '../ui/first-run-wizard'
 
+import { selectAboutAction } from './about-actions'
 import { openLimitsRefreshPrompt } from './limits-refresh-prompt'
 import { openToolbarManager } from './toolbar-dialog-loader'
 
@@ -28,6 +29,7 @@ export function createSettingsSelection(input: {
   setActive: Setter<number>
   openPreset: (name: string) => void
   promptPreset: () => void
+  openBugReport: () => void
 }) {
   const dialogClosed = () => 'open' in input.api.ui.dialog && !input.api.ui.dialog.open
 
@@ -123,6 +125,14 @@ export function createSettingsSelection(input: {
   }
   function select(value = input.options()[input.active()]?.value) {
     if (!value) return
+
+    if (input.options().find((option) => option.value === value)?.disabled) return
+
+    if (value.startsWith('about:')) {
+      selectAboutAction(input.api, input.dialogs, value, input.openBugReport)
+
+      return
+    }
 
     const index = input.options().findIndex((option) => option.value === value)
 

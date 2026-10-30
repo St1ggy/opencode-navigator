@@ -29,12 +29,15 @@ test('manual update checks can repeat, clear an obsolete indicator, and distingu
   try {
     expect(await status.refreshNavigator!()).toBe('update')
     expect(status.navigatorUpdate()).toBe('1.2.4')
+    expect(status.navigatorCheckState?.().status).toBe('available')
     statusCode = 503
     expect(await status.refreshNavigator!()).toBe('unavailable')
     expect(status.navigatorUpdate()).toBe('1.2.4')
+    expect(status.navigatorCheckState?.().status).toBe('error')
     statusCode = 200
     version = '1.2.3'
     expect(await status.refreshNavigator!()).toBe('current')
+    expect(status.navigatorCheckState?.().status).toBe('current')
     expect(status.navigatorUpdate()).toBeUndefined()
     version = null
     expect(await status.refreshNavigator!()).toBe('unavailable')
@@ -65,6 +68,7 @@ test('startup/manual checks share one request and disposal prevents a late updat
   const status = createVersionStatus(h.host, '1.2.3', request)
   const pending = status.refreshNavigator!()
 
+  expect(status.navigatorCheckState?.().status).toBe('checking')
   expect(calls).toBe(1)
   expect(status.refreshNavigator!()).toBe(pending)
   for (const dispose of h.disposers) dispose()

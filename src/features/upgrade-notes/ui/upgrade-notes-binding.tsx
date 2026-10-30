@@ -1,10 +1,8 @@
 import { onCleanup, onMount } from 'solid-js'
 
 import { createDialogStack } from '../../../shared/ui'
-import { changesSince, readBundledChangelog } from '../model/changelog'
 
-import { UpgradeNotesDialog } from './upgrade-notes-dialog'
-
+import type * as UpgradeContent from './upgrade-notes-content'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -23,6 +21,8 @@ export function UpgradeNotesBinding(props: {
     if (!previous || disposed) return
 
     try {
+      const path = import.meta.url.includes('/dist/') ? './upgrade-notes.js' : './upgrade-notes-content'
+      const { changesSince, readBundledChangelog, UpgradeNotesDialog } = (await import(path)) as typeof UpgradeContent
       const entries = changesSince(await (props.read ?? readBundledChangelog)(), previous, props.version)
 
       if (entries.length === 0 || disposed) return

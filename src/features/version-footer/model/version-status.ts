@@ -2,6 +2,7 @@ import { createSignal } from 'solid-js'
 
 import { isNewerVersion, isSameMajorVersion } from '../../../shared/lib/version'
 
+import type { NavigatorUpdateCheck } from '../../../entities/navigator-release'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor } from 'solid-js'
 
@@ -12,6 +13,7 @@ export type VersionStatus = {
   openCodeUpdate: Accessor<string | undefined>
   navigatorUpdate: Accessor<string | undefined>
   refreshNavigator?: () => Promise<'update' | 'current' | 'unavailable'>
+  navigatorCheckState?: Accessor<NavigatorUpdateCheck>
 }
 
 export type VersionUpdater = {
@@ -42,6 +44,7 @@ export function createVersionStatus(
 ): VersionStatus {
   const [openCodeUpdate, setOpenCodeUpdate] = createSignal<string>()
   const [navigatorUpdate, setNavigatorUpdate] = createSignal<string>()
+  const [navigatorCheckState, setNavigatorCheckState] = createSignal<NavigatorUpdateCheck>({ status: 'idle' })
   let controller: AbortController | undefined
   let pending: ReturnType<NonNullable<VersionStatus['refreshNavigator']>> | undefined
   let disposed = false
@@ -64,6 +67,8 @@ export function createVersionStatus(
 
     if (pending) return pending
 
+    setNavigatorCheckState((previous) => ({ ...previous, status: 'checking' }))
+
     const active = new AbortController()
 
     controller = active
@@ -80,10 +85,15 @@ export function createVersionStatus(
         const newer = isNewerVersion(version, navigatorVersion)
 
         setNavigatorUpdate(newer ? version : undefined)
+        setNavigatorCheckState({ status: newer ? 'available' : 'current', latest: version, checkedAt: Date.now() })
 
         return newer ? ('update' as const) : ('current' as const)
       })
-      .catch(() => 'unavailable' as const)
+      .catch(() => {
+        if (!disposed) setNavigatorCheckState((previous) => ({ ...previous, status: 'error', checkedAt: Date.now() }))
+
+        return 'unavailable' as const
+      })
       .finally(() => {
         clearTimeout(timeout)
         active.signal.removeEventListener('abort', abort)
@@ -100,5 +110,5 @@ export function createVersionStatus(
 
   void refreshNavigator()
 
-  return { openCodeUpdate, navigatorUpdate, refreshNavigator }
+  return { openCodeUpdate, navigatorUpdate, refreshNavigator, navigatorCheckState }
 }

@@ -3,6 +3,7 @@ import { createMemo } from 'solid-js'
 import { SECTION_DEFINITIONS, SIDEBAR_SECTIONS } from '../../../entities/sidebar-layout'
 import { supportsSidebarSection } from '../../../shared/lib/host-capabilities'
 
+import { aboutSettingsOptions } from './about-model'
 import { behaviorSettingsOptions } from './behavior-settings-options'
 import { titleVisibilityOptions } from './title-visibility-options'
 
@@ -10,7 +11,7 @@ import type { PreferencesController } from '../../../entities/preferences'
 import type { useIcons } from '../../../shared/ui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-export type SettingsOption = { title: string; value: string; description: string }
+export type SettingsOption = { title: string; value: string; description: string; disabled?: boolean }
 export type SettingsGroup = { id: string; tab: string; title: string; options: SettingsOption[] }
 
 export function createSettingsGroups(
@@ -20,6 +21,7 @@ export function createSettingsGroups(
 ) {
   const supportedSections = () => SIDEBAR_SECTIONS.filter((name) => supportsSidebarSection(api, name))
   const groups = createMemo<SettingsGroup[]>(() => [
+    { id: 'about', tab: 'About', title: 'About Navigator', options: aboutSettingsOptions(api, icons) },
     {
       id: 'scope',
       tab: 'Scope',
@@ -140,7 +142,9 @@ export function createSettingsGroups(
     },
   ])
   const orderedGroups = createMemo(() =>
-    ['sections', 'scope', 'presets', 'behavior', 'defaults'].map((id) => groups().find((group) => group.id === id)!),
+    ['sections', 'scope', 'presets', 'behavior', 'defaults', 'about'].map((id) =>
+      groups().find((group) => group.id === id)!,
+    ),
   )
 
   return orderedGroups

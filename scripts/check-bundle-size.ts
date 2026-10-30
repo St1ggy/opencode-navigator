@@ -25,6 +25,7 @@ for (const name of [
   'layout-preset-actions',
   'provider-limits',
   'navigator-updates',
+  'upgrade-notes',
   'sidebar-shortcuts',
   'icon-picker',
   'sidebar-settings',

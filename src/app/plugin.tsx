@@ -27,6 +27,7 @@ import { IconProvider } from '../shared/ui'
 
 import { loadConfiguredDefaults } from './configured-defaults'
 import { LimitsPersistence } from './limits-persistence'
+import { bindNavigatorAbout } from './navigator-about'
 import { createNativeTodoController, createOpenCodeV2Api, createOpenCodeV2Sources } from './opencode-v2'
 
 import type { createProviderQuotaIntegration as CreateQuotaIntegration } from './provider-quota'
@@ -217,12 +218,14 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMe
 
     return result.data?.type === 'text' ? result.data.content : undefined
   })
-  const { createVersionStatus, createVersionUpdateActions, createOpenCodeV1VersionUpdater } =
-    await loadNavigatorUpdates()
+  const updateServices = await loadNavigatorUpdates()
+  const { createVersionStatus, createVersionUpdateActions, createOpenCodeV1VersionUpdater } = updateServices
   const versionStatus = createVersionStatus(api, __NAVIGATOR_VERSION__)
   const versionUpdates = createVersionUpdateActions(api, versionStatus, createOpenCodeV1VersionUpdater(api, meta), () =>
     preferences.rememberNavigatorVersionBeforeUpdate(__NAVIGATOR_VERSION__),
   )
+
+  bindNavigatorAbout(api, versionStatus, versionUpdates, updateServices)
 
   api.slots.register({
     // OpenCode 1.x uses the lowest order as the single-winner footer.
@@ -262,8 +265,8 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
     todo,
     context,
   )
-  const { createVersionStatus, createVersionUpdateActions, createOpenCodeV2VersionUpdater } =
-    await loadNavigatorUpdates()
+  const updateServices = await loadNavigatorUpdates()
+  const { createVersionStatus, createVersionUpdateActions, createOpenCodeV2VersionUpdater } = updateServices
   const versionStatus = createVersionStatus(adapter.api, __NAVIGATOR_VERSION__)
   const versionUpdates = createVersionUpdateActions(
     adapter.api,
@@ -271,6 +274,8 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
     createOpenCodeV2VersionUpdater(context),
     () => preferences.rememberNavigatorVersionBeforeUpdate(__NAVIGATOR_VERSION__),
   )
+
+  bindNavigatorAbout(adapter.api, versionStatus, versionUpdates, updateServices)
   const disposeFooter = context.ui.slot({
     append: 'sidebar.footer',
     render: () => (

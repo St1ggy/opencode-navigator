@@ -17,6 +17,7 @@ test('the built plugin registers its lifecycle and sidebar slots', async () => {
     preconnect() {},
   })
   const api = {
+    app: { version: packageJSON.devDependencies['@opencode-ai/plugin'] },
     state: { path: { state: '/tmp/opencode-pretty-sidebar-test' } },
     event: {
       on(name: string) {

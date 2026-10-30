@@ -1,10 +1,11 @@
 import { TextAttributes } from '@opentui/core'
-import { For } from 'solid-js'
+import { For, Show } from 'solid-js'
 
 import { PLUGIN_ID } from '../../../shared/config'
 import { DialogSurface, Tab } from '../../../shared/ui'
 import { createSettingsDialogController } from '../model/settings-dialog-controller'
 
+import { AboutVersionStatus } from './about-version-status'
 import { SettingsOptionRow } from './settings-option-row'
 
 import type { McpController } from '../../../entities/mcp'
@@ -39,21 +40,25 @@ export function SettingsDialog(props: {
           {model.icons.key('esc')}
         </text>
       </box>
-      <text fg={model.theme().textMuted}>Adjust sections and behavior. Changes apply immediately.</text>
-      <box flexDirection="row" gap={1}>
-        <For each={model.orderedGroups()}>
-          {(group) => (
+      <text fg={model.theme().textMuted}>
+        {model.activeGroup() === 'about'
+          ? 'Version, updates, release history, and support.'
+          : 'Adjust sections and behavior. Changes apply immediately.'}
+      </text>
+      <box flexDirection="row" flexWrap="wrap" columnGap={1} rowGap={0}>
+        <For each={model.orderedGroups().map((group) => group.id)}>
+          {(id) => (
             <Tab
               api={props.api}
-              selected={model.activeGroup() === group.id}
+              selected={model.activeGroup() === id}
               paddingLeft={1}
               paddingRight={1}
               onMouseDown={() => {
-                model.setActiveGroup(group.id)
+                model.setActiveGroup(id)
                 model.setActive(0)
               }}
             >
-              {model.icons.tab(group.id as SettingsTab)} {group.tab}
+              {model.icons.tab(id as SettingsTab)} {model.orderedGroups().find((group) => group.id === id)?.tab}
             </Tab>
           )}
         </For>
@@ -67,8 +72,17 @@ export function SettingsDialog(props: {
         horizontalScrollbarOptions={{ visible: false }}
       >
         <box gap={1}>
-          <For each={model.options()}>
-            {(option) => <SettingsOptionRow preferences={props.preferences} controller={model} option={option} />}
+          <Show when={model.activeGroup() === 'about'}>
+            <AboutVersionStatus api={props.api} />
+          </Show>
+          <For each={model.options().map((option) => option.value)}>
+            {(value) => (
+              <SettingsOptionRow
+                preferences={props.preferences}
+                controller={model}
+                option={model.options().find((option) => option.value === value)!}
+              />
+            )}
           </For>
         </box>
       </scrollbox>

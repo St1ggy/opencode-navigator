@@ -16,3 +16,8 @@ export { PermissionModeBinding } from './ui/permission-mode-binding'
 export { SettingsFooterButton } from './ui/settings-footer-button'
 export { TrustedSkillsDialog } from './ui/trusted-skills-dialog'
 export { openToolbarManager, openToolbarPin } from './model/toolbar-dialog-loader'
+export {
+  registerNavigatorAboutServices,
+  getNavigatorAboutServices,
+  type NavigatorAboutServices,
+} from './model/about-services'

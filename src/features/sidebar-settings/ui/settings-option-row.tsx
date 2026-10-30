@@ -10,7 +10,7 @@ import type { SettingsDialogController } from '../model/settings-dialog-controll
 export function SettingsOptionRow(props: {
   preferences: PreferencesController
   controller: SettingsDialogController
-  option: { title: string; value: string; description: string }
+  option: { title: string; value: string; description: string; disabled?: boolean }
 }) {
   const model = props.controller
   const index = () => model.options().findIndex((candidate) => candidate.value === props.option.value)
@@ -29,13 +29,18 @@ export function SettingsOptionRow(props: {
       onMouseDown={(event) => event.stopPropagation()}
       onMouseUp={(event) => {
         event.stopPropagation()
-        model.select(props.option.value)
+
+        if (!props.option.disabled) model.select(props.option.value)
       }}
     >
-      <text flexShrink={0} attributes={selected() ? TextAttributes.BOLD : undefined} fg={model.theme().text}>
+      <text
+        flexShrink={0}
+        attributes={selected() ? TextAttributes.BOLD : undefined}
+        fg={props.option.disabled ? model.theme().textMuted : model.theme().text}
+      >
         {props.option.title}
       </text>
-      <text flexGrow={1} fg={model.theme().borderSubtle}>
+      <text flexGrow={1} minWidth={0} truncate wrapMode="none" fg={model.theme().borderSubtle}>
         {props.option.description}
       </text>
       <Show when={SIDEBAR_SECTIONS.includes(section())}>
