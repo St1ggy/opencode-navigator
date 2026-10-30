@@ -108,6 +108,34 @@ test('native account switches reject stale reads and unrelated provider observat
   expect(h.handlers.size).toBe(0)
 })
 
+test('foreign integration events preserve in-flight native workspace usage while global credentials still invalidate it', async () => {
+  const h = fixture()
+  const usage = createOpenCodeUsageAdapter(h.context)
+  let finish!: (value: unknown) => void
+
+  h.setRead(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+  )
+  try {
+    const reading = usage.adapter.read(model, new AbortController().signal)
+
+    h.handlers.get('integration.updated')?.({ location: { directory: '/other-workspace' } })
+    finish({ location: { directory: '/synthetic' }, data: hostUsage })
+    expect((await reading).workspaceId).toBe(hostUsage.workspace.id)
+    const stale = usage.adapter.read(model, new AbortController().signal)
+
+    h.handlers.get('credential.updated')?.({ location: { directory: '/other-workspace' } })
+    finish({ location: { directory: '/synthetic' }, data: hostUsage })
+    await expect(stale).rejects.toThrow('Workspace usage target changed')
+    expect(h.count()).toBe(2)
+  } finally {
+    usage.adapter.dispose?.()
+  }
+})
+
 test('network failures retain the previous snapshot through the controller error lifecycle', async () => {
   const h = fixture()
   const usage = createOpenCodeUsageAdapter(h.context)

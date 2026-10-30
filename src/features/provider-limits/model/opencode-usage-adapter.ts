@@ -27,7 +27,11 @@ export function createOpenCodeUsageAdapter(context: Plugin.Context) {
   }
   const disposers = [
     context.data.on('credential.updated', invalidate),
-    context.data.on('integration.updated', invalidate),
+    context.data.on('integration.updated', (event) => {
+      const directory = event.location?.directory
+
+      if (!directory || directory === location().directory) invalidate()
+    }),
     context.data.on('credential.switched', (event) => {
       if (event.data.integrationID !== 'opencode') return
 

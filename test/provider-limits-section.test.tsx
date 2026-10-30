@@ -8,6 +8,7 @@ import { Show, createSignal, onCleanup } from 'solid-js'
 import { bindCodexAccount } from '../src/app/limits-account-model'
 import { createLimitsModelSelection } from '../src/app/limits-model-selection'
 import { LimitsPersistence } from '../src/app/limits-persistence'
+import { createOpenCodeV2AccountSource } from '../src/app/opencode-v2/account-source'
 import { pluginConfig } from '../src/config'
 import {
   applyPreferencesUpdate,
@@ -19,8 +20,15 @@ import { createCodexQuotaAdapter } from '../src/features/provider-limits/model/c
 import { ProviderLimitsSection, createSidebarInteraction } from '../src/pages/session-sidebar'
 import { IconProvider, subtleLineColor } from '../src/shared/ui'
 
+import { nativeHostFixture } from './fixtures/native-host'
+
 import type { PreferencesController } from '../src/entities/preferences'
-import type { ProviderQuotaAdapter, ProviderQuotaSnapshot, SelectedModel } from '../src/entities/provider-limit'
+import type {
+  ProviderAccountSource,
+  ProviderQuotaAdapter,
+  ProviderQuotaSnapshot,
+  SelectedModel,
+} from '../src/entities/provider-limit'
 import type { CodexAppServerClient } from '../src/features/provider-limits/model/codex-app-server'
 import type { SidebarInteraction } from '../src/pages/session-sidebar'
 import type { TuiDialogConfirmProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -39,6 +47,7 @@ async function harness(
   input: {
     hostConnection?: NonNullable<SelectedModel['hostConnection']>
     observe?: boolean
+    accountSource?: ProviderAccountSource
     countOnly?: boolean
     provider?: string
     variant?: string
@@ -249,7 +258,7 @@ async function harness(
       flush: async () => {},
     })
     controller = createProviderLimitsController([adapter], () => {
-      const model = selection()
+      const model = input.accountSource?.current(selection()) ?? selection()
 
       return bindCodexAccount(model, preferences)
     })
@@ -258,7 +267,11 @@ async function harness(
     return (
       <IconProvider style={() => input.style ?? 'text'}>
         <Show when={input.observe}>
-          <LimitsPersistence controller={controller} />
+          <LimitsPersistence
+            controller={controller}
+            accountSource={input.accountSource}
+            selectedModel={input.accountSource ? selection : undefined}
+          />
         </Show>
         <Show
           keyed
@@ -382,6 +395,62 @@ test('mounted Limits persistence reads once per target without reacting to its o
     expect(h.controller.state().status).toBe('ready')
   } finally {
     h.destroy()
+  }
+})
+
+test('foreign integration/provider bursts preserve Limits scales, credits, row identity, and request state', async () => {
+  const native = nativeHostFixture()
+  let metadataReads = 0
+
+  Object.assign(native.context.client, {
+    provider: {
+      get: async () => {
+        metadataReads++
+
+        return {
+          data: { id: 'openai', integrationID: 'openai', headers: { 'chatgpt-account-id': 'synthetic-account' } },
+        }
+      },
+    },
+    credential: {
+      list: async () => [
+        {
+          id: 'one',
+          integrationID: 'openai',
+          active: true,
+          value: { type: 'oauth', methodID: 'chatgpt-browser', metadata: { accountID: 'synthetic-account' } },
+        },
+      ],
+    },
+  })
+  const source = createOpenCodeV2AccountSource(native.context, native.api.lifecycle.signal)
+  const h = await harness({ observe: true, accountSource: source })
+
+  try {
+    await Bun.sleep(30)
+    await h.flush()
+    const frame = h.captureCharFrame()
+    const credits = h.renderer.root.findDescendantById('opencode-navigator.limits.credits')!
+
+    expect(frame).toContain('Banked Resets')
+    expect(frame).toContain('0% left')
+    for (let burst = 0; burst < 3; burst++) {
+      native.emit('integration.updated', {}, { directory: '/other-workspace' })
+      native.emit('provider.updated', {}, { directory: '/other-workspace' })
+      expect(h.controller.snapshot()?.bankedResets?.availableCount).toBe(3)
+      expect(h.controller.state().status).toBe('ready')
+      await Bun.sleep(10)
+      await h.flush()
+      expect(h.captureCharFrame()).toBe(frame)
+      expect(h.renderer.root.findDescendantById('opencode-navigator.limits.credits')?.num).toBe(credits.num)
+    }
+    expect(h.reads()).toBe(1)
+    expect(metadataReads).toBe(1)
+    expect(h.consumes()).toBe(0)
+  } finally {
+    h.destroy()
+    source.dispose()
+    await native.dispose()
   }
 })
 

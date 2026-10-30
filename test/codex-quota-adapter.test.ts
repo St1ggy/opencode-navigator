@@ -75,6 +75,18 @@ test('Codex quota adapter keeps verified account windows and count-only reset cr
   expect(snapshot.bankedResets?.credits).toBeUndefined()
 })
 
+test('repeated Codex quota refreshes only read account limits without generation or credit consumption', async () => {
+  const { client, calls } = adapter()
+
+  for (let refresh = 0; refresh < 3; refresh++) {
+    const snapshot = await client.read(selected, new AbortController().signal)
+
+    expect(snapshot.bankedResets?.availableCount).toBe(3)
+  }
+
+  expect(calls).toEqual(Array.from({ length: 3 }, () => ['account/read', 'account/rateLimits/read']).flat())
+})
+
 test('Codex quota adapter rejects different accounts and retains only the ordinary quota across models', async () => {
   const mismatched = await adapter('different-account').client.read(selected, new AbortController().signal)
 

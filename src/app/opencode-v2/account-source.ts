@@ -105,7 +105,21 @@ export function createOpenCodeV2AccountSource(context: Plugin.Context, lifecycle
     'server.connected',
   ] as const
   const unsubscribes = events.map((event) =>
-    context.data.on(event, () => untrack(() => invalidate(event !== 'provider.updated'))),
+    context.data.on(event, (observation) =>
+      untrack(() => {
+        // Catalog events are location-scoped; credential changes remain global.
+        const directory = observation?.location?.directory
+
+        if (
+          (event === 'provider.updated' || event === 'integration.updated') &&
+          directory &&
+          directory !== location().directory
+        )
+          return
+
+        invalidate(event !== 'provider.updated')
+      }),
+    ),
   )
 
   return {
