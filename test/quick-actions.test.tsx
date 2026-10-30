@@ -162,6 +162,8 @@ test('Quick Actions settings change live visibility and ordering and keep select
   let commands: { name: string; run: () => void }[] = []
   let back = 0
   let autoApprove = false
+  let renameEnabled = true
+  let renameShortcut = 'ctrl+r'
   const dispatched: string[] = []
   let directNewSessions = 0
   const keymapStateListeners = new Set<() => void>()
@@ -184,11 +186,12 @@ test('Quick Actions settings change live visibility and ordering and keep select
 
         return () => {}
       },
-      getCommandBindings: () => new Map(),
+      getCommandBindings: () => new Map([['session.rename', [renameShortcut]]]),
       getCommands: () =>
         QUICK_ACTIONS.map((action) => ({
           name: action.command,
           title: action.command === 'permission.mode' ? autoApproveTitle() : action.label,
+          enabled: action.command !== 'session.rename' || renameEnabled,
           run() {},
         })),
       on: (name: string, listener: () => void) => {
@@ -207,7 +210,7 @@ test('Quick Actions settings change live visibility and ordering and keep select
         return { ok: true }
       },
     },
-    keys: { formatBindings: () => '' },
+    keys: { formatBindings: (bindings?: string[]) => bindings?.[0] ?? '' },
     ui: { toast() {}, dialog: { clear: () => back++ } },
   } as unknown as TuiPluginApi
   const preferences = createPreferencesController(api, pluginConfig(undefined), {
@@ -285,6 +288,7 @@ test('Quick Actions settings change live visibility and ordering and keep select
     await sidebar.mockMouse.click(lines[row].indexOf('Timeline'), row)
     expect(dispatched).toEqual(['session.timeline'])
     const autoApproveRow = comfortable.findIndex((line) => line.includes('Enable auto-approve permissions'))
+    const permissions = find(sidebar.renderer.root, 'opencode-navigator.quick-action.permission.mode')!
 
     await sidebar.mockMouse.click(
       comfortable[autoApproveRow].indexOf('Enable auto-approve permissions'),
@@ -294,7 +298,10 @@ test('Quick Actions settings change live visibility and ordering and keep select
     expect(dispatched).toEqual(['session.timeline', 'permission.mode'])
     expect(sidebar.captureCharFrame()).toContain('Disable auto-approve permissions')
     expect(sidebar.captureCharFrame()).not.toContain('Enable auto-approve permissions')
+    expect(find(sidebar.renderer.root, 'opencode-navigator.quick-action.permission.mode')?.num).toBe(permissions.num)
     expect(preferences.recentQuickActions()).toEqual([])
+
+    const rename = find(sidebar.renderer.root, 'opencode-navigator.quick-action.session.rename')!
 
     let favoriteFrame = sidebar.captureCharFrame().split('\n')
     const favoriteRow = favoriteFrame.findIndex((line) => line.includes('Rename'))
@@ -306,6 +313,23 @@ test('Quick Actions settings change live visibility and ordering and keep select
     await sidebar.mockMouse.moveTo(favoriteFrame[favoriteRow].indexOf('Rename'), favoriteRow)
     await sidebar.flush()
     favoriteFrame = sidebar.captureCharFrame().split('\n')
+    for (const listener of keymapStateListeners) listener()
+    expect(find(sidebar.renderer.root, 'opencode-navigator.quick-action.session.rename')?.num).toBe(rename.num)
+    await sidebar.flush()
+    expect(sidebar.captureCharFrame().split('\n')).toEqual(favoriteFrame)
+    expect(favoriteFrame[favoriteRow]).toContain('ctrl+r')
+    renameEnabled = false
+    renameShortcut = 'ctrl+alt+r'
+    for (const listener of keymapStateListeners) listener()
+    await sidebar.flush()
+    expect(find(sidebar.renderer.root, 'opencode-navigator.quick-action.session.rename')?.num).toBe(rename.num)
+    expect(sidebar.captureCharFrame()).toContain('Unavailable in the current session')
+    expect(sidebar.captureCharFrame()).toContain('ctrl+alt+r')
+    renameEnabled = true
+    for (const listener of keymapStateListeners) listener()
+    await sidebar.flush()
+    expect(sidebar.captureCharFrame()).not.toContain('Unavailable in the current session')
+    favoriteFrame = sidebar.captureCharFrame().split('\n')
     expect(Bun.stringWidth(favoriteFrame[favoriteRow].slice(0, favoriteFrame[favoriteRow].indexOf('Rename')))).toBe(
       labelColumn,
     )
@@ -316,6 +340,7 @@ test('Quick Actions settings change live visibility and ordering and keep select
     await sidebar.mockMouse.click(favoriteColumn, favoriteRow)
     await sidebar.flush()
     expect(preferences.favoriteQuickActions().has('session.rename')).toBe(true)
+    expect(find(sidebar.renderer.root, 'opencode-navigator.quick-action.session.rename')?.num).toBe(rename.num)
     expect(dispatched).toEqual(['session.timeline', 'permission.mode'])
     const reordered = sidebar.captureCharFrame()
 

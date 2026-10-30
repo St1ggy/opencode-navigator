@@ -7,7 +7,7 @@
 - Track feature work, deferred tasks, and completion in `ROADMAP.md`. Mark work complete only after implementation and verification.
 - Preserve the current user changes and staged work. Commit, push, and release only when requested.
 - For the completed provider-quota work, split the changes into thematic commits and publish the release only after the required Prepare Release screenshot workflow and CI have succeeded.
-- Keep local planning files under `vibe/` ignored and out of the public repository; preserve existing local copies when untracking them.
+- Keep local planning files and machine-specific operational notes under `vibe/` ignored and out of the public repository; preserve existing local copies when untracking them. Tracked requirements and roadmap entries must remain upstream-relevant.
 - Use the already installed Plannotator for interactive plan review when available. Prefer its exposed plan-review tool; when that tool is unavailable in the current session, use the installed CLI to review the same local Markdown plan and retain structured approval or feedback under ignored `vibe/`.
 - Write this user's local implementation plans in Russian with a concise TL;DR at the beginning. Keep these plans and their review artifacts under ignored `vibe/`; tracked requirements and public documentation remain English-only.
 

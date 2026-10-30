@@ -8,7 +8,7 @@ import type { SessionHttpRequest, SessionHttpResponse } from '@opencode/plugin/p
 function harness(providerID = 'deepseek', external = false) {
   let connection = { type: 'credential' as const, id: 'one', label: 'Synthetic', method: 'key' as const }
   let token = 'synthetic-secret'
-  const requests: { url: string; auth: string | null }[] = []
+  const requests: { url: string; method: string; auth: string | null }[] = []
   const host = {
     provider: {
       get: async () => ({ data: { id: providerID, name: providerID, integrationID: providerID, activation: 'auto' } }),
@@ -26,7 +26,11 @@ function harness(providerID = 'deepseek', external = false) {
   } as unknown as Context
   const fetcher = Object.assign(
     async (url: string | URL | Request, options?: RequestInit) => {
-      requests.push({ url: String(url), auth: new Headers(options?.headers).get('authorization') })
+      requests.push({
+        url: String(url),
+        method: options?.method ?? 'GET',
+        auth: new Headers(options?.headers).get('authorization'),
+      })
 
       return Response.json({
         is_available: true,
@@ -78,6 +82,25 @@ test('native provider reads reuse only the active integration credential and ret
     expect(h.requests).toHaveLength(1)
     await h.service.read({ ...target, connectionID: 'credential:two' }, new AbortController().signal)
     expect(h.requests[1].auth).toBe('Bearer second-synthetic-secret')
+  } finally {
+    await h.service.dispose()
+  }
+})
+
+test('passive and manual quota refreshes only read balances, never generate model output', async () => {
+  const h = harness()
+  const target = { providerID: 'deepseek', modelID: 'selected-model', sessionID: 'session' }
+
+  try {
+    for (const force of [false, false, true, true]) {
+      const snapshot = await h.service.read({ ...target, force }, new AbortController().signal)
+
+      expect(snapshot.availability).toBe('ready')
+    }
+
+    expect(h.requests.map(({ url, method }) => ({ url, method }))).toEqual(
+      Array.from({ length: 3 }, () => ({ url: 'https://api.deepseek.com/user/balance', method: 'GET' })),
+    )
   } finally {
     await h.service.dispose()
   }

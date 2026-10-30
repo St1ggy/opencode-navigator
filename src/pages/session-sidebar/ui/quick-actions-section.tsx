@@ -75,20 +75,20 @@ export function QuickActionsSection(props: {
         <Show when={actions().length === 0}>
           <text fg={props.api.theme.current.textMuted}>No quick actions selected</text>
         </Show>
-        <For each={visibility.visible()}>
-          {(action, index) => (
+        <For each={visibility.visible().map((action) => action.command)}>
+          {(command, index) => (
             <QuickActionRow
               onNewSession={props.onNewSession}
-              action={action}
-              disabled={action.disabled}
-              favorite={props.preferences.favoriteQuickActions?.().has(action.command) ?? false}
+              action={visibility.visible()[index()]}
+              disabled={visibility.visible()[index()].disabled}
+              favorite={props.preferences.favoriteQuickActions?.().has(command) ?? false}
               favoriteDisabled={props.preferences.ready ? !props.preferences.ready() : false}
               separator={
                 index() > 0 &&
                 (props.preferences.favoriteQuickActions?.().has(visibility.visible()[index() - 1].command) ?? false) &&
-                !(props.preferences.favoriteQuickActions?.().has(action.command) ?? false)
+                !(props.preferences.favoriteQuickActions?.().has(command) ?? false)
               }
-              onToggleFavorite={() => props.preferences.toggleFavoriteQuickAction?.(action.command)}
+              onToggleFavorite={() => props.preferences.toggleFavoriteQuickAction?.(command)}
               position={{ section: navigationSection(), row: 10 + index(), column: 0 }}
             />
           )}

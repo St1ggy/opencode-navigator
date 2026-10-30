@@ -46,6 +46,7 @@ verification workflow before expanding the product surface.
 
 ### Request And Error Reliability
 
+- [x] Fix reproducible Limits and Quick Actions row remounts during background updates by retaining stable quota/command identities, measured widths, hover state, and following-section positions. Verify reactive data, reordering, resizing, unchanged provider observations, read-only quota requests, and account-switch guards. Full check: 450 passing tests, one opt-in skip; 354,801 / 360,000-byte main bundle.
 - [x] Prevent stale Todo refreshes and failures from overwriting newer events or current-target state.
 - [x] Preserve Subagent events that arrive during an in-flight refresh.
 - [x] Scope Skills and MCP snapshots by directory/workspace and ignore superseded MCP activation work.
