@@ -46,6 +46,8 @@ verification workflow before expanding the product surface.
 
 ### Request And Error Reliability
 
+- [x] Adapt PR #27 by Simon Klee: draw selection caps in one drawing-only hook, skip non-filling ancestor backgrounds, and cover recording-buffer safety and backdrop geometry.
+- [x] Adapt PR #32 by Avissian: preserve quota/action rows across equivalent updates and ignore foreign-directory catalog observations without weakening credential, reconnect or credit guards. Apply the location rule to native Console/Go in-flight reads as well.
 - [x] Prevent stale Todo refreshes and failures from overwriting newer events or current-target state.
 - [x] Preserve Subagent events that arrive during an in-flight refresh.
 - [x] Scope Skills and MCP snapshots by directory/workspace and ignore superseded MCP activation work.
@@ -134,6 +136,16 @@ verification workflow before expanding the product surface.
 - [x] Publish v0.23.0 through Publish run 40667256515 after final main CI 40666974094 passed. Verify GitHub tag/release, npm `latest`, registry signatures and provenance, all 37 package files and matching archive integrity, plus a real isolated registry-snapshot installation. Preserve the local installation and private configuration.
 
 ## Product Direction
+
+### Typing Stability And About
+
+- [x] Extend toolbar pins to zero-to-three ordered icons and optional text, including text-only controls. Preserve legacy/state choices and unsaved nested drafts; measure bounded widths for More/wrapping, reserve state widths, and keep rounded clipping and hints stable. Verify persistence, source guards and both real hosts, including text entry and saving.
+- [x] Keep toolbar hints in the existing gap without changing layout; verify centered three-cell controls, mouse/focus transitions, wrapping/More, narrow layouts and empty-toolbar collapse in Nerd/Text modes.
+- [x] Reproduce Quick Action row replacement during main-prompt typing on both real hosts, then key rows by command ID while retaining live labels/availability. The ten-character probe now observes zero replacements on both hosts; intermediate hover frames and row identity are covered.
+- [x] Add Settings About with running versions, shared update status/checking and confirmed installation safeguards, last-check/restart guidance, and a versioned changelog independent of startup-note claims. Restore selection, scroll and draft through nested navigation, including narrow layouts.
+- [x] Add editable Bug reports with authenticated `gh` sending and an independent browser issue form using the real Bug type. Cover argv/stdin safety, missing auth/CLI/type support, confirmation, partial/uncertain outcomes, explicit retry review, long-report clipboard fallback, and in-memory drafts without automatic private-context collection.
+- [x] Pass full check after PR integration (495 tests, one opt-in skip; 4,741 assertions), font/syntax/privacy checks, and expanded real-host 1.19.5/2.2.0 smokes including About, changelog, safe report preview and multiline editing. Main bundle: 359,769 / 360,000 bytes. Load first-launch release-note content on demand and register 17 synthetic scenes on top of the existing 66.
+- [ ] Generate and byte-verify the expanded 83-scene gallery through manual Prepare Release when release preparation is requested. No local PNG capture or real GitHub issue creation was used for implementation verification.
 
 ### Presets And Layout
 

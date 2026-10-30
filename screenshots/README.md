@@ -8,6 +8,16 @@ against a second capture, and merged the update after CI passed. The final run w
 [40663110695](https://github.com/St1ggy/opencode-navigator/actions/runs/40663110695),
 with [screenshot PR #31](https://github.com/St1ggy/opencode-navigator/pull/31).
 
+The next capture set registers **83 scenes**: the existing 66 plus About current,
+available/checking/failed update states; version list and release details; editable
+Bug reports, confirmation, browser-only and failure states; About Text and
+no-corner-font confirmation; and stable toolbar hints in menu/wrapping layouts.
+These new PNGs await a separately requested manual Prepare Release run. The
+three additional toolbar-content scenes cover multiple icons, text-only labels,
+variable-width wrapping and the appearance editor. The
+About/report fixtures use synthetic services and never invoke authenticated
+processes, open a real browser, install an update or create GitHub issues.
+
 The current harness targets OpenCode 1.19.5 with Bun 1.4.4 and Node 26.12.1.
 Four native-usage scenes exercise Console shared/per-model budgets, Go allowance,
 sign-in guidance, and request failure with Retry. They use the real public 2.2 usage

@@ -150,6 +150,25 @@ Limits is first and expanded by default, and I can hide or reorder it in the sam
 
 ![Codex account quota windows and banked resets](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/39-provider-limits.png)
 
+## Versions, Reports, and a Steadier Sidebar
+
+I also added an About tab to Settings. It shows the running versions and update
+status, and lets me reopen release notes by version without changing the one-time
+upgrade notice. Bug reports start as an editable draft. I can review and send one
+through an already authenticated GitHub CLI, or open the same draft in a browser.
+Both paths select the repository's Bug issue type; the plugin does not collect
+conversation text, source paths or logs for the report.
+
+Toolbar buttons can also carry zero to three icons and an optional custom label.
+I can keep one compact icon, combine a few, or use text alone. The overflow menu
+and wrapping rows account for the buttons' actual widths; nested picker changes
+stay unsaved until I confirm the button configuration.
+
+While checking typing behavior, I caught Quick Action rows being recreated when
+the host's command state changed. Stable command IDs keep those rows and their
+hover state in place. Toolbar hints now fit the gap beneath the buttons instead
+of pushing the next section down.
+
 ## Why Rounded Corners Required a Separate Font
 
 A terminal interface quickly reminds you that its pixels are cells. A single-line button can use existing Nerd Font glyphs for rounded ends. Multiline selection is different: it needs a continuous background with corners that cut quarter circles from it. Nerd Fonts do not contain suitable glyphs.

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Preserve Limits scales and reset-credit controls across equivalent quota snapshots and unrelated workspace events, while retaining current-account and credential-change guards.
+- Keep rounded selection backgrounds consistent in nested dialogs and highlighted rows.
+- Configure each toolbar button with zero to three icons and optional custom text, including text-only buttons. Keep legacy/state choices, unsaved drafts, rounded clipping, and width-aware More/wrapping.
+- Keep Quick Action rows and their hover/focus state stable while typing in the main prompt on both supported OpenCode hosts.
+- Show toolbar hover/focus hints without moving Limits or other sections, preserving centered, uniformly sized icon controls and empty-toolbar collapse.
+- Add Settings → About with the running versions, explicit update status/checking, confirmed updates, and a versioned changelog that can be reopened independently of first-launch upgrade notes.
+- Prepare editable Bug reports with confirmed sending through authenticated GitHub CLI and an independent Open in browser action. Retain drafts through errors and cancellation, and require manual review before retrying an uncertain submission.
+
 ## [0.23.0] - 2026-10-28
 
 - Support only the latest stable OpenCode 1.x and 2.x releases, currently 1.19.5 and 2.2.0, including the newer terminal renderer.

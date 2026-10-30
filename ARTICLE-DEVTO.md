@@ -145,6 +145,24 @@ For banked resets, the available count survives a missing credit detail list. Th
 
 ![Account-bound confirmation before using a reset credit](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/41-reset-confirmation.png)
 
+## Versions, reports and a steadier sidebar
+
+Settings now has an About tab for version information, update checks and
+reopening release notes by version. Reading that history does not consume the
+first-launch upgrade notice. The bug-report editor offers a confirmed send
+through authenticated `gh` and an independent Open in browser path. Both use the
+repository's real Bug type. Only visible software/platform details are included
+by default, and the report remains editable.
+
+Each toolbar button accepts zero to three ordered icons and optional custom text,
+including text-only labels. More and wrapping use the real bounded widths, while
+state changes keep a reserved width. Picker edits remain drafts until Pin or Save.
+
+I also reproduced a typing-related flash: host command-state updates recreated
+Quick Action rows. Using stable command IDs preserves their hover/focus state
+while labels and availability still update. Toolbar hints use the existing gap,
+so pointing at a button no longer pushes Limits down.
+
 ## The bug was a second copy of Solid
 
 Navigator is written in TypeScript and TSX with Solid and OpenTUI. An early build looked correct, accepted clicks, and wrote the new setting to disk. It simply did not update the screen.
