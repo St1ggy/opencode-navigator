@@ -1,6 +1,6 @@
 import { createEffect, createMemo, onCleanup, untrack } from 'solid-js'
 
-import { toolbarPinKey } from '../../../entities/preferences'
+import { toolbarPinIcons, toolbarPinKey } from '../../../entities/preferences'
 import {
   QUICK_ACTIONS,
   createQuickActionRevision,
@@ -23,6 +23,14 @@ export type ToolbarServices = {
   skills: SkillController
   interaction: SidebarInteraction
   onNewSession?: () => boolean
+}
+
+function toolbarPinWidth(pin: ToolbarPin) {
+  const states = Object.keys({ ...pin.stateIcons, ...pin.stateIconLists })
+  const count = Math.max(toolbarPinIcons(pin).length, ...states.map((state) => toolbarPinIcons(pin, state).length))
+  const iconsWidth = Math.max(0, count * 2 - 1)
+
+  return 2 + Math.max(1, iconsWidth + (count && pin.text ? 1 : 0) + Bun.stringWidth(pin.text ?? ''))
 }
 
 export function createToolbarModel(props: ToolbarServices) {
@@ -54,7 +62,8 @@ export function createToolbarModel(props: ToolbarServices) {
       return {
         label: quickActionLabel(props.api, action),
         stateLabel,
-        icon: state ? (pin.stateIcons?.[state] ?? pin.icon) : pin.icon,
+        icons: toolbarPinIcons(pin, state),
+        text: pin.text,
         reason: quickActionDisabledReason(props.api, action),
       }
     }
@@ -65,7 +74,8 @@ export function createToolbarModel(props: ToolbarServices) {
 
     return {
       label: pin.name,
-      icon: pin.icon,
+      icons: toolbarPinIcons(pin),
+      text: pin.text,
       stateLabel: undefined,
       reason: request.error?.message ?? (skill ? skillUnavailable(props.skills, skill) : unavailable),
     }
@@ -111,5 +121,5 @@ export function createToolbarModel(props: ToolbarServices) {
     activateSkill({ api: props.api, controller: props.skills, access: props.preferences, skill, dialogs })
   }
 
-  return { pins, view, run }
+  return { pins, view, run, width: toolbarPinWidth }
 }

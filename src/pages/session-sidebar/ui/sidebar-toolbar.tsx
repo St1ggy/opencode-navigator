@@ -15,7 +15,10 @@ export function SidebarToolbar(props: ToolbarServices) {
   const [width, setWidth] = createSignal(3)
   const [detail, setDetail] = createSignal<string>()
   const keys = createMemo(() => model.pins().map((pin) => toolbarPinKey(pin)))
-  const layout = createMemo(() => toolbarLayout(keys(), width(), props.preferences.toolbarOverflow?.() ?? 'menu'))
+  const widths = createMemo(() => new Map(model.pins().map((pin) => [toolbarPinKey(pin), model.width(pin)])))
+  const layout = createMemo(() =>
+    toolbarLayout(keys(), width(), props.preferences.toolbarOverflow?.() ?? 'menu', widths()),
+  )
   const rows = createMemo(() => layout().rows.map((_, index) => index))
   const byKey = createMemo(() => new Map(model.pins().map((pin) => [toolbarPinKey(pin), pin])))
   const view = (key: string) => {
@@ -70,6 +73,7 @@ export function SidebarToolbar(props: ToolbarServices) {
     <Show when={keys().length > 0}>
       <box
         id="opencode-navigator.toolbar"
+        overflow="visible"
         onSizeChange={function (this: BoxRenderable) {
           setWidth(this.width)
         }}
@@ -85,7 +89,9 @@ export function SidebarToolbar(props: ToolbarServices) {
                     row={row}
                     column={column()}
                     label={view(key)?.label ?? 'More'}
-                    icon={key === 'toolbar:more' ? 'list' : (view(key)?.icon ?? 'bolt')}
+                    icons={key === 'toolbar:more' ? ['list'] : (view(key)?.icons ?? ['bolt'])}
+                    text={view(key)?.text}
+                    width={layout().sizes?.[key] ?? 3}
                     reason={view(key)?.reason}
                     onRun={() => (key === 'toolbar:more' ? showMore() : model.run(key))}
                     onDetails={(_id, active) =>
@@ -99,7 +105,16 @@ export function SidebarToolbar(props: ToolbarServices) {
         </For>
         <Show when={details()}>
           {(text) => (
-            <text height={1} truncate wrapMode="none" fg={props.api.theme.current.textMuted}>
+            <text
+              position="absolute"
+              top={rows().length}
+              left={0}
+              width="100%"
+              height={1}
+              truncate
+              wrapMode="none"
+              fg={props.api.theme.current.textMuted}
+            >
               {text()}
             </text>
           )}

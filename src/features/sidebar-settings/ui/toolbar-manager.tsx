@@ -88,9 +88,9 @@ export function ToolbarManager(props: ToolbarSettings) {
             title="Toolbar button"
             options={[
               {
-                title: 'Configure icons…',
+                title: 'Configure icons and text…',
                 value: 'configure',
-                description: 'Base and available state icons',
+                description: 'Zero to three icons, optional text and state choices',
                 icon: 'edit',
               },
               { title: 'Move up', value: 'up', description: 'Earlier in the toolbar', icon: 'selected' },
