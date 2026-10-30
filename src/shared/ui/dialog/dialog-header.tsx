@@ -2,9 +2,10 @@ import { TextAttributes } from '@opentui/core'
 
 import { useIcons } from '../icons'
 
+import type { UiIcon } from '../icons'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-export function DialogHeader(props: { api: TuiPluginApi; title: string; onBack: () => void }) {
+export function DialogHeader(props: { api: TuiPluginApi; title: string; icon?: UiIcon; onBack: () => void }) {
   const icons = useIcons()
 
   return (
@@ -17,7 +18,7 @@ export function DialogHeader(props: { api: TuiPluginApi; title: string; onBack: 
         height={1}
         flexGrow={1}
       >
-        {icons.icon('presets')} {props.title}
+        {icons.icon(props.icon ?? 'presets')} {props.title}
       </text>
       <text
         fg={props.api.theme.current.textMuted}

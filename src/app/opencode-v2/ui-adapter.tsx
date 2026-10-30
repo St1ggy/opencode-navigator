@@ -1,32 +1,17 @@
 /** @jsxImportSource @opentui/solid */
 import { onCleanup, onMount } from 'solid-js'
 
+import { SingleLinePrompt } from '../../shared/ui'
+
 import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiDialogConfirmProps, TuiDialogPromptProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-export function createV2UI(context: Plugin.Context) {
+export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
   let dialogOpen = false
 
   function DialogPrompt(props: TuiDialogPromptProps) {
-    let active = true
-
-    onCleanup(() => {
-      active = false
-    })
-    onMount(async () => {
-      const value = await context.ui.dialog.prompt({
-        title: props.title,
-        placeholder: props.placeholder,
-        value: props.value,
-      })
-
-      if (!active) return
-
-      if (value === undefined) props.onCancel?.()
-      else props.onConfirm?.(value)
-    })
-
-    return <box />
+    // Native promise prompts replace Navigator frames; keep nested drafts in-frame.
+    return <SingleLinePrompt api={api()} {...props} />
   }
 
   function DialogConfirm(props: TuiDialogConfirmProps) {

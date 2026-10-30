@@ -51,7 +51,7 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
   disposers.push(keymap.dispose)
   const sessions = createV2SessionAdapter(context)
   const remote = createV2ClientAdapter(context)
-  const ui = createV2UI(context)
+  const ui = createV2UI(context, () => api)
   const onDispose = (dispose: () => void | Promise<void>) => {
     disposers.push(dispose)
 
