@@ -137,6 +137,10 @@ verification workflow before expanding the product surface.
 
 ## Product Direction
 
+### v0.25.0 Release
+
+- [ ] Publish native Todo enablement and current onboarding after the 96-scene manual Prepare Release run, screenshot PR CI/merge and final release-head checks. Verify npm payload, provenance, GitHub notes and isolated registry installation before completion.
+
 ### Native Todo Enablement And TypeScript 7
 
 - [x] Detect native Todo configuration independently of task count and offer mouse/keyboard enablement when disabled. Choose an existing discovered server config, preview and confirm a focused JSONC-preserving edit; retain native viewing, chat-owned edits, retry and stale-target guards. Read selected files through their server-side parent location, and expose the native action in the host palette's global mode.
