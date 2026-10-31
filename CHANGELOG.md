@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Offer Enable Todo when OpenCode 2's native tool is disabled, with an existing server-config picker, exact change preview and separate confirmation. Preserve unrelated JSONC content and refuse stale targets; distinguish disabled Todo from an enabled empty list.
+- Update the seven-slide setup wizard for native Todo enablement, provider/account limits, multi-icon or text-only toolbar pins, About/changelog and Bug reports. Describe each host's real permissions/LSP capabilities and keep navigation visible while short-terminal content scrolls.
+
 ## [0.24.0] - 2026-10-31
 
 - Support the latest stable OpenCode 1.19.5 and 2.2.5 releases, preserving both host adapters and existing sidebar behavior.

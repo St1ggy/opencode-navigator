@@ -137,6 +137,14 @@ verification workflow before expanding the product surface.
 
 ## Product Direction
 
+### Native Todo Enablement And TypeScript 7
+
+- [x] Detect native Todo configuration independently of task count and offer mouse/keyboard enablement when disabled. Choose an existing discovered server config, preview and confirm a focused JSONC-preserving edit; retain native viewing, chat-owned edits, retry and stale-target guards. Read selected files through their server-side parent location, and expose the native action in the host palette's global mode.
+- [x] Keep the published Solid Oxlint/Oxfmt presets, update compatible libraries including OpenTUI 0.8.1, and use only stable TypeScript 7.0.2 throughout the graph. After explicit user approval, replace supported legacy checks natively and list the unmatched SonarJS checks in LINT_COVERAGE.md; no TS6 compatibility copy remains.
+- [x] Refresh all seven wizard slides for Todo setup, account allowances, private multi-icon/text pins, About/changelog/Bug reports and actual host permissions/LSP capabilities. Keep headings/navigation visible and scroll long content and section choices in short terminals. Defer the wizard content without changing its public facade.
+- [x] Verify effective-source precedence, comments/BOM/CRLF preservation, stale previews, keyboard/mouse, short terminals and both real hosts. Full check: 520 passing tests, one opt-in skip, 4,923 assertions; main bundle 348,055 / 360,000 bytes. Real 2.x smoke verifies Cancel byte equality and confirmed host config/readback; typing probes retain zero row replacements.
+- [ ] Generate the newly registered 96-scene capture set (83 existing PNGs plus 13 Todo/wizard scenes) through the next separately requested Prepare Release workflow.
+
 ### v0.24.0 Release
 
 - [x] Publish v0.24.0 with About, toolbar, stability and latest-host changes. Prepare Release 41185659301 byte-verified 83 captures; screenshot PR #33 passed exact-head CI and merged. Release-head CI 41187988295 and Publish 41188102592 succeeded. GitHub notes and shipped changelog were reviewed; npm latest is 0.24.0, all 40 payload files and archive SHA-512 match, registry signatures/provenance are present, and the real isolated registry-snapshot installation passes.

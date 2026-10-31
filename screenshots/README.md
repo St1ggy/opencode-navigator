@@ -3,6 +3,12 @@
 These 83 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
+The updated harness registers **96 scenes**. The 13 additional scenes cover
+disabled/enabled-empty native Todo, config selection/preview/error, all intermediate
+wizard slides, a short terminal, and native 2.x Todo/LSP/permissions guidance.
+Those new captures and the refreshed wizard images await a separately requested
+manual Prepare Release run; the 83 PNGs below remain the verified v0.24.0 gallery.
+
 The v0.24.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed. The final run was
 [41185659301](https://github.com/St1ggy/opencode-navigator/actions/runs/41185659301),

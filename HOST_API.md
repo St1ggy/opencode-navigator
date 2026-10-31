@@ -33,6 +33,7 @@ justify bypassing a native API.
 | Subagent child discovery | Published TUI Data caches sessions but has no complete children-sync operation. Initial/manual/reconnect discovery uses the public paginated API and syncs unknown IDs into the host cache. | A complete children-sync/query on the supplied public Data interface. |
 | Subagent observation history and retry details | Native status and cached transcript retry data are used first; recent runs, pre-observation clock markers, errors and unloaded-child retry detail remain observation history. | Equivalent public observed-run/retry history without loading every transcript. |
 | Read-only Todo projection | Native completed tool calls and revert are public; the host's `sessionTodos` helper is not exported. No direct CRUD/priority API exists. | A public equivalent projection; editing also requires an explicitly selected interaction and supported API. |
+| Native Todo enablement | `config.get` exposes ordered sources, but `experimental.config.update` supports only shell. The setup feature previews and confirms a JSONC leaf edit in an existing discovered source through public server file APIs. File reads are location-confined, so selected-file IO is routed to its server-side parent; the original session/location remains the stale-target guard. Reads immediately before writes reject changed previews, and readback verifies the file and effective flag. The public write API has no CAS, so this is not an atomic transaction against concurrent external writers; uncertain outcomes require Refresh before retry. No model, shell or Todo event is used. | A public Todo config patch API preserving source precedence, unrelated JSONC content and conditional-write semantics. |
 | Console/Go request lifecycle and projection | `client.usage.limits` is public, but the internal usage cache and budget selectors are not in published Plugin Context. Workspace IDs are not provider account IDs. | Equivalent public cache and selector on the plugin interface. |
 | External quotas / reset credits | Console/Go is not a universal provider API and has no Codex reset-credit consume operation. Sources stay documented, account-bound and portable. Native auth/request errors never enable a bypass reader. | Host APIs matching provider/account/units/resets and idempotent consume semantics. |
 | Pinned-file snapshot installer | Native package updates do not implement the recognized versioned wrapper/staging layout. Preserve installation source and scope. | A public atomic file-snapshot update API with equivalent verification. |
@@ -54,7 +55,7 @@ exercise migration only; they do not extend the supported host matrix.
 The published 2.2.5 TUI context, plugin, index and Solid declarations are identical
 to 2.2.0. OpenTUI 0.8 retains the drawing-only paint-hook contract; renderer tests,
 nested dialogs and frame-level typing probes run against the updated runtime.
-Development uses Bun 1.4.4 and OpenTUI 0.8, leaving Solid/OpenTUI external so the
+Development uses Bun 1.4.4 and OpenTUI 0.8.1, leaving Solid/OpenTUI external so the
 host owns its runtime. The 1.x host ships older runtime modules; its actual smoke
 must pass rather than injecting the development modules into it.
 
@@ -68,11 +69,11 @@ renderer/FFI support. CI and package verification use Node 26.12.1.
 - `web-tree-sitter` stays at **0.25.10**, the exact peer required by OpenTUI
   0.8.0. Upgrade it when the supported host runtime publishes a compatible peer
   contract; the independent 0.27 line is not a compatible substitution.
-- `typescript` stays at **6.0.3**, the latest compatible compiler for the shared
-  linter stack. TypeScript 7.0.2 type-checks Navigator, but SonarJS/`ts-api-utils`
-  fails while loading its missing JavaScript compiler API. Upgrade when those
-  consumers support the new compiler distribution; do not disable their rules
-  to make an incompatible upgrade pass.
+- `typescript` is **7.0.2** throughout the resolved project graph. The shared
+  preset's legacy compiler dependency is overridden to TS7; its incompatible
+  SonarJS and typescript-eslint JS plugins are not loaded. Native replacements,
+  retained compatible plugins and the explicitly approved coverage loss are
+  documented in [Lint coverage](LINT_COVERAGE.md). No TS6 compatibility copy is used.
 - Bun remains pinned at **1.4.4**, the current stable release. Direct dependencies
   otherwise use their latest compatible stable releases; transitive updates stay
   within upstream ranges. Runtime peers remain host-owned and are not bundled.

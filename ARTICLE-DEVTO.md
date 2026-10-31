@@ -147,6 +147,11 @@ For banked resets, the available count survives a missing credit detail list. Th
 
 ## Versions, reports and a steadier sidebar
 
+Disabled native Todo now has an enable action with a server-config picker and
+confirmation. Setup changes the flag, not the task list, and never invokes the
+model. The seven-slide tour covers that flow, toolbar customization and About,
+with scrollable content that keeps navigation visible in short terminals.
+
 Settings now has an About tab for version information, update checks and
 reopening release notes by version. Reading that history does not consume the
 first-launch upgrade notice. The bug-report editor offers a confirmed send

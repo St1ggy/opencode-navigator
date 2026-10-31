@@ -152,6 +152,11 @@ Limits is first and expanded by default, and I can hide or reorder it in the sam
 
 ## Versions, Reports, and a Steadier Sidebar
 
+When native Todo is off, the section now offers to enable it. I choose a server
+configuration file, review the flag change, and confirm it without starting a model
+request. The seven-slide setup guide explains this flow and the newer toolbar and
+About features; its text and section list scroll in short terminals.
+
 I also added an About tab to Settings. It shows the running versions and update
 status, and lets me reopen release notes by version without changing the one-time
 upgrade notice. Bug reports start as an editable draft. I can review and send one
