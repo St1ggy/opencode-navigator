@@ -69,63 +69,65 @@ export function EnableTodoConfirmation(props: {
   })
 
   return (
-    <GuardedConfirmation
-      api={props.api}
-      title="Enable native Todo"
-      message="Set experimental.todo to true"
-      current={() => props.model.current(props.preview)}
-      onConfirm={() => void confirm()}
-      render={() => (
-        <DialogSurface api={props.api} lift>
-          <DialogHeader api={props.api} title="Enable native Todo" icon="todo" onBack={dialogs.back} />
-          <scrollbox
-            ref={(node) => {
-              body = node
-            }}
-            height={Math.min(10, Math.max(3, dimensions().height - 10))}
-            flexShrink={0}
-            scrollX={false}
-            horizontalScrollbarOptions={{ visible: false }}
-          >
-            <box gap={1}>
-              <text wrapMode="word" fg={props.api.theme.current.textMuted}>
-                OpenCode server configuration
-              </text>
-              <text wrapMode="word" fg={props.api.theme.current.text}>
-                {props.preview.path}
-              </text>
-              <text fg={props.api.theme.current.accent}>experimental.todo → true</text>
-              <text wrapMode="word" fg={props.api.theme.current.textMuted}>
-                Preserve other settings and JSONC comments. This enables the built-in tool; it does not invoke a model
-                or edit tasks.
-              </text>
-              <text wrapMode="word" fg={props.api.theme.current.error}>
-                {error()}
-              </text>
+    <box>
+      <GuardedConfirmation
+        api={props.api}
+        title="Enable native Todo"
+        message="Set experimental.todo to true"
+        current={() => props.model.current(props.preview)}
+        onConfirm={() => void confirm()}
+        render={() => (
+          <DialogSurface api={props.api} lift>
+            <DialogHeader api={props.api} title="Enable native Todo" icon="todo" onBack={dialogs.back} />
+            <scrollbox
+              ref={(node) => {
+                body = node
+              }}
+              height={Math.min(10, Math.max(3, dimensions().height - 10))}
+              flexShrink={0}
+              scrollX={false}
+              horizontalScrollbarOptions={{ visible: false }}
+            >
+              <box gap={1}>
+                <text wrapMode="word" fg={props.api.theme.current.textMuted}>
+                  OpenCode server configuration
+                </text>
+                <text wrapMode="word" fg={props.api.theme.current.text}>
+                  {props.preview.path}
+                </text>
+                <text fg={props.api.theme.current.accent}>experimental.todo → true</text>
+                <text wrapMode="word" fg={props.api.theme.current.textMuted}>
+                  Preserve other settings and JSONC comments. This enables the built-in tool; it does not invoke a model
+                  or edit tasks.
+                </text>
+                <text wrapMode="word" fg={props.api.theme.current.error}>
+                  {error()}
+                </text>
+              </box>
+            </scrollbox>
+            <box id="opencode-navigator.todo.enable.actions" flexDirection="row" gap={1} flexShrink={0}>
+              <DialogAction
+                api={props.api}
+                id="opencode-navigator.todo.enable.cancel"
+                label={error() ? 'Back and refresh' : 'Cancel'}
+                icon="close"
+                selected={!selected()}
+                onSelect={() => setSelected(false)}
+                onActivate={dialogs.back}
+              />
+              <DialogAction
+                api={props.api}
+                id="opencode-navigator.todo.enable.apply"
+                label={busy() ? 'Enabling…' : 'Enable Todo'}
+                icon="add"
+                selected={selected()}
+                onSelect={() => setSelected(true)}
+                onActivate={() => void confirm()}
+              />
             </box>
-          </scrollbox>
-          <box id="opencode-navigator.todo.enable.actions" flexDirection="row" gap={1} flexShrink={0}>
-            <DialogAction
-              api={props.api}
-              id="opencode-navigator.todo.enable.cancel"
-              label={error() ? 'Back and refresh' : 'Cancel'}
-              icon="close"
-              selected={!selected()}
-              onSelect={() => setSelected(false)}
-              onActivate={dialogs.back}
-            />
-            <DialogAction
-              api={props.api}
-              id="opencode-navigator.todo.enable.apply"
-              label={busy() ? 'Enabling…' : 'Enable Todo'}
-              icon="add"
-              selected={selected()}
-              onSelect={() => setSelected(true)}
-              onActivate={() => void confirm()}
-            />
-          </box>
-        </DialogSurface>
-      )}
-    />
+          </DialogSurface>
+        )}
+      />
+    </box>
   )
 }

@@ -42,39 +42,41 @@ export function NativeTodoSetupDialog(props: {
   }
 
   return (
-    <Show
-      when={state().status === 'ready' && !error() && !preparing() && props.model.files(props.sessionID).length > 0}
-      fallback={
-        <TodoSetupReadNotice
+    <box>
+      <Show
+        when={state().status === 'ready' && !error() && !preparing() && props.model.files(props.sessionID).length > 0}
+        fallback={
+          <TodoSetupReadNotice
+            api={props.api}
+            message={
+              preparing()
+                ? 'Preparing configuration preview…'
+                : error() || state().error || 'Reading the current OpenCode configuration…'
+            }
+            refresh={() => {
+              setError('')
+              refresh()
+            }}
+          />
+        }
+      >
+        <SelectionMenu
           api={props.api}
-          message={
-            preparing()
-              ? 'Preparing configuration preview…'
-              : error() || state().error || 'Reading the current OpenCode configuration…'
-          }
-          refresh={() => {
-            setError('')
-            refresh()
-          }}
+          title="Choose Todo configuration"
+          adaptive
+          lift
+          options={[
+            ...props.model.files(props.sessionID).map((path) => ({
+              title: path,
+              value: path,
+              description: 'Existing server file. Preview the change before enabling Todo.',
+              icon: 'settings' as const,
+            })),
+            { title: 'Cancel', value: '', description: 'Keep the configuration unchanged', icon: 'close' },
+          ]}
+          onSelect={(option) => (option.value ? void select(option.value) : dialogs.back())}
         />
-      }
-    >
-      <SelectionMenu
-        api={props.api}
-        title="Choose Todo configuration"
-        adaptive
-        lift
-        options={[
-          ...props.model.files(props.sessionID).map((path) => ({
-            title: path,
-            value: path,
-            description: 'Existing server file. Preview the change before enabling Todo.',
-            icon: 'settings' as const,
-          })),
-          { title: 'Cancel', value: '', description: 'Keep the configuration unchanged', icon: 'close' },
-        ]}
-        onSelect={(option) => (option.value ? void select(option.value) : dialogs.back())}
-      />
-    </Show>
+      </Show>
+    </box>
   )
 }

@@ -185,7 +185,16 @@ test('release fixture mounts the real Todo picker and preview instead of an empt
       NativeTodoSetupDialog,
       createDialogStack,
       createNativeTodoController,
-      createComponent,
+      createComponent: (
+        component: typeof NativeTodoSetupDialog,
+        props: Parameters<typeof NativeTodoSetupDialog>[0],
+      ) => {
+        const view = createComponent(component, props)
+
+        expect(typeof view).not.toBe('function')
+
+        return view
+      },
     })
 
     fixture.controller('session')
