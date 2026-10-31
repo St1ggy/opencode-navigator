@@ -2,6 +2,7 @@ import { createSignal } from 'solid-js'
 
 import { createRequestState } from '../../../shared/lib/request-state'
 
+import type { NativeTodoSetup } from './native-todo-setup'
 import type { TuiPluginApi, TuiSidebarTodoItem } from '@opencode-ai/plugin/tui'
 
 export type SidebarTodo = TuiSidebarTodoItem & { priority?: string }
@@ -117,4 +118,4 @@ export function createTodoController(api: TuiPluginApi) {
   }
 }
 
-export type TodoController = ReturnType<typeof createTodoController> & { source?: 'native' }
+export type TodoController = ReturnType<typeof createTodoController> & { source?: 'native'; setup?: NativeTodoSetup }

@@ -35,6 +35,8 @@ export function TodoSection(props: {
   const managed = (): NavigatorTodoController | undefined =>
     'guidance' in props.controller ? props.controller : undefined
   const native = () => 'source' in props.controller && props.controller.source === 'native'
+  const setup = () => ('setup' in props.controller ? props.controller.setup : undefined)
+  const setupState = () => setup()?.state(props.sessionID)
   const [mode, setMode] = createSignal<TodoViewMode>('all')
   const targetKey = createMemo(() => props.controller.target?.(props.sessionID).key ?? props.sessionID)
 
@@ -61,6 +63,12 @@ export function TodoSection(props: {
 
     onCleanup(deactivate)
     untrack(() => void props.controller.refresh(sessionID).catch(() => {}))
+    untrack(
+      () =>
+        void setup()
+          ?.refresh(sessionID)
+          .catch(() => {}),
+    )
   })
   const navigationSection = () => props.navigationSection ?? 1
 
@@ -83,6 +91,9 @@ export function TodoSection(props: {
               disabled: () => state().status === 'loading' || state().status === 'refreshing',
               onActivate: () => {
                 void props.controller.refresh(props.sessionID).catch(() => {})
+                void setup()
+                  ?.refresh(props.sessionID)
+                  .catch(() => {})
               },
             }
           : undefined
@@ -95,7 +106,13 @@ export function TodoSection(props: {
         fallback={
           <box gap={1}>
             <Show when={native()}>
-              <NativeTodoNotice api={props.api} empty={list().length === 0} />
+              <NativeTodoNotice
+                api={props.api}
+                setup={setup()}
+                sessionID={props.sessionID}
+                interaction={props.interaction}
+                navigationSection={navigationSection()}
+              />
             </Show>
             <Show when={managed()?.guidance(props.sessionID).available}>
               <TodoGuidanceControl
@@ -130,6 +147,7 @@ export function TodoSection(props: {
                     visibility={visibility}
                     density={props.preferences.rowDensity?.() ?? 'compact'}
                     managed={Boolean(managed())}
+                    navigationOffset={setupState()?.enabled === false || setupState()?.status === 'error' ? 1 : 0}
                   />
                 </SectionRequestBody>
               }

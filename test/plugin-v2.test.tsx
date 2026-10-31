@@ -147,6 +147,11 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
         },
       }),
       client: {
+        config: {
+          get: async () => [
+            { type: 'document', path: '/workspace/opencode.jsonc', info: { experimental: { todo: false } } },
+          ],
+        },
         rpc: () => ({
           list: async () => {
             throw { type: 'rpc.unavailable', message: 'RPC is unavailable: opencode-navigator.todo' }
@@ -306,6 +311,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     expect(frame.replaceAll(/\s+/g, ' ')).toContain('server plugin for native provider quotas and balances')
     expect(frame).not.toContain('Review reset credits')
     expect(frame.replaceAll(/\s+/g, ' ')).toContain('Native OpenCode Todo')
+    expect(frame).toContain('Enable Todo')
     expect(frame.replaceAll(/\s+/g, ' ')).not.toContain('Todo needs a separate')
     expect(frame).not.toContain('Retry')
     expect(frame).toContain('SUBAGENTS')

@@ -24,6 +24,7 @@ for (const name of [
   'trusted-skills',
   'layout-preset-actions',
   'provider-limits',
+  'native-todo-setup',
   'onboarding',
   'navigator-updates',
   'upgrade-notes',

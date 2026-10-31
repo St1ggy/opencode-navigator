@@ -26,9 +26,10 @@ export function TodoContents(props: {
   visibility: TodoVisibility
   density: SidebarRowDensity
   managed?: boolean
+  navigationOffset?: number
 }) {
   const navigationSection = () => props.navigationSection ?? 1
-  const tabsRow = () => (props.managed ? 3 : 2)
+  const tabsRow = () => (props.managed ? 3 : 2) + (props.navigationOffset ?? 0)
 
   return (
     <box gap={1}>

@@ -31,6 +31,7 @@ import { bindNavigatorAbout } from './navigator-about'
 import { createNativeTodoController, createOpenCodeV2Api, createOpenCodeV2Sources } from './opencode-v2'
 
 import type { createProviderQuotaIntegration as CreateQuotaIntegration } from './provider-quota'
+import type * as NativeTodoSetupModule from '../native-todo-setup'
 import type * as NavigatorUpdates from '../navigator-updates'
 import type { ProviderLimitsSection as LimitsComponent } from '../pages/session-sidebar'
 import type { Plugin as OpenCodeV2Plugin } from '@opencode/plugin/tui'
@@ -81,11 +82,19 @@ async function setupNavigator(
 ) {
   const config = pluginConfig(undefined)
   const configured = await loadConfiguredDefaults(api, options, readProject)
-  const todo = todoController ?? createTodoController(api)
+  const todo: TodoController = todoController ?? createTodoController(api)
   const nativeSources = hostContext && createOpenCodeV2Sources(hostContext, api)
   const subagents = createSubagentController(api, { source: nativeSources?.subagents })
   const skills = createSkillController(api, nativeSources?.skills)
   const preferences = createPreferencesController(api, config, createPreferencesStore(api.state.path.state), configured)
+
+  if (hostContext) {
+    const setupPath = import.meta.url.includes('/dist/tui.js') ? './native-todo-setup.js' : '../native-todo-setup'
+    const setup = (await import(setupPath)) as typeof NativeTodoSetupModule
+
+    todo.setup = setup.createOpenCodeV2TodoSetup(hostContext, api, preferences, todo.target)
+  }
+
   const limitsPath = import.meta.url.includes('/dist/tui.js') ? './provider-limits.js' : '../provider-limits'
   const limitsModule = (await import(limitsPath)) as {
     ProviderLimitsSection: typeof LimitsComponent

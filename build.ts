@@ -250,6 +250,7 @@ const dialogs = await Bun.build({
     'src/trusted-skills.ts',
     'src/layout-preset-actions.ts',
     'src/provider-limits.ts',
+    'src/native-todo-setup.ts',
     'src/onboarding.ts',
     'src/navigator-updates.ts',
     'src/upgrade-notes.ts',
