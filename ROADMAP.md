@@ -139,7 +139,7 @@ verification workflow before expanding the product surface.
 
 ### v0.24.0 Release
 
-- [ ] Publish the verified About, toolbar, stability and latest-host changes after the manual Prepare Release screenshot workflow, screenshot PR CI and merge. Verify GitHub Release notes, shipped changelog and npm publication before marking complete.
+- [x] Publish v0.24.0 with About, toolbar, stability and latest-host changes. Prepare Release 41185659301 byte-verified 83 captures; screenshot PR #33 passed exact-head CI and merged. Release-head CI 41187988295 and Publish 41188102592 succeeded. GitHub notes and shipped changelog were reviewed; npm latest is 0.24.0, all 40 payload files and archive SHA-512 match, registry signatures/provenance are present, and the real isolated registry-snapshot installation passes.
 
 ### Latest Hosts And Dependencies
 
