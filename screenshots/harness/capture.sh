@@ -66,9 +66,11 @@ ghostty_pid=$!
 
 window_id=$(timeout 30s xdotool search --sync --onlyvisible --limit 1 --class org.opencode.navigator.screenshot)
 capture_width=1440
+capture_height=900
 if [[ "$scene" == "sidebar-shortcuts-narrow" ]]; then capture_width=480; fi
 if [[ "$scene" == "toolbar-narrow" ]]; then capture_width=760; fi
-xdotool windowsize "$window_id" "$capture_width" 900
+if [[ "$scene" == "setup-short" ]]; then capture_width=900; capture_height=400; fi
+xdotool windowsize "$window_id" "$capture_width" "$capture_height"
 xdotool windowmove "$window_id" 0 0
 if ! timeout 80s bash -c 'until [[ -e /tmp/navigator-fixture.ready ]]; do if [[ -e /tmp/navigator-fixture.error ]]; then cat /tmp/navigator-fixture.error >&2; exit 1; fi; sleep 0.05; done'; then
   import -display "$DISPLAY" -window root -crop 1440x900+0+0 /tmp/timeout.png
@@ -83,6 +85,7 @@ case "$scene" in
   limits-ready | limits-credits | limits-confirmation | limits-count-only | limits-unavailable | limits-text | limits-link) ;;
   sidebar-shortcuts | sidebar-shortcuts-text | sidebar-shortcuts-narrow) ;;
   todo-native) ;;
+  native-todo-disabled | native-todo-file-picker | native-todo-enable-preview | native-todo-config-error | native-todo-enabled-empty) ;;
   host-usage-budgets | host-usage-go | host-usage-auth | host-usage-failure) ;;
   toolbar-content | toolbar-content-wrap | toolbar-appearance) ;;
   settings-about | settings-about-update | settings-about-error | settings-about-checking | settings-about-text | changelog-versions | changelog-version | bug-report-editor | bug-report-confirmation | bug-report-browser | bug-report-error | toolbar-hint | toolbar-hint-wrap) ;;
@@ -94,7 +97,7 @@ case "$scene" in
     xdotool key Return
     sleep 1
     ;;
-  setup-tour | setup-sections) sleep 1 ;;
+  setup-tour | setup-sections | setup-monitoring | setup-search-skills | setup-actions-lsp | setup-mcp | setup-customization | setup-short | setup-v2-monitoring | setup-v2-actions) sleep 1 ;;
   *)
     printf 'Unknown screenshot scene: %s\n' "$scene" >&2
     exit 2
@@ -107,6 +110,6 @@ else
   xdotool mousemove 1599 999
 fi
 sleep 0.25
-import -display "$DISPLAY" -window root -crop "${capture_width}x900+0+0" /tmp/capture.png
+import -display "$DISPLAY" -window root -crop "${capture_width}x${capture_height}+0+0" /tmp/capture.png
 convert /tmp/capture.png +repage -alpha off -strip PNG24:/out/"$output"
 identify /out/"$output"

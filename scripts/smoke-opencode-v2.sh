@@ -40,6 +40,8 @@ chmod +x "$temporary/bin/gh"
 export PATH="$temporary/bin:$PATH"
 export NAVIGATOR_SMOKE_ABOUT_SCRIPT="$root/scripts/smoke-about.tcl"
 export NAVIGATOR_SMOKE_TOOLBAR_SCRIPT="$root/scripts/smoke-toolbar-content.tcl"
+export NAVIGATOR_SMOKE_TODO_SCRIPT="$root/scripts/smoke-native-todo.tcl"
+export NAVIGATOR_SMOKE_FRAME_SCRIPT="$root/scripts/pty-frame.mjs"
 export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
 opencode_bin="${OPENCODE_V2_SMOKE_BIN:-$(command -v opencode2 || command -v opencode || true)}"
@@ -89,11 +91,15 @@ cat >"$cli_config" <<JSON
 JSON
 
 cat >"$temporary/config/opencode/opencode.json" <<JSON
+// Synthetic configuration comment preserved by native Todo setup.
 {
   "\$schema": "https://opencode.ai/config.json",
-  "plugin": ["$root"]
+  "plugin": ["$root"],
+  "policies": [{ "action": "provider.use", "resource": "*", "effect": "deny" }],
+  "experimental": { "todo": false, "schedules": false }
 }
 JSON
+export OPENCODE_V2_SMOKE_SERVER_CONFIG="$temporary/config/opencode/opencode.json"
 
 cat >"$temporary/workspace/.opencode/navigator.json" <<JSON
 {
@@ -251,6 +257,7 @@ expect <<'EXPECT'
   send -- "\033\[27u"
   after 200
   source $env(NAVIGATOR_SMOKE_ABOUT_SCRIPT)
+  source $env(NAVIGATOR_SMOKE_TODO_SCRIPT)
   send -- "\003"
   after 200
   send -- "\003"
@@ -270,6 +277,7 @@ if [[ -e "$NAVIGATOR_SMOKE_GH_ATTEMPTS" ]]; then
   exit 1
 fi
 bun --eval 'const doc = await Bun.file(process.env.OPENCODE_V2_SMOKE_MARKER).json(); if (!doc.user?.toolbarPins?.some(pin => pin.text === "Smoke label")) throw new Error("Toolbar text was not saved in OpenCode 2")'
+bun --eval 'const source = await Bun.file(process.env.OPENCODE_V2_SMOKE_SERVER_CONFIG).text(); const doc = Bun.JSONC.parse(source); if (!source.startsWith("// Synthetic configuration comment") || doc.experimental?.todo !== true || doc.experimental?.schedules !== false || !Array.isArray(doc.plugin)) throw new Error("Native Todo setup did not preserve and enable the isolated server configuration")'
 perl -pe 's/\e\[[0-?]*[ -\/]*[@-~]//g; s/\e\][^\a]*(?:\a|\e\\)//g' "$OPENCODE_V2_SMOKE_TRANSCRIPT" >"$plain_transcript"
 
 if ! grep -Eq '"onboardingCompleted"[[:space:]]*:[[:space:]]*true' "$OPENCODE_V2_SMOKE_MARKER"; then

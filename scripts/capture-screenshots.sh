@@ -10,6 +10,7 @@ scenes=(hero todo-active todo-finished subagents-all subagents-errors sidebar-sk
 scenes+=(settings-about settings-about-update settings-about-error settings-about-checking changelog-versions changelog-version bug-report-editor bug-report-confirmation bug-report-browser bug-report-error settings-about-text no-corner-bug-report-confirmation toolbar-hint toolbar-hint-wrap)
 
 scenes+=(toolbar-content toolbar-content-wrap toolbar-appearance)
+scenes+=(native-todo-disabled native-todo-file-picker native-todo-enable-preview native-todo-config-error native-todo-enabled-empty setup-monitoring setup-search-skills setup-actions-lsp setup-mcp setup-customization setup-short setup-v2-monitoring setup-v2-actions)
 
 file_for_scene() {
   case "$1" in
@@ -96,6 +97,19 @@ file_for_scene() {
     toolbar-content) printf '%s\n' 81-toolbar-icons-and-text.png ;;
     toolbar-content-wrap) printf '%s\n' 82-toolbar-content-wrap.png ;;
     toolbar-appearance) printf '%s\n' 83-toolbar-appearance.png ;;
+    native-todo-disabled) printf '%s\n' 84-native-todo-disabled.png ;;
+    native-todo-file-picker) printf '%s\n' 85-native-todo-config-picker.png ;;
+    native-todo-enable-preview) printf '%s\n' 86-native-todo-enable-preview.png ;;
+    native-todo-config-error) printf '%s\n' 87-native-todo-config-error.png ;;
+    native-todo-enabled-empty) printf '%s\n' 88-native-todo-enabled-empty.png ;;
+    setup-monitoring) printf '%s\n' 89-setup-monitoring.png ;;
+    setup-search-skills) printf '%s\n' 90-setup-search-skills.png ;;
+    setup-actions-lsp) printf '%s\n' 91-setup-actions-lsp.png ;;
+    setup-mcp) printf '%s\n' 92-setup-mcp.png ;;
+    setup-customization) printf '%s\n' 93-setup-customization.png ;;
+    setup-short) printf '%s\n' 94-setup-short.png ;;
+    setup-v2-monitoring) printf '%s\n' 95-setup-v2-monitoring.png ;;
+    setup-v2-actions) printf '%s\n' 96-setup-v2-actions.png ;;
     *) return 1 ;;
   esac
 }

@@ -1,8 +1,10 @@
-import navigator, { TodoSection, createNativeTodoController, getNavigatorAboutServices, registerNavigatorAboutServices } from '/workspace/dist/tui.js'
+import navigator, { TodoSection, createDialogStack, createNativeTodoController, getNavigatorAboutServices, registerNavigatorAboutServices, setHostCapabilities } from '/workspace/dist/tui.js'
+import { NativeTodoSetupDialog, createTodoSetupController } from '/workspace/dist/native-todo-setup.js'
 import { ProviderLimitsSection, createOpenCodeUsageAdapter, createProviderLimitsController } from '/workspace/dist/provider-limits.js'
 import { configureAboutFixture, isAboutScene, openAboutScene } from './about-scenes.mjs'
 import { createFixtureDispatch } from './fixture-commands.mjs'
 import { createHostUsageFixture } from './host-usage.mjs'
+import { createNativeTodoScene, openWizardScene } from './native-todo-scenes.mjs'
 
 const FIXTURE_NOW = 1_893_456_000_000
 const DIRECTORY = '/workspace/atlas-console'
@@ -123,6 +125,8 @@ function openLimitsRefreshSettings(dispatch) {
 }
 
 function fixtureReadyDelay() {
+  if (SCENE.startsWith('native-todo-') || SCENE.startsWith('setup-')) return 5000
+
   if (isAboutScene(SCENE)) return 4200
 
   if (SCENE.startsWith('toolbar-')) return 5000
@@ -370,6 +374,11 @@ const plugin = {
 
     const slots = service(api.slots, {
       register(contribution) {
+        if (nativeTodoScene && contribution.slots.sidebar_content)
+          return api.slots.register({ ...contribution, slots: { ...contribution.slots, sidebar_content(_context, input) {
+            return TodoSection({ api: fixtureApi, controller: nativeTodoScene.controller(input.session_id), sessionID: input.session_id, preferences: { expanded: () => ({ todo: true }), toggleSectionExpanded: () => {} } })
+          } } })
+
         if (hostUsage && contribution.slots.sidebar_content)
           return api.slots.register({ ...contribution, slots: { ...contribution.slots, sidebar_content() {
             return ProviderLimitsSection({ api: fixtureApi, ...hostUsage, navigationSection: 0,
@@ -410,6 +419,10 @@ const plugin = {
     } })
     const fixtureApi = new Proxy(api, { get: (target, property) => ({ state, client, event, slots, keymap })[property] ?? target[property] })
 
+    const nativeTodoScene = createNativeTodoScene(fixtureApi, SCENE, { createTodoSetupController, NativeTodoSetupDialog, createDialogStack, createNativeTodoController })
+
+    if (SCENE.startsWith('setup-v2-')) setHostCapabilities(fixtureApi, { todo: true, nativeTodo: true, lsp: false, permissionMode: false })
+
     try {
       await navigator.tui(
         fixtureApi,
@@ -440,6 +453,8 @@ const plugin = {
 
       openToolbarScene(api, dispatch, later)
       openAboutScene(fixtureApi, SCENE, dispatch)
+      nativeTodoScene?.open(dispatch)
+      openWizardScene(SCENE, dispatch)
 
       if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {
         dispatch('opencode-navigator.focus.limits')
@@ -556,9 +571,6 @@ const plugin = {
       openSettingsImportPreview(dispatch)
       focusPortableSettings(dispatch)
 
-      if (SCENE === 'setup-sections') {
-        for (let index = 0; index < 6; index++) later(400 + index * 500, 'opencode-navigator.wizard.select')
-      }
     }, 1200)
     setTimeout(() => {
       void commands.idle().then(async () => {

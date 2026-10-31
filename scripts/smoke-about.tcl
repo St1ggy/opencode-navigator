@@ -16,6 +16,10 @@ expect {
   -re {Navigator changelog} {}
   timeout { puts stderr "Versioned changelog did not open"; exit 1 }
 }
+expect {
+  -re {navigate} {}
+  timeout { puts stderr "Version menu did not finish loading"; exit 1 }
+}
 after 150
 send -- "\r"
 expect {
