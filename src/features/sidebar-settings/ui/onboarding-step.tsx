@@ -1,8 +1,8 @@
 import { TextAttributes } from '@opentui/core'
-import { useTerminalDimensions } from '@opentui/solid'
 import { For } from 'solid-js'
 
 import { SelectionBox, useIcons } from '../../../shared/ui'
+import { useWizardHeight } from '../model/wizard-height'
 
 import { WizardScrollBody } from './wizard-scroll-body'
 
@@ -20,15 +20,11 @@ export function OnboardingStep(props: {
 }) {
   const icons = useIcons()
   const theme = () => props.api.theme.current
-  const dimensions = useTerminalDimensions()
+  const height = useWizardHeight(props.api)
 
   return (
     <box gap={1}>
-      <WizardScrollBody
-        api={props.api}
-        height={Math.min(16, Math.max(3, dimensions().height - 10))}
-        resetKey={props.step.title}
-      >
+      <WizardScrollBody api={props.api} height={Math.min(16, Math.max(3, height() - 11))} resetKey={props.step.title}>
         <box gap={1}>
           <text fg={theme().accent} attributes={TextAttributes.BOLD}>
             {icons.icon(props.step.icon)} {props.step.title}
@@ -58,6 +54,7 @@ export function OnboardingStep(props: {
       </WizardScrollBody>
       <box flexDirection="row" justifyContent="space-between">
         <SelectionBox
+          id="opencode-navigator.wizard.back"
           paddingLeft={1}
           paddingRight={1}
           onMouseDown={(event) => event.stopPropagation()}
@@ -69,6 +66,7 @@ export function OnboardingStep(props: {
           <text fg={theme().textMuted}>{icons.icon('left')} Back</text>
         </SelectionBox>
         <SelectionBox
+          id="opencode-navigator.wizard.next"
           paddingLeft={1}
           paddingRight={1}
           backgroundColor={theme().primary}

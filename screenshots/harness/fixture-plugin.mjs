@@ -585,6 +585,15 @@ const plugin = {
       void commands.idle().then(async () => {
         renderFullFixtureTree(api.renderer.root)
 
+        if (SCENE === 'setup-short') {
+          for (const id of ['opencode-navigator.wizard.header', 'opencode-navigator.wizard.next']) {
+            const control = api.renderer.root.findDescendantById(id)
+
+            if (!control || control.screenY < 0 || control.screenY + control.height > api.renderer.height)
+              throw new Error(`Short wizard control outside viewport: ${id}, height=${api.renderer.height}, y=${control?.screenY}, controlHeight=${control?.height}`)
+          }
+        }
+
         if (SCENE.startsWith('sidebar-shortcuts')) await commands.dispatch('opencode-navigator.sidebar-shortcuts.enter')
 
         if (SCENE === 'toolbar-picker') api.renderer.currentFocusedRenderable?.blur()

@@ -1,10 +1,10 @@
 import { TextAttributes } from '@opentui/core'
-import { useTerminalDimensions } from '@opentui/solid'
 import { For } from 'solid-js'
 
 import { SECTION_DEFINITIONS } from '../../../entities/sidebar-layout'
 import { supportsSidebarSection } from '../../../shared/lib/host-capabilities'
 import { SelectionBox, useIcons } from '../../../shared/ui'
+import { useWizardHeight } from '../model/wizard-height'
 
 import { WizardScrollBody } from './wizard-scroll-body'
 
@@ -23,7 +23,7 @@ export function SectionConfig(props: {
   const theme = () => props.api.theme.current
   const sections = SECTION_DEFINITIONS.filter((section) => supportsSidebarSection(props.api, section.name))
   const finishIndex = sections.length
-  const dimensions = useTerminalDimensions()
+  const height = useWizardHeight(props.api)
 
   return (
     <box gap={1}>
@@ -36,7 +36,7 @@ export function SectionConfig(props: {
       </text>
       <WizardScrollBody
         api={props.api}
-        height={Math.min(sections.length * 2 - 1, Math.max(3, dimensions().height - 13))}
+        height={Math.min(sections.length * 2 - 1, Math.max(3, height() - 15))}
         active={props.active < sections.length ? `opencode-navigator.wizard.section.${props.active}` : undefined}
       >
         <box gap={1}>
@@ -74,6 +74,7 @@ export function SectionConfig(props: {
       </WizardScrollBody>
       <box flexDirection="row" justifyContent="space-between" flexShrink={0}>
         <SelectionBox
+          id="opencode-navigator.wizard.back"
           paddingLeft={1}
           paddingRight={1}
           onMouseDown={(event) => event.stopPropagation()}
@@ -85,6 +86,7 @@ export function SectionConfig(props: {
           <text fg={theme().textMuted}>{icons.icon('left')} Back</text>
         </SelectionBox>
         <SelectionBox
+          id="opencode-navigator.wizard.finish"
           paddingLeft={2}
           paddingRight={2}
           backgroundColor={props.active === finishIndex ? theme().primary : undefined}

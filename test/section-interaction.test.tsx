@@ -526,10 +526,17 @@ test('the built first-run wizard explains controls and changes section settings'
       setSections((value) => ({ ...value, [name]: !value[name] }))
     },
   }
-  const setup = await testRender(() => <FirstRunWizard api={api} preferences={preferences} />, {
-    width: 100,
-    height: 34,
-  })
+  const setup = await testRender(
+    () => (
+      <box paddingTop={5}>
+        <FirstRunWizard api={api} preferences={preferences} />
+      </box>
+    ),
+    {
+      width: 100,
+      height: 34,
+    },
+  )
 
   try {
     await setup.renderOnce()

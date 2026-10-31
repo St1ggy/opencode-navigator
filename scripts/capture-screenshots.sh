@@ -135,7 +135,7 @@ docker build --platform linux/arm64 -f "$root/screenshots/harness/Dockerfile" -t
 priority_scenes=()
 remaining_scenes=()
 for scene in "${scenes[@]}"; do
-  if [[ "$scene" == native-todo-* ]]; then
+  if [[ "$scene" == native-todo-* || "$scene" == setup-short ]]; then
     priority_scenes+=("$scene")
   else
     remaining_scenes+=("$scene")

@@ -92,8 +92,8 @@ export function FirstRunWizard(props: { api: TuiPluginApi; preferences: Preferen
   onCleanup(unregister)
 
   return (
-    <DialogSurface api={props.api}>
-      <box flexDirection="row" justifyContent="space-between">
+    <DialogSurface api={props.api} lift>
+      <box id="opencode-navigator.wizard.header" flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={theme().text}>
           {icons.icon('help')} Navigator setup
         </text>
