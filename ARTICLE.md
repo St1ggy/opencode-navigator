@@ -157,6 +157,8 @@ configuration file, review the flag change, and confirm it without starting a mo
 request. The seven-slide setup guide explains this flow and the newer toolbar and
 About features; its text and section list scroll in short terminals.
 
+![Confirm native Todo enablement without invoking a model](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/86-native-todo-enable-preview.png)
+
 I also added an About tab to Settings. It shows the running versions and update
 status, and lets me reopen release notes by version without changing the one-time
 upgrade notice. Bug reports start as an editable draft. I can review and send one

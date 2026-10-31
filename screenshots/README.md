@@ -1,18 +1,18 @@
 # Screenshot Gallery
 
-These 83 deterministic captures render the real OpenCode TUI through Ghostty.
+These 96 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
-The updated harness registers **96 scenes**. The 13 additional scenes cover
+The 13 additional v0.25.0 scenes cover
 disabled/enabled-empty native Todo, config selection/preview/error, all intermediate
 wizard slides, a short terminal, and native 2.x Todo/LSP/permissions guidance.
-Those new captures and the refreshed wizard images await a separately requested
-manual Prepare Release run; the 83 PNGs below remain the verified v0.24.0 gallery.
+Native Todo/config and 2.x wizard guidance use synthetic capability projections
+on the pinned capture host; separate real-host smokes verify native 2.x operations.
 
-The v0.24.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
+The v0.25.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed. The final run was
-[41185659301](https://github.com/St1ggy/opencode-navigator/actions/runs/41185659301),
-with [screenshot PR #33](https://github.com/St1ggy/opencode-navigator/pull/33).
+[41238652533](https://github.com/St1ggy/opencode-navigator/actions/runs/41238652533),
+with [screenshot PR #35](https://github.com/St1ggy/opencode-navigator/pull/35).
 
 The gallery includes About current,
 available/checking/failed update states; version list and release details; editable
@@ -29,6 +29,40 @@ sign-in guidance, and request failure with Retry. They use the real public 2.2 u
 adapter and Limits components with synthetic client DTOs in the Ghostty harness;
 separate real-host smokes verify the 2.2 adapter. Native millisecond reset times
 are converted to the existing display contract before rendering.
+
+## Native Todo Enablement
+
+![Disabled native Todo with an Enable action](84-native-todo-disabled.png)
+
+![Choose an existing server configuration](85-native-todo-config-picker.png)
+
+![Review and confirm the exact Todo flag change](86-native-todo-enable-preview.png)
+
+![Configuration failure with Retry](87-native-todo-config-error.png)
+
+![Enabled empty native Todo without a repeated enable offer](88-native-todo-enabled-empty.png)
+
+## Current Seven-Slide Setup Guide
+
+The existing introduction and final section configuration captures remain
+`26-setup-tour.png` and `27-setup-sections.png`. These additional views cover
+the intermediate capabilities, host differences and short-terminal scrolling.
+
+![Monitoring and account allowances](89-setup-monitoring.png)
+
+![Search Everything and Skills](90-setup-search-skills.png)
+
+![Quick Actions, private toolbar and supported LSP status](91-setup-actions-lsp.png)
+
+![MCP groups, bulk controls and preset previews](92-setup-mcp.png)
+
+![Customization, About, changelog and Bug reports](93-setup-customization.png)
+
+![Short-terminal wizard with visible navigation](94-setup-short.png)
+
+![OpenCode 2 native Todo guidance](95-setup-v2-monitoring.png)
+
+![OpenCode 2 permissions settings and explicit LSP limitations](96-setup-v2-actions.png)
 
 ## About, Release History And Bug Reports
 

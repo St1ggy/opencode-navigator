@@ -230,6 +230,10 @@ completed list visible; a completed write with an empty array clears it.
 Native tasks have `content` and one of `pending`, `in_progress`, `completed`, or
 `cancelled`; priorities remain unavailable in OpenCode 2's native schema.
 
+![Disabled native Todo offers enablement](screenshots/84-native-todo-disabled.png)
+
+![Review the server configuration change before enabling Todo](screenshots/86-native-todo-enable-preview.png)
+
 The optional **server** half of Navigator is used for provider-native quotas and
 read-only access to the previous Navigator Todo archive. Add it to the server
 configuration only when those integrations are needed:
@@ -376,6 +380,8 @@ order, MCP state persistence, icon style, and the sidebar shortcuts without
 a restart. Settings are grouped into tabs; use `Tab` and `Shift+Tab` to switch
 tabs. In the Sections tab, use `Left`/`Right` or `Shift+Up`/`Shift+Down` to
 reorder the selected section.
+
+![Setup navigation remains visible in a short terminal](screenshots/94-setup-short.png)
 
 The Sections tab combines visibility, ordering, and the number of visible items
 for each section. Click `Items: All` / `Items: N`, or press `L` on the selected
