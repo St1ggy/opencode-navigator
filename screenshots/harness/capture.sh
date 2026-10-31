@@ -46,6 +46,7 @@ cleanup() {
     for log in ghostty import opencode openbox picom xvfb; do
       if [[ -f "/tmp/$log.log" ]]; then cp "/tmp/$log.log" "/out/$scene-$log.log"; fi
     done
+    if [[ -f /tmp/native-todo-diagnostic.json ]]; then cp /tmp/native-todo-diagnostic.json "/out/$scene-diagnostic.json"; fi
   fi
   exit "$status"
 }

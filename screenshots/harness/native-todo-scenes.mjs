@@ -27,6 +27,7 @@ export function createNativeTodoScene(api, scene, services) {
   }
 
   return {
+    diagnostics() { return { sessionID, state: sessionID ? model.state(sessionID) : undefined, files: sessionID ? model.files(sessionID) : [] } },
     controller(id) {
       sessionID = id
       const context = { data: { session: { get: () => ({}), sync: async () => {}, message: { list: () => [], sync: async () => {} } } } }

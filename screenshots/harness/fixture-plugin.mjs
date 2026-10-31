@@ -576,6 +576,12 @@ const plugin = {
 
     }, 1200)
     setTimeout(() => {
+      if (nativeTodoScene) {
+        const tree = (node) => ({ type: node.constructor?.name, id: node.id, width: node.width, height: node.height, text: node.plainText, children: node.getChildren?.().map((child) => tree(child)) })
+
+        void Bun.write('/tmp/native-todo-diagnostic.json', JSON.stringify({ ...nativeTodoScene.diagnostics(), tree: tree(api.renderer.root), commands: api.keymap.getCommands({ visibility: 'registered' }).map((command) => command.name) }))
+      }
+
       void commands.idle().then(async () => {
         renderFullFixtureTree(api.renderer.root)
 
