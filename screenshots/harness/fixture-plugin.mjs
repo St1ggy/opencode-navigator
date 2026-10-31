@@ -474,7 +474,7 @@ const plugin = {
       openSearchScene(api, dispatch, later)
 
       if (
-        (SCENE.startsWith('settings-') && SCENE !== 'settings-control-hover') ||
+        (SCENE.startsWith('settings-') && SCENE !== 'settings-control-hover' && !isAboutScene(SCENE)) ||
         SCENE === 'quick-actions-settings' ||
         SCENE.startsWith('layout-preset')
       ) {
