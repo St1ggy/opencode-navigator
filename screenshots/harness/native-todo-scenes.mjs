@@ -22,7 +22,7 @@ export function createNativeTodoScene(api, scene, services) {
     state: model.state, refresh: model.refresh,
     configure(id) {
       sessionID = id
-      services.createDialogStack(api).open(() => services.NativeTodoSetupDialog({ api, sessionID: id, model }))
+      services.createDialogStack(api).open(() => services.createComponent(services.NativeTodoSetupDialog, { api, sessionID: id, model }))
     },
   }
 

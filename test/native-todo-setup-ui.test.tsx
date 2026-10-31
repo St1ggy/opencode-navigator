@@ -1,7 +1,9 @@
 /** @jsxImportSource @opentui/solid */
 import { expect, test } from 'bun:test'
+import { createComponent } from 'solid-js'
 
-import { NativeTodoSetupDialog } from '../src/features/native-todo-setup'
+import { createNativeTodoController } from '../src/app/opencode-v2/native-todo-controller'
+import { NativeTodoSetupDialog, createTodoSetupController } from '../src/features/native-todo-setup'
 import { EnableTodoConfirmation } from '../src/features/native-todo-setup/ui/enable-confirmation'
 import { TodoSection, createSidebarInteraction } from '../src/pages/session-sidebar'
 import { createDialogStack } from '../src/shared/ui'
@@ -167,6 +169,33 @@ test('native Todo confirmation bounds long server paths and keeps actions visibl
     expect(fixture.writes).toEqual([])
   } finally {
     fixture.lifecycle.abort()
+    h.renderer.destroy()
+  }
+})
+
+test('release fixture mounts the real Todo picker and preview instead of an empty modal surface', async () => {
+  const h = await toolbarHarness(() => <box height={6} />)
+  const { createNativeTodoScene } = await import(
+    new URL('../screenshots/harness/native-todo-scenes.mjs', import.meta.url).href
+  )
+
+  try {
+    const fixture = createNativeTodoScene(h.api, 'native-todo-file-picker', {
+      createTodoSetupController,
+      NativeTodoSetupDialog,
+      createDialogStack,
+      createNativeTodoController,
+      createComponent,
+    })
+
+    fixture.controller('session')
+    fixture.open(() => {})
+    await h.wait('Choose Todo configuration')
+    h.mockInput.pressEnter()
+    await h.wait('experimental.todo')
+    expect(h.captureCharFrame()).toContain('Enable Todo')
+    expect(h.captureCharFrame()).toContain('Cancel')
+  } finally {
     h.renderer.destroy()
   }
 })

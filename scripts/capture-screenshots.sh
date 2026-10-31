@@ -132,7 +132,18 @@ fi
 bun run build
 docker build --platform linux/arm64 -f "$root/screenshots/harness/Dockerfile" -t "$image" "$root"
 
+priority_scenes=()
+remaining_scenes=()
 for scene in "${scenes[@]}"; do
+  if [[ "$scene" == native-todo-* ]]; then
+    priority_scenes+=("$scene")
+  else
+    remaining_scenes+=("$scene")
+  fi
+done
+
+# Exercise newly added config dialogs first, before the longer established gallery.
+for scene in "${priority_scenes[@]}" "${remaining_scenes[@]}"; do
   file="$(file_for_scene "$scene")"
   fixture_scene="$scene"
   no_corner_font=false

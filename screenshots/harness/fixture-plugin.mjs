@@ -1,6 +1,9 @@
 import navigator, { TodoSection, createDialogStack, createNativeTodoController, getNavigatorAboutServices, registerNavigatorAboutServices, setHostCapabilities } from '/workspace/dist/tui.js'
 import { NativeTodoSetupDialog, createTodoSetupController } from '/workspace/dist/native-todo-setup.js'
 import { ProviderLimitsSection, createOpenCodeUsageAdapter, createProviderLimitsController } from '/workspace/dist/provider-limits.js'
+
+import { createComponent } from 'solid-js'
+
 import { configureAboutFixture, isAboutScene, openAboutScene } from './about-scenes.mjs'
 import { createFixtureDispatch } from './fixture-commands.mjs'
 import { createHostUsageFixture } from './host-usage.mjs'
@@ -419,7 +422,7 @@ const plugin = {
     } })
     const fixtureApi = new Proxy(api, { get: (target, property) => ({ state, client, event, slots, keymap })[property] ?? target[property] })
 
-    const nativeTodoScene = createNativeTodoScene(fixtureApi, SCENE, { createTodoSetupController, NativeTodoSetupDialog, createDialogStack, createNativeTodoController })
+    const nativeTodoScene = createNativeTodoScene(fixtureApi, SCENE, { createTodoSetupController, NativeTodoSetupDialog, createDialogStack, createNativeTodoController, createComponent })
 
     if (SCENE.startsWith('setup-v2-')) setHostCapabilities(fixtureApi, { todo: true, nativeTodo: true, lsp: false, permissionMode: false })
 

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { createComponent } from 'solid-js'
 
 import { createTodoSetupController } from '../src/features/native-todo-setup'
 
@@ -18,6 +19,7 @@ test('native Todo capture scenes use synthetic config and preview without writin
     createTodoSetupController,
     createNativeTodoController: () => ({ source: 'native' }),
     NativeTodoSetupDialog: () => null,
+    createComponent,
     createDialogStack: () => ({
       open: () => {
         opened++
