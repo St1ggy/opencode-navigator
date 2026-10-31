@@ -139,7 +139,7 @@ verification workflow before expanding the product surface.
 
 ### v0.25.0 Release
 
-- [ ] Publish native Todo enablement and current onboarding after the 96-scene manual Prepare Release run, screenshot PR CI/merge and final release-head checks. Verify npm payload, provenance, GitHub notes and isolated registry installation before completion.
+- [x] Publish v0.25.0 with confirmed native Todo enablement and current onboarding. Prepare Release 41238652533 byte-verified 96 captures; screenshot PR #35 passed exact-head CI and merged, including the visually approved short-terminal fix. Release-head CI 41241621701 and Publish 41241771948 succeeded. GitHub notes include the previous-tag comparison and font upgrade guidance; npm latest is 0.25.0, all 43 payload files and archive SHA-512 match, registry signatures/provenance are present, and isolated registry installation passes.
 
 ### Native Todo Enablement And TypeScript 7
 
