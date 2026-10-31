@@ -38,6 +38,7 @@
     "README.md",
     "PROVIDERS.md",
     "HOST_API.md",
+    "LINT_COVERAGE.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
@@ -110,20 +111,24 @@
     "@opencode-ai/plugin": "1.19.5",
     "@opencode-ai/sdk": "1.19.5",
     "@opencode/plugin": "2.2.5",
-    "@opentui/core": "0.8.0",
-    "@opentui/keymap": "0.8.0",
-    "@opentui/solid": "0.8.0",
+    "@opentui/core": "0.8.1",
+    "@opentui/keymap": "0.8.1",
+    "@opentui/solid": "0.8.1",
     "@st1ggy/linter-config": "8.0.0",
     "@types/bun": "1.4.4",
     "eslint-plugin-solid": "0.18.1",
+    "jsonc-parser": "3.3.1",
     "oxfmt": "0.75.0",
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
     "solid-js": "1.9.18",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "web-tree-sitter": "0.25.10"
   },
   "optionalDependencies": {
     "@github/copilot-sdk": "1.0.28"
+  },
+  "overrides": {
+    "typescript": "7.0.2"
   }
 }

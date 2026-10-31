@@ -1,10 +1,12 @@
 import solid from '@st1ggy/linter-config/solid-ox'
 import { defineConfig } from 'oxlint'
 
-export default defineConfig({
+import { nativeLintConfig } from './scripts/native-lint-config.ts'
+
+const config = defineConfig({
   extends: [solid],
-  // SonarJS/ts-api-utils require TypeScript 6's JS compiler API; TS 7 lacks it.
-  // Keep that compatibility pin until the upstream plugins support TS 7.
+  // Project type checking and all dependencies use TS7. See LINT_COVERAGE.md
+  // for the approved native-rule migration and uncovered SonarJS checks.
   // Root-only options are not inherited from the shared preset.
   options: { typeAware: true },
   ignorePatterns: ['dist/**', 'node_modules/**', 'vibe/**'],
@@ -148,5 +150,17 @@ export default defineConfig({
         'unicorn/no-nested-ternary': 'off',
       },
     },
+    {
+      files: ['oxlint.config.ts'],
+      // Node loads this configuration directly and needs the explicit TS extension.
+      rules: { 'import-x-js/extensions': ['error', 'ignorePackages', { ts: 'always' }] },
+    },
+    {
+      files: ['scripts/pty-frame.mjs'],
+      // This synthetic terminal decoder intentionally matches ANSI ESC/BEL bytes.
+      rules: { 'eslint/no-control-regex': 'off' },
+    },
   ],
 })
+
+export default nativeLintConfig(config)
