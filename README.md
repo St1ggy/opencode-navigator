@@ -44,8 +44,8 @@ collapsed. Use `Save current layout as default` in sidebar settings to reuse the
 current visible/hidden, expanded/collapsed, and ordering states in new sessions.
 
 **Only the latest stable release in each major line is supported: OpenCode
-1.19.5 and 2.2.0.** Both have separate real-host checks. Older releases are not
-part of the supported compatibility matrix. The 2.2 integration uses OpenTUI 0.7
+1.19.5 and 2.2.5.** Both have separate real-host checks. Older releases are not
+part of the supported compatibility matrix. The 2.2 integration uses OpenTUI 0.8
 and public host caches, events, keymap layers, and client APIs while retaining
 the separate 1.x adapter. See [Host API boundaries](HOST_API.md) for remaining
 capability gaps and removal conditions. On OpenCode 2, Navigator reads the same native Todo history as
@@ -533,7 +533,7 @@ REST reads use a short in-memory cache; Refresh bypasses it. Observed headers ol
 than two minutes are marked stale instead of presented as current remaining quota.
 
 Navigator shares the host's Solid/OpenTUI runtime. Development and CI use Bun 1.4.4
-and Node 26.12.1; OpenTUI 0.7's supported Node path starts at 26.4.0. A confirmed
+and Node 26.12.1; OpenTUI 0.8's supported Node path starts at 26.4.0. A confirmed
 pinned-snapshot update verifies its target with supported Bun (at least 1.3.14)
 or Node before switching the wrapper. If neither is available, the running snapshot
 is preserved with guidance; the updater does not install a runtime globally.

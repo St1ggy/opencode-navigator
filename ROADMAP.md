@@ -137,6 +137,12 @@ verification workflow before expanding the product surface.
 
 ## Product Direction
 
+### Latest Hosts And Dependencies
+
+- [x] Update local Homebrew OpenCode to 1.19.5/2.2.5 while preserving all four launcher names, host routing, client configuration and the pinned Navigator snapshot. All 16 configuration/snapshot/launcher fingerprints are unchanged.
+- [x] Update SDK/runtime/tooling dependencies to current compatible stable releases and refresh transitive dependencies within upstream ranges. Published 2.2.5 TUI declarations match 2.2.0; OpenTUI 0.8 passes renderer and host checks. Remove the retired Copilot client option; retain documented TypeScript 6 compiler-API and tree-sitter exact-peer pins.
+- [x] Verify both latest real hosts and typing stability: 495 tests pass, one opt-in skip, 4,741 assertions; full check, frozen install and both Homebrew-host smokes pass. Typing probes preserve row identity on both hosts. Main bundle stays at 359,769 / 360,000 bytes; CI and current support documentation target 1.19.5/2.2.5.
+
 ### Typing Stability And About
 
 - [x] Extend toolbar pins to zero-to-three ordered icons and optional text, including text-only controls. Preserve legacy/state choices and unsaved nested drafts; measure bounded widths for More/wrapping, reserve state widths, and keep rounded clipping and hints stable. Verify persistence, source guards and both real hosts, including text entry and saving.
@@ -279,7 +285,7 @@ public OpenCode TUI or stable authenticated provider API:
 
 ## Suggested Delivery Order
 
-1. Complete the native-API-first OpenCode 1.19.5/2.2.0 update and verification of these two current hosts.
+1. Keep the native-API-first OpenCode 1.19.5/2.2.5 support and verification current on both host lines.
 2. Complete the remaining section improvements.
 3. Add provider and CLI adapters only where stable supported quota APIs are available.
 4. Finish performance, accessibility, bundle, and release polish for 1.0.

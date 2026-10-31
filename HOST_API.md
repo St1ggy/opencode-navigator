@@ -1,12 +1,12 @@
 # Public Host APIs And Remaining Gaps
 
-Navigator supports only OpenCode **1.19.5** and **2.2.0**, the current stable
+Navigator supports only OpenCode **1.19.5** and **2.2.5**, the current stable
 release in each major line. Published SDK declarations and real-host checks
 define the boundary; internal host components are not plugin APIs.
 
 ## Host-Owned Services
 
-| Capability | OpenCode 1.19.5 | OpenCode 2.2.0 |
+| Capability | OpenCode 1.19.5 | OpenCode 2.2.5 |
 | --- | --- | --- |
 | Todo | Supported host Todo source/events | Public message cache, completed `todowrite` and revert boundary |
 | Skills | Host discovery and prompt insertion | Native Skill cache and `session.skill` with exact ID |
@@ -51,11 +51,28 @@ justify bypassing a native API.
 
 Both current hosts have isolated real-host checks. Historical installer fixtures
 exercise migration only; they do not extend the supported host matrix.
-Development uses Bun 1.4.4 and OpenTUI 0.7, leaving Solid/OpenTUI external so the
+The published 2.2.5 TUI context, plugin, index and Solid declarations are identical
+to 2.2.0. OpenTUI 0.8 retains the drawing-only paint-hook contract; renderer tests,
+nested dialogs and frame-level typing probes run against the updated runtime.
+Development uses Bun 1.4.4 and OpenTUI 0.8, leaving Solid/OpenTUI external so the
 host owns its runtime. The 1.x host ships older runtime modules; its actual smoke
 must pass rather than injecting the development modules into it.
 
-OpenTUI 0.7 supports Node >=26.4.0 or Bun >=1.3.14. The updater verifies a staged
+OpenTUI 0.8 supports Node >=26.4.0 or Bun >=1.3.14. The updater verifies a staged
 target with an available compatible runtime before switching a recognized local
 wrapper. A lazy root import succeeding under an older Node does not prove full
 renderer/FFI support. CI and package verification use Node 26.12.1.
+
+### Deliberate Compatibility Pins
+
+- `web-tree-sitter` stays at **0.25.10**, the exact peer required by OpenTUI
+  0.8.0. Upgrade it when the supported host runtime publishes a compatible peer
+  contract; the independent 0.27 line is not a compatible substitution.
+- `typescript` stays at **6.0.3**, the latest compatible compiler for the shared
+  linter stack. TypeScript 7.0.2 type-checks Navigator, but SonarJS/`ts-api-utils`
+  fails while loading its missing JavaScript compiler API. Upgrade when those
+  consumers support the new compiler distribution; do not disable their rules
+  to make an incompatible upgrade pass.
+- Bun remains pinned at **1.4.4**, the current stable release. Direct dependencies
+  otherwise use their latest compatible stable releases; transitive updates stay
+  within upstream ranges. Runtime peers remain host-owned and are not bundled.

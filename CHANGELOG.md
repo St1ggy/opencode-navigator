@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Support the latest stable OpenCode 1.19.5 and 2.2.5 releases, preserving both host adapters and existing sidebar behavior.
 - Preserve Limits scales and reset-credit controls across equivalent quota snapshots and unrelated workspace events, while retaining current-account and credential-change guards.
 - Keep rounded selection backgrounds consistent in nested dialogs and highlighted rows.
 - Configure each toolbar button with zero to three icons and optional custom text, including text-only buttons. Keep legacy/state choices, unsaved drafts, rounded clipping, and width-aware More/wrapping.

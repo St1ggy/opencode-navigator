@@ -202,7 +202,7 @@ Screenshots are documentation, but in this project they are also rendering regre
 ## Installation
 
 OpenCode Navigator supports only the latest stable release in each major line:
-OpenCode **1.19.5** and **2.2.0**, verified with separate real-host checks.
+OpenCode **1.19.5** and **2.2.5**, verified with separate real-host checks.
 
 The 2.2 adapter reads the host's reactive Skill, MCP and session caches and uses
 its keymap layers. I retain exact Skill IDs instead of reconstructing them from

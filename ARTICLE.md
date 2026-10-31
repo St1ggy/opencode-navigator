@@ -226,7 +226,7 @@ percentages and reset times. This path needs no Navigator server plugin. A faile
 native read stays an error with Retry rather than triggering another reader.
 
 OpenCode Navigator supports only the latest stable release of each major line:
-OpenCode `1.19.5` and `2.2.0`. I verify these two real hosts separately.
+OpenCode `1.19.5` and `2.2.5`. I verify these two real hosts separately.
 
 To install it for all projects:
 
