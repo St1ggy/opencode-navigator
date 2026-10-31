@@ -60,7 +60,6 @@ export function createCopilotRuntime(load: () => Promise<typeof CopilotSDK>, tim
           baseDirectory: directory,
           useLoggedInUser: false,
           logLevel: 'none',
-          enableRemoteSessions: false,
         })
 
         runtime.client = client

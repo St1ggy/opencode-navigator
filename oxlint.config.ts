@@ -3,6 +3,8 @@ import { defineConfig } from 'oxlint'
 
 export default defineConfig({
   extends: [solid],
+  // SonarJS/ts-api-utils require TypeScript 6's JS compiler API; TS 7 lacks it.
+  // Keep that compatibility pin until the upstream plugins support TS 7.
   // Root-only options are not inherited from the shared preset.
   options: { typeAware: true },
   ignorePatterns: ['dist/**', 'node_modules/**', 'vibe/**'],
