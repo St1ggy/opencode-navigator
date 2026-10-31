@@ -48,13 +48,13 @@ export function openAboutScene(api, scene, dispatch, schedule = setTimeout) {
 
   if (!scene.startsWith('bug-report-')) return
 
-  schedule(() => {
+  schedule(async () => {
     const title = api.renderer.currentFocusedRenderable
 
     if (!title || !('value' in title)) throw new Error('Synthetic Bug report title did not focus')
 
     title.value = 'Synthetic toolbar hint moves sections'
-    dispatch('opencode-navigator.bug-report.next')
+    await dispatch('opencode-navigator.bug-report.next')
     const body = api.renderer.currentFocusedRenderable
 
     if (!body || typeof body.setText !== 'function') throw new Error('Synthetic Bug report body did not focus')

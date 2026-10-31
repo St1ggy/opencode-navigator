@@ -9,6 +9,35 @@ import { toolbarHarness } from './fixtures/toolbar-harness'
 
 import type { BoxRenderable, InputRenderable, TextareaRenderable } from '@opentui/core'
 
+test('synthetic public editor changes reach the confirmed Bug report draft', async () => {
+  const h = await toolbarHarness(() => <box height={6} />)
+  const info = aboutServicesFixture(h.api)
+  const transport = bugReportTransportFixture()
+
+  info.service.bugReportTransport = transport.transport
+
+  try {
+    openSettings(h.api, h.preferences, 'about:bug-report')
+    await h.wait('Report a bug')
+    await h.click('Report a bug')
+    await h.wait('Issue title')
+    const title = h.renderer.root.findDescendantById('opencode-navigator.bug-report.title') as InputRenderable
+    const body = h.renderer.root.findDescendantById('opencode-navigator.bug-report.body') as TextareaRenderable
+
+    title.value = 'Synthetic report'
+    body.setText('Synthetic body')
+    await h.flush()
+    h.api.keymap.dispatchCommand('opencode-navigator.bug-report.send')
+    await h.wait('Send Bug report')
+    expect(h.captureCharFrame()).toContain('Synthetic report')
+    expect(h.captureCharFrame()).toContain('Synthetic body')
+    expect(transport.sent).toEqual([])
+  } finally {
+    info.dispose()
+    h.renderer.destroy()
+  }
+})
+
 test('editable report preserves multiline text and nested confirmation; only confirmed sending creates an issue', async () => {
   const h = await toolbarHarness(() => <box height={6} />)
   const info = aboutServicesFixture(h.api)

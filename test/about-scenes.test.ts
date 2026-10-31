@@ -20,8 +20,8 @@ test('release About/report scenes use synthetic services and public editor opera
     openAboutScene(
       api: TuiPluginApi,
       scene: string,
-      dispatch: (name: string) => void,
-      schedule: (function_: () => void, ms: number) => void,
+      dispatch: (name: string) => void | Promise<void>,
+      schedule: (function_: () => void | Promise<void>, ms: number) => void,
     ): void
   }
   const cleanups: (() => void)[] = []
@@ -50,13 +50,14 @@ test('release About/report scenes use synthetic services and public editor opera
 
     expect((await service.bugReportTransport!.probe()).status).toBe('missing')
     expect((await service.changelog())[0].version).toBe(info.service.navigatorVersion)
-    const scheduled: { fn: () => void; ms: number }[] = []
+    const scheduled: { fn: () => void | Promise<void>; ms: number }[] = []
     const commands: string[] = []
 
     module.openAboutScene(
       api,
       'bug-report-confirmation',
-      (name) => {
+      async (name) => {
+        await Promise.resolve()
         commands.push(name)
 
         if (name === 'opencode-navigator.bug-report.next') renderer.currentFocusedRenderable = body
@@ -67,7 +68,7 @@ test('release About/report scenes use synthetic services and public editor opera
     )
     const tasks = scheduled.sort((a, b) => a.ms - b.ms)
 
-    for (const task of tasks) task.fn()
+    for (const task of tasks) await task.fn()
     expect(title.value).toContain('Synthetic')
     expect(text).toContain('Fully synthetic screenshot fixture')
     expect(commands).toContain('opencode-navigator.bug-report.send')
