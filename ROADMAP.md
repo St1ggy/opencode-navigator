@@ -137,6 +137,10 @@ verification workflow before expanding the product surface.
 
 ## Product Direction
 
+### v0.24.0 Release
+
+- [ ] Publish the verified About, toolbar, stability and latest-host changes after the manual Prepare Release screenshot workflow, screenshot PR CI and merge. Verify GitHub Release notes, shipped changelog and npm publication before marking complete.
+
 ### Latest Hosts And Dependencies
 
 - [x] Update local Homebrew OpenCode to 1.19.5/2.2.5 while preserving all four launcher names, host routing, client configuration and the pinned Navigator snapshot. All 16 configuration/snapshot/launcher fingerprints are unchanged.

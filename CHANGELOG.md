@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.24.0] - 2026-10-31
 
 - Support the latest stable OpenCode 1.19.5 and 2.2.5 releases, preserving both host adapters and existing sidebar behavior.
 - Preserve Limits scales and reset-credit controls across equivalent quota snapshots and unrelated workspace events, while retaining current-account and credential-change guards.
