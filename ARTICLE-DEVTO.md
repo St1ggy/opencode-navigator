@@ -163,6 +163,10 @@ Quick Action rows. Using stable command IDs preserves their hover/focus state
 while labels and availability still update. Toolbar hints use the existing gap,
 so pointing at a button no longer pushes Limits down.
 
+![About and update status](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/67-settings-about.png)
+
+![A separate preview before sending a Bug report](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/74-bug-report-confirmation.png)
+
 ## The bug was a second copy of Solid
 
 Navigator is written in TypeScript and TSX with Solid and OpenTUI. An early build looked correct, accepted clicks, and wrote the new setting to disk. It simply did not update the screen.

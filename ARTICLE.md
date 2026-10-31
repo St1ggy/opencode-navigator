@@ -169,6 +169,10 @@ the host's command state changed. Stable command IDs keep those rows and their
 hover state in place. Toolbar hints now fit the gap beneath the buttons instead
 of pushing the next section down.
 
+![About with running versions and update status](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/67-settings-about.png)
+
+![Toolbar buttons with multiple icons and text](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/81-toolbar-icons-and-text.png)
+
 ## Why Rounded Corners Required a Separate Font
 
 A terminal interface quickly reminds you that its pixels are cells. A single-line button can use existing Nerd Font glyphs for rounded ends. Multiline selection is different: it needs a continuous background with corners that cut quarter circles from it. Nerd Fonts do not contain suitable glyphs.

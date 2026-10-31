@@ -1,19 +1,18 @@
 # Screenshot Gallery
 
-These 66 deterministic captures render the real OpenCode TUI through Ghostty.
+These 83 deterministic captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
-The v0.23.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
+The v0.24.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
 against a second capture, and merged the update after CI passed. The final run was
-[40663110695](https://github.com/St1ggy/opencode-navigator/actions/runs/40663110695),
-with [screenshot PR #31](https://github.com/St1ggy/opencode-navigator/pull/31).
+[41185659301](https://github.com/St1ggy/opencode-navigator/actions/runs/41185659301),
+with [screenshot PR #33](https://github.com/St1ggy/opencode-navigator/pull/33).
 
-The next capture set registers **83 scenes**: the existing 66 plus About current,
+The gallery includes About current,
 available/checking/failed update states; version list and release details; editable
 Bug reports, confirmation, browser-only and failure states; About Text and
 no-corner-font confirmation; and stable toolbar hints in menu/wrapping layouts.
-These new PNGs await a separately requested manual Prepare Release run. The
-three additional toolbar-content scenes cover multiple icons, text-only labels,
+Three toolbar-content scenes cover multiple icons, text-only labels,
 variable-width wrapping and the appearance editor. The
 About/report fixtures use synthetic services and never invoke authenticated
 processes, open a real browser, install an update or create GitHub issues.
@@ -24,6 +23,44 @@ sign-in guidance, and request failure with Retry. They use the real public 2.2 u
 adapter and Limits components with synthetic client DTOs in the Ghostty harness;
 separate real-host smokes verify the 2.2 adapter. Native millisecond reset times
 are converted to the existing display contract before rendering.
+
+## About, Release History And Bug Reports
+
+![About with running versions and update status](67-settings-about.png)
+
+![An available Navigator update](68-about-update.png)
+
+![Update check failure](69-about-update-error.png)
+
+![An update check in progress](70-about-checking.png)
+
+![Release history by version](71-changelog-versions.png)
+
+![Scrollable notes for one release](72-changelog-version.png)
+
+![Editable synthetic Bug report](73-bug-report-editor.png)
+
+![Separate Bug report send confirmation](74-bug-report-confirmation.png)
+
+![Browser reporting without GitHub CLI](75-bug-report-browser.png)
+
+![Recoverable report failure with the draft retained](76-bug-report-error.png)
+
+![About in Text fallback](77-about-text.png)
+
+![Report confirmation without the additional corner font](78-no-corner-bug-report.png)
+
+## Toolbar Content And Stable Hints
+
+![Toolbar hint in the existing gap](79-toolbar-hint.png)
+
+![Hint below wrapping toolbar rows](80-toolbar-hint-wrap.png)
+
+![Multiple icons and text-only buttons](81-toolbar-icons-and-text.png)
+
+![Variable-width buttons in wrapping rows](82-toolbar-content-wrap.png)
+
+![Unsaved toolbar appearance configuration](83-toolbar-appearance.png)
 
 ## Native Console And Go Usage
 

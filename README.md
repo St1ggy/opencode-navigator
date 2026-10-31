@@ -427,6 +427,10 @@ running sessions after saving changes in another instance.
 
 ![Searchable toolbar icon picker](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/57-toolbar-icon-picker.png)
 
+![Toolbar buttons with multiple icons and optional text](screenshots/81-toolbar-icons-and-text.png)
+
+![Toolbar appearance configuration](screenshots/83-toolbar-appearance.png)
+
 In OpenCode 1.x, Navigator saves changes to the auto-approve mode as a user-wide
 default, including changes made through OpenCode's own command palette. Set the
 default under **Navigator Settings → Behavior → Default auto-approve permissions**;
@@ -475,6 +479,10 @@ private preferences.
 Quick Actions also keep their mounted rows while ordinary prompt typing updates
 the host's command state. Live labels, availability and real source updates still
 refresh immediately.
+
+![About with versions and update status](screenshots/67-settings-about.png)
+
+![Bug report preview before sending](screenshots/74-bug-report-confirmation.png)
 
 ## Limits: provider quotas and banked resets
 

@@ -155,7 +155,7 @@ verification workflow before expanding the product surface.
 - [x] Add Settings About with running versions, shared update status/checking and confirmed installation safeguards, last-check/restart guidance, and a versioned changelog independent of startup-note claims. Restore selection, scroll and draft through nested navigation, including narrow layouts.
 - [x] Add editable Bug reports with authenticated `gh` sending and an independent browser issue form using the real Bug type. Cover argv/stdin safety, missing auth/CLI/type support, confirmation, partial/uncertain outcomes, explicit retry review, long-report clipboard fallback, and in-memory drafts without automatic private-context collection.
 - [x] Pass full check after PR integration (495 tests, one opt-in skip; 4,741 assertions), font/syntax/privacy checks, and expanded real-host 1.19.5/2.2.0 smokes including About, changelog, safe report preview and multiline editing. Main bundle: 359,769 / 360,000 bytes. Load first-launch release-note content on demand and register 17 synthetic scenes on top of the existing 66.
-- [ ] Generate and byte-verify the expanded 83-scene gallery through manual Prepare Release when release preparation is requested. No local PNG capture or real GitHub issue creation was used for implementation verification.
+- [x] Generate and byte-verify the expanded 83-scene gallery through manual Prepare Release run 41185659301. Screenshot PR #33 passed exact-head CI 41187729376 and merged; all 17 new images were visually reviewed. No local PNG capture or real GitHub issue creation was used.
 
 ### Presets And Layout
 
