@@ -510,7 +510,7 @@ test('the built first-run wizard explains controls and changes section settings'
     },
     keymap: {
       registerLayer: (value: typeof layer) => {
-        layer = value
+        layer = { commands: [...(layer?.commands ?? []), ...(value?.commands ?? [])] }
 
         return () => {}
       },
@@ -527,8 +527,8 @@ test('the built first-run wizard explains controls and changes section settings'
     },
   }
   const setup = await testRender(() => <FirstRunWizard api={api} preferences={preferences} />, {
-    width: 80,
-    height: 18,
+    width: 100,
+    height: 34,
   })
 
   try {
@@ -536,7 +536,7 @@ test('the built first-run wizard explains controls and changes section settings'
     expect(setup.captureCharFrame()).toContain('Navigator setup')
     expect(setup.captureCharFrame()).toContain('A control center that stays compact')
     expect(setup.captureCharFrame()).toContain('Progressive disclosure')
-    expect(setup.captureCharFrame()).toContain('Toggle: ctrl+shift+b')
+    expect(setup.captureCharFrame()).toContain('Navigator: ctrl+shift+b')
     expect(setup.captureCharFrame()).toContain('Focus: ctrl+shift+f')
     expect(setup.captureCharFrame()).toContain('Icons: Nerd Font')
     layer?.commands.find((command) => command.name.endsWith('.wizard.select'))?.run()

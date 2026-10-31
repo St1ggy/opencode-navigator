@@ -231,7 +231,14 @@ test('switching the shared icon preference updates every section and dialog with
       await setup.flush()
 
       // flush settles renderer work, not a cold Suspense import's filesystem I/O.
-      for (let attempt = 0; attempt < 30 && !setup.captureCharFrame().trim(); attempt++) {
+      for (
+        let attempt = 0;
+        attempt < 30 &&
+        (entry.name === 'setup'
+          ? !setup.captureCharFrame().includes('Navigator setup')
+          : !setup.captureCharFrame().trim());
+        attempt++
+      ) {
         await Bun.sleep(5)
         await setup.flush()
       }

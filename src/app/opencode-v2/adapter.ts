@@ -122,6 +122,7 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     titleVisibility: false,
     permissionMode: false,
     commandsReachableOnly: true,
+    nativeTodo: true,
   })
   bindToolbarActionState(context, api)
 
