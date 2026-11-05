@@ -1,7 +1,7 @@
 import type { HostProviderConnection } from '../../entities/provider-limit'
 import type { CredentialEntry, ProviderInfo } from '@opencode/client'
 
-const CHATGPT_METHODS = new Set(['chatgpt-browser', 'chatgpt-headless'])
+const CHATGPT_METHODS = new Set(['chatgpt-browser', 'chatgpt-headless', 'chatgpt-token-sharing'])
 
 export function providerAccountIdentity(
   provider: ProviderInfo,
