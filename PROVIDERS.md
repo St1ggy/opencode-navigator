@@ -85,6 +85,10 @@ network failure does not switch to a credential-based or external reader.
 - OpenCode 2 metadata matching uses public provider/credential APIs and the built-in
   ChatGPT OAuth `metadata.accountID`. Account IDs are compared with Codex's own
   reported identity; a provider name or model-name similarity is not proof.
+- ChatGPT token-sharing OAuth is recognized, but its `metadata.clientID` is not an
+  account ID. Without `accountID`, explicitly confirm the Codex account link once
+  per connection. The displayed quotas belong to that Codex account, not a separately
+  verified token-sharing allowance.
 - A confirmation is saved once per connection, or per provider when the host has
   no connection API. Models do not need separate confirmations. Conflicting older
   model-specific records remain isolated until an explicit relink.
