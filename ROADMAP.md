@@ -314,6 +314,8 @@ verification workflow before expanding the product surface.
 
 ### Agents And Limits
 
+- [x] Recognize ChatGPT token-sharing OAuth connections for the existing Codex account-linking flow without treating client IDs as account identity. Verify explicit confirmation, cross-model reuse, secret-free metadata handling and connection-switch invalidation; full check passes with 525 tests and one opt-in skip, and both supported real-host smokes pass.
+- [x] Reproduce and fix OpenCode 2 native confirmation handoff discarding Codex link confirmation after its wrapper unmounts; preserve nested navigation and reject superseded or disposed results. Verify actual wrapper replacement, confirmation/cancellation, connection-bound linking through the native bridge, 531 passing tests and both supported real-host smokes.
 - [x] Quiet the unfilled Limits scale segment to the sidebar-divider tone while retaining the filled segment, readable details, theme adaptation, and both text/icon modes; full checks and both host smokes pass, and screenshot PR #26 passed CI and merged with all 47 captures reproducible.
 - [x] Remove the vertical guide and its gutter from Limits in both icon modes following the updated design choice, while retaining full-width thin scales, reset-left/value-right details, and one blank row between windows; full checks and both reference host smokes pass, and screenshot PR #25 passed CI and merged with all 47 captures reproducible.
 - [x] Refresh and verify the hybrid Limits screenshot scenes through Prepare Release before publishing the redesigned layout; screenshot PR #24 passed CI and merged with all 47 captures reproducible, including Nerd Font and Text fallback layouts.

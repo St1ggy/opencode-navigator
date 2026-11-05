@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { onCleanup, onMount } from 'solid-js'
+import { onMount } from 'solid-js'
 
 import { SingleLinePrompt } from '../../shared/ui'
 
@@ -8,6 +8,8 @@ import type { Plugin } from '@opencode/plugin/tui'
 
 export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
   let dialogOpen = false
+  let dialogGeneration = 0
+  let handingOff = false
 
   function DialogPrompt(props: TuiDialogPromptProps) {
     // Native promise prompts replace Navigator frames; keep nested drafts in-frame.
@@ -15,22 +17,38 @@ export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
   }
 
   function DialogConfirm(props: TuiDialogConfirmProps) {
-    let active = true
+    const generation = dialogGeneration
 
-    onCleanup(() => {
-      active = false
-    })
     async function confirm() {
-      const confirmed = await context.ui.dialog.confirm({ title: props.title, message: props.message })
+      let result: ReturnType<typeof context.ui.dialog.confirm>
 
-      if (!active) return
+      // The native promise dialog replaces this component; that unmount is not cancellation.
+      handingOff = true
+      try {
+        result = context.ui.dialog.confirm({ title: props.title, message: props.message })
+      } finally {
+        handingOff = false
+      }
+      const confirmed = await result
+
+      if (generation !== dialogGeneration || api().lifecycle.signal.aborted) return
+
+      dialogOpen = false
 
       if (confirmed) props.onConfirm?.()
       else props.onCancel?.()
     }
     onMount(() => {
       void confirm().catch(() => {
-        if (active) props.onCancel?.()
+        if (
+          generation !== dialogGeneration ||
+          api().lifecycle.signal.aborted ||
+          context.keymap.mode.current() === 'modal'
+        )
+          return
+
+        dialogOpen = false
+        props.onCancel?.()
       })
     })
 
@@ -43,8 +61,13 @@ export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
     toast: (input: Parameters<TuiPluginApi['ui']['toast']>[0]) => context.ui.toast.show(input),
     dialog: {
       replace(render: () => unknown, onClose?: () => void) {
+        const generation = ++dialogGeneration
+
         dialogOpen = true
         context.ui.dialog.show(render as never, () => {
+          if (handingOff || generation !== dialogGeneration) return
+
+          dialogGeneration++
           dialogOpen = false
           onClose?.()
         })
@@ -53,6 +76,7 @@ export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
         context.ui.dialog.set({ size })
       },
       clear() {
+        dialogGeneration++
         dialogOpen = false
         context.ui.dialog.clear()
       },
