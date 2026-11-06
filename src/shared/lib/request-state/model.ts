@@ -151,16 +151,17 @@ function wait(delay: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     if (signal?.aborted) return reject(signal.reason ?? new DOMException('Aborted', 'AbortError'))
 
-    const timer = setTimeout(resolve, delay)
+    const abort = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', abort)
+      reject(signal?.reason ?? new DOMException('Aborted', 'AbortError'))
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', abort)
+      resolve()
+    }, delay)
 
-    signal?.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer)
-        reject(signal.reason ?? new DOMException('Aborted', 'AbortError'))
-      },
-      { once: true },
-    )
+    signal?.addEventListener('abort', abort, { once: true })
   })
 }
 

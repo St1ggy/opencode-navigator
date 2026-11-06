@@ -162,7 +162,7 @@ export function applyPreferencesUpdate(current: PreferencesDocument, update: Pre
   })
   const scope = {
     ...(Object.keys(behavior).length > 0 && { behavior }),
-    ...((update.layout || (!update.clearLayout && existing.layout)) && {
+    ...((update.layout ?? (!update.clearLayout && existing.layout)) && {
       layout: parseSectionLayout(update.layout ?? existing.layout),
     }),
     ...(Object.keys(mcp).length > 0 && { mcp }),
@@ -507,14 +507,17 @@ export function createPreferencesStore(stateDirectory: string) {
     }
   }
 
-  async function tryAcquireLock() {
+  async function tryAcquireLock(deadline: number) {
     const token = randomUUID()
     const candidate = `${lock}.${token}.candidate`
+    let acquired = false
+    let handedOff = false
 
     await writeFile(candidate, JSON.stringify({ token, pid: process.pid }), { flag: 'wx', mode: 0o600 })
     try {
       try {
         await link(candidate, lock)
+        acquired = true
       } catch (error) {
         if (!errno(error, 'EEXIST')) throw error
 
@@ -532,11 +535,15 @@ export function createPreferencesStore(stateDirectory: string) {
 
         if (markers.length === 0) break
 
+        if (Date.now() >= deadline) return
+
         await delay(10)
       }
       const currentOwner = await readLockOwner()
 
       if (currentOwner?.token !== token) return
+
+      handedOff = true
 
       return async () => {
         const current = await readLockOwner()
@@ -546,6 +553,12 @@ export function createPreferencesStore(stateDirectory: string) {
         await moveLockToTombstone('released')
       }
     } finally {
+      if (acquired && !handedOff) {
+        const current = await readLockOwner()
+
+        if (current?.token === token) await moveLockToTombstone('released')
+      }
+
       await unlink(candidate).catch((error) => {
         if (!errno(error, 'ENOENT')) throw error
       })
@@ -557,7 +570,7 @@ export function createPreferencesStore(stateDirectory: string) {
     const deadline = Date.now() + LOCK_TIMEOUT_MS
 
     while (true) {
-      const release = await tryAcquireLock()
+      const release = await tryAcquireLock(deadline)
 
       if (release) return release
 

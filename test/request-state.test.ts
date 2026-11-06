@@ -1,6 +1,37 @@
 import { expect, test } from 'bun:test'
+import { getEventListeners } from 'node:events'
 
 import { createRequestState, retryBackgroundRefresh } from '../src/controllers/request-state'
+
+test('completed and cancelled retry delays release lifecycle listeners', async () => {
+  const lifecycle = new AbortController()
+
+  for (let index = 0; index < 3; index++) {
+    let attempts = 0
+
+    await retryBackgroundRefresh(
+      async () => {
+        if (attempts++ === 0) throw new Error('Retry')
+      },
+      { signal: lifecycle.signal, delays: [0] },
+    )
+    expect(getEventListeners(lifecycle.signal, 'abort')).toHaveLength(0)
+  }
+  const pending = retryBackgroundRefresh(
+    async () => {
+      throw new Error('Retry')
+    },
+    {
+      signal: lifecycle.signal,
+      delays: [10_000],
+    },
+  )
+
+  await Bun.sleep(0)
+  lifecycle.abort(new DOMException('Cancelled', 'AbortError'))
+  await Promise.resolve(expect(pending).rejects.toThrow('Cancelled'))
+  expect(getEventListeners(lifecycle.signal, 'abort')).toHaveLength(0)
+})
 
 test('a superseded failure cannot replace a newer successful request state', () => {
   const requests = createRequestState()

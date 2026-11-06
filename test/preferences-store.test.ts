@@ -17,6 +17,56 @@ const defaults: SectionVisibility = {
   mcp: true,
 }
 
+test.each([false, true])(
+  'a recovery marker respects the deadline and lock ownership (replaced: %s)',
+  async (replaceOwner) => {
+    const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-store-'))
+    const store = createPreferencesStore(directory)
+    const folder = join(directory, 'opencode-pretty-sidebar')
+    const marker = join(folder, 'preferences.lock.recover.synthetic')
+    const lock = join(folder, 'preferences.lock')
+    const foreign = JSON.stringify({ token: 'another-owner', pid: process.pid })
+    let pending: Promise<unknown> | undefined
+
+    try {
+      await mkdir(folder, { recursive: true })
+      await writeFile(marker, JSON.stringify({ token: 'synthetic', pid: process.pid }))
+      pending = store
+        .load()
+        .then(() => 'loaded')
+        .catch(() => 'rejected')
+
+      if (replaceOwner) {
+        for (let attempt = 0; ; attempt++) {
+          if (await stat(lock).catch(() => {})) break
+
+          if (attempt >= 100) throw new Error('Synthetic lock was not acquired')
+
+          await Bun.sleep(10)
+        }
+        await writeFile(lock, foreign)
+      }
+
+      const result = await Promise.race([pending, Bun.sleep(3600).then(() => 'deadline missed')])
+
+      expect(result).toBe('rejected')
+
+      if (replaceOwner) {
+        expect(await readFile(lock, 'utf8')).toBe(foreign)
+        await rm(lock)
+      } else await Promise.resolve(expect(stat(lock)).rejects.toMatchObject({ code: 'ENOENT' }))
+
+      await rm(marker)
+      await store.load()
+    } finally {
+      await rm(marker, { force: true })
+      await pending
+      await rm(directory, { recursive: true, force: true })
+    }
+  },
+  10_000,
+)
+
 test('stores and clears the default layout', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pretty-sidebar-store-'))
   const layout = {
@@ -88,9 +138,11 @@ test('atomically replaces imported scope settings and rejects a stale preview', 
     })
     expect((await store.load()).worktrees['/repo']).toEqual({ layout, mcp: { wiki: 'disabled' } })
     await store.update({ target, mcp: { name: 'context7', state: 'enabled' } })
-    await expect(
-      store.update({ target, expectedScope, mcp: { states: { wiki: 'enabled' } }, clearMcp: true }),
-    ).rejects.toThrow('Settings changed after this preview')
+    await Promise.resolve(
+      expect(
+        store.update({ target, expectedScope, mcp: { states: { wiki: 'enabled' } }, clearMcp: true }),
+      ).rejects.toThrow('Settings changed after this preview'),
+    )
     expect((await store.load()).worktrees['/repo'].mcp).toEqual({ context7: 'enabled', wiki: 'disabled' })
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -643,8 +695,10 @@ test('refuses to overwrite malformed preferences JSON', async () => {
     await writeFile(preferencesFile, malformed)
     const store = createPreferencesStore(directory)
 
-    await expect(store.load()).rejects.toThrow('Malformed preferences JSON')
-    await expect(store.update({ behavior: { toggleKey: 'alt+s' } })).rejects.toThrow('Malformed preferences JSON')
+    await Promise.resolve(expect(store.load()).rejects.toThrow('Malformed preferences JSON'))
+    await Promise.resolve(
+      expect(store.update({ behavior: { toggleKey: 'alt+s' } })).rejects.toThrow('Malformed preferences JSON'),
+    )
     expect(await readFile(preferencesFile, 'utf8')).toBe(malformed)
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -673,14 +727,18 @@ test('keeps Codex account bindings private and locks one pending reset attempt a
 
     expect(saved.user.codexAccountBindings?.[JSON.stringify(['openai', 'gpt-5-codex'])]).toBe('account-1')
     expect(saved.user.pendingResetAttempt).toEqual(attempt)
-    await expect(
-      second.update({
-        user: { pendingResetAttempt: { ...attempt, idempotencyKey: 'a14b0eb7-a779-4be8-928a-a04d167340a1' } },
-      }),
-    ).rejects.toThrow('unresolved')
-    await expect(
-      second.update({ user: { clearPendingResetAttempt: 'a14b0eb7-a779-4be8-928a-a04d167340a1' } }),
-    ).rejects.toThrow('changed')
+    await Promise.resolve(
+      expect(
+        second.update({
+          user: { pendingResetAttempt: { ...attempt, idempotencyKey: 'a14b0eb7-a779-4be8-928a-a04d167340a1' } },
+        }),
+      ).rejects.toThrow('unresolved'),
+    )
+    await Promise.resolve(
+      expect(
+        second.update({ user: { clearPendingResetAttempt: 'a14b0eb7-a779-4be8-928a-a04d167340a1' } }),
+      ).rejects.toThrow('changed'),
+    )
     await first.update({ user: { clearPendingResetAttempt: attempt.idempotencyKey } })
     expect((await second.load()).user.pendingResetAttempt).toBeUndefined()
     expect((await second.load()).user.favoriteMcpServers).toEqual(['docs'])
