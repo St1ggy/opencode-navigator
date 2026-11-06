@@ -2,7 +2,7 @@ FROM --platform=linux/arm64 oven/bun@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c20
 
 FROM --platform=linux/arm64 ubuntu:26.04@sha256:e03767b4dc7cb87fc57b1f119d40d9a997ecc5570dc6e22d57d6b7e333bbe78c
 
-ARG CA_CERTIFICATES_VERSION=20260816ubuntu0.26.04.1
+ARG CA_CERTIFICATES_VERSION=20260816ubuntu0.26.04.2
 ARG GHOSTTY_VERSION=1.3.0~us1-0ubuntu1.1
 ARG OPENCODE_VERSION=1.19.5
 ARG OPENCODE_SHA256=ba14f4ce5c8fe567a00bac1c50aafe7eda6e1de7aa37964994c66148a28d529a
@@ -60,6 +60,7 @@ RUN fc-cache -f \
 
 WORKDIR /workspace
 COPY package.json bun.lock ./
+COPY patches/ patches/
 RUN bun install --frozen-lockfile --ignore-scripts
 
 COPY dist/ dist/

@@ -1,6 +1,15 @@
 import { expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 
+test('the screenshot image copies dependency patches before its frozen install', async () => {
+  const dockerfile = await readFile(new URL('../screenshots/harness/Dockerfile', import.meta.url), 'utf8')
+  const metadata = await Bun.file(new URL('../package.json', import.meta.url)).json()
+
+  expect(Object.keys(metadata.patchedDependencies).length).toBeGreaterThan(0)
+  expect(dockerfile).toContain('COPY patches/ patches/')
+  expect(dockerfile.indexOf('COPY patches/ patches/')).toBeLessThan(dockerfile.indexOf('RUN bun install'))
+})
+
 test('every screenshot scene has an output filename and a registered container capture fixture', async () => {
   const [manifest, capture] = await Promise.all([
     readFile(new URL('../scripts/capture-screenshots.sh', import.meta.url), 'utf8'),
