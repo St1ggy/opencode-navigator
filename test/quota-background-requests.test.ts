@@ -18,7 +18,7 @@ test('native quota polling ignores unchanged provider observations and never use
   let tick!: () => void
   const [hostObservation, setHostObservation] = createSignal(0)
   const client = {
-    usage: undefined,
+    experimental: { usage: undefined },
     provider: {
       async get() {
         calls.push('provider.get')

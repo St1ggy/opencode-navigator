@@ -47,7 +47,7 @@ export function createOpenCodeUsageAdapter(context: Plugin.Context) {
     id: 'opencode-usage',
     name: 'OpenCode workspace limits',
     supports: (model) =>
-      typeof context.client.usage?.limits === 'function' && provider(model)?.integrationID === 'opencode',
+      typeof context.client.experimental?.usage?.limits === 'function' && provider(model)?.integrationID === 'opencode',
     async read(model, signal) {
       signal.throwIfAborted()
       const epoch = generation
@@ -58,7 +58,10 @@ export function createOpenCodeUsageAdapter(context: Plugin.Context) {
         throw new Error('Native usage provider changed')
 
       try {
-        const result = await context.client.usage.limits({ location: { directory: location().directory } }, { signal })
+        const result = await context.client.experimental.usage.limits(
+          { location: { directory: location().directory } },
+          { signal },
+        )
 
         if (
           epoch !== generation ||

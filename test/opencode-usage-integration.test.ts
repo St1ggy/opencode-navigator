@@ -18,11 +18,14 @@ test('Console integration uses the host usage API without RPC reads, credentials
   }
 
   Object.assign(h.context.client, {
-    usage: {
-      limits: async () => {
-        nativeReads++
+    experimental: {
+      ...h.context.client.experimental,
+      usage: {
+        limits: async () => {
+          nativeReads++
 
-        return { location: { directory: '/synthetic' }, data: hostUsage }
+          return { location: { directory: '/synthetic' }, data: hostUsage }
+        },
       },
     },
     rpc: () => ({ read: forbidden, events: { on: () => () => {} } }),

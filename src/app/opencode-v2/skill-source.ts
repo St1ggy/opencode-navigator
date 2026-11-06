@@ -55,7 +55,7 @@ export function createV2SkillSource(context: Plugin.Context): SkillSource {
       )
         throw new Error('Skill target changed; select the source again')
 
-      await context.client.session.skill({ sessionID: route.sessionID, id: actual.id }, { signal })
+      await context.client.experimental.session.skill({ sessionID: route.sessionID, id: actual.id }, { signal })
 
       return !signal.aborted
     },

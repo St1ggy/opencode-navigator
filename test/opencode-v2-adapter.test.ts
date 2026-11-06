@@ -120,9 +120,19 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
     app: { version: packageJSON.devDependencies['@opencode/plugin'], channel: 'stable' },
     renderer: { keyInput: { on() {}, off() {} } },
     client: {
-      session: {
-        skill: async (input: unknown) => {
-          skillCalls.push(input)
+      experimental: {
+        session: {
+          skill: async (input: unknown, options: unknown) => {
+            skillCalls.push([input, options])
+          },
+        },
+        mcp: {
+          connect: async (input: unknown, options: unknown) => {
+            connectCalls.push([input, options])
+          },
+          disconnect: async (input: unknown, options: unknown) => {
+            disconnectCalls.push([input, options])
+          },
         },
       },
       skill: {
@@ -144,12 +154,6 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
           location: { directory: '/workspace' },
           data: [{ name: 'docs', status: { status: 'connected' } }],
         }),
-        connect: async (input: unknown) => {
-          connectCalls.push(input)
-        },
-        disconnect: async (input: unknown) => {
-          disconnectCalls.push(input)
-        },
       },
     },
     data: {
@@ -194,7 +198,7 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
     attention: {},
   } as unknown as Plugin.Context
   const adapter = createOpenCodeV2Api(context)
-  const options = { throwOnError: true }
+  const options = { throwOnError: true, signal: new AbortController().signal }
 
   const skills = await adapter.api.client.app.skills({ directory: '/workspace' }, options)
 
@@ -212,15 +216,19 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
 
   expect(activation.data).toBe(true)
   expect(staleActivation.data).toBe(false)
-  expect(skillCalls).toEqual([{ sessionID: 'session-v2', id: 'skill-1' }])
+  expect(skillCalls).toEqual([[{ sessionID: 'session-v2', id: 'skill-1' }, { signal: options.signal }]])
 
   const mcp = await adapter.api.client.mcp.status({ directory: '/workspace' }, options)
 
   expect(mcp.data).toEqual({ docs: { status: 'connected' } })
   await adapter.api.client.mcp.connect({ directory: '/workspace', name: 'docs' }, options)
   await adapter.api.client.mcp.disconnect({ directory: '/workspace', name: 'docs' }, options)
-  expect(connectCalls).toEqual([{ server: 'docs', location: { directory: '/workspace' } }])
-  expect(disconnectCalls).toEqual([{ server: 'docs', location: { directory: '/workspace' } }])
+  expect(connectCalls).toEqual([
+    [{ server: 'docs', location: { directory: '/workspace' } }, { signal: options.signal }],
+  ])
+  expect(disconnectCalls).toEqual([
+    [{ server: 'docs', location: { directory: '/workspace' } }, { signal: options.signal }],
+  ])
   expect(supportsSidebarSection(adapter.api, 'todo')).toBe(true)
   expect(hostCapabilityUnavailable(adapter.api, 'todo')).toBeUndefined()
   expect(supportsSidebarSection(adapter.api, 'lsp')).toBe(false)

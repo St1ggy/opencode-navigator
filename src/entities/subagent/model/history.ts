@@ -9,6 +9,7 @@ export type SubagentRun = {
   outcome?: 'finished' | 'error' | 'cancelled'
   errorMessage?: string
   startedBeforeObservation: boolean
+  nativeStartedAt?: number
 }
 export type SubagentError = NonNullable<EventSessionError['properties']['error']>
 
@@ -31,7 +32,7 @@ export function createSubagentHistory({ now = Date.now }: { now?: () => number }
   }
 
   return {
-    observeStatus(key: string, sessionID: string, status: SessionStatus, at = now()) {
+    observeStatus(key: string, sessionID: string, status: SessionStatus, at = now(), nativeStart?: number) {
       const value = state(key)
       const run = value.active.get(sessionID)
       const isKnown = value.known.has(sessionID)
@@ -49,10 +50,34 @@ export function createSubagentHistory({ now = Date.now }: { now?: () => number }
           .sort((a, b) => b.finishedAt! - a.finishedAt! || a.sessionID.localeCompare(b.sessionID))
           .slice(0, 10)
       } else {
-        if (run) return
+        const exact =
+          typeof nativeStart === 'number' && Number.isFinite(nativeStart) && nativeStart > 0 && nativeStart <= at
+            ? nativeStart
+            : undefined
+
+        if (run) {
+          if (exact === undefined || (run.nativeStartedAt !== undefined && exact <= run.nativeStartedAt)) return
+
+          const next = exact > run.startedAt ? { sessionID } : run
+
+          value.active.set(sessionID, {
+            ...next,
+            startedAt: exact,
+            nativeStartedAt: exact,
+            startedBeforeObservation: false,
+          })
+          changed()
+
+          return
+        }
 
         value.recent = value.recent.filter((item) => item.sessionID !== sessionID)
-        value.active.set(sessionID, { sessionID, startedAt: at, startedBeforeObservation: !isKnown })
+        value.active.set(sessionID, {
+          sessionID,
+          startedAt: exact ?? at,
+          startedBeforeObservation: exact === undefined && !isKnown,
+          ...(exact !== undefined && { nativeStartedAt: exact }),
+        })
       }
 
       changed()

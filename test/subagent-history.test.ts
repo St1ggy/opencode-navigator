@@ -52,3 +52,44 @@ test('history prioritizes errors and cancellation, including late errors, and bo
   history.remove('a', '11')
   expect(history.recent('a').some((run) => run.sessionID === '11')).toBe(false)
 })
+
+test('native start upgrades observed timing without resetting retries or accepting older execution metadata', () => {
+  const history = createSubagentHistory()
+
+  history.observeStatus('a', 'child', { type: 'busy' }, 1000)
+  history.observeStatus('a', 'child', { type: 'busy' }, 1100, 100)
+  const run = history.active('a', 'child')
+
+  expect(run).toMatchObject({ startedAt: 100, nativeStartedAt: 100, startedBeforeObservation: false })
+  history.observeStatus('a', 'child', { type: 'retry', attempt: 1, next: 1500, message: 'retry' }, 1200, 100)
+  expect(history.active('a', 'child')).toBe(run)
+  history.observeError('a', 'child', { name: 'UnknownError', data: { message: 'old failure' } }, 1300)
+  history.observeStatus('a', 'child', { type: 'busy' }, 2000, 1900)
+  expect(history.active('a', 'child')).toEqual({
+    sessionID: 'child',
+    startedAt: 1900,
+    nativeStartedAt: 1900,
+    startedBeforeObservation: false,
+  })
+  const resumed = history.active('a', 'child')
+
+  history.observeStatus('a', 'child', { type: 'busy' }, 2100, 100)
+  expect(history.active('a', 'child')).toBe(resumed)
+  history.observeStatus('a', 'child', { type: 'idle' }, 2200, 2100)
+  expect(history.recent('a')[0]).toMatchObject({ startedAt: 1900, finishedAt: 2200, outcome: 'finished' })
+  history.observeStatus('a', 'child', { type: 'busy' }, 2300, 2250)
+  expect(history.active('a', 'child')?.startedAt).toBe(2250)
+  expect(history.recent('a')).toEqual([])
+})
+
+test.each([undefined, 0, -1, NaN, Infinity, 1001])(
+  'invalid native start %s retains the observation fallback',
+  (native) => {
+    const history = createSubagentHistory()
+
+    history.observeStatus('a', 'child', { type: 'busy' }, 1000, native)
+    expect(history.active('a', 'child')).toMatchObject({ startedAt: 1000, startedBeforeObservation: true })
+    expect(history.active('a', 'child')?.nativeStartedAt).toBeUndefined()
+    expect(history.active('b', 'child')).toBeUndefined()
+  },
+)

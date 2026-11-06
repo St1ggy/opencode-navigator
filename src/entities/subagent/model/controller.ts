@@ -9,7 +9,13 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Session, SessionStatus } from '@opencode-ai/sdk/v2'
 
 type SessionMutation = { type: 'upsert'; info: Session } | { type: 'remove'; sessionID: string }
-type StatusMutation = { sessionID: string; status: SessionStatus; at: number; observed: Set<string> }
+type StatusMutation = {
+  sessionID: string
+  status: SessionStatus
+  at: number
+  startedAt?: number
+  observed: Set<string>
+}
 type ErrorMutation = { sessionID: string; error?: SubagentError; at: number; observed: Set<string> }
 type SubagentTarget = {
   key: string
@@ -93,14 +99,19 @@ export function createSubagentController(
   }
 
   function recordStatus(input: Pick<StatusMutation, 'sessionID' | 'status'>) {
-    const mutation: StatusMutation = { ...input, at: now(), observed: new Set() }
+    const mutation: StatusMutation = {
+      ...input,
+      at: now(),
+      startedAt: source?.startedAt?.(input.sessionID),
+      observed: new Set(),
+    }
 
     for (const journal of journals) journal.statuses.push(mutation)
     batch(() => {
       for (const [key, items] of Object.entries(snapshots())) {
         if (items.every((item) => item.id !== mutation.sessionID)) continue
 
-        history.observeStatus(key, mutation.sessionID, mutation.status, mutation.at)
+        history.observeStatus(key, mutation.sessionID, mutation.status, mutation.at, mutation.startedAt)
         mutation.observed.add(key)
       }
 
@@ -178,7 +189,7 @@ export function createSubagentController(
         const remoteStatuses = source
           ? []
           : await Promise.all(
-              nextChildren.map((session) => {
+              nextChildren.map(async (session) => {
                 const key = JSON.stringify([current.key, session.id])
 
                 return (remoteRetryAt.get(key) ?? 0) <= now()
@@ -228,13 +239,13 @@ export function createSubagentController(
               if (mutations.length > 0) {
                 for (const mutation of mutations) {
                   if (!mutation.observed.has(current.key))
-                    history.observeStatus(current.key, session.id, mutation.status, mutation.at)
+                    history.observeStatus(current.key, session.id, mutation.status, mutation.at, mutation.startedAt)
                 }
               } else if (!missing[session.id]) {
                 const status = nextStatuses[session.id] ?? { type: 'idle' as const }
 
                 nextStatuses[session.id] = status
-                history.observeStatus(current.key, session.id, status)
+                history.observeStatus(current.key, session.id, status, now(), source?.startedAt?.(session.id))
               }
 
               for (const mutation of journal.errors) {

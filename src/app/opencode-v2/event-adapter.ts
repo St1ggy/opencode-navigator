@@ -1,8 +1,8 @@
 import { executionStatus } from './session-status'
 
 import type { createV2SessionAdapter } from './session-adapter'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 type NativeEvent = Parameters<Plugin.Context['data']['on']>[0]
 type EventData = { type: string; data: Record<string, unknown> }
@@ -28,7 +28,7 @@ function eventTypes(name: string): readonly NativeEvent[] {
 
   if (name === 'session.idle') return ['session.idle', ...executions.slice(1)]
 
-  if (name === 'session.error') return ['session.execution.failed']
+  if (name === 'session.error') return ['session.execution.failed', 'session.execution.interrupted']
 
   if (name === 'mcp.tools.changed') return ['mcp.status.changed', 'mcp.resources.changed']
 
@@ -110,7 +110,10 @@ export function createV2EventAdapter(context: Plugin.Context, sessions: ReturnTy
 
             emit({
               sessionID,
-              error: error && { name: error.type ?? 'Error', data: { message: error.message ?? 'Session error' } },
+              error:
+                event.type === 'session.execution.interrupted'
+                  ? { name: 'MessageAbortedError', data: { message: 'Session aborted' } }
+                  : error && { name: error.type ?? 'Error', data: { message: error.message ?? 'Session error' } },
             })
 
             return

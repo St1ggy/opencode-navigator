@@ -1,5 +1,5 @@
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 type Routing = { directory?: string }
 type RequestOptions = { signal?: AbortSignal }
@@ -47,7 +47,10 @@ export function createV2ClientAdapter(context: Plugin.Context) {
 
           if (route.type !== 'session' || session?.location.directory !== directory || !id) return { data: false }
 
-          await context.client.session.skill({ sessionID: route.sessionID, id }, { signal: options.signal })
+          await context.client.experimental.session.skill(
+            { sessionID: route.sessionID, id },
+            { signal: options.signal },
+          )
 
           return { data: true }
         },
@@ -60,12 +63,18 @@ export function createV2ClientAdapter(context: Plugin.Context) {
           return { data }
         },
         async connect(input: Routing & { name: string }, options: RequestOptions = {}) {
-          await context.client.mcp.connect({ server: input.name, ...location(input) }, { signal: options.signal })
+          await context.client.experimental.mcp.connect(
+            { server: input.name, ...location(input) },
+            { signal: options.signal },
+          )
 
           return { data: undefined }
         },
         async disconnect(input: Routing & { name: string }, options: RequestOptions = {}) {
-          await context.client.mcp.disconnect({ server: input.name, ...location(input) }, { signal: options.signal })
+          await context.client.experimental.mcp.disconnect(
+            { server: input.name, ...location(input) },
+            { signal: options.signal },
+          )
 
           return { data: undefined }
         },

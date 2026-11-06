@@ -1,6 +1,6 @@
 import type { SubagentSource } from '../../entities/subagent'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function createV2SubagentSource(context: Plugin.Context, api: TuiPluginApi): SubagentSource {
   return {
@@ -14,6 +14,16 @@ export function createV2SubagentSource(context: Plugin.Context, api: TuiPluginAp
           return value ? [value] : []
         }),
     status: (id) => api.state.session.status(id) ?? { type: 'idle' },
+    startedAt(id) {
+      if (context.data.session.status(id) !== 'running') return
+
+      const time = context.data.session.get(id)?.time
+
+      // While running, idle and outcome still describe the previous execution.
+      if (!time?.busy || (time.idle !== undefined && time.idle >= time.busy)) return
+
+      return time.busy
+    },
     async refresh(parentID, signal) {
       signal.throwIfAborted()
       let cursor: NonNullable<Parameters<typeof context.client.session.list>[0]>['cursor']

@@ -25,11 +25,13 @@ function fixture() {
       },
     },
     client: {
-      usage: {
-        limits: async () => {
-          nativeReads++
+      experimental: {
+        usage: {
+          limits: async () => {
+            nativeReads++
 
-          return read()
+            return read()
+          },
         },
       },
     },
@@ -98,13 +100,13 @@ test('native account switches reject stale reads and unrelated provider observat
 
   h.handlers.get('credential.switched')!({ data: { integrationID: 'opencode', credentialID: 'new-account' } })
   resolve({ location: { directory: '/synthetic' }, data: hostUsage })
-  await expect(read).rejects.toThrow('target changed')
+  await Promise.resolve(expect(read).rejects.toThrow('target changed'))
   expect(usage.target(model).quotaContext).not.toBe(before)
   expect(h.count()).toBe(1)
   expect(h.handlers.has('provider.updated')).toBe(false)
   h.handlers.get('credential.switched')!({ data: { integrationID: 'unrelated' } })
   expect(h.count()).toBe(1)
-  usage.adapter.dispose?.()
+  await usage.adapter.dispose?.()
   expect(h.handlers.size).toBe(0)
 })
 
@@ -129,10 +131,10 @@ test('foreign integration events preserve in-flight native workspace usage while
 
     h.handlers.get('credential.updated')?.({ location: { directory: '/other-workspace' } })
     finish({ location: { directory: '/synthetic' }, data: hostUsage })
-    await expect(stale).rejects.toThrow('Workspace usage target changed')
+    await Promise.resolve(expect(stale).rejects.toThrow('Workspace usage target changed'))
     expect(h.count()).toBe(2)
   } finally {
-    usage.adapter.dispose?.()
+    await usage.adapter.dispose?.()
   }
 })
 

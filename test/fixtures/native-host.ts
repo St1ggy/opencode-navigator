@@ -6,14 +6,14 @@ import { createOpenCodeV2Api } from '../../src/app/opencode-v2'
 
 import type { Plugin } from '@opencode/plugin/tui'
 
-export function nativeHostFixture() {
+export function nativeHostFixture(options: { childTime?: { busy?: number; idle?: number } } = {}) {
   const [route, setRoute] = createSignal({ type: 'session', sessionID: 'parent' })
   const [state, setState] = createStore({
     skills: [
       { id: 'skill-a', name: 'review', path: '/synthetic/a', content: 'A' },
       { id: 'skill-b', name: 'review', path: '/synthetic/b', content: 'B' },
     ],
-    servers: [{ name: 'docs', status: { status: 'connected' as string } }],
+    servers: [{ name: 'docs', status: { status: 'connected' } }],
     sessions: [
       {
         id: 'parent',
@@ -29,7 +29,7 @@ export function nativeHostFixture() {
         projectID: 'project',
         title: 'Child',
         location: { directory: '/synthetic' },
-        time: { created: 1, updated: 2 },
+        time: { created: 1, updated: 2, ...options.childTime },
         cost: 0,
       },
     ],
@@ -75,16 +75,20 @@ export function nativeHostFixture() {
     },
     client: {
       session: {
-        skill: async (input: unknown) => {
-          calls.push(['skill', input])
-        },
         list: async () => ({ data: state.sessions.filter((s) => s.parentID === 'parent'), cursor: {} }),
       },
-      mcp: {
-        connect: async (input: unknown) => {
-          calls.push(['connect', input])
+      experimental: {
+        session: {
+          skill: async (input: unknown) => {
+            calls.push(['skill', input])
+          },
         },
-        disconnect: async () => {},
+        mcp: {
+          connect: async (input: unknown) => {
+            calls.push(['connect', input])
+          },
+          disconnect: async () => {},
+        },
       },
     },
     keymap: {

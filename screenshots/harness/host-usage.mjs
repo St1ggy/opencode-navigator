@@ -30,11 +30,11 @@ export function createHostUsageFixture(scene, now, directory) {
         model: { list: () => [{ providerID: model.providerID, id: model.modelID, cost: [{ input: 1 }] }] },
       },
     },
-    client: { usage: { async limits() {
+    client: { experimental: { usage: { async limits() {
       if (scene === 'host-usage-failure') throw new Error('Synthetic native usage network failure')
 
       return { location, data: scene === 'host-usage-auth' ? null : usage }
-    } } },
+    } } } },
   }
 
   return { context, model }
