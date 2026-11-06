@@ -6,8 +6,8 @@ import { PLUGIN_ID } from '../shared/config'
 import { isSameMajorVersion } from '../shared/lib/version'
 
 import type { VersionUpdater } from '../features/version-footer'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi, TuiPluginMeta } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 type Run = (command: readonly string[]) => Promise<void>
 type ReadConfig = (path: string) => Promise<unknown>

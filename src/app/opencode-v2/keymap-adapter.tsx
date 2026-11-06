@@ -5,8 +5,8 @@ import { PLUGIN_ID } from '../../shared/config'
 import { enabled, v2LayerCommands } from './keymap-commands'
 
 import type { LegacyCommand, LegacyLayer } from './keymap-commands'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 import type { KeyEvent, Renderable } from '@opentui/core'
 
 type LegacyKeymap = TuiPluginApi['keymap']

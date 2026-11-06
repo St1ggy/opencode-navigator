@@ -144,9 +144,11 @@ test('merges interleaved pin edits and unrelated preferences under the existing 
     await second.update({ user: { toolbarPin: { operation: 'remove', key: toolbarPinKey(skill) } } })
     await controller.reloadFromFile()
     expect(controller.toolbarPins()).toHaveLength(1)
-    await expect(
-      first.update({ user: { toolbarPin: { operation: 'configure', key: toolbarPinKey(skill), icon: 'check' } } }),
-    ).rejects.toThrow('no longer exists')
+    await Promise.resolve(
+      expect(
+        first.update({ user: { toolbarPin: { operation: 'configure', key: toolbarPinKey(skill), icon: 'check' } } }),
+      ).rejects.toThrow('no longer exists'),
+    )
     expect(() =>
       controller.changeToolbarPin({
         operation: 'configure',

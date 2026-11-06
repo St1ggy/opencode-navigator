@@ -5,9 +5,9 @@ import { SelectionBox, useIcons } from '../../../shared/ui'
 import { SectionHeaderControl } from './section-header-control'
 import { useSidebarItem } from './sidebar-item'
 
-import type { SectionHeaderAction } from './section-header-control'
 import type { SidebarSection } from '../../../entities/sidebar-layout'
 import type { SidebarInteraction } from '../model/sidebar-interaction'
+import type { SectionHeaderAction } from './section-header-control'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { BoxRenderable } from '@opentui/core'
 

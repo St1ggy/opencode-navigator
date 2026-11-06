@@ -9,9 +9,9 @@ import { TodoSection } from '../src/pages/session-sidebar'
 import { IconProvider } from '../src/shared/ui'
 
 import type { PreferencesController } from '../src/entities/preferences'
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { SessionMessageInfo } from '@opencode/client'
 import type { Plugin } from '@opencode/plugin/tui'
-import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 test('native Todo renders filters and progress, reacts to the host, and refreshes without a Todo server', async () => {
   const [messages, setMessages] = createSignal<SessionMessageInfo[]>([

@@ -71,7 +71,7 @@ test.each(['file', 'directory', 'route', 'sources'] as const)(
 
       changes[change]()
 
-      await expect(h.model.apply(preview)).rejects.toThrow(/changed/iu)
+      await Promise.resolve(expect(h.model.apply(preview)).rejects.toThrow(/changed/iu))
       expect(h.writes).toEqual([])
     } finally {
       h.lifecycle.abort()
@@ -91,7 +91,7 @@ test('native Todo exposes retryable config errors and preserves the draft after 
     const preview = await h.model.prepare('session', h.path)
 
     h.failWrite(true)
-    await expect(h.model.apply(preview)).rejects.toThrow('Synthetic write failure')
+    await Promise.resolve(expect(h.model.apply(preview)).rejects.toThrow('Synthetic write failure'))
     expect(h.text()).toBe(preview.original)
     h.failWrite(false)
     await h.model.refresh('session')
@@ -117,11 +117,11 @@ test('native Todo blocks duplicate saves and ignores foreign config events', asy
     const preview = await h.model.prepare('session', h.path)
     const save = h.model.apply(preview)
 
-    await expect(h.model.apply(preview)).rejects.toThrow('already being saved')
+    await Promise.resolve(expect(h.model.apply(preview)).rejects.toThrow('already being saved'))
     await save
     expect(h.writes).toHaveLength(1)
     h.lifecycle.abort()
-    await expect(h.model.prepare('session', h.path)).rejects.toThrow('changed')
+    await Promise.resolve(expect(h.model.prepare('session', h.path)).rejects.toThrow('changed'))
   } finally {
     h.lifecycle.abort()
   }

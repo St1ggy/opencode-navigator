@@ -1,9 +1,9 @@
 import { DEFAULT_SEARCH_KEY } from '../../../shared/config'
 import { supportsPermissionMode } from '../../../shared/lib/host-capabilities'
 
-import type { SettingsOption } from './settings-groups'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { useIcons } from '../../../shared/ui'
+import type { SettingsOption } from './settings-groups'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function behaviorSettingsOptions(

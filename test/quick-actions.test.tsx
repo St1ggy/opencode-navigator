@@ -12,8 +12,8 @@ import { QuickActionRow } from '../src/pages/session-sidebar/ui/quick-action-row
 import { SidebarRowList } from '../src/pages/session-sidebar/ui/sidebar-row-list'
 import { QUICK_ACTIONS, QUICK_ACTION_IDS, quickActionDisabledReason, quickActionLabel } from '../src/quick-actions'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 import type { Renderable } from '@opentui/core'
 
 function find(node: Renderable, id: string): Renderable | undefined {

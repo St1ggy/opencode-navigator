@@ -43,7 +43,7 @@ test('keyboard help uses the shortcut inventory and scrolls within a short modal
     const commands = layers.flatMap((layer) => layer.commands ?? [])
 
     expect(body.height).toBeLessThanOrEqual(9)
-    commands.find(({ name }) => name.endsWith('.3'))!.run({} as never)
+    await commands.find(({ name }) => name.endsWith('.3'))!.run({} as never)
     await setup.flush()
     expect(body.scrollTop).toBeGreaterThan(0)
     const allText: string[] = []

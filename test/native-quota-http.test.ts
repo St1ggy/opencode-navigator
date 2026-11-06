@@ -8,7 +8,7 @@ test('quota body cancellation settles a hung stream even when cancellation itsel
   const pending = readQuotaResponseBody(response, controller.signal)
 
   controller.abort(new Error('Synthetic cancellation'))
-  await expect(pending).rejects.toThrow('Synthetic cancellation')
+  await Promise.resolve(expect(pending).rejects.toThrow('Synthetic cancellation'))
 })
 
 test('reading a quota response clone does not wait for or consume the host response', async () => {
@@ -20,8 +20,8 @@ test('reading a quota response clone does not wait for or consume the host respo
 })
 
 test('quota JSON reads reject oversized and malformed responses', async () => {
-  await expect(readQuotaResponseBody(new Response('not JSON'))).rejects.toThrow('invalid')
-  await expect(readQuotaResponseBody(new Response(' '.repeat(1_000_001)))).rejects.toThrow('too large')
+  await Promise.resolve(expect(readQuotaResponseBody(new Response('not JSON'))).rejects.toThrow('invalid'))
+  await Promise.resolve(expect(readQuotaResponseBody(new Response(' '.repeat(1_000_001)))).rejects.toThrow('too large'))
 })
 
 test('quota transport cancellation does not rely on a fetch implementation honoring AbortSignal', async () => {
@@ -30,5 +30,5 @@ test('quota transport cancellation does not rely on a fetch implementation honor
   const pending = readProviderJson(fetcher, 'https://example.com/quota', 'synthetic-token', controller.signal)
 
   controller.abort(new Error('Synthetic cancellation'))
-  await expect(pending).rejects.toThrow('Synthetic cancellation')
+  await Promise.resolve(expect(pending).rejects.toThrow('Synthetic cancellation'))
 })

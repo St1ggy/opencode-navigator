@@ -119,7 +119,7 @@ test('preserves cached skills on failure and a retry wins over a late failure', 
   const failed = controller.refresh(target, true)
 
   responses[1].reject(new Error('skills unavailable'))
-  await expect(failed).rejects.toThrow('skills unavailable')
+  await Promise.resolve(expect(failed).rejects.toThrow('skills unavailable'))
   expect(controller.list(target).map((skill) => skill.name)).toEqual(['cached'])
   expect(controller.state(target)).toMatchObject({
     status: 'error',
@@ -137,7 +137,7 @@ test('preserves cached skills on failure and a retry wins over a late failure', 
 
   responses[3].reject(new Error('late failure'))
   responses[4].resolve({ data: [{ name: 'latest', location: '/latest', content: '' }] })
-  await expect(stale).rejects.toThrow('late failure')
+  await Promise.resolve(expect(stale).rejects.toThrow('late failure'))
   await latest
 
   expect(controller.list(target).map((skill) => skill.name)).toEqual(['latest'])

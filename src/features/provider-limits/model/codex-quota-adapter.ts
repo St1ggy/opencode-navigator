@@ -2,9 +2,9 @@ import { normalizeProviderQuota } from '../../../entities/provider-limit'
 
 import { codexQuotaWindows } from './codex-quota-windows'
 
+import type { ProviderQuotaAdapter, ProviderQuotaSnapshot, QuotaWindow } from '../../../entities/provider-limit'
 import type { CodexAppServerClient } from './codex-app-server'
 import type { CodexLimit } from './codex-quota-windows'
-import type { ProviderQuotaAdapter, ProviderQuotaSnapshot, QuotaWindow } from '../../../entities/provider-limit'
 
 type Credit = {
   id: string

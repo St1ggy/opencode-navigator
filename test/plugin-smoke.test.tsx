@@ -194,7 +194,7 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
     expect(requestSignals.length).toBeGreaterThanOrEqual(5)
 
     lifecycle.abort()
-    await Promise.all(disposers.map((dispose) => dispose()))
+    await Promise.all(disposers.map(async (dispose) => dispose()))
     await Promise.resolve()
     expect(requestSignals.every((signal) => signal.aborted)).toBe(true)
   } finally {

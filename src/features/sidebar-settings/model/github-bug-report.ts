@@ -2,8 +2,8 @@ import { runProcessCommand } from '../../../shared/lib/process-command'
 
 import { BUG_REPORT_REPOSITORY } from './bug-report-browser'
 
-import type { BugReportDraft } from './bug-report-draft'
 import type { CommandResult } from '../../../shared/lib/process-command'
+import type { BugReportDraft } from './bug-report-draft'
 
 export type GitHubReadiness = {
   status: 'checking' | 'ready' | 'missing' | 'unauthenticated' | 'unsupported'

@@ -4,9 +4,9 @@ import { createMemo, createRoot, createSignal } from 'solid-js'
 import { createNativeTodoController } from '../src/app/opencode-v2/native-todo-controller'
 import { nativeTodos } from '../src/app/opencode-v2/native-todos'
 
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { JsonValue, SessionMessageAssistantTool, SessionMessageInfo } from '@opencode/client'
 import type { Plugin } from '@opencode/plugin/tui'
-import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 function message(
   id: string,
@@ -135,7 +135,7 @@ test('the native controller stays reactive to host snapshots and revert without 
     setBoundary(second.id)
     expect(list()[0]?.content).toBe('Live')
     fail = true
-    await expect(controller.refresh('ses_one')).rejects.toThrow('Native refresh failed')
+    await Promise.resolve(expect(controller.refresh('ses_one')).rejects.toThrow('Native refresh failed'))
     expect(controller.state('ses_one').status).toBe('error')
     expect(list()[0]?.content).toBe('Live')
     fail = false
@@ -185,7 +185,7 @@ test('a late native refresh failure cannot replace the current session state', a
   try {
     await controller.refresh('ses_current')
     rejectOld(new Error('Old session failed'))
-    await expect(pending).rejects.toThrow('Old session failed')
+    await Promise.resolve(expect(pending).rejects.toThrow('Old session failed'))
     expect(controller.state('ses_current').status).toBe('ready')
     expect(controller.list('ses_current')).toEqual([])
   } finally {

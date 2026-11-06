@@ -2,8 +2,8 @@ import { balanceSnapshot } from './balance-parsers'
 import { readProviderJson } from './native-http'
 import { anthropicConfiguredWindows } from './subscription-parsers'
 
-import type { NativeQuotaRequest } from './native-context'
 import type { QuotaWindow } from '../../../entities/provider-limit'
+import type { NativeQuotaRequest } from './native-context'
 
 export async function readAnthropicQuota(input: NativeQuotaRequest) {
   const options = {

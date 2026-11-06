@@ -13,10 +13,10 @@ import { registerSettingsKeymap } from './settings-keymap'
 import { useSettingsReveal } from './settings-scroll'
 import { createSettingsSelection } from './settings-selection'
 
-import type { createLayoutPresetActions as LayoutPresetActionsFactory } from './layout-preset-actions'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
+import type { createLayoutPresetActions as LayoutPresetActionsFactory } from './layout-preset-actions'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { ScrollBoxRenderable } from '@opentui/core'
 

@@ -1,6 +1,6 @@
 import type { LimitsModelSelection, SelectedModel } from '../entities/provider-limit'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 const commandName = (kind: 'model' | 'variant') => (kind === 'model' ? 'model.list' : 'variant.list')
 

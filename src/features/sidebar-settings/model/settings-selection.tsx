@@ -5,7 +5,6 @@ import { selectAboutAction } from './about-actions'
 import { openLimitsRefreshPrompt } from './limits-refresh-prompt'
 import { openToolbarManager } from './toolbar-dialog-loader'
 
-import type { SettingsOption } from './settings-groups'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
@@ -15,6 +14,7 @@ import type { QuickActionsDialog as QuickActionsComponent } from '../ui/quick-ac
 import type { openSettingsImport as ImportSettingsFunction } from '../ui/settings-import-dialog'
 import type { SkillGroupsDialog as SkillGroupsComponent } from '../ui/skill-groups-dialog'
 import type { TrustedSkillsDialog as TrustedSkillsComponent } from '../ui/trusted-skills-dialog'
+import type { SettingsOption } from './settings-groups'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor, Setter } from 'solid-js'
 

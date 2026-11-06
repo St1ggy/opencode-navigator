@@ -56,13 +56,15 @@ test('banked reset remains manual and validates eligible model, account and cred
   await adapter.prepareResetCreditConsumption!(model, 'credit-1', signal)
   expect(methods).not.toContain('account/rateLimitResetCredit/consume')
   accountId = 'account-2'
-  await expect(
-    adapter.consumeResetCredit!(
-      model,
-      { accountID: 'account-1', creditID: 'credit-1', idempotencyKey: randomUUID() },
-      signal,
-    ),
-  ).rejects.toThrow('Codex account')
+  await Promise.resolve(
+    expect(
+      adapter.consumeResetCredit!(
+        model,
+        { accountID: 'account-1', creditID: 'credit-1', idempotencyKey: randomUUID() },
+        signal,
+      ),
+    ).rejects.toThrow('Codex account'),
+  )
   expect(methods).not.toContain('account/rateLimitResetCredit/consume')
   accountId = 'account-1'
   const outcome = await adapter.consumeResetCredit!(
@@ -78,9 +80,11 @@ test('banked reset remains manual and validates eligible model, account and cred
   let checks = 0
   const guarded = createCodexQuotaAdapter(client, async () => ++checks === 1)
 
-  await expect(
-    guarded.consumeResetCredit!(model, { accountID: 'account-1', idempotencyKey: randomUUID() }, signal),
-  ).rejects.toThrow('OpenCode account or connection changed')
+  await Promise.resolve(
+    expect(
+      guarded.consumeResetCredit!(model, { accountID: 'account-1', idempotencyKey: randomUUID() }, signal),
+    ).rejects.toThrow('OpenCode account or connection changed'),
+  )
   expect(methods).not.toContain('account/rateLimitResetCredit/consume')
   const unavailable = createCodexQuotaAdapter(client, async () => false)
 

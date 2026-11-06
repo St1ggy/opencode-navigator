@@ -3,8 +3,8 @@ import { onCleanup, onMount } from 'solid-js'
 
 import { SingleLinePrompt } from '../../shared/ui'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiDialogConfirmProps, TuiDialogPromptProps, TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
   let dialogOpen = false
@@ -20,13 +20,18 @@ export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
     onCleanup(() => {
       active = false
     })
-    onMount(async () => {
+    async function confirm() {
       const confirmed = await context.ui.dialog.confirm({ title: props.title, message: props.message })
 
       if (!active) return
 
       if (confirmed) props.onConfirm?.()
       else props.onCancel?.()
+    }
+    onMount(() => {
+      void confirm().catch(() => {
+        if (active) props.onCancel?.()
+      })
     })
 
     return <box />

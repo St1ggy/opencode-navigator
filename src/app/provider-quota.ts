@@ -13,8 +13,8 @@ import { createOpenCodeV2AccountSource } from './opencode-v2/account-source'
 import { selectedV2Model } from './opencode-v2/model-adapter'
 
 import type { PreferencesController } from '../entities/preferences'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function createProviderQuotaIntegration(
   api: TuiPluginApi,

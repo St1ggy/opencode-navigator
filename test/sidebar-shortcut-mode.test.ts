@@ -78,7 +78,7 @@ function setup(timeoutMs = 5000, lsp = true) {
     const binding = layer?.bindings?.find((candidate) => candidate.key === key)
 
     expect(typeof binding?.cmd).toBe('string')
-    command(binding?.cmd as string, mode)?.run?.({} as never)
+    void command(binding?.cmd as string, mode)?.run?.({} as never)
   }
 
   return { api, controller, dispatched, dispatchModes, modes, toasts, layers, activeLayers, command, press }
@@ -92,8 +92,8 @@ test('only the configured binding enters mode while palette and legacy toggles s
     const binding = harness.layers.find((layer) => layer.bindings?.[0]?.key === 'ctrl+shift+b')?.bindings?.[0]
 
     expect(binding?.cmd).not.toBe('opencode-navigator.toggle')
-    harness.command('opencode-navigator.toggle').run?.({} as never)
-    harness.command('opencode-pretty-sidebar.toggle').run?.({} as never)
+    void harness.command('opencode-navigator.toggle').run?.({} as never)
+    void harness.command('opencode-pretty-sidebar.toggle').run?.({} as never)
     expect(harness.dispatched).toEqual(['session.sidebar.toggle', 'session.sidebar.toggle'])
     expect(harness.controller.active()).toBe(false)
 

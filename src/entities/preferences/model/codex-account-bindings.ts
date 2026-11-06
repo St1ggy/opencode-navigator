@@ -22,7 +22,7 @@ export function migrateCodexAccountBindings(value: unknown): Record<string, stri
 
   return Object.fromEntries(
     Object.entries(value).filter(([key, account]) => key && typeof account === 'string' && account.trim()),
-  ) as Record<string, string>
+  )
 }
 
 export function codexBindingAccount(bindings: Record<string, string>, target: CodexBindingTarget, modelID?: string) {

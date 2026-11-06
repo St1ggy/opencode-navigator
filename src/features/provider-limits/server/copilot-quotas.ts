@@ -1,7 +1,7 @@
 import { createCopilotRuntime } from './copilot-runtime'
 
-import type { NativeQuotaRequest } from './native-context'
 import type { ProviderQuotaSnapshot } from '../../../entities/provider-limit'
+import type { NativeQuotaRequest } from './native-context'
 import type * as CopilotSDK from '@github/copilot-sdk'
 
 export function createCopilotQuotaReader(

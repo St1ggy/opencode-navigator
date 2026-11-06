@@ -1,7 +1,7 @@
 import { getNavigatorAboutServices } from './about-services'
 
-import type { SettingsOption } from './settings-groups'
 import type { useIcons } from '../../../shared/ui'
+import type { SettingsOption } from './settings-groups'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function aboutSettingsOptions(api: TuiPluginApi, icons: ReturnType<typeof useIcons>): SettingsOption[] {

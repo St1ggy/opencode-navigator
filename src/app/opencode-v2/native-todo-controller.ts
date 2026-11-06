@@ -3,8 +3,8 @@ import { createRequestState } from '../../shared/lib/request-state'
 import { nativeTodos } from './native-todos'
 
 import type { SidebarTodo, TodoController } from '../../entities/todo'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function createNativeTodoController(context: Plugin.Context, api: TuiPluginApi): TodoController {
   const requests = createRequestState(api.lifecycle.signal)

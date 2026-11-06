@@ -79,7 +79,19 @@ test('an already-open wizard recomputes viewport bounds when the host terminal s
 
     expect(header.screenY).toBeGreaterThanOrEqual(0)
     expect(next.screenY + next.height).toBeLessThanOrEqual(18)
-    for (let index = 0; index < 6; index++) h.api.keymap.dispatchCommand('opencode-navigator.wizard.select')
+    for (let slide = 0; slide < 6; slide++) {
+      for (const width of [48, 76]) {
+        h.renderer.resize(width, 18)
+        await h.flush()
+        const button = h.renderer.root.findDescendantById('opencode-navigator.wizard.next') as BoxRenderable
+
+        expect(header.screenY).toBeGreaterThanOrEqual(0)
+        expect(button.screenY + button.height).toBeLessThanOrEqual(18)
+        expect(button.screenX + button.width).toBeLessThanOrEqual(width)
+      }
+      h.api.keymap.dispatchCommand('opencode-navigator.wizard.select')
+      await h.flush()
+    }
     await h.wait('Finish')
     const finish = h.renderer.root.findDescendantById('opencode-navigator.wizard.finish') as BoxRenderable
 

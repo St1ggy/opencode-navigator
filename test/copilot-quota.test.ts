@@ -105,7 +105,7 @@ test('Copilot startup deadline settles even when SDK startup never rejects, and 
 
   try {
     h.startHangs(true)
-    await expect(h.reader.read(h.input())).rejects.toBeDefined()
+    await Promise.resolve(expect(h.reader.read(h.input())).rejects.toBeDefined())
     expect(h.instances[0].stopped).toBe(true)
     h.startHangs(false)
     expect((await h.reader.read(h.input())).availability).toBe('ready')
@@ -129,7 +129,7 @@ test('Copilot cancellation settles a hung RPC and does not poison later reads', 
     while (h.tokens.length === 0) await Bun.sleep(1)
 
     controller.abort(new Error('Synthetic cancellation'))
-    await expect(pending).rejects.toThrow('Synthetic cancellation')
+    await Promise.resolve(expect(pending).rejects.toThrow('Synthetic cancellation'))
     expect(h.instances[0].stopped).toBe(true)
     h.readHangs(false)
     expect((await h.reader.read(h.input())).availability).toBe('ready')
@@ -153,7 +153,7 @@ test('Copilot disposal prevents a late SDK import from starting a process', asyn
 
   await Bun.sleep(1)
   await reader.dispose()
-  await expect(pending).rejects.toBeDefined()
+  await Promise.resolve(expect(pending).rejects.toBeDefined())
   finish({
     CopilotClient: class {
       constructor() {
@@ -161,6 +161,6 @@ test('Copilot disposal prevents a late SDK import from starting a process', asyn
       }
     },
   } as unknown as typeof CopilotSDK)
-  await expect(reader.read(h.input())).rejects.toThrow('disposed')
+  await Promise.resolve(expect(reader.read(h.input())).rejects.toThrow('disposed'))
   await h.reader.dispose()
 })

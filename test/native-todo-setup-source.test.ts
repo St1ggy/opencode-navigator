@@ -4,8 +4,8 @@ import { createOpenCodeV2TodoSetup } from '../src/app/opencode-v2/native-todo-se
 import { createTodoSetupSource } from '../src/app/opencode-v2/todo-setup-source'
 
 import type { PreferencesController } from '../src/entities/preferences'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 test('native Todo config operations use the connected server and explicit directory, never local client files', async () => {
   const calls: unknown[] = []

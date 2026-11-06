@@ -5,8 +5,8 @@ import { BugReportConfirmation } from '../ui/bug-report-confirmation'
 
 import { registerBugReportNavigation } from './bug-report-navigation'
 
-import type { BugReportController } from './bug-report-controller'
 import type { UiIcon } from '../../../shared/ui'
+import type { BugReportController } from './bug-report-controller'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { BoxRenderable, InputRenderable, TextareaRenderable } from '@opentui/core'
 

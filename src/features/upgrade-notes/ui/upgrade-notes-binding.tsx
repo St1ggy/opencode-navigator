@@ -2,8 +2,8 @@ import { onCleanup, onMount } from 'solid-js'
 
 import { createDialogStack } from '../../../shared/ui'
 
-import type * as UpgradeContent from './upgrade-notes-content'
 import type { PreferencesController } from '../../../entities/preferences'
+import type * as UpgradeContent from './upgrade-notes-content'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function UpgradeNotesBinding(props: {
@@ -15,7 +15,7 @@ export function UpgradeNotesBinding(props: {
   let pending: ReturnType<typeof setTimeout> | undefined
   let disposed = false
 
-  onMount(async () => {
+  async function load() {
     const previous = await props.preferences.claimNavigatorUpgrade(props.version)
 
     if (!previous || disposed) return
@@ -45,7 +45,8 @@ export function UpgradeNotesBinding(props: {
     } catch {
       // The release package may be missing notes; keep startup usable.
     }
-  })
+  }
+  onMount(() => void load().catch(() => {}))
   onCleanup(() => {
     disposed = true
     clearTimeout(pending)

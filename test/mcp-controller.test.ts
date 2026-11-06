@@ -260,7 +260,7 @@ test('keeps a newer MCP route ready when an older route fails late', async () =>
   responses[1].resolve({ data: { current: { status: 'connected' } } })
   await second
   responses[0].reject(new Error('late workspace failure'))
-  await expect(first).rejects.toThrow('late workspace failure')
+  await Promise.resolve(expect(first).rejects.toThrow('late workspace failure'))
 
   expect(controller.list().map((item) => item.name)).toEqual(['current'])
   expect(controller.state().status).toBe('ready')
@@ -295,7 +295,7 @@ test('tracks failed MCP mutations per server and retries the failed operation', 
   const controller = createMcpController(api, () => true, preferences().access)
 
   await controller.refresh()
-  await expect(controller.toggle('wiki')).rejects.toThrow('disconnect failed')
+  await Promise.resolve(expect(controller.toggle('wiki')).rejects.toThrow('disconnect failed'))
   expect(controller.list()).toEqual([{ name: 'wiki', status: 'connected' }])
   expect(controller.serverState('wiki')).toMatchObject({
     status: 'error',

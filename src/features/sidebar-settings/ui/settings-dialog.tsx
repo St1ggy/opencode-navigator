@@ -2,10 +2,10 @@ import { Suspense, lazy } from 'solid-js'
 
 import { createDialogStack } from '../../../shared/ui'
 
-import type { SettingsDialog as SettingsContent } from './settings-dialog-content'
 import type { McpController } from '../../../entities/mcp'
 import type { PreferencesController } from '../../../entities/preferences'
 import type { SkillController } from '../../../entities/skill'
+import type { SettingsDialog as SettingsContent } from './settings-dialog-content'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 const Content = lazy(async () => {

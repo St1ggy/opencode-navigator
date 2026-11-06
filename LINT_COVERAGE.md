@@ -1,39 +1,37 @@
-# TypeScript 7 Lint Coverage
+# Lint Coverage
 
-Project type checking uses stable TypeScript 7. The lockfile resolves every
-TypeScript dependency, including the shared preset's dependency tree, to that
-version. There is no TypeScript 6 compatibility installation.
+Project type checking uses stable TypeScript 6.0.3, matching the compiler API
+used by the published shared preset. The user selected this compatibility-first
+setup instead of extending the previous TypeScript 7 coverage exclusions.
 
 Oxlint uses `@st1ggy/linter-config/solid-ox` with type-aware analysis. Oxfmt uses
-`@st1ggy/linter-config/oxfmt-common`. `scripts/native-lint-config.ts` adapts the
-published preset without editing installed packages. The user explicitly approved
-the uncovered SonarJS checks below after reviewing the TS7 incompatibility.
+`@st1ggy/linter-config/oxfmt-common`. The version 10 preset is extended directly,
+including its SonarJS and typescript-eslint JS plugins. No compiler-compatibility
+projection filters its rules. Deliberate project exceptions remain documented
+beside their individual settings in `oxlint.config.ts`.
 
 ## Preserved Checks
 
 - Native ESLint, TypeScript, import and Unicorn rules remain enabled.
-- The compatible Solid, ESLint-core, import-x, stylistic and Unicorn JS plugins
-  remain enabled. There is no blanket removal of JS plugins.
-- `typescript-js/array-type` and `typescript-js/prefer-as-const` use their native
-  `typescript/` equivalents. The legacy typescript-eslint plugin is not loaded.
-- Six SonarJS checks use native ESLint equivalents: `block-scoped-var`,
-  `no-delete-var`, `no-fallthrough`, `no-labels`, `no-unused-vars` and
-  `no-useless-catch`. Existing native options take precedence.
+- All published Solid, ESLint-core, import-x, stylistic, Unicorn, SonarJS and
+  typescript-eslint JS plugins remain enabled.
+- Promise handling and strict equality follow the version 10 preset.
+- Bun 1.4.4 can return undefined from `rejects`/`resolves` matchers for already
+  settled promises. Tests normalize matcher results through `Promise.resolve`
+  before awaiting, preserving pending assertions and satisfying both the native
+  thenable rule and SonarJS assertion handling without disabling either rule.
 - Oxfmt still checks formatting separately. This migration does not configure
   Stylelint for the CSS-free TUI project.
 
-## Approved Coverage Loss
+## Historical TypeScript 7 Coverage Exclusions
 
-The published preset configures 161 SonarJS rule names. Six have the direct
-native mappings above. The following 155 preset checks are not loaded after
-removing the TS6-dependent SonarJS plugin. Some overlap with other retained rules,
-but that is not claimed as complete semantic equivalence. The list includes
-checks for frameworks and services this project does not use; it describes the
-preset, not 155 distinct bugs or applicable findings in Navigator.
+Navigator 0.25.0 used native substitutions for six SonarJS rules and excluded
+the following 155 rule names from preset 8 for TS7 compatibility. This list is
+historical, not the current configuration. Preset 10 now supplies its complete
+rule set, subject only to the documented project-specific exceptions.
 
-In particular, native cyclomatic complexity is not a replacement for SonarJS
-cognitive complexity. Identical-function detection, several security/regex
-checks and SonarJS-specific test heuristics lose their dedicated coverage.
+Native cyclomatic complexity was not considered a replacement for SonarJS
+cognitive complexity. The compiler-driven exclusions are no longer applied.
 
 ```text
 sonarjs/assertions-in-test-cases
@@ -193,9 +191,9 @@ sonarjs/x-powered-by
 sonarjs/xml-parser-xxe
 ```
 
-## Removing The Adapter
+## Future Compiler Upgrades
 
-Replace the compatibility projection when the shared preset offers a TS7-only
-stack with equivalent native rules or compatible public plugin APIs. Keep the
-coverage inventory explicit when upgrading that preset; do not label a removed
-check as preserved merely because a similarly named rule exists.
+The compatibility projection has been removed. Reconsider TypeScript 7 only when
+the complete published lint stack supports its compiler API. Keep coverage
+explicit; do not label a removed check as preserved merely because a similarly
+named rule exists.

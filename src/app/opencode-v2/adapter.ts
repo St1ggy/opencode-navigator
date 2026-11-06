@@ -12,8 +12,8 @@ import { legacyTheme } from './theme-adapter'
 import { bindToolbarActionState } from './toolbar-action-state'
 import { createV2UI } from './ui-adapter'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 function stateDirectory() {
   const base =

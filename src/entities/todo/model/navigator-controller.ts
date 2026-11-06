@@ -5,8 +5,8 @@ import { createRequestState } from '../../../shared/lib/request-state'
 import { NavigatorTodoRpc } from './navigator-rpc'
 import { type NavigatorTodoState, normalizeTodoState } from './navigator-state'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 function isMissingServer(error: unknown) {
   return typeof error === 'object' && error !== null && 'type' in error && error.type === 'rpc.unavailable'

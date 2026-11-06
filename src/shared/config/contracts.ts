@@ -127,7 +127,7 @@ export function parseSectionPreferences(value: unknown): Partial<SectionVisibili
 
   return Object.fromEntries(
     SIDEBAR_SECTIONS.flatMap((name) => (typeof input[name] === 'boolean' ? [[name, input[name]]] : [])),
-  ) as Partial<SectionVisibility>
+  )
 }
 
 export function parseSectionLayout(value: unknown): SectionLayoutDefault | undefined {

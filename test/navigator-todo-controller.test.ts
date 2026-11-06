@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test'
 
 import { createNavigatorTodoController } from '../src/entities/todo'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 test('the OpenCode 2 Todo controller ignores stale snapshots and events from another location', async () => {
   let directory = '/project/a'
@@ -76,7 +76,7 @@ test('missing Navigator server leaves Todo retryable and does not enable guidanc
   } as unknown as TuiPluginApi
   const controller = createNavigatorTodoController(context, api)
 
-  await expect(controller.refresh('ses_one')).rejects.toMatchObject({ type: 'rpc.unavailable' })
+  await Promise.resolve(expect(controller.refresh('ses_one')).rejects.toMatchObject({ type: 'rpc.unavailable' }))
   expect(controller.state('ses_one').error?.retryable).toBe(true)
   expect(controller.missing('ses_one')).toBe(true)
   expect(controller.guidance('ses_one').available).toBe(false)

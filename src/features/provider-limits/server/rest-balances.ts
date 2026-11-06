@@ -15,8 +15,8 @@ import { readProviderJson } from './native-http'
 import { balance, number, object } from './native-values'
 import { miniMaxWindows, nanoWindows } from './subscription-parsers'
 
-import type { NativeQuotaRequest } from './native-context'
 import type { ProviderQuotaSnapshot } from '../../../entities/provider-limit'
+import type { NativeQuotaRequest } from './native-context'
 
 const origins: Record<string, string[]> = {
   deepseek: ['https://api.deepseek.com'],

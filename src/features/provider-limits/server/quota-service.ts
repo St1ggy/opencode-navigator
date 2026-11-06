@@ -12,8 +12,8 @@ import { nativeQuotaContext, requestUsesCredential, sameNativeConnection } from 
 import { withinQuotaSignal } from './quota-deadline'
 import { readNativeRest } from './rest-balances'
 
-import type { NativeQuotaRequest } from './native-context'
 import type { ProviderQuotaSnapshot, SelectedModel } from '../../../entities/provider-limit'
+import type { NativeQuotaRequest } from './native-context'
 import type { Context } from '@opencode/plugin/promise/plugin'
 import type { SessionHttpRequest, SessionHttpResponse } from '@opencode/plugin/promise/session'
 

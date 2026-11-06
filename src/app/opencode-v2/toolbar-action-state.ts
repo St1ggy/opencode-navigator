@@ -1,7 +1,7 @@
 import { setQuickActionStateSource } from '../../entities/quick-action'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function bindToolbarActionState(context: Plugin.Context, api: TuiPluginApi) {
   setQuickActionStateSource(api, (id) => {

@@ -2,8 +2,8 @@ import { matchingOrigin } from './native-context'
 import { readProviderJson } from './native-http'
 import { number, object } from './native-values'
 
-import type { NativeQuotaRequest } from './native-context'
 import type { ProviderQuotaSnapshot, QuotaWindow } from '../../../entities/provider-limit'
+import type { NativeQuotaRequest } from './native-context'
 
 export async function readFireworksQuota(input: NativeQuotaRequest): Promise<ProviderQuotaSnapshot | undefined> {
   if (!matchingOrigin(input.provider, ['https://api.fireworks.ai'])) return

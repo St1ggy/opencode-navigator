@@ -1,8 +1,8 @@
 import { createSignal } from 'solid-js'
 
-import type { BugReportTransport } from './github-bug-report'
 import type { ChangelogEntry, NavigatorUpdateCheck } from '../../../entities/navigator-release'
 import type { DialogNavigation } from '../../../shared/ui'
+import type { BugReportTransport } from './github-bug-report'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor } from 'solid-js'
 

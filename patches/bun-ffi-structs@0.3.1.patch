@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 2b5ba7e81db7511c207e737bfc6fc2cb11de6a92..5c596319c4d526d86ff9e9fc655d8a4018a9142c 100644
+--- a/package.json
++++ b/package.json
+@@ -38,7 +38,7 @@
+     "tinybench": "6.0.2"
+   },
+   "peerDependencies": {
+-    "typescript": "^5"
++    "typescript": "^5 || ^6"
+   },
+   "prettier": {
+     "semi": false,

@@ -443,13 +443,13 @@ const plugin = {
     setTimeout(() => {
       renderFullFixtureTree(api.renderer.root)
       const dispatch = commands.dispatch
-      const later = (delay, command) => setTimeout(() => dispatch(command), delay)
+      const later = (delay, command) => setTimeout(() => { void dispatch(command) }, delay)
       const openSettings = () => {
-        dispatch('opencode-navigator.focus')
+        void dispatch('opencode-navigator.focus')
         later(150, 'opencode-navigator.navigation.activate')
       }
       const openMcpPresets = () => {
-        dispatch('opencode-navigator.focus.mcp')
+        void dispatch('opencode-navigator.focus.mcp')
         later(1000, 'opencode-navigator.navigation.right')
         later(1200, 'opencode-navigator.navigation.activate')
       }
@@ -460,7 +460,7 @@ const plugin = {
       openWizardScene(SCENE, dispatch)
 
       if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {
-        dispatch('opencode-navigator.focus.limits')
+        void dispatch('opencode-navigator.focus.limits')
         later(300, 'opencode-navigator.navigation.right')
         later(450, 'opencode-navigator.navigation.activate')
 
@@ -468,24 +468,24 @@ const plugin = {
       }
 
       if (SCENE === 'todo-active' || SCENE === 'todo-finished') {
-        dispatch('opencode-navigator.focus.todo')
+        void dispatch('opencode-navigator.focus.todo')
         setTimeout(() => {
-          dispatch('opencode-navigator.navigation.next')
-          dispatch('opencode-navigator.navigation.right')
+          void dispatch('opencode-navigator.navigation.next')
+          void dispatch('opencode-navigator.navigation.right')
 
-          if (SCENE === 'todo-finished') dispatch('opencode-navigator.navigation.right')
+          if (SCENE === 'todo-finished') void dispatch('opencode-navigator.navigation.right')
 
-          dispatch('opencode-navigator.navigation.activate')
+          void dispatch('opencode-navigator.navigation.activate')
         }, 200)
       }
 
       if (SCENE === 'subagents-errors') {
-        dispatch('opencode-navigator.focus.subagents')
+        void dispatch('opencode-navigator.focus.subagents')
         setTimeout(() => {
-          dispatch('opencode-navigator.navigation.next')
-          dispatch('opencode-navigator.navigation.next')
-          for (let index = 0; index < 3; index++) dispatch('opencode-navigator.navigation.right')
-          dispatch('opencode-navigator.navigation.activate')
+          void dispatch('opencode-navigator.navigation.next')
+          void dispatch('opencode-navigator.navigation.next')
+          for (let index = 0; index < 3; index++) void dispatch('opencode-navigator.navigation.right')
+          void dispatch('opencode-navigator.navigation.activate')
         }, 700)
       }
 
@@ -512,14 +512,14 @@ const plugin = {
 
         if (tab) {
           setTimeout(() => {
-            for (let index = 0; index < tab; index++) dispatch('opencode-navigator.settings.next-tab')
+            for (let index = 0; index < tab; index++) void dispatch('opencode-navigator.settings.next-tab')
           }, 400)
         }
 
         if (SCENE === 'quick-actions-settings') {
           setTimeout(() => {
-            for (let index = 0; index < 3; index++) dispatch('opencode-navigator.settings.next')
-            dispatch('opencode-navigator.settings.quick-actions')
+            for (let index = 0; index < 3; index++) void dispatch('opencode-navigator.settings.next')
+            void dispatch('opencode-navigator.settings.quick-actions')
           }, 400)
         }
 
@@ -527,24 +527,24 @@ const plugin = {
 
         if (SCENE === 'settings-mcp-groups') {
           setTimeout(() => {
-            for (let index = 0; index < 8; index++) dispatch('opencode-navigator.settings.next')
-            dispatch('opencode-navigator.settings.groups')
+            for (let index = 0; index < 8; index++) void dispatch('opencode-navigator.settings.next')
+            void dispatch('opencode-navigator.settings.groups')
           }, 400)
           later(1500, 'opencode-navigator.selection-menu.select')
         }
 
         if (SCENE === 'settings-skill-groups') {
           setTimeout(() => {
-            for (let index = 0; index < 5; index++) dispatch('opencode-navigator.settings.next')
-            dispatch('opencode-navigator.settings.groups')
+            for (let index = 0; index < 5; index++) void dispatch('opencode-navigator.settings.next')
+            void dispatch('opencode-navigator.settings.groups')
           }, 400)
           later(1500, 'opencode-navigator.selection-menu.select')
         }
 
         if (SCENE === 'settings-trusted-skills') {
           setTimeout(() => {
-            for (let index = 0; index < 6; index++) dispatch('opencode-navigator.settings.next')
-            dispatch('opencode-navigator.settings.select')
+            for (let index = 0; index < 6; index++) void dispatch('opencode-navigator.settings.next')
+            void dispatch('opencode-navigator.settings.select')
           }, 650)
         }
 
@@ -566,7 +566,7 @@ const plugin = {
       }
 
       if (SCENE === 'keyboard-help') {
-        dispatch('opencode-navigator.focus')
+        void dispatch('opencode-navigator.focus')
         later(200, 'opencode-navigator.navigation.help')
       }
 

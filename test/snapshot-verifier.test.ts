@@ -19,19 +19,25 @@ test('snapshot verifier honors published runtime minima without changing depende
       'bun',
     )
     expect(await snapshotVerifier(directory, async (name: string) => (name === 'bun' ? '' : 'v26.12.1'))).toBe('node')
-    await expect(
-      snapshotVerifier(directory, async (name: string) => (name === 'node' ? 'v24.22.1' : '')),
-    ).rejects.toThrow('installed snapshot was preserved')
-    await expect(
-      snapshotVerifier(directory, async () => {
-        throw new Error('missing')
-      }),
-    ).rejects.toThrow('requires Bun')
+    await Promise.resolve(
+      expect(snapshotVerifier(directory, async (name: string) => (name === 'node' ? 'v24.22.1' : ''))).rejects.toThrow(
+        'installed snapshot was preserved',
+      ),
+    )
+    await Promise.resolve(
+      expect(
+        snapshotVerifier(directory, async () => {
+          throw new Error('missing')
+        }),
+      ).rejects.toThrow('requires Bun'),
+    )
     await writeFile(
       join(directory, 'dist', 'runtime-requirements.json'),
       JSON.stringify({ version: 1, bun: 'bad', node: '26.4.0' }),
     )
-    await expect(snapshotVerifier(directory, async () => '99.0.0')).rejects.toThrow('invalid runtime requirements')
+    await Promise.resolve(
+      expect(snapshotVerifier(directory, async () => '99.0.0')).rejects.toThrow('invalid runtime requirements'),
+    )
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

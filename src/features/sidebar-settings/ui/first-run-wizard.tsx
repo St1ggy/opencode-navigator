@@ -2,8 +2,8 @@ import { Suspense, lazy } from 'solid-js'
 
 import { createDialogStack } from '../../../shared/ui'
 
-import type { FirstRunWizard as WizardContent } from './first-run-wizard-content'
 import type { PreferencesController } from '../../../entities/preferences'
+import type { FirstRunWizard as WizardContent } from './first-run-wizard-content'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 const Content = lazy(async () => {

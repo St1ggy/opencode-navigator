@@ -51,7 +51,7 @@ export function createNativeQuotaAdapter(context: Plugin.Context) {
             force,
           },
           { location: context.location ?? context.data.location.default(), signal },
-        )) as unknown as ProviderQuotaSnapshot
+        )) as ProviderQuotaSnapshot
 
         if (model.hostConnection?.id && value.connectionID && value.connectionID !== model.hostConnection.id)
           return {

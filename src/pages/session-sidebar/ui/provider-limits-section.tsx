@@ -66,7 +66,7 @@ export function ProviderLimitsSection(props: {
           }
           refreshing={['loading', 'refreshing'].includes(props.controller.state().status)}
           canRefresh={Boolean(
-            model() && (props.controller.current().adapter || model()?.hostConnection?.status === 'unavailable'),
+            model() && (props.controller.current().adapter ?? model()?.hostConnection?.status === 'unavailable'),
           )}
           onCredits={openCredits}
           onRefresh={() => void props.controller.refresh(true)}

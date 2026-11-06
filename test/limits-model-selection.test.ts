@@ -3,8 +3,8 @@ import { expect, test } from 'bun:test'
 import { createLimitsModelSelection } from '../src/app/limits-model-selection'
 
 import type { SelectedModel } from '../src/entities/provider-limit'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 const selected: SelectedModel = { providerID: 'provider', modelID: 'model', sessionID: 'session', variant: 'high' }
 

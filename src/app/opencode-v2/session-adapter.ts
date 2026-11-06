@@ -1,7 +1,7 @@
 import { createSignal } from 'solid-js'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { Session, SessionStatus } from '@opencode-ai/sdk/v2'
+import type { Plugin } from '@opencode/plugin/tui'
 
 type V2Session = NonNullable<ReturnType<Plugin.Context['data']['session']['get']>>
 type RequestOptions = { signal?: AbortSignal }
@@ -22,7 +22,7 @@ export function createV2SessionAdapter(context: Plugin.Context) {
       directory,
       ...(info.parentID && { parentID: info.parentID }),
       cost: Number(info.cost),
-      tokens: info.tokens as Session['tokens'],
+      tokens: info.tokens,
       title: info.title ?? 'Untitled session',
       ...(info.agent && { agent: info.agent }),
       ...(info.model && { model: info.model }),

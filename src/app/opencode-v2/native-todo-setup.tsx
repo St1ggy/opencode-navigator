@@ -5,8 +5,8 @@ import { createTodoSetupSource } from './todo-setup-source'
 
 import type { PreferencesController } from '../../entities/preferences'
 import type { NativeTodoSetup, TodoController } from '../../entities/todo'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function createOpenCodeV2TodoSetup(
   context: Plugin.Context,

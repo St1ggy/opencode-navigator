@@ -1,12 +1,9 @@
 import solid from '@st1ggy/linter-config/solid-ox'
 import { defineConfig } from 'oxlint'
 
-import { nativeLintConfig } from './scripts/native-lint-config.ts'
-
 const config = defineConfig({
   extends: [solid],
-  // Project type checking and all dependencies use TS7. See LINT_COVERAGE.md
-  // for the approved native-rule migration and uncovered SonarJS checks.
+  // TypeScript 6 shares the compiler API expected by the complete published preset.
   // Root-only options are not inherited from the shared preset.
   options: { typeAware: true },
   ignorePatterns: ['dist/**', 'node_modules/**', 'vibe/**'],
@@ -163,4 +160,4 @@ const config = defineConfig({
   ],
 })
 
-export default nativeLintConfig(config)
+export default config

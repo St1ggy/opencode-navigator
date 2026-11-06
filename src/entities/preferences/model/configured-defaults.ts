@@ -73,7 +73,7 @@ export function mergeConfiguredDefaults(...layers: (ConfiguredDefaults | undefin
   let merged: Record<string, unknown> = {}
 
   for (const layer of layers) {
-    if (layer) merged = mergeRecords(merged, layer as Record<string, unknown>)
+    if (layer) merged = mergeRecords(merged, layer)
   }
 
   return parseConfiguredDefaults(merged)

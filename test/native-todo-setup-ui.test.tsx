@@ -152,7 +152,6 @@ test('native Todo confirmation bounds long server paths and keeps actions visibl
   const fixture = todoSetupFixture()
 
   try {
-    h.renderer.resize(48, 18)
     const path = `/synthetic/${'long-directory/'.repeat(8)}opencode.jsonc`
 
     fixture.changeEntries([{ path, experimental: { todo: false } }])
@@ -160,6 +159,8 @@ test('native Todo confirmation bounds long server paths and keeps actions visibl
 
     createDialogStack(h.api).open(() => <EnableTodoConfirmation api={h.api} model={fixture.model} preview={preview} />)
     await h.wait('Enable native Todo')
+    h.renderer.resize(48, 18)
+    await h.flush()
     const actions = h.renderer.root.findDescendantById('opencode-navigator.todo.enable.actions') as BoxRenderable
 
     expect(actions.screenY + actions.height).toBeLessThanOrEqual(18)

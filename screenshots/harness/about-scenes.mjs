@@ -48,7 +48,7 @@ export function openAboutScene(api, scene, dispatch, schedule = setTimeout) {
 
   if (!scene.startsWith('bug-report-')) return
 
-  schedule(async () => {
+  async function populateReport() {
     const title = api.renderer.currentFocusedRenderable
 
     if (!title || !('value' in title)) throw new Error('Synthetic Bug report title did not focus')
@@ -61,7 +61,8 @@ export function openAboutScene(api, scene, dispatch, schedule = setTimeout) {
 
     body.setText('## What happened\nA toolbar hint moves the next section.\n\n## Steps to reproduce\nHover a pinned action.\n\n## Expected behavior\nSection positions remain unchanged.\n\n## Environment\nFully synthetic screenshot fixture.')
     body.cursorOffset = 0
-  }, 1350)
+  }
+  schedule(() => { void populateReport().catch((error) => Bun.write('/tmp/navigator-fixture.error', String(error))) }, 1350)
 
   if (['bug-report-confirmation', 'bug-report-error'].includes(scene)) schedule(() => dispatch('opencode-navigator.bug-report.send'), 1850)
 

@@ -3,8 +3,8 @@ import { SelectionMenu } from '../../../shared/ui'
 
 import { openToolbarPin } from './open-toolbar'
 
-import type { ToolbarSettings } from './toolbar-settings'
 import type { DialogNavigation } from '../../../shared/ui'
+import type { ToolbarSettings } from './toolbar-settings'
 
 export function openToolbarSources(input: ToolbarSettings & { dialogs: DialogNavigation }, kind: 'action' | 'skill') {
   if (kind === 'action') {

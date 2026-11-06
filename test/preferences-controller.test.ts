@@ -194,7 +194,9 @@ test('exports and imports portable settings only after a validated preview', asy
     )
 
     await store.update({ target: { kind: 'worktree', key: '/repo' }, mcp: { name: 'context7', state: 'enabled' } })
-    await expect(controller.applyPortableSettings(stale)).rejects.toThrow('Settings changed after this preview')
+    await Promise.resolve(
+      expect(controller.applyPortableSettings(stale)).rejects.toThrow('Settings changed after this preview'),
+    )
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -416,7 +418,7 @@ test('a failed manual reload retains the current Navigator settings', async () =
     controller.setSkillGroup('/skills/review/SKILL.md', 'Docs')
     await controller.flush()
     await writeFile(join(directory, 'opencode-pretty-sidebar', 'preferences.json'), '{ invalid json')
-    await expect(controller.reloadFromFile()).rejects.toThrow('Malformed preferences JSON')
+    await Promise.resolve(expect(controller.reloadFromFile()).rejects.toThrow('Malformed preferences JSON'))
     expect(controller.skillGroups()).toEqual({ '/skills/review/SKILL.md': 'Docs' })
   } finally {
     await rm(directory, { recursive: true, force: true })

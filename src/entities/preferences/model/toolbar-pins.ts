@@ -78,7 +78,7 @@ function parsePin(value: unknown): ToolbarPin | undefined {
       ([key, entry]) => identifier(key) && iconList(entry),
     ),
   ) as Record<string, string[]>
-  const base = input.icons as string[] | undefined
+  const base = input.icons
 
   if (!text && (base?.length === 0 || Object.values(stateIconLists).some((list) => list.length === 0))) return
 

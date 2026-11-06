@@ -277,7 +277,7 @@ export function parsePendingResetAttempt(value: unknown): PendingResetAttempt | 
     idempotencyKey: input.idempotencyKey,
     createdAt: input.createdAt,
     ...(input.creditID && { creditID: input.creditID }),
-    ...(input.connectionID && { connectionID: input.connectionID as string }),
+    ...(input.connectionID && { connectionID: input.connectionID }),
   }
 }
 

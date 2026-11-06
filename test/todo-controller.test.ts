@@ -116,7 +116,7 @@ test('aborts a todo request on disposal without exposing an error', async () => 
   const refresh = controller.refresh('session-1')
 
   lifecycle.abort()
-  await expect(refresh).rejects.toMatchObject({ name: 'AbortError' })
+  await Promise.resolve(expect(refresh).rejects.toMatchObject({ name: 'AbortError' }))
 
   expect(requestSignal?.aborted).toBe(true)
   expect(controller.state('session-1')).toEqual({ status: 'idle' })

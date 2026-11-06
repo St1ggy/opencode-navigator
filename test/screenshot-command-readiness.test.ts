@@ -43,5 +43,5 @@ test('screenshot ready gate fails on missing commands instead of capturing the p
   )
 
   fixture.dispatch('missing')
-  await expect(fixture.idle()).rejects.toThrow('Fixture command did not become ready: missing')
+  await Promise.resolve(expect(fixture.idle()).rejects.toThrow('Fixture command did not become ready: missing'))
 })

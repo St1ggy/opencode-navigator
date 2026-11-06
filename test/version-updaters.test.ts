@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { createOpenCodeV1VersionUpdater, createOpenCodeV2VersionUpdater } from '../src/app/version-updaters'
 
 import type * as NavigatorUpdates from '../src/navigator-updates'
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi, TuiPluginMeta } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 test('OpenCode 1 updates through the current executable and preserves the global plugin scope', async () => {
   const hostTarget = '1.3.0'
@@ -52,7 +52,9 @@ test('OpenCode 1 updates through the current executable and preserves the global
 
   const localUpdater = createOpenCodeV1VersionUpdater(api, { ...meta, source: 'file' }, async () => {})
 
-  await expect(localUpdater.navigator(projectTarget)).rejects.toThrow('Unrecognized local Navigator source')
+  await Promise.resolve(
+    expect(localUpdater.navigator(projectTarget)).rejects.toThrow('Unrecognized local Navigator source'),
+  )
 })
 
 test('OpenCode 1 advances a recognized pinned local wrapper without changing its config source', async () => {
@@ -106,7 +108,7 @@ test('OpenCode 2 updates the current package target and rejects local Navigator 
   expect(updates).toEqual([{ location: '/workspace', targets: ['opencode-navigator'] }])
 
   source = 'local'
-  await expect(updater.navigator(target)).rejects.toThrow('Unrecognized local Navigator source')
+  await Promise.resolve(expect(updater.navigator(target)).rejects.toThrow('Unrecognized local Navigator source'))
 })
 
 test('OpenCode 2 keeps an absolute directory package source when updating a pinned snapshot', async () => {
@@ -183,7 +185,7 @@ test.each([
     ? createOpenCodeV2VersionUpdater({ app: { version: host } } as Plugin.Context, execute)
     : createOpenCodeV1VersionUpdater({ app: { version: host } } as TuiPluginApi, {} as TuiPluginMeta, execute)
 
-  await expect(updater.openCode(target)).rejects.toThrow('current major version')
+  await Promise.resolve(expect(updater.openCode(target)).rejects.toThrow('current major version'))
   expect(commands).toHaveLength(0)
   await updater.openCode(accepted)
   expect(commands).toEqual([[process.execPath, 'upgrade', accepted]])

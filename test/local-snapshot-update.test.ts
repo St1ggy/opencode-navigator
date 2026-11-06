@@ -78,16 +78,18 @@ test('failed or unrecognized pinned updates preserve the currently installed wra
   const { temporary, root, wrapper } = await fixture()
 
   try {
-    await expect(updateLocalSnapshot(wrapper, `../${TARGET_VERSION}`)).rejects.toThrow(
-      'Invalid Navigator update version',
+    await Promise.resolve(
+      expect(updateLocalSnapshot(wrapper, `../${TARGET_VERSION}`)).rejects.toThrow('Invalid Navigator update version'),
     )
-    await expect(
-      updateLocalSnapshot(wrapper, TARGET_VERSION, {
-        async stage() {
-          throw new Error('Download unavailable')
-        },
-      }),
-    ).rejects.toThrow('Download unavailable')
+    await Promise.resolve(
+      expect(
+        updateLocalSnapshot(wrapper, TARGET_VERSION, {
+          async stage() {
+            throw new Error('Download unavailable')
+          },
+        }),
+      ).rejects.toThrow('Download unavailable'),
+    )
 
     expect(await readFile(wrapper, 'utf8')).toContain(`v${SOURCE_VERSION}`)
     expect(await readdir(join(root, 'releases'))).toEqual([`v${SOURCE_VERSION}`])
@@ -140,7 +142,9 @@ test('a target runtime manifest advances dependencies without changing the prede
     targetMetadata.dependencies['@opentui/core'] = '0.0.1'
     await writeFile(targetMetadataPath, JSON.stringify(targetMetadata))
     await writeFile(wrapper, `export { default } from "./releases/v${SOURCE_VERSION}/dist/tui.js";\n`)
-    await expect(updateLocalSnapshot(wrapper, TARGET_VERSION)).rejects.toThrow('mismatched runtime dependencies')
+    await Promise.resolve(
+      expect(updateLocalSnapshot(wrapper, TARGET_VERSION)).rejects.toThrow('mismatched runtime dependencies'),
+    )
     expect(await readFile(wrapper, 'utf8')).toContain(`v${SOURCE_VERSION}`)
   } finally {
     await rm(temporary, { recursive: true, force: true })
@@ -156,21 +160,23 @@ test.each([
   let installs = 0
 
   try {
-    await expect(
-      updateLocalSnapshot(wrapper, TARGET_VERSION, {
-        async stage(staging: string) {
-          await mkdir(join(staging, 'dist'))
-          await writeFile(
-            join(staging, 'package.json'),
-            JSON.stringify({ name: 'opencode-navigator', version: TARGET_VERSION }),
-          )
-          await writeFile(join(staging, 'dist', 'runtime-dependencies.json'), JSON.stringify(manifest))
-        },
-        async install() {
-          installs++
-        },
-      }),
-    ).rejects.toThrow('invalid runtime dependency manifest')
+    await Promise.resolve(
+      expect(
+        updateLocalSnapshot(wrapper, TARGET_VERSION, {
+          async stage(staging: string) {
+            await mkdir(join(staging, 'dist'))
+            await writeFile(
+              join(staging, 'package.json'),
+              JSON.stringify({ name: 'opencode-navigator', version: TARGET_VERSION }),
+            )
+            await writeFile(join(staging, 'dist', 'runtime-dependencies.json'), JSON.stringify(manifest))
+          },
+          async install() {
+            installs++
+          },
+        }),
+      ).rejects.toThrow('invalid runtime dependency manifest'),
+    )
     expect(installs).toBe(0)
     expect(await readFile(wrapper, 'utf8')).toContain(`v${SOURCE_VERSION}`)
     expect(await readdir(join(root, 'releases'))).toEqual([`v${SOURCE_VERSION}`])

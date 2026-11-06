@@ -3,8 +3,8 @@ import { createSignal } from 'solid-js'
 import { todoConfig } from './config'
 import { enableTodoConfig } from './config-patch'
 
-import type { SetupTarget, TodoSetupPreview, TodoSetupSource } from './types'
 import type { NativeTodoSetupState } from '../../../entities/todo'
+import type { SetupTarget, TodoSetupPreview, TodoSetupSource } from './types'
 
 export function createTodoSetupController(input: {
   source: TodoSetupSource

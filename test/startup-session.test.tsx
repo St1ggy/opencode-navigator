@@ -198,9 +198,9 @@ test('failed creation reports the error without navigating away from Home', asyn
   const host = setup('home', true)
   const controller = createStartupSessionController(host.api, host.preferences)
 
-  host.api.client.session.create = (async () => {
+  host.api.client.session.create = async () => {
     throw new Error('Session storage unavailable')
-  }) as TuiPluginApi['client']['session']['create']
+  }
 
   await controller.start()
   expect(host.navigated).toEqual([])

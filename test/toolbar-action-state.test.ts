@@ -5,8 +5,8 @@ import { bindToolbarActionState } from '../src/app/opencode-v2/toolbar-action-st
 import { quickActionState, quickActionStates } from '../src/entities/quick-action'
 import { createSkillController } from '../src/entities/skill'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 test('uses only observed permission and public compaction states, including revert and session changes', () => {
   createRoot((dispose) => {

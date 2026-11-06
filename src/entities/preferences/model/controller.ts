@@ -49,7 +49,7 @@ type PreferenceScope = 'global' | 'worktree'
 type McpPresetUpdate = NonNullable<NonNullable<PreferencesUpdate['user']>['mcpPreset']>
 type SessionLayout = NonNullable<PreferenceValues['layout']>
 
-function swap<T>(items: T[], first: number, second: number) {
+function swap(items: unknown[], first: number, second: number) {
   const value = items[first]
 
   items[first] = items[second]

@@ -2,8 +2,8 @@ import { providerQuotaCapability } from '../model/provider-capabilities'
 
 import { connectionKey } from './native-context'
 
-import type { NativeQuotaRequest } from './native-context'
 import type { SelectedModel } from '../../../entities/provider-limit'
+import type { NativeQuotaRequest } from './native-context'
 import type { Context } from '@opencode/plugin/promise/plugin'
 
 function credentialToken(credential: NativeQuotaRequest['credential'] | undefined) {

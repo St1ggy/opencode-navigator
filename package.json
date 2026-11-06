@@ -30,6 +30,7 @@
     "server.js",
     "rpc.js",
     "assets",
+    "patches",
     "scripts/install-font.mjs",
     "scripts/update-local-snapshot.mjs",
     "scripts/snapshot-runtime.mjs",
@@ -80,7 +81,7 @@
     "test:e2e": "bun run build && bash scripts/smoke-opencode.sh && bash scripts/smoke-opencode-v2.sh",
     "test:e2e:v1": "bun run build && bash scripts/smoke-opencode.sh",
     "test:e2e:v2": "bun run build && bash scripts/smoke-opencode-v2.sh",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.ffi.json",
     "check": "bun run test && bun run typecheck && bun run lint && bun run bundle:size && bun run format:check"
   },
   "peerDependencies": {
@@ -111,10 +112,10 @@
     "@opencode-ai/plugin": "1.19.5",
     "@opencode-ai/sdk": "1.19.5",
     "@opencode/plugin": "2.2.5",
-    "@opentui/core": "0.8.1",
-    "@opentui/keymap": "0.8.1",
-    "@opentui/solid": "0.8.1",
-    "@st1ggy/linter-config": "8.0.0",
+    "@opentui/core": "0.8.2",
+    "@opentui/keymap": "0.8.2",
+    "@opentui/solid": "0.8.2",
+    "@st1ggy/linter-config": "10.0.0",
     "@types/bun": "1.4.4",
     "eslint-plugin-solid": "0.18.1",
     "jsonc-parser": "3.3.1",
@@ -122,13 +123,13 @@
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
     "solid-js": "1.9.18",
-    "typescript": "7.0.2",
+    "typescript": "6.0.3",
     "web-tree-sitter": "0.25.10"
   },
   "optionalDependencies": {
     "@github/copilot-sdk": "1.0.28"
   },
-  "overrides": {
-    "typescript": "7.0.2"
+  "patchedDependencies": {
+    "bun-ffi-structs@0.3.1": "patches/bun-ffi-structs@0.3.1.patch"
   }
 }

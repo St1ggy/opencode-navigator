@@ -30,12 +30,12 @@ import { LimitsPersistence } from './limits-persistence'
 import { bindNavigatorAbout } from './navigator-about'
 import { createNativeTodoController, createOpenCodeV2Api, createOpenCodeV2Sources } from './opencode-v2'
 
-import type { createProviderQuotaIntegration as CreateQuotaIntegration } from './provider-quota'
 import type * as NativeTodoSetupModule from '../native-todo-setup'
 import type * as NavigatorUpdates from '../navigator-updates'
 import type { ProviderLimitsSection as LimitsComponent } from '../pages/session-sidebar'
-import type { Plugin as OpenCodeV2Plugin } from '@opencode/plugin/tui'
+import type { createProviderQuotaIntegration as CreateQuotaIntegration } from './provider-quota'
 import type { TuiPlugin, TuiPluginMeta, TuiPluginModule } from '@opencode-ai/plugin/tui'
+import type { Plugin as OpenCodeV2Plugin } from '@opencode/plugin/tui'
 
 export {
   LspBadge,

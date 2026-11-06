@@ -67,7 +67,7 @@ test('project profiles save portable layout and MCP presets without exporting pr
     expect(controller.layoutPresets().Review).toBeDefined()
     expect(controller.mcpPresets().Review).toEqual({ docs: 'enabled', tracker: 'disabled' })
     expect(controller.workspaceProfiles().Review).toBe('Review')
-    await expect(previewProjectProfile(directory, 'review', input)).rejects.toThrow('already exists')
+    await Promise.resolve(expect(previewProjectProfile(directory, 'review', input)).rejects.toThrow('already exists'))
     const updated = await previewProjectProfile(
       directory,
       'Review',
@@ -88,7 +88,9 @@ test('project profiles save portable layout and MCP presets without exporting pr
         workspaceProfiles: { Other: 'Review' },
       }),
     )
-    await expect(previewProjectProfile(directory, 'Review', input, true)).rejects.toThrow('linked to another')
+    await Promise.resolve(
+      expect(previewProjectProfile(directory, 'Review', input, true)).rejects.toThrow('linked to another'),
+    )
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
@@ -102,26 +104,30 @@ test('project profile preview rejects stale targets, concurrent edits, path-like
   try {
     const preview = await previewProjectProfile(directory, 'Focus', input)
 
-    await expect(saveProjectProfile(preview, other)).rejects.toThrow('Workspace changed')
+    await Promise.resolve(expect(saveProjectProfile(preview, other)).rejects.toThrow('Workspace changed'))
     await mkdir(join(directory, '.opencode'))
     await writeFile(file, '{"mcpServerGroups":{"docs":"Knowledge"}}')
-    await expect(saveProjectProfile(preview, directory)).rejects.toThrow('Project settings changed')
+    await Promise.resolve(expect(saveProjectProfile(preview, directory)).rejects.toThrow('Project settings changed'))
     expect(await readFile(file, 'utf8')).toContain('Knowledge')
     for (const key of ['favoriteSkills', 'codexAccountBindings', 'pendingResetAttempt']) {
       await writeFile(file, JSON.stringify({ [key]: ['/private/value'] }))
-      await expect(previewProjectProfile(directory, 'Focus', input)).rejects.toThrow('private field')
+      await Promise.resolve(expect(previewProjectProfile(directory, 'Focus', input)).rejects.toThrow('private field'))
     }
-    await expect(
-      previewProjectProfile(
-        directory,
-        'Unsafe',
-        serializePortableSettings({ sections: { todo: true }, expanded: {} }, { '/private/server': 'enabled' }),
-      ),
-    ).rejects.toThrow('private path')
-    await expect(previewProjectProfile(directory, '/private/Focus', input)).rejects.toThrow('private paths')
+    await Promise.resolve(
+      expect(
+        previewProjectProfile(
+          directory,
+          'Unsafe',
+          serializePortableSettings({ sections: { todo: true }, expanded: {} }, { '/private/server': 'enabled' }),
+        ),
+      ).rejects.toThrow('private path'),
+    )
+    await Promise.resolve(
+      expect(previewProjectProfile(directory, '/private/Focus', input)).rejects.toThrow('private paths'),
+    )
     await rm(join(directory, '.opencode'), { recursive: true })
     await symlink(other, join(directory, '.opencode'))
-    await expect(saveProjectProfile(preview, directory)).rejects.toThrow('symlink')
+    await Promise.resolve(expect(saveProjectProfile(preview, directory)).rejects.toThrow('symlink'))
   } finally {
     await rm(directory, { recursive: true, force: true })
     await rm(other, { recursive: true, force: true })
@@ -148,9 +154,11 @@ test('published profile command previews before writing and requires explicit --
 
     expect(preview.code).toBe(0)
     expect(preview.output).toContain('Preview only')
-    await expect(readFile(join(directory, '.opencode', 'navigator.json'), 'utf8')).rejects.toMatchObject({
-      code: 'ENOENT',
-    })
+    await Promise.resolve(
+      expect(readFile(join(directory, '.opencode', 'navigator.json'), 'utf8')).rejects.toMatchObject({
+        code: 'ENOENT',
+      }),
+    )
     const applied = await run(['--apply'])
 
     expect(applied.code).toBe(0)

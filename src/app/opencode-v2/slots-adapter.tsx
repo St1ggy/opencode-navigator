@@ -1,6 +1,6 @@
+import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 /** @jsxImportSource @opentui/solid */
 import type { Plugin } from '@opencode/plugin/tui'
-import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 type LegacySlotPlugin = Parameters<TuiPluginApi['slots']['register']>[0]
 

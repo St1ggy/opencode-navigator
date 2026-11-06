@@ -1,5 +1,5 @@
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiThemeCurrent } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function legacyTheme(theme: Plugin.Context['theme']): TuiThemeCurrent {
   return {

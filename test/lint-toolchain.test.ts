@@ -1,58 +1,58 @@
 import solid from '@st1ggy/linter-config/solid-ox'
 import { expect, test } from 'bun:test'
 
+import formatter from '../oxfmt.config'
 import config from '../oxlint.config'
 import metadata from '../package.json'
-import { NATIVE_SONAR_RULES, nativeLintConfig } from '../scripts/native-lint-config'
 
-test('lint migration preserves native options and uses native TypeScript checks without loading TS6 plugins', () => {
-  const migrated = nativeLintConfig({
-    plugins: ['typescript'],
-    jsPlugins: [
-      { name: 'sonarjs', specifier: 'sonarjs' },
-      { name: 'typescript-js', specifier: 'typescript' },
-      { name: 'solid', specifier: 'solid' },
-    ],
-    rules: {
-      'typescript-js/array-type': 'error',
-      'typescript-js/prefer-as-const': 'error',
-      'sonarjs/cognitive-complexity': 'error',
-      'sonarjs/no-unused-vars': 'error',
-      'eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    },
-  })
+test('the published preset is extended intact with type-aware checks and all JS plugins', () => {
+  expect(config.extends).toEqual([solid])
+  const plugins = solid.jsPlugins?.map((plugin) => (typeof plugin === 'string' ? plugin : plugin.name))
 
-  expect(migrated.jsPlugins).toEqual([{ name: 'solid', specifier: 'solid' }])
-  expect(migrated.rules?.['typescript/array-type']).toBe('error')
-  expect(migrated.rules?.['typescript/prefer-as-const']).toBe('error')
-  expect(migrated.rules?.['eslint/no-unused-vars']).toEqual(['error', { argsIgnorePattern: '^_' }])
-  expect(JSON.stringify(config)).not.toContain('sonarjs/')
-  expect(JSON.stringify(config)).not.toContain('typescript-js/')
-  expect(JSON.stringify(config)).toContain('solid/')
+  expect(plugins).toContain('sonarjs')
+  expect(plugins).toContain('typescript-js')
+  expect(plugins).toContain('solid')
+  const rules = Object.assign({}, ...solid.overrides!.map((override) => override.rules))
+
+  expect(rules['typescript/no-floating-promises']).toEqual([2])
+  expect(rules['typescript/no-misused-promises']).toEqual([2])
+  expect(rules['eslint/eqeqeq']).toBeDefined()
+  expect(rules['sonarjs/no-dead-store']).toBeDefined()
+  expect(config.options?.typeAware).toBe(true)
 })
 
-test('the approved coverage inventory lists every removed SonarJS preset check', async () => {
-  const names = new Set(
-    solid.overrides
-      ?.flatMap((override) => Object.keys(override.rules ?? {}))
-      .filter((name) => name.startsWith('sonarjs/')),
-  )
-  const removed = [...names].filter((name) => !(name in NATIVE_SONAR_RULES)).sort()
-  const documentation = await Bun.file(new URL('../LINT_COVERAGE.md', import.meta.url)).text()
-  const documented = [...documentation.matchAll(/^sonarjs\/[a-z\d-]+$/gmu)].map(([name]) => name).sort()
-
-  expect(documented).toEqual(removed)
-})
-
-test('the resolved project graph contains TypeScript 7 only, including the shared linter dependency tree', async () => {
+test('the resolved graph uses the preset-compatible TypeScript 6 compiler without TS7 overrides', async () => {
   const lock = Bun.JSONC.parse(await Bun.file(new URL('../bun.lock', import.meta.url)).text()) as {
     packages: Record<string, [string]>
   }
-  const versions = Object.values(lock.packages as Record<string, [string]>)
+  const versions = Object.values(lock.packages)
     .filter(([name]) => name.startsWith('typescript@'))
     .map(([name]) => name.slice('typescript@'.length))
 
-  expect(metadata.devDependencies.typescript).toMatch(/^7\./u)
+  expect(metadata.devDependencies.typescript).toMatch(/^6\./u)
   expect(versions).toEqual([metadata.devDependencies.typescript])
-  expect(config.options?.typeAware).toBe(true)
+  expect('overrides' in metadata).toBe(false)
+})
+
+test('the lint engines honor the published preset exact peer contracts', async () => {
+  const preset = await Bun.file('node_modules/@st1ggy/linter-config/package.json').json()
+
+  for (const name of ['oxlint', 'oxfmt', 'oxlint-tsgolint'] as const)
+    expect(metadata.devDependencies[name]).toBe(preset.peerDependencies[name])
+})
+
+test('the shared formatter sorts declarations without reordering side-effect imports', async () => {
+  expect(typeof formatter.sortImports === 'object' && formatter.sortImports.sortSideEffects).toBe(false)
+  const source =
+    'import "./z-init"\nimport "./a-init"\nimport { z } from "z-lib"\nimport { a } from "a-lib"\nexport { a, z }\n'
+  const child = Bun.spawn(['node_modules/.bin/oxfmt', '--stdin-filepath', 'sort-fixture.ts'], {
+    stdin: new TextEncoder().encode(source),
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  const text = await new Response(child.stdout).text()
+
+  expect(await child.exited).toBe(0)
+  expect(text.indexOf("'a-lib'")).toBeLessThan(text.indexOf("'z-lib'"))
+  expect(text.indexOf("'./z-init'")).toBeLessThan(text.indexOf("'./a-init'"))
 })

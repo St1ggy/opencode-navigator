@@ -31,7 +31,9 @@ export function createCodexAppServerClient(input: {
   function write(message: unknown) {
     if (!child?.stdin || typeof child.stdin === 'number') throw new Error('Codex app-server is unavailable')
 
-    child.stdin.write(`${JSON.stringify(message)}\n`)
+    void Promise.resolve(child.stdin.write(`${JSON.stringify(message)}\n`)).catch((error: unknown) => {
+      failAll(error instanceof Error ? error : new Error('Codex app-server write failed'))
+    })
   }
 
   function accept(line: string) {

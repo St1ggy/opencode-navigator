@@ -22,8 +22,6 @@ export async function runProcessCommand(
     return { code: -1, stdout: '' }
   }
 
-  child.stdin.write(input)
-  child.stdin.end()
   let timer: ReturnType<typeof setTimeout> | undefined
   const chunks: Uint8Array[] = []
   const output = () => new TextDecoder().decode(Buffer.concat(chunks))
@@ -68,8 +66,15 @@ export async function runProcessCommand(
     }
   }
 
+  const run = async () => {
+    await child.stdin.write(input)
+    await child.stdin.end()
+
+    return read()
+  }
+
   try {
-    return await Promise.race([read(), cancelled])
+    return await Promise.race([run(), cancelled])
   } catch {
     return { code: -1, stdout: '' }
   } finally {
