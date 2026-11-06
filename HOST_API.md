@@ -9,9 +9,9 @@ define the boundary; internal host components are not plugin APIs.
 | Capability | OpenCode 1.19.5 | OpenCode 2.2.5 |
 | --- | --- | --- |
 | Todo | Supported host Todo source/events | Public message cache, completed `todowrite` and revert boundary |
-| Skills | Host discovery and prompt insertion | Native Skill cache and `session.skill` with exact ID |
-| MCP | Host status and connection API | Native cache, sync/invalidate and connect/disconnect |
-| Subagents | Supported child/status API and events | Native session cache/status and typed execution events |
+| Skills | Host discovery and prompt insertion | Native Skill cache and `experimental.session.skill` with exact ID |
+| MCP | Host status and connection API | Native cache, sync/invalidate and `experimental.mcp.connect/disconnect` |
+| Subagents | Supported child/status API and events | Native session cache/status, execution start time and typed execution events |
 | Commands | Public keymap | Public owned layers, targets, priorities, modes, discovery and dispatch |
 | Dialogs/toasts | Public dialog components and mounting | Public show/prompt/confirm/set/clear and toast |
 | Model/variant | Saved session model and host pickers | Reactive prompt model, variant API and host pickers |
@@ -31,10 +31,10 @@ justify bypassing a native API.
 | Bug-report transport and external browser launch | Neither supported public TUI contract provides GitHub issue creation or an external browser opener. Direct sending uses the user's authenticated `gh` without reading credential files; a `type: Bug` repository form handles browser reports. Bounded argv-based OS launch has a visible link/clipboard fallback on remote or headless hosts. | Equivalent public host issue/browser APIs preserving authentication ownership, editable draft, real issue type and confirmation semantics. |
 | Literal Ctrl+, hook on 2.x | Public plugin bindings are strings; the comma expander splits literal commas into alternatives. The named parser does not normalize `comma` to the actual comma event. Dispatch still uses the native command API. | A documented literal-comma binding passing the real Settings smoke. |
 | Subagent child discovery | Published TUI Data caches sessions but has no complete children-sync operation. Initial/manual/reconnect discovery uses the public paginated API and syncs unknown IDs into the host cache. | A complete children-sync/query on the supplied public Data interface. |
-| Subagent observation history and retry details | Native status and cached transcript retry data are used first; recent runs, pre-observation clock markers, errors and unloaded-child retry detail remain observation history. | Equivalent public observed-run/retry history without loading every transcript. |
+| Subagent observation history and retry details | Native status, `SessionInfo.time.busy` and cached retry data are used first. Valid current-execution start times give exact active durations without a pre-observation marker; missing/invalid timing keeps the observed fallback. Recent runs, errors and unloaded-child retry details remain observation history. The prior execution's `idle`/`outcome` never completes a currently running execution. | Equivalent public observed-run/retry history without loading every transcript. |
 | Read-only Todo projection | Native completed tool calls and revert are public; the host's `sessionTodos` helper is not exported. No direct CRUD/priority API exists. | A public equivalent projection; editing also requires an explicitly selected interaction and supported API. |
 | Native Todo enablement | `config.get` exposes ordered sources, but `experimental.config.update` supports only shell. The setup feature previews and confirms a JSONC leaf edit in an existing discovered source through public server file APIs. File reads are location-confined, so selected-file IO is routed to its server-side parent; the original session/location remains the stale-target guard. Reads immediately before writes reject changed previews, and readback verifies the file and effective flag. The public write API has no CAS, so this is not an atomic transaction against concurrent external writers; uncertain outcomes require Refresh before retry. No model, shell or Todo event is used. | A public Todo config patch API preserving source precedence, unrelated JSONC content and conditional-write semantics. |
-| Console/Go request lifecycle and projection | `client.usage.limits` is public, but the internal usage cache and budget selectors are not in published Plugin Context. Workspace IDs are not provider account IDs. | Equivalent public cache and selector on the plugin interface. |
+| Console/Go request lifecycle and projection | `client.experimental.usage.limits` is public, but the internal usage cache and budget selectors are not in published Plugin Context. Workspace IDs are not provider account IDs. | Equivalent public cache and selector on the plugin interface. |
 | External quotas / reset credits | Console/Go is not a universal provider API and has no Codex reset-credit consume operation. Sources stay documented, account-bound and portable. Native auth/request errors never enable a bypass reader. | Host APIs matching provider/account/units/resets and idempotent consume semantics. |
 | Pinned-file snapshot installer | Native package updates do not implement the recognized versioned wrapper/staging layout. Preserve installation source and scope. | A public atomic file-snapshot update API with equivalent verification. |
 | Corner masks and product UI | Multiline shape, three-cell controls, filters, groups, presets and pins are product features. Paint hooks only draw; scroll restoration runs outside paint. | Equivalent public primitives preserving geometry, behavior and fallback mode. |
@@ -55,7 +55,7 @@ exercise migration only; they do not extend the supported host matrix.
 The published 2.2.5 TUI context, plugin, index and Solid declarations are identical
 to 2.2.0. OpenTUI 0.8 retains the drawing-only paint-hook contract; renderer tests,
 nested dialogs and frame-level typing probes run against the updated runtime.
-Development uses Bun 1.4.4 and OpenTUI 0.8.1, leaving Solid/OpenTUI external so the
+Development uses Bun 1.4.4 and OpenTUI 0.8.2, leaving Solid/OpenTUI external so the
 host owns its runtime. The 1.x host ships older runtime modules; its actual smoke
 must pass rather than injecting the development modules into it.
 
@@ -67,13 +67,22 @@ renderer/FFI support. CI and package verification use Node 26.12.1.
 ### Deliberate Compatibility Pins
 
 - `web-tree-sitter` stays at **0.25.10**, the exact peer required by OpenTUI
-  0.8.0. Upgrade it when the supported host runtime publishes a compatible peer
+  0.8.2. Upgrade it when the supported host runtime publishes a compatible peer
   contract; the independent 0.27 line is not a compatible substitution.
-- `typescript` is **7.0.2** throughout the resolved project graph. The shared
-  preset's legacy compiler dependency is overridden to TS7; its incompatible
-  SonarJS and typescript-eslint JS plugins are not loaded. Native replacements,
-  retained compatible plugins and the explicitly approved coverage loss are
-  documented in [Lint coverage](LINT_COVERAGE.md). No TS6 compatibility copy is used.
+- `typescript` is **6.0.3**, selected to match the complete published
+  `@st1ggy/linter-config` **10.0.0** preset. SonarJS and typescript-eslint JS
+  plugins remain enabled without the former TS7 projection or override.
+  [Lint coverage](LINT_COVERAGE.md) records the current setup and historical exclusions.
+- Oxlint **1.90.0**, Oxfmt **0.75.0** and oxlint-tsgolint **7.0.2005** match the
+  preset's exact peer versions. Advance them when the preset supports newer engines.
+- OpenTUI's transitive `bun-ffi-structs` **0.3.1** declares the outdated compiler
+  peer `typescript: ^5`. A root-only Bun metadata patch expands it to `^5 || ^6`;
+  no runtime bytes or declarations change. Strict declaration compilation with
+  library checks enabled, packing regressions and the resolved compiler graph
+  verify the selected TS6 use. Remove the patch when upstream accepts TS6.
+  Bun patches apply only in this repository, not transitively in consumer projects
+  or the separately generated snapshot runtime manifest. Those installations may
+  still report the upstream peer warning; this is not an upstream fix.
 - Bun remains pinned at **1.4.4**, the current stable release. Direct dependencies
   otherwise use their latest compatible stable releases; transitive updates stay
   within upstream ranges. Runtime peers remain host-owned and are not bundled.

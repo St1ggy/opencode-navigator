@@ -137,6 +137,26 @@ verification workflow before expanding the product surface.
 
 ## Product Direction
 
+### v0.26.0 Release
+
+- [ ] Publish the verified API/timing and lifecycle fixes after thematic commits, the manual Prepare Release screenshot gate, screenshot PR CI/merge and release-head CI. Verify GitHub/npm publication and isolated packaged installation; preserve the installed Navigator snapshot and local host configuration.
+
+### Release Contract Audit: November 2026
+
+- [x] Complete the risk-based project-wide follow-up audit, verify retry-listener cleanup and bounded preferences-lock recovery including foreign-owner preservation, and document architectural debt, dependency advisories and packaging limitations under ignored `vibe/`. Final check: 539 passing tests, one opt-in skip, 5,043 assertions; both supported hosts and packed runtime pass; main bundle 349,521 / 360,000 bytes. This is not an exhaustive line-by-line security audit.
+- [x] Verify a metadata-only FFI compiler-peer patch with strict declarations, six unchanged upstream dist files, a clean frozen install and both supported hosts. The root npm compiler graph now passes; consumer/root-only limitations remain explicit. Remove the patch after an upstream fix.
+- [ ] Address upstream-constrained security advisories in glob, minimatch, toml and zod when compatible parent releases are available; do not force incompatible transitive majors or misclassify the optional Copilot runtime as development-only.
+- [ ] Bound update/install subprocess time and output with installation-appropriate cancellation, staged cleanup and fake-executable regressions. The audit identified this from source inspection; no production hang was reproduced.
+- [ ] Split cohesive preferences/MCP/controller responsibilities behind existing public APIs and investigate the intermittent toolbar unavailable-pin toast assertion without weakening it.
+
+- [x] Audit published stable releases and package contracts: OpenCode remains 1.19.5/2.2.5; OpenTUI 0.8.2 and linter-config 10.0.0 are available. Record the ordered implementation plan and evidence under ignored `vibe/` without changing installed hosts or runtime dependencies.
+- [x] Replace deprecated OpenCode 2 client aliases for Skill invocation, MCP connection mutations and native usage with their published `client.experimental` equivalents; preserve exact source identity, location/account scope, cancellation and failure semantics.
+- [x] Upgrade to linter-config 10.0.0 with its exact compatible Oxlint/Oxfmt engine versions. The user selected TypeScript 6 instead of extending the TS7-related coverage exclusions; restore the complete published preset, remove the compiler-compatibility projection, and adopt import sorting. Document the legacy TypeScript 5 peer declared by transitive bun-ffi-structs without hiding npm's diagnostic.
+- [x] Update the aligned OpenTUI development packages to 0.8.2 and verify wrapped-text measurement, resize, short dialogs and fixed navigation without bundling or replacing the host runtime.
+- [x] Use public OpenCode 2 execution start timestamps for exact active Subagent durations, retaining observed-history behavior and the 1.x fallback. Do not mistake the previous execution's idle timestamp/outcome for the active execution's result; preserve cancellation in recent history.
+- [x] Complete local regressions, both supported real-host smokes and isolated packed-runtime verification. Full check: 535 passing tests, one opt-in skip, 5,032 assertions; main bundle 349,163 / 360,000 bytes. Font, formatting and public-content audits pass. Hosts and the installed Navigator snapshot are not updated by this work.
+- [ ] Run the manual screenshot reproducibility/visual-review and release CI gates after a separate commit/push/release request. Session panels, schedules and artifacts remain separate opt-in product proposals, not implicit compatibility work.
+
 ### v0.25.0 Release
 
 - [x] Publish v0.25.0 with confirmed native Todo enablement and current onboarding. Prepare Release 41238652533 byte-verified 96 captures; screenshot PR #35 passed exact-head CI and merged, including the visually approved short-terminal fix. Release-head CI 41241621701 and Publish 41241771948 succeeded. GitHub notes include the previous-tag comparison and font upgrade guidance; npm latest is 0.25.0, all 43 payload files and archive SHA-512 match, registry signatures/provenance are present, and isolated registry installation passes.

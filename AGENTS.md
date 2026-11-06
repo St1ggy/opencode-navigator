@@ -13,6 +13,9 @@
 
 ## Architecture: Feature-Sliced Design
 
+- Audit the latest stable OpenCode releases and published dependency contracts before planning compatibility work. Separate confirmed native-API simplifications, required compatibility changes, and optional product features; save the Russian implementation plan and source evidence under ignored `vibe/`. Planning alone does not authorize updating local hosts, the installed Navigator snapshot, publishing, or implementing the plan.
+- The requested follow-up audit covers the whole project, not only the current diff: architecture, host contracts, lifecycle/concurrency, persistence, external processes/reporting, packaging/dependencies and test gaps. Investigate the transitive FFI compiler-peer warning and prefer a verified upstream-compatible fix over suppression; do not commit, publish, or change local host installations without a separate request.
+
 - A full migration to the latest official FSD specification is required. Verify the current specification before planning the migration; the documentation checked on 2026-09-20 describes FSD v2.1 and its pages-first approach.
 - Use layers, domain slices, purpose-based segments, and explicit public APIs. Respect the direction of dependencies between layers and the isolation of slices.
 - Components must be as atomic as practical: one focused responsibility per component, with independently meaningful controls, rows, lists, and dialogs in separate modules.
@@ -181,7 +184,7 @@
 
 - Keep `packageManager` pinned to the latest available stable Bun release when updating the local Bun toolchain.
 - Use the latest stable `@st1ggy/linter-config` with its `solid-ox` and `oxfmt-common` presets. Run Oxlint with type-aware analysis and Oxfmt for formatting; explain project-specific exceptions in `oxlint.config.ts` and retain deliberate formatter exclusions in `oxfmt.config.ts`.
-- Keep Oxlint, Oxfmt and all libraries on their latest compatible stable releases. Use only stable TypeScript 7 and remove TypeScript 6, including compatibility copies. Replace legacy lint checks with supported native equivalents where available; disclose any unavoidable loss of coverage for user approval rather than silently disabling rules to force the upgrade.
+- Keep Oxlint, Oxfmt and all libraries on their latest compatible stable releases. Use stable TypeScript 6 for now, as explicitly selected during the November release audit, and retain the published preset's SonarJS/typescript-eslint checks instead of removing them for TS7 compatibility. Disclose any unavoidable loss of coverage for approval rather than silently disabling rules to force an upgrade.
 - Do not configure Stylelint while this project has no CSS/SCSS.
 - Keep Solid and OpenTUI external and leave the TUI bundle unminified so it shares the host runtime.
 - Use `bun run check` for tests, type checking, Oxlint, bundle budget, and Oxfmt formatting. Render tests require `--preload @opentui/solid/preload`.

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.26.0] - 2026-11-06
+
+- Prevent background retries from accumulating cancellation listeners and preferences loading from waiting indefinitely on recovery markers.
+- Show exact active Subagent durations from OpenCode 2's native execution start time, preserving the observation fallback when timing is unavailable. Keep interrupted executions marked as cancelled in recent history.
+
 ## [0.25.0] - 2026-10-31
 
 - Offer Enable Todo when OpenCode 2's native tool is disabled, with an existing server-config picker, exact change preview and separate confirmation. Preserve unrelated JSONC content and refuse stale targets; distinguish disabled Todo from an enabled empty list.
