@@ -7,6 +7,7 @@ import {
   parseLimitsRefreshMinutes,
 } from '../../../shared/config'
 import { layoutPresetPreview } from '../../../shared/lib/preset-preview'
+import { reorderItems } from '../../../shared/lib/reorder'
 
 import { builtInPreferences } from './built-ins'
 import { changeCodexBinding, codexBindingAccount } from './codex-account-bindings'
@@ -596,6 +597,13 @@ export function createPreferencesModel(
       swap(order, index, destination)
       update({ target: selectedTarget(), behavior: { quickActionOrder: order } })
     },
+    reorderQuickAction(from: string, to: string, scope: string) {
+      if (scope !== targetKey(selectedTarget())) return
+
+      const order = reorderItems(selectedResolved().behavior.quickActionOrder, from, to, (id) => id)
+
+      update({ target: selectedTarget(), behavior: { quickActionOrder: order } })
+    },
     sectionItemLimit: (section: SidebarSection) => resolved().behavior.sectionItemLimits[section] ?? 0,
     selectedSectionItemLimit: (section: SidebarSection) => selectedResolved().behavior.sectionItemLimits[section] ?? 0,
     setSectionItemLimit(section: SidebarSection, value: number) {
@@ -838,6 +846,13 @@ export function createPreferencesModel(
 
       swap(order, index, destination)
       setSelectedSessionLayout({ order })
+    },
+    reorderSelectedSection(from: string, to: string, scope: string) {
+      if (scope !== targetKey(selectedTarget())) return
+
+      const layout = resolveTarget(selectedTarget()).layout
+
+      setSelectedSessionLayout({ order: reorderItems(layout.order, from, to, (id) => id) })
     },
     previewLayoutPreset(preset: SectionLayoutDefault) {
       return layoutPresetPreview(selectedLayoutResolved().layout, preset)

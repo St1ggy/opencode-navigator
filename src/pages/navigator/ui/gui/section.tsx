@@ -15,6 +15,7 @@ export function MonitoringSection(props: {
   const services = useNavigatorGui()
   const preferences = () => services.runtime.catalogs?.preferences
   const expanded = () => preferences()?.expanded()[props.id] ?? true
+  const Icon = services.ui.Icon
 
   return (
     <section aria-label={props.title} style={{ 'min-width': '0' }}>
@@ -36,7 +37,21 @@ export function MonitoringSection(props: {
               'text-align': 'left',
             }}
           >
-            <span aria-hidden="true">{expanded() ? '⌄' : '›'}</span>
+            <span
+              aria-hidden="true"
+              data-navigator-disclosure
+              style={{
+                display: 'inline-flex',
+                width: '16px',
+                height: '16px',
+                'flex-shrink': '0',
+                'align-items': 'center',
+                'justify-content': 'center',
+                transform: expanded() ? 'rotate(0deg)' : 'rotate(-90deg)',
+              }}
+            >
+              <Icon name="chevron-down" size="small" />
+            </span>
             <span style={{ overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>
               {props.title}
             </span>

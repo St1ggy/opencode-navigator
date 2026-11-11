@@ -30,6 +30,8 @@ const normal = [
   '14-desktop-mini-window',
   '15-desktop-icon-picker',
   '16-desktop-toolbar-manager',
+  '30-desktop-todo-states',
+  '31-desktop-update-stages',
 ]
 const quota = [
   '01-desktop-panel',

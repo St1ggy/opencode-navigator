@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import type { UpdateProgress } from '../../../entities/navigator-release/model'
 import type { PluginInfo } from '@opencode/client'
 import type { MainContext } from '@opencode/plugin/gui/main'
 
@@ -21,11 +22,17 @@ function sourceIdentity(item: PluginInfo | undefined) {
   )
 }
 
-export function createMainPluginUpdate(context: MainContext) {
+export function createMainPluginUpdate(context: MainContext, changed: () => void = () => {}) {
   let prepared: { token: string; source: string; target: string } | undefined
   let busy = false
+  let phase: UpdateProgress['phase'] | 'idle' = 'idle'
+  const report = (next: typeof phase) => {
+    phase = next
+    changed()
+  }
 
   return {
+    state: () => ({ phase }),
     async check(_input: void, caller: { signal: AbortSignal }) {
       if (busy) throw new Error('Navigator installation is already in progress')
 
@@ -69,6 +76,7 @@ export function createMainPluginUpdate(context: MainContext) {
         throw new Error('Update confirmation expired. Check again.')
 
       busy = true
+      report('preparing')
       const expected = prepared
 
       prepared = undefined
@@ -85,9 +93,11 @@ export function createMainPluginUpdate(context: MainContext) {
         )
           throw new Error('Navigator installation changed. Check again before installing.')
 
+        report('installing')
         await client.plugin.update({ location: response.location, targets: [expected.target] }, { signal })
       } finally {
         busy = false
+        report('idle')
       }
     },
   }

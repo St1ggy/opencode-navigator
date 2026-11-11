@@ -21,7 +21,9 @@ export const main: Plugin.MainSetup = (context) => {
   context.provide(preferencesIpc(context.id), createMainPreferencesHandlers(store))
   context.provide(localAccountIpc(context.id), { read: readAccount })
   context.provide(localCodexIpc(context.id), createMainCodexHandlers(context, store, codex))
-  context.provide(pluginUpdateIpc(context.id), createMainPluginUpdate(context))
+  const updateImpl = createMainPluginUpdate(context, (): void => updateProvider.changed())
+  const updateProvider = context.provide(pluginUpdateIpc(context.id), updateImpl)
+
   context.provide(bugReportIpc(context.id), createMainBugReport(context.signal))
   context.log.write('info', `Navigator ${__NAVIGATOR_VERSION__} Desktop main ready`)
 }

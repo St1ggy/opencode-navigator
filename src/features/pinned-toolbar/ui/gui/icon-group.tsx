@@ -1,7 +1,8 @@
-import { For, createSignal } from 'solid-js'
+import { createSignal } from 'solid-js'
 
 import { iconChoiceLabel } from '../../../../shared/lib/icon-choices'
-import { GuiIcon } from '../../../../shared/ui/gui'
+import { reorderItems } from '../../../../shared/lib/reorder'
+import { GuiIcon, GuiSortableList } from '../../../../shared/ui/gui'
 
 import { GuiIconPicker } from './icon-picker'
 
@@ -16,24 +17,19 @@ export function GuiIconGroupEditor(props: {
 }) {
   const Dialog = props.ui.Dialog
   const Button = props.ui.Button
-  const [values, setValues] = createSignal([...props.initial])
+  let nextKey = props.initial.length
+  const [slots, setSlots] = createSignal(props.initial.map((id, key) => ({ id, key })))
+  const values = () => slots().map((slot) => slot.id)
 
-  function choose(index: number) {
-    props.dialogs.open((dialog) => (
-      <GuiIconPicker
-        ui={props.ui}
-        close={dialog.close}
-        choose={(id) =>
-          setValues((previous) => {
-            const next = [...previous]
+  function choose(key?: number) {
+    const select = (id: string) =>
+      setSlots((previous) =>
+        key === undefined
+          ? [...previous, { id, key: nextKey++ }].slice(0, 3)
+          : previous.map((slot) => (slot.key === key ? { ...slot, id } : slot)),
+      )
 
-            next[index] = id
-
-            return next
-          })
-        }
-      />
-    ))
+    props.dialogs.open((dialog) => <GuiIconPicker ui={props.ui} close={dialog.close} choose={select} />)
   }
 
   return (
@@ -55,25 +51,34 @@ export function GuiIconGroupEditor(props: {
         </>
       }
     >
-      <ol style={{ margin: '0', padding: '0', 'list-style': 'none' }}>
-        <For each={values().map((_value, index) => index)}>
-          {(index) => (
-            <li style={{ display: 'flex', gap: '4px', margin: '4px 0' }}>
-              <Button variant="ghost" onClick={() => choose(index)}>
-                <GuiIcon ui={props.ui} id={values()[index]} />
-                Icon {index + 1}: {iconChoiceLabel(values()[index])}
-              </Button>
-              <Button
-                variant="ghost-muted"
-                onClick={() => setValues((previous) => previous.filter((_value, offset) => offset !== index))}
-              >
-                Remove
-              </Button>
-            </li>
-          )}
-        </For>
-      </ol>
-      <Button disabled={values().length >= 3} onClick={() => choose(values().length)}>
+      <GuiSortableList
+        ui={props.ui}
+        label="Button icon order"
+        items={slots()}
+        itemKey={(slot) => String(slot.key)}
+        itemLabel={(slot) =>
+          `Icon ${slots().findIndex((value) => value.key === slot.key) + 1}: ${iconChoiceLabel(slot.id)}`
+        }
+        scope="icon-draft"
+        move={(from, to) => setSlots((previous) => reorderItems(previous, from, to, (slot) => String(slot.key)))}
+      >
+        {(slot, handle) => (
+          <div style={{ display: 'flex', gap: '4px', margin: '4px 0' }}>
+            {handle}
+            <Button variant="ghost" onClick={() => choose(slot().key)}>
+              <GuiIcon ui={props.ui} id={slot().id} />
+              Icon {slots().findIndex((value) => value.key === slot().key) + 1}: {iconChoiceLabel(slot().id)}
+            </Button>
+            <Button
+              variant="ghost-muted"
+              onClick={() => setSlots((previous) => previous.filter((value) => value.key !== slot().key))}
+            >
+              Remove
+            </Button>
+          </div>
+        )}
+      </GuiSortableList>
+      <Button disabled={values().length >= 3} onClick={() => choose()}>
         Add icon
       </Button>
     </Dialog>

@@ -67,9 +67,28 @@ icon. Those focused semantic controls remain plugin-owned, using the host theme'
 surface, text, focus and elevation tokens. Remove these fallbacks when equivalent
 public controls preserve their multiline, expanded/selected and progress semantics.
 
-The Desktop model controls use the verified 2.2.6 commands `model.choose` and
-`model.variant.cycle`. These IDs are version-audited mappings, not portable
-TUI command names; a rejected dispatch reports that the control is unavailable.
+Desktop model and reasoning-effort selection belongs to the native chat controls.
+Navigator does not duplicate these selectors in its sidebar. Limits continue to
+follow the host's reactive selected model; the TUI retains its model/variant controls.
+
+The public UI facade also has no sortable list or tab component. Accessible
+ordering and selection retain focused wrappers, with native controls wherever
+their public props preserve the required semantics. `Ui.MenuItem` is not a generic
+list row: the host requires it to render inside a menu. Section disclosure keeps
+`aria-expanded` on its semantic button and uses a native icon with fixed geometry.
+Revisit these wrappers when the host exposes equivalent accessible components.
+
+The native Todo popover has no public content slot. Composer pill contributions
+are adjacent pills, not extensions of native Todo, so Navigator cannot add search
+or tabs there through Desktop 2.2.6's public API. Its read-only Todo rows follow
+the native `todo-pill.tsx`/`todo-pill.css` geometry, status colors and completed or
+cancelled strikethrough. `TodoGlyph` is private; remove the focused SVG fallback
+when an equivalent public Todo/status component is available.
+
+Native package installation provides no byte totals or intermediate transfer
+events. Main IPC publishes the actual active stage to Desktop windows; the owned
+snapshot installer optionally streams bounded stage records to TUI. Neither path
+fabricates transfer percentages or bypasses confirmation and source guards.
 
 The isolated Desktop 2.2.6 host also has a native dialog-context defect: opening
 its command palette after a plugin dialog in a session can fail with

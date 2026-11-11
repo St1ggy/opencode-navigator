@@ -1,5 +1,6 @@
 import { VersionSummary } from './version-summary'
 
+import type { UpdateProgress } from '../../../entities/navigator-release/model'
 import type { VersionStatus } from '../model/version-status'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -19,6 +20,8 @@ export function VersionFooter(props: {
   status: VersionStatus
   onOpenCodeUpdate: (target: string) => void
   onNavigatorUpdate: (target: string) => void
+  navigatorProgress?: UpdateProgress
+  openCodeProgress?: UpdateProgress
 }) {
   const theme = () => props.api.theme.current
   const path = () => footerPath(props.api, props.sessionID)
@@ -32,6 +35,8 @@ export function VersionFooter(props: {
         status={props.status}
         onOpenCodeUpdate={props.onOpenCodeUpdate}
         onNavigatorUpdate={props.onNavigatorUpdate}
+        navigatorProgress={props.navigatorProgress}
+        openCodeProgress={props.openCodeProgress}
       />
     </box>
   )

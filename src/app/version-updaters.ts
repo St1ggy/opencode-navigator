@@ -5,11 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { PLUGIN_ID } from '../shared/config'
 import { isSameMajorVersion } from '../shared/lib/version'
 
+import { runSnapshotUpdate } from './snapshot-update-process'
+
+import type { UpdateProgress } from '../entities/navigator-release/model'
 import type { VersionUpdater } from '../features/version-footer'
 import type { TuiPluginApi, TuiPluginMeta } from '@opencode-ai/plugin/tui'
 import type { Plugin } from '@opencode/plugin/tui'
 
-type Run = (command: readonly string[]) => Promise<void>
+type Run = (command: readonly string[], progress?: (value: UpdateProgress) => void) => Promise<void>
 type ReadConfig = (path: string) => Promise<unknown>
 
 async function upgradeHost(current: string, target: string, execute: Run) {
@@ -18,7 +21,9 @@ async function upgradeHost(current: string, target: string, execute: Run) {
   await execute([process.execPath, 'upgrade', target])
 }
 
-const run: Run = async (command) => {
+const run: Run = async (command, progress) => {
+  if (progress && command[1]?.endsWith('/update-local-snapshot.mjs')) return runSnapshotUpdate(command, progress)
+
   const child = Bun.spawn([...command], { stdout: 'ignore', stderr: 'pipe' })
   const error = new Response(child.stderr).text()
 
@@ -37,13 +42,17 @@ const readConfig: ReadConfig = async (path) => {
   return (await file.exists()) ? Bun.JSONC.parse(await file.text()) : undefined
 }
 
-function pinnedUpdate(wrapper: string, target: string, execute: Run) {
+function pinnedUpdate(wrapper: string, target: string, execute: Run, progress?: (value: UpdateProgress) => void) {
   if (basename(wrapper) !== 'tui.js' || basename(dirname(wrapper)) !== 'opencode-navigator')
     throw new Error('Unrecognized local Navigator source')
 
   const installer = fileURLToPath(new URL('../scripts/update-local-snapshot.mjs', import.meta.url))
 
-  return execute(['node', installer, wrapper, target])
+  const command = ['node', installer, wrapper, target]
+
+  if (progress) return execute([...command, '--progress-json'], progress)
+
+  return execute(command)
 }
 
 function configHasPlugin(value: unknown, spec: string) {
@@ -87,11 +96,11 @@ export function createOpenCodeV1VersionUpdater(
 ): VersionUpdater {
   return {
     openCode: (target) => upgradeHost(api.app.version, target, execute),
-    async navigator(target) {
+    async navigator(target, progress) {
       if (meta.source === 'file') {
         const wrapper = meta.spec.startsWith('file://') ? fileURLToPath(meta.spec) : meta.spec
 
-        return pinnedUpdate(wrapper, target, execute)
+        return pinnedUpdate(wrapper, target, execute, progress)
       }
 
       if (meta.source !== 'npm') throw new Error('Unrecognized local Navigator source')
@@ -108,7 +117,8 @@ export function createOpenCodeV1VersionUpdater(
 export function createOpenCodeV2VersionUpdater(context: Plugin.Context, execute: Run = run): VersionUpdater {
   return {
     openCode: (target) => upgradeHost(context.app.version, target, execute),
-    async navigator(target) {
+    async navigator(target, progress) {
+      progress?.({ phase: 'preparing' })
       const response = await context.client.plugin.list(context.location ? { location: context.location } : {})
       const item = response.data.find((plugin) => plugin.id === PLUGIN_ID)
 
@@ -119,17 +129,20 @@ export function createOpenCodeV2VersionUpdater(context: Plugin.Context, execute:
           basename(item.source.path) === 'tui.js' ? item.source.path : join(item.source.path, 'tui.js'),
           target,
           execute,
+          progress,
         )
 
       if (item.source.type !== 'package') throw new Error('Unrecognized local Navigator source')
 
-      if (isAbsolute(item.source.target)) return pinnedUpdate(join(item.source.target, 'tui.js'), target, execute)
+      if (isAbsolute(item.source.target))
+        return pinnedUpdate(join(item.source.target, 'tui.js'), target, execute, progress)
 
       if (item.source.target.startsWith('file://'))
-        return pinnedUpdate(join(fileURLToPath(item.source.target), 'tui.js'), target, execute)
+        return pinnedUpdate(join(fileURLToPath(item.source.target), 'tui.js'), target, execute, progress)
 
       if (item.source.target.startsWith('.')) throw new Error('Unrecognized local Navigator source')
 
+      progress?.({ phase: 'installing' })
       await context.client.plugin.update({ location: response.location, targets: [item.source.target] })
     },
   }

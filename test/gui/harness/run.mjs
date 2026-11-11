@@ -22,6 +22,8 @@ import {
 import { closeProcessPipes } from './cleanup.mjs'
 import { verifyFloatingDarkTheme, verifyFloatingPointer, verifyFloatingTheme } from './floating.mjs'
 import { verifyTodoSelect, verifyTrustSwitch } from './native-controls.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { presentationInteractions } from './presentation.mjs'
 
 async function nativeLogs(root) {
   // All paths are inside this disposable, synthetic HOME, never the user's state.
@@ -120,7 +122,14 @@ async function main() {
       worktrees: {},
       user: {
         onboardingCompleted: true,
-        mcpServerGroups: { 'synthetic-absent': 'Synthetic MCP Group' },
+        mcpServerGroups: {
+          'synthetic-absent': 'Synthetic MCP Group',
+          'synthetic-server-with-a-deliberately-long-name-for-settings-layout-regressions':
+            'Synthetic group with a deliberately longer name',
+        },
+        skippedSkillConfirmations: [
+          '/synthetic/project/skills/a-deliberately-long-synthetic-source-location-for-layout-regressions/SKILL.md',
+        ],
         mcpPresets: { 'Synthetic unavailable': { 'synthetic-missing-server': 'enabled' } },
       },
     }),
@@ -290,6 +299,10 @@ async function main() {
     await panel.getByRole('heading', { name: /^Subagents/u }).waitFor()
     await verifyObservedVersion(preferencesDirectory)
     await captureGui(panel, '01-desktop-panel')
+    // The native palette has an independently tracked routed-context defect.
+    // Keep Home palette registration coverage above; dispatch session commands
+    // through the public API so host context failures do not block plugin tests.
+    fixtureDispatch = true
     await command('Search Everything in Navigator')
     const navigatorSearch = page.getByRole('dialog').last()
     const query = navigatorSearch.getByRole('textbox', { name: 'Search Navigator', exact: true })
@@ -329,6 +342,7 @@ async function main() {
 
     await toolbarInteractions(page, panel, command)
     await settingsInteractions(page, panel, command)
+    await presentationInteractions(page, command)
     const mcpSection = panel.getByRole('region', { name: 'MCP', exact: true })
 
     await mcpSection.getByRole('button', { name: 'Preset', exact: true }).click()

@@ -1,6 +1,6 @@
 import { For, Show } from 'solid-js'
 
-import { GuiGroupControl } from '../../../../shared/ui/gui'
+import { GuiGroupControl, GuiSortableList } from '../../../../shared/ui/gui'
 
 import type { GuiSettingsServices } from './settings-contract'
 
@@ -18,31 +18,33 @@ export function GuiSettingsCatalogs(props: GuiSettingsServices) {
         title="Quick Actions"
         footer="Visibility and order are scoped. Favorites are private and user-wide; usage never reorders actions."
       >
-        <For each={props.catalogs.actions()}>
-          {(action, index) => (
-            <Row title={action.label}>
-              <Button
-                size="small"
-                disabled={index() === 0}
-                onClick={() => props.preferences.moveQuickAction(action.id, -1)}
-              >
-                Move up
-              </Button>
-              <Button
-                size="small"
-                disabled={index() === props.catalogs.actions().length - 1}
-                onClick={() => props.preferences.moveQuickAction(action.id, 1)}
-              >
-                Move down
-              </Button>
+        <GuiSortableList
+          ui={props.ui}
+          label="Quick Action order"
+          items={props.catalogs.actions()}
+          itemKey={(action) => action.id}
+          itemLabel={(action) => action.label}
+          scope={props.preferences.selectedScopeKey()}
+          move={(from, to) => props.preferences.reorderQuickAction(from, to, props.preferences.selectedScopeKey())}
+        >
+          {(action, handle) => (
+            <Row
+              title={
+                <span style={{ display: 'flex', gap: '8px', 'align-items': 'center' }}>
+                  {handle}
+                  {action().label}
+                </span>
+              }
+            >
               <Switch
-                label={`Show action ${action.label}`}
-                checked={props.preferences.selectedQuickActionVisible(action.id)}
-                onChange={() => props.preferences.toggleQuickAction(action.id)}
+                label={`Show action ${action().label}`}
+                hideLabel
+                checked={props.preferences.selectedQuickActionVisible(action().id)}
+                onChange={() => props.preferences.toggleQuickAction(action().id)}
               />
             </Row>
           )}
-        </For>
+        </GuiSortableList>
       </Section>
       <Section
         title="Skill groups"

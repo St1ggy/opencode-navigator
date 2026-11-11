@@ -12,11 +12,13 @@ export function GuiMcpGroup(props: { group: string }) {
   const view = () => catalogs().views.mcp
   const bucket = () => view().bucket(props.group)
   const busy = () => catalogs().mcp.bulkState().group === props.group && catalogs().mcp.bulkState().status === 'running'
+  const Button = services.ui.Button
 
   return (
     <div>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="small"
         disabled={catalogs().mcp.mutating()}
         onClick={() =>
           void catalogs()
@@ -26,24 +28,13 @@ export function GuiMcpGroup(props: { group: string }) {
             )
             ?.catch(() => {})
         }
-        style={{
-          display: 'flex',
-          gap: '6px',
-          'align-items': 'center',
-          width: '100%',
-          padding: '4px 0',
-          border: '0',
-          background: 'transparent',
-          color: 'inherit',
-          'text-align': 'left',
-        }}
       >
         <McpIndicator status={mcpGroupStatus(bucket(), busy())} />
         <strong style={{ overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>
           {props.group}
         </strong>
         <span style={{ opacity: 0.6, 'font-weight': '400' }}>{bucket().length}</span>
-      </button>
+      </Button>
       <ul style={{ margin: '0', padding: '0 0 0 10px', 'list-style': 'none' }}>
         <For
           each={view()

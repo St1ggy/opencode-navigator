@@ -58,18 +58,6 @@ export function LimitsSection() {
         </>
       }
     >
-      <div style={{ display: 'flex', gap: '4px', 'align-items': 'center', 'min-width': '0' }}>
-        <Button size="small" variant="ghost" onClick={() => limits()?.chooseModel()}>
-          {limits()?.label() ?? 'Select model'}
-        </Button>
-        <Show when={limits()?.selected()?.variant}>
-          {(variant) => (
-            <Button size="small" variant="ghost-muted" onClick={() => limits()?.chooseVariant()}>
-              {variant()}
-            </Button>
-          )}
-        </Show>
-      </div>
       <Show when={canLink()}>
         <Button size="small" variant="ghost" onClick={props.onLinkAccount}>
           Link Codex account

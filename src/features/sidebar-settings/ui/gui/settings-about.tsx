@@ -1,5 +1,8 @@
 import { createSignal } from 'solid-js'
 
+import { updateProgressView } from '../../../../entities/navigator-release/model'
+import { GuiProgress } from '../../../../shared/ui/gui'
+
 import type { GuiAboutServices } from './about-contract'
 import type { Ui } from '@opencode/plugin/gui'
 
@@ -16,12 +19,23 @@ export function GuiSettingsAbout(props: { ui: Ui; about: GuiAboutServices; showG
       .find((entry) => entry.version === version())
       ?.changes.map((change) => `- ${change}`)
       .join('\n') ?? 'No user-facing release notes are bundled.'
+  const progress = () => {
+    const current = props.about.progress?.()
+
+    return current && updateProgressView(current)
+  }
 
   return (
     <>
       <Section title="About Navigator" footer={<p role="status">{props.about.status()}</p>}>
         <Row
-          title={`Navigator ${props.about.version}`}
+          title={
+            progress() ? (
+              <GuiProgress ui={props.ui} label={`Navigator · ${progress()!.label}`} value={progress()!.fraction} />
+            ) : (
+              `Navigator ${props.about.version}`
+            )
+          }
           description={`OpenCode Desktop ${props.about.hostVersion}. Experimental Desktop GUI.`}
         >
           <Button busy={props.about.busy()} onClick={() => void props.about.check()}>

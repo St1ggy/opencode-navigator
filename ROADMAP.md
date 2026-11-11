@@ -17,6 +17,19 @@ and useful as a compact control center for an OpenCode session.
 - Preserve useful defaults while supporting global and worktree-specific preferences.
 - Treat unavailable OpenCode APIs as explicit constraints rather than simulating unsupported actions.
 
+## Desktop layout, drag ordering and inline update progress follow-up
+
+- [ ] API-blocked: integrate Todo search and filter tabs into the native Todo popover when the host exposes a supported extension point. Desktop 2.2.6 exports composer pills beside native Todo, not an extension inside its popover; retain Navigator filtering meanwhile.
+
+- [x] Align Desktop Todo status icons, colors and spacing with audited native Todo source; strike through and mute completed/cancelled content while retaining read-only status semantics. Cover all four presentation states with unit assertions.
+- [x] Audit Desktop presentation against public host UI-kit equivalents. Use native actions, form controls, dialogs, icons and loading indicators where supported; document the narrow multiline, disclosure, selection, bookmark, sortable and progress API gaps without losing accessibility.
+- [x] Remove duplicate Desktop sidebar model/effort selectors while preserving reactive quota targeting and TUI controls. Verify the absence in the packaged quota fixture and stable native disclosure geometry in both states.
+- [x] Reproduce Settings overflow and squeezed labels, then verify bounded controls and readable labels at 1280/1040/800px with long synthetic content. Preserve native controls and compact group creation with explicit Save/Cancel.
+- [x] Replace visible GUI reorder buttons with shared accessible drag ordering for sections, Quick Actions, toolbar pins and draft icons. Verify pointer/keyboard pickup/drop, Escape, stale scopes and stable identity; packaged Desktop section and toolbar interactions pass.
+- [x] Add truthful inline TUI/Desktop update progress with finite real-byte percentage validation, native main IPC state and opt-in snapshot stages. Synthetic installer/error tests preserve safeguards; no actual local update is performed.
+- [x] Verify unit/render regressions, both real TUI hosts and packaged Desktop normal/quota smokes sequentially without local captures, installation changes or publication. Extend long-content and interaction fixtures for the manual CI harness.
+- [~] Prepare the authorized 0.27.2 patch release. Add dedicated production Todo-row and update-stage synthetic capture scenes; generate/verify screenshots through Prepare Release, merge its CI-green PR, then publish only after final CI.
+
 ## Desktop native controls, credit expiry and Float follow-up
 
 - [x] Replace remaining GUI form checkbox/select controls with public host Switch/Select, retain native buttons/inputs and remove duplicate Settings-row switch labels. Document focused multiline/disclosure/bookmark/progress API gaps and use host theme tokens for fallbacks; real-host assertions verify native form controls.

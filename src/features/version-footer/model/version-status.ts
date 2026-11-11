@@ -3,6 +3,7 @@ import { createSignal } from 'solid-js'
 import { isNewerVersion, isSameMajorVersion } from '../../../shared/lib/version'
 
 import type { NavigatorUpdateCheck } from '../../../entities/navigator-release'
+import type { UpdateProgress } from '../../../entities/navigator-release/model'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Accessor } from 'solid-js'
 
@@ -17,8 +18,8 @@ export type VersionStatus = {
 }
 
 export type VersionUpdater = {
-  openCode: (target: string) => Promise<void>
-  navigator: (target: string) => Promise<void>
+  openCode: (target: string, progress?: (value: UpdateProgress) => void) => Promise<void>
+  navigator: (target: string, progress?: (value: UpdateProgress) => void) => Promise<void>
 }
 
 export { isNewerVersion } from '../../../shared/lib/version'

@@ -1,8 +1,10 @@
+import { gui } from '@opencode/plugin/gui/vite'
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve as resolvePath } from 'node:path'
+import { build } from 'vite'
 
 const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
 const root = resolvePath(import.meta.dirname, '..')
@@ -16,6 +18,16 @@ if (captureDirectory) {
 
   await mkdir(captureDirectory, { recursive: true })
 }
+
+// Bundle production presentation components into the isolated test plugin,
+// sharing the host runtime exactly as the real GUI entry does.
+const fixtureBundle = join(artifacts, 'fixture.cjs')
+
+await build({
+  configFile: false,
+  plugins: [gui({ entry: join(root, 'test/gui/harness/presentation-fixture.jsx'), outFile: fixtureBundle })],
+  build: { minify: false },
+})
 
 async function run(command, args, timeout = 300_000, capture = false) {
   const controller = new AbortController()
@@ -92,6 +104,8 @@ try {
         : []),
       '--mount',
       `type=bind,src=${join(artifacts, pack.filename)},dst=/input/navigator.tgz,readonly`,
+      '--mount',
+      `type=bind,src=${fixtureBundle},dst=/opt/navigator-smoke/fixture.cjs,readonly`,
       '-e',
       `NAVIGATOR_VERSION=${metadata.version}`,
       '-e',

@@ -1,4 +1,5 @@
-import { For } from 'solid-js'
+import { SECTION_DEFINITIONS } from '../../../../shared/config'
+import { GuiSortableList } from '../../../../shared/ui/gui'
 
 import { GuiSectionSettingsRow } from './section-settings-row'
 
@@ -13,16 +14,17 @@ export function GuiSettingsSections(props: GuiSettingsServices) {
       title="Sections"
       footer="Visibility changes apply immediately. Save this layout as the scoped default to use it in future sessions."
     >
-      <For each={preferences.selectedSectionOrder()}>
-        {(section, index) => (
-          <GuiSectionSettingsRow
-            {...props}
-            section={section}
-            index={index()}
-            count={preferences.selectedSectionOrder().length}
-          />
-        )}
-      </For>
+      <GuiSortableList
+        ui={props.ui}
+        label="Section order"
+        items={preferences.selectedSectionOrder()}
+        itemKey={(section) => section}
+        itemLabel={(section) => SECTION_DEFINITIONS.find((value) => value.name === section)?.label ?? section}
+        scope={preferences.selectedScopeKey()}
+        move={(from, to) => preferences.reorderSelectedSection(from, to, preferences.selectedScopeKey())}
+      >
+        {(section, handle) => <GuiSectionSettingsRow {...props} section={section()} handle={handle} />}
+      </GuiSortableList>
     </Section>
   )
 }

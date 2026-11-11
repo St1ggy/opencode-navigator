@@ -1,5 +1,8 @@
 import { useIcons } from '../../../shared/ui'
 
+import { VersionInstallProgress } from './install-progress'
+
+import type { UpdateProgress } from '../../../entities/navigator-release/model'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function VersionControl(props: {
@@ -8,6 +11,7 @@ export function VersionControl(props: {
   version: string
   update?: string
   onUpdate?: (target: string) => void
+  progress?: UpdateProgress
 }) {
   const icons = useIcons()
   const theme = () => props.api.theme.current
@@ -21,16 +25,20 @@ export function VersionControl(props: {
       onMouseUp={(event) => {
         const update = props.update
 
-        if (!update) return
+        if (!update || props.progress) return
 
         event.stopPropagation()
         props.onUpdate?.(update)
       }}
     >
-      <text fg={theme().textMuted}>
-        {props.label} {props.version}
-      </text>
-      {props.update ? <text fg={theme().warning}>{icons.icon('update')}</text> : null}
+      {props.progress ? (
+        <VersionInstallProgress api={props.api} label={props.label} progress={props.progress} />
+      ) : (
+        <text fg={theme().textMuted}>
+          {props.label} {props.version}
+        </text>
+      )}
+      {props.update && !props.progress ? <text fg={theme().warning}>{icons.icon('update')}</text> : null}
     </box>
   )
 }

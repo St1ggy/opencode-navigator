@@ -14,6 +14,11 @@ export function createGuiAbout(context: Context): GuiAboutServices {
   const [busy, setBusy] = createSignal(false)
   const [status, setStatus] = createSignal('Updates have not been checked.')
   const [token, setToken] = createSignal<string>()
+  const progress = () => {
+    const current = ipc.state()
+
+    return current && current.phase !== 'idle' ? { phase: current.phase } : undefined
+  }
 
   return {
     report: createGuiBugReport(context),
@@ -21,7 +26,8 @@ export function createGuiAbout(context: Context): GuiAboutServices {
     hostVersion: context.app?.version ?? 'unknown',
     changelog: parseChangelog(guiRelease.changelog),
     status,
-    busy,
+    busy: () => busy() || Boolean(progress()),
+    progress,
     available: () => Boolean(token()),
     async check() {
       if (busy()) return

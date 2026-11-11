@@ -8,14 +8,20 @@ import { extraSettingsInteractions } from './settings-extras.mjs'
 import { presetManagementInteractions } from './preset-management.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { captureGui } from './capture.mjs'
+import { verifyDisclosure, verifySectionDrag, verifySettingsGeometry } from './settings-geometry.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { clickNativeSwitch } from './native-controls.mjs'
 
 export async function settingsInteractions(page, panel, command) {
+  await verifyDisclosure(panel)
   await command('Navigator settings')
   // Desktop Settings is a native route, not a plugin dialog layer.
   const settings = page
 
   await settings.getByRole('heading', { name: 'Navigator', exact: true }).waitFor()
-  await settings.getByText('Show Limits', { exact: true }).click()
+  await verifySettingsGeometry(page)
+  await verifySectionDrag(page)
+  await clickNativeSwitch(settings, 'Show Limits')
   await page.getByRole('button', { name: 'Back to app', exact: true }).click()
   await panel.getByRole('region', { name: 'Limits', exact: true }).waitFor({ state: 'detached' })
   await command('Navigator settings')

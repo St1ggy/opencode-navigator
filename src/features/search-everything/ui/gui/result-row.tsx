@@ -15,6 +15,7 @@ export function GuiSearchResultRow(props: {
   information(): void
 }) {
   const Button = props.ui.Button
+  const Loader = props.ui.Loader
 
   return (
     <li style={{ display: 'flex', gap: '4px', 'align-items': 'center', 'min-width': '0', padding: '3px 0' }}>
@@ -46,7 +47,10 @@ export function GuiSearchResultRow(props: {
           {props.result.disabled || props.result.description}
         </span>
         <Show when={props.busy}>
-          <span role="status">Working…</span>
+          <span role="status" style={{ display: 'inline-flex', gap: '6px', 'align-items': 'center' }}>
+            <Loader size="small" />
+            Working…
+          </span>
         </Show>
       </button>
       <Show when={props.result.information}>

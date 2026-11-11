@@ -11,6 +11,7 @@ function fixture(source: PluginInfo['source']) {
   let current = source
   let checks = 0
   const installs: unknown[] = []
+  const phases: string[] = []
   const context = {
     id: 'synthetic.navigator',
     signal: new AbortController().signal,
@@ -37,8 +38,11 @@ function fixture(source: PluginInfo['source']) {
     },
   } as unknown as MainContext
 
+  const service = createMainPluginUpdate(context, () => phases.push(service.state().phase))
+
   return {
-    service: createMainPluginUpdate(context),
+    service,
+    phases,
     installs,
     checks: () => checks,
     source: (value: PluginInfo['source']) => {
@@ -69,6 +73,8 @@ test('GUI native update requires the current source token and preserves configur
   expect(context.installs).toEqual([])
   await context.service.install({ token: preview.token! }, caller())
   expect(context.installs).toEqual([{ location: { directory: '/synthetic/config' }, targets: ['opencode-navigator'] }])
+  expect(context.phases).toEqual(['preparing', 'installing', 'idle'])
+  expect(context.service.state().phase).toBe('idle')
   await expect(context.service.install({ token: preview.token! }, caller())).rejects.toThrow('expired')
   const next = await context.service.check(undefined, caller())
 

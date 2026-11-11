@@ -4,6 +4,7 @@ import { Schema } from 'effect'
 export function pluginUpdateIpc(pluginID: string) {
   return Ipc.define({
     id: `${pluginID}.package-update`,
+    state: Schema.Struct({ phase: Schema.Literals(['idle', 'preparing', 'downloading', 'installing', 'verifying']) }),
     methods: {
       check: {
         output: Schema.Struct({

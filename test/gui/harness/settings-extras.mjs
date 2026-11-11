@@ -1,4 +1,6 @@
 import { readFile } from 'node:fs/promises'
+// oxlint-disable-next-line import-x-js/extensions
+import { clickNativeSwitch } from './native-controls.mjs'
 
 export async function extraSettingsInteractions(page) {
   const skills = page.getByRole('group', { name: 'Skills section controls', exact: true })
@@ -15,13 +17,15 @@ export async function extraSettingsInteractions(page) {
   await save.click()
   const skillGroup = page.getByRole('group', { name: /^synthetic-monitoring .* grouping$/u }).first()
 
+  await skillGroup.getByRole('button', { name: 'New group', exact: true }).click()
   await skillGroup.getByRole('textbox').fill('Synthetic Skill Group')
   await skillGroup.getByRole('button', { name: 'Save group', exact: true }).click()
   const mcpGroup = page.getByRole('group', { name: 'synthetic-absent grouping', exact: true })
 
+  await mcpGroup.getByRole('button', { name: 'New group', exact: true }).click()
   await mcpGroup.getByRole('textbox').fill('Synthetic MCP Updated')
   await mcpGroup.getByRole('button', { name: 'Save group', exact: true }).click()
-  await page.getByText('Show action Permissions settings', { exact: true }).click()
+  await clickNativeSwitch(page, 'Show action Permissions settings')
   await page.getByRole('switch', { name: 'Show action Permissions settings', exact: true }).focus()
   await page.keyboard.press('Space')
   await page.getByRole('button', { name: 'Restore shared behavior', exact: true }).click()

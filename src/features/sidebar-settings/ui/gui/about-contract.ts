@@ -1,4 +1,4 @@
-import type { ChangelogEntry } from '../../../../entities/navigator-release/model'
+import type { ChangelogEntry, UpdateProgress } from '../../../../entities/navigator-release/model'
 
 export type GuiAboutServices = {
   version: string
@@ -10,4 +10,5 @@ export type GuiAboutServices = {
   check(): Promise<void>
   update(): Promise<void>
   report(): void
+  progress?(): UpdateProgress | undefined
 }

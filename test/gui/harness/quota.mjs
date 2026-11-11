@@ -31,6 +31,12 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   await page.getByRole('dialog').last().getByText('synthetic-account', { exact: true }).waitFor()
   await page.getByRole('dialog').last().getByRole('button', { name: 'Link account', exact: true }).click()
   await panel.getByRole('button', { name: 'Banked Resets', exact: true }).waitFor({ timeout: 30_000 })
+  const limits = panel.getByRole('region', { name: 'Limits', exact: true })
+  const controls = await limits.getByRole('button').allTextContents()
+
+  if (controls.some((label) => /synthetic-model|Select model|reasoning|effort/iu.test(label)))
+    throw new Error('Desktop Limits duplicated the native chat model or effort selector')
+
   await assertNoConfigurationError(page)
   await captureGui(panel, '18-desktop-limits')
   const linked = JSON.parse(await readFile(preferencesPath, 'utf8'))

@@ -1,11 +1,13 @@
 /** @jsxImportSource @opentui/solid */
 import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
+import { createSignal } from 'solid-js'
 
 import packageJSON from '../package.json' with { type: 'json' }
 import { VersionFooter, VersionSummary, createVersionStatus, isNewerVersion } from '../src/features/version-footer'
 import { IconProvider, uiIcon } from '../src/shared/ui'
 
+import type { UpdateProgress } from '../src/entities/navigator-release/model'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 const theme = {
@@ -13,6 +15,49 @@ const theme = {
   textMuted: '#888888',
   warning: '#ffff00',
 }
+
+test('update progress replaces the running version in a narrow footer and restores it after completion', async () => {
+  const [progress, setProgress] = createSignal<UpdateProgress | undefined>({
+    phase: 'downloading',
+    received: 25,
+    total: 100,
+  })
+  const api = {
+    app: { version: packageJSON.devDependencies['@opencode-ai/plugin'] },
+    theme: { current: theme },
+  } as unknown as TuiPluginApi
+  const view = await testRender(
+    () => (
+      <IconProvider style={() => 'text'}>
+        <VersionSummary
+          api={api}
+          navigatorVersion={packageJSON.version}
+          navigatorProgress={progress()}
+          status={{ openCodeUpdate: () => {}, navigatorUpdate: () => {} }}
+          onOpenCodeUpdate={() => {}}
+          onNavigatorUpdate={() => {}}
+        />
+      </IconProvider>
+    ),
+    { width: 38, height: 4 },
+  )
+
+  try {
+    await view.renderOnce()
+    const frame = view.captureCharFrame()
+
+    expect(frame).toContain('Download 25%')
+    expect(frame).not.toContain(`Navigator ${packageJSON.version}`)
+    setProgress({ phase: 'installing' })
+    await view.renderOnce()
+    expect(view.captureCharFrame()).not.toContain('%')
+    setProgress(undefined)
+    await view.renderOnce()
+    expect(view.captureCharFrame()).toContain(`Navigator ${packageJSON.version}`)
+  } finally {
+    view.renderer.destroy()
+  }
+})
 
 function nextPatch(version: string) {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version)

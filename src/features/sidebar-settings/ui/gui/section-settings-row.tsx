@@ -4,10 +4,9 @@ import { SECTION_DEFINITIONS } from '../../../../shared/config'
 
 import type { SidebarSection } from '../../../../shared/config'
 import type { GuiSettingsServices } from './settings-contract'
+import type { JSX } from 'solid-js'
 
-export function GuiSectionSettingsRow(
-  props: GuiSettingsServices & { section: SidebarSection; index: number; count: number },
-) {
+export function GuiSectionSettingsRow(props: GuiSettingsServices & { section: SidebarSection; handle: JSX.Element }) {
   const Row = props.ui.SettingsRow
   const Switch = props.ui.Switch
   const Button = props.ui.Button
@@ -20,7 +19,12 @@ export function GuiSectionSettingsRow(
 
   return (
     <Row
-      title={label()}
+      title={
+        <span style={{ display: 'flex', gap: '8px', 'align-items': 'center' }}>
+          {props.handle}
+          {label()}
+        </span>
+      }
       id={`navigator-section-${props.section}`}
       description={
         props.section === 'lsp'
@@ -33,30 +37,24 @@ export function GuiSectionSettingsRow(
         aria-label={`${label()} section controls`}
         style={{ display: 'flex', gap: '8px', 'align-items': 'center', 'flex-wrap': 'wrap' }}
       >
-        <Button
-          size="small"
-          disabled={props.index === 0}
-          onClick={() => props.preferences.moveSelectedSection(props.section, -1)}
-        >
-          Move up
-        </Button>
-        <Button
-          size="small"
-          disabled={props.index === props.count - 1}
-          onClick={() => props.preferences.moveSelectedSection(props.section, 1)}
-        >
-          Move down
-        </Button>
-        <Switch
-          label={`Show ${label()}`}
-          checked={props.preferences.selectedSections()[props.section]}
-          onChange={() => props.preferences.toggleSelectedSection(props.section)}
-        />
-        <Switch
-          label={`Expand ${label()}`}
-          checked={props.preferences.selectedExpanded()[props.section]}
-          onChange={() => props.preferences.toggleSelectedSectionExpanded(props.section)}
-        />
+        <span style={{ display: 'flex', gap: '6px', 'align-items': 'center' }}>
+          <span>Visible</span>
+          <Switch
+            hideLabel
+            label={`Show ${label()}`}
+            checked={props.preferences.selectedSections()[props.section]}
+            onChange={() => props.preferences.toggleSelectedSection(props.section)}
+          />
+        </span>
+        <span style={{ display: 'flex', gap: '6px', 'align-items': 'center' }}>
+          <span>Expanded</span>
+          <Switch
+            hideLabel
+            label={`Expand ${label()}`}
+            checked={props.preferences.selectedExpanded()[props.section]}
+            onChange={() => props.preferences.toggleSelectedSectionExpanded(props.section)}
+          />
+        </span>
         <Show when={props.section !== 'limits' && props.section !== 'lsp'}>
           <TextInput
             label={`${label()} item limit (0 for all)`}

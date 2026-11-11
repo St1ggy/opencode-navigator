@@ -81,6 +81,9 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
   if (!/^\d+\.\d+\.\d+$/.test(target)) throw new Error('Invalid Navigator update version')
 
   const { root, version, source } = await pinnedSnapshot(resolve(wrapper))
+  const progress = operations.progress ?? (() => {})
+
+  progress({ phase: 'preparing' })
   const previous = join(root, 'releases', `v${version}`)
   const next = join(root, 'releases', `v${target}`)
 
@@ -98,6 +101,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
 
   try {
     if (existsSync(next)) {
+      progress({ phase: 'verifying' })
       await validate(next, target)
 
       await (operations.verify ? operations.verify(next) : verifySnapshot(next))
@@ -106,6 +110,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
 
       if (operations.stage) await operations.stage(staging, target)
       else {
+        progress({ phase: 'downloading' })
         await command('npm', ['pack', `opencode-navigator@${target}`, '--pack-destination', staging, '--silent'])
         await command('tar', [
           '-xzf',
@@ -138,6 +143,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
         }),
       )
 
+      progress({ phase: 'installing' })
       await (operations.install
         ? operations.install(staging)
         : command('npm', [
@@ -150,6 +156,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
             '--legacy-peer-deps',
           ]))
 
+      progress({ phase: 'verifying' })
       await validate(staging, target)
 
       await (operations.verify ? operations.verify(staging) : verifySnapshot(staging, verifier))
@@ -160,6 +167,7 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
     if ((await readFile(wrapper, 'utf8')) !== source)
       throw new Error('Navigator source changed during the update; restart OpenCode and retry')
 
+    progress({ phase: 'installing' })
     await writeFile(replacement, `export { default } from "./releases/v${target}/dist/tui.js";\n`)
     await rename(replacement, wrapper)
   } finally {
@@ -170,7 +178,11 @@ export async function updateLocalSnapshot(wrapper, target, operations = {}) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    await updateLocalSnapshot(process.argv[2], process.argv[3])
+    await updateLocalSnapshot(process.argv[2], process.argv[3], {
+      progress: process.argv.includes('--progress-json')
+        ? (value) => process.stdout.write(`navigator-update-progress:${JSON.stringify(value)}\n`)
+        : undefined,
+    })
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     process.exitCode = 1

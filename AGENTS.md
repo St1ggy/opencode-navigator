@@ -41,6 +41,7 @@
 ## Shared Models And Desktop GUI
 
 - Use the host's public GUI UI-kit components for Navigator switches, inputs, buttons, selectors and other controls so they match the surrounding Desktop application; do not imitate host controls with independently styled HTML where an equivalent public component exists.
+- Apply native UI-kit alignment across the entire Desktop Navigator surface, including section disclosure, tabs, dialogs, headings, icons, focus/hover/disabled states and settings composition. Audit public host equivalents before retaining custom presentation; keep custom layout or controls only for verified public-API gaps, without changing TUI presentation or using host internals.
 - Show a banked-reset expiry progress bar using provider-supplied grant and expiry timestamps, with readable remaining time and explicit missing-date states instead of fabricated progress or an unsupported claim that a credit never expires.
 - Fix in-app Float dragging and keep the floating surface in the active host theme and palette. Reproduce pointer movement and theme inheritance in the isolated Desktop host before claiming either issue fixed.
 
@@ -56,6 +57,15 @@
 - After completing the main implementation, separately reproduce and investigate the user's report that Subagents and Todo are not displayed. Do not claim the refactor fixes this symptom without a reproduction; distinguish native enablement, active server/session/location, source loading, section visibility and host-capability states.
 
 ## Interaction and presentation
+
+- In Desktop GUI, omit model and reasoning-effort selectors from the Navigator sidebar; the native chat controls own selection. Keep Limits, Refresh, Banked Resets and necessary account/error guidance, and continue following the host-selected model reactively. Preserve the TUI model/variant controls.
+- Use consistently sized, centered native Desktop chevrons for section disclosure instead of mismatched text glyphs; keep title spacing stable between expanded and collapsed states.
+- Desktop Todo rows must match native Todo presentation as closely as the public UI-kit permits: completed content is struck through and muted, status icons/colors and row spacing follow the host, and task editing remains owned by native chat. Preserve distinct pending, in-progress, completed and cancelled semantics and accessible status labels.
+- Prefer adding Todo search and filter tabs inside the existing native Todo popover if a supported host extension point exists. Until then, retain Navigator search/tabs and native-like read-only presentation; do not patch host internals, manipulate the native Todo DOM, or add a duplicate composer pill as a substitute. Record the missing extension point and revisit when the public contract changes.
+
+- Fix Desktop Settings layout with realistic long labels, dense controls and constrained content widths: keep fields/actions inside their owning rows, avoid compressed label columns, duplicate switch labels and oversized unbounded inputs, and preserve the native UI-kit and accessible names. Reproduce the reported overflow with synthetic geometry assertions rather than treating the user's older displayed version as proof the current layout is correct.
+- While a confirmed Navigator update downloads and installs, replace the TUI's running-version label with an inline progress indicator and expose equivalent inline progress in Desktop. Use real byte/total progress where the installation path provides it, and explicit indeterminate stages otherwise; never invent percentages. Preserve confirmation, stale-target/account guards, duplicate-install protection, installation method/scope, errors and restart guidance.
+- In Desktop, every user-controlled ordering surface must use drag-and-drop instead of visible Move up/Move down buttons, with an accessible keyboard equivalent, stable row identity and viewport/scroll behavior. Preserve scope guards, draft/cancel behavior and explicit persistence semantics for sections, Quick Actions, toolbar pins and ordered icons.
 
 - Investigate and fix Navigator sidebar content flickering while users type in the main OpenCode prompt on both supported host lines. Establish a frame-level reproduction before claiming a cause or fix, preserve stable row identity and scroll/focus, and retain genuine reactive updates and rounded rendering.
 - Add an About tab to Navigator Settings with the running version, explicit update checking/status, and a browsable per-version changelog that can be reopened without consuming or resetting first-launch upgrade-note state. Reuse existing update and installation safeguards.
@@ -210,6 +220,8 @@
 - Keep the bundle-size check active with the current 360,000-byte raw limit; account for measured growth when introducing features.
 
 ## Package identity and releases
+
+- On 2026-11-11, the user authorized committing/pushing and publishing the Settings, GUI drag ordering, inline update progress and native-style Desktop Todo/UI refinements as a new release. Complete Prepare Release, merged screenshot PR and CI gates first; this request does not authorize updating local Navigator or OpenCode installations.
 
 - On 2026-11-11, the user authorized committing/pushing and publishing a new patch release for the native GUI controls, banked-reset expiry and Float fixes. Run Prepare Release and its merged screenshot PR/CI gates before publication; this request does not separately authorize updating the local installed plugin or OpenCode hosts.
 

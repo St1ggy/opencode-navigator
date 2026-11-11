@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.2] - 2026-11-11
+
+- Keep Desktop Settings fields and actions inside their rows at narrow widths, with readable labels and compact group creation.
+- Reorder Desktop sections, Quick Actions, toolbar pins and button icons by dragging their handles, or use Space and arrow keys to move them with the keyboard. Escape cancels an unfinished move.
+- Show download and installation progress in place of the running version in TUI and inline in Desktop About. Show real percentages only when byte totals are available; otherwise show the active stage.
+- Bring Desktop section arrows, loading indicators and Todo rows closer to native OpenCode. Completed and cancelled tasks use muted, struck-through text with distinct status icons.
+- Remove duplicate model and reasoning-effort selectors from the Desktop sidebar. Select them below chat instead; Limits continue to follow the active model.
+
 ## [0.27.1] - 2026-11-11
 
 - Drag the Desktop mini-window by its header as well as its move handle, while keeping Dock a separate action. Match its surface and controls to OpenCode's light and dark themes.

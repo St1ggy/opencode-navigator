@@ -250,6 +250,8 @@ export const setupOpenCodeV1: TuiPlugin = async (api, options, meta: TuiPluginMe
               status={versionStatus}
               onOpenCodeUpdate={versionUpdates.openCode}
               onNavigatorUpdate={versionUpdates.navigator}
+              navigatorProgress={versionUpdates.navigatorProgress()}
+              openCodeProgress={versionUpdates.openCodeProgress()}
             />
           </IconProvider>
         )
@@ -296,6 +298,8 @@ export const setupOpenCodeV2: OpenCodeV2Plugin.Definition['setup'] = async (cont
             status={versionStatus}
             onOpenCodeUpdate={versionUpdates.openCode}
             onNavigatorUpdate={versionUpdates.navigator}
+            navigatorProgress={versionUpdates.navigatorProgress()}
+            openCodeProgress={versionUpdates.openCodeProgress()}
           />
           <SettingsFooterButton api={adapter.api} preferences={preferences} mcp={mcp} skills={skills} />
         </box>

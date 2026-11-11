@@ -5,6 +5,7 @@ import { createManualUpdateCheck } from '../model/manual-update-check'
 
 import { NestedVersionConfirmation } from './nested-version-confirmation'
 
+import type { UpdateProgress } from '../../../entities/navigator-release/model'
 import type { DialogNavigation } from '../../../shared/ui'
 import type { VersionStatus, VersionUpdater } from '../model/version-status'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -20,6 +21,7 @@ export function createVersionUpdateActions(
   const busy = new Set<UpdateKind>()
   const [navigatorUpdating, setNavigatorUpdating] = createSignal(false)
   const [navigatorInstalled, setNavigatorInstalled] = createSignal<string>()
+  const [progress, setProgress] = createSignal<Partial<Record<UpdateKind, UpdateProgress>>>({})
   const installed: Partial<Record<UpdateKind, string>> = {}
   let disposed = false
   let confirmation = 0
@@ -47,6 +49,7 @@ export function createVersionUpdateActions(
 
     api.ui.dialog.clear()
     busy.add(kind)
+    setProgress((previous) => ({ ...previous, [kind]: { phase: 'preparing' } }))
 
     if (kind === 'navigator') setNavigatorUpdating(true)
 
@@ -56,7 +59,12 @@ export function createVersionUpdateActions(
 
       if (disposed || version !== target(kind)) throw new Error('Update target changed; check again')
 
-      await updater[kind](version)
+      const report = (value: UpdateProgress) => {
+        if (!disposed && busy.has(kind)) setProgress((previous) => ({ ...previous, [kind]: value }))
+      }
+
+      report({ phase: 'installing' })
+      await updater[kind](version, report)
     })()
       .then(() => {
         installed[kind] = version
@@ -84,6 +92,7 @@ export function createVersionUpdateActions(
       })
       .finally(() => {
         busy.delete(kind)
+        setProgress((previous) => ({ ...previous, [kind]: undefined }))
 
         if (kind === 'navigator') setNavigatorUpdating(false)
       })
@@ -199,5 +208,7 @@ export function createVersionUpdateActions(
     navigator: (version: string, navigation?: DialogNavigation) => open('navigator', version, navigation),
     navigatorUpdating,
     navigatorInstalled,
+    navigatorProgress: () => progress().navigator,
+    openCodeProgress: () => progress().openCode,
   }
 }

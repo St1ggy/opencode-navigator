@@ -309,18 +309,30 @@ contains independent TUI, server, RPC and GUI entries.
   section controls, groups, trust, presets, portable/project profiles, About,
   release history and reviewed Bug reports. **Reload preferences** imports
   changes from other local Navigator instances explicitly.
+- Reorder sections, Quick Actions, toolbar pins and button icons by dragging
+  their handles. With the keyboard, focus a handle, press Space, use Up/Down,
+  then press Space to drop or Escape to cancel. Icon changes remain drafts until saved.
 - Favorites, trust, account bindings, reset attempts and presets use the existing
   private preferences file and lock shared with local TUI instances. Only window
   placement lives in the native GUI store. Project profiles and configuration
   requests use the selected server, including remote servers.
 - Todo is native and read-only; chat owns edits. Legacy Navigator tasks remain a
-  read-only archive. LSP and startup/Home interception are not exposed by this
+  read-only archive. Completed and cancelled rows use muted, struck-through text
+  and native-style status indicators. Search and tabs remain in Navigator because
+  the host does not expose an extension point inside its own Todo popover.
+  LSP and startup/Home interception are not exposed by this
   Desktop contract. Permissions opens native host Settings rather than toggling
   a simulated mode. Terminal fonts, corner masks and terminal shortcuts are not
   GUI settings; Desktop does not need a Nerd Font or the corner font.
 - Provider quotas retain verified account scope. Local Codex access requires a
   verified same-machine connection; a remote session never borrows its credentials
   or private binding. Banked resets always require separate confirmation.
+  Model and reasoning-effort selection stays in the native chat controls, not
+  the Navigator sidebar; quotas still follow the selected model.
+- During a confirmed update, About shows the installation stage inline.
+  The TUI temporarily replaces the running-version label with progress.
+  Percentages require real byte totals; opaque native installers show an
+  indeterminate indicator instead.
 
 The candidate is tested as an npm-style tarball in the official checksum-verified
 Linux ARM64 Desktop package on Xvfb. Native macOS/Windows, browser Web and multiple

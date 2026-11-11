@@ -61,7 +61,7 @@ export async function presetInteractions(page) {
   if (await page.getByRole('switch', { name: 'Show Skills', exact: true }).isChecked())
     throw new Error('Confirmed import did not change the selected scope')
 
-  await page.getByText('Show Skills', { exact: true }).click()
+  await clickNativeSwitch(page, 'Show Skills')
   await page.getByRole('button', { name: 'Save project profile…', exact: true }).click()
   await page
     .getByRole('dialog')
@@ -107,3 +107,5 @@ export async function presetInteractions(page) {
 
   console.log('Packaged Desktop layout-preset preview and portable import/back/cancel/apply passed.')
 }
+// oxlint-disable-next-line import-x-js/extensions
+import { clickNativeSwitch } from './native-controls.mjs'

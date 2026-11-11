@@ -82,14 +82,14 @@ export function createGuiToolbarDialogs(
         await save(update)
       }
 
-      async function move(key: string, direction: -1 | 1) {
+      async function move(key: string, target: string) {
         const pins = preferences.toolbarPins()
         const index = pins.findIndex((pin) => toolbarPinKey(pin) === key)
-        const destination = index + direction
+        const destination = pins.findIndex((pin) => toolbarPinKey(pin) === target)
 
-        if (index === -1 || destination < 0 || destination >= pins.length) return
+        if (index === -1 || destination === -1 || destination >= pins.length) return
 
-        const before = pins[destination + (direction === 1 ? 1 : 0)]
+        const before = pins[destination + (destination > index ? 1 : 0)]
 
         await change({ operation: 'move', key, before: before && toolbarPinKey(before) })
       }
