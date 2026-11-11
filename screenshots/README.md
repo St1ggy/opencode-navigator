@@ -9,11 +9,11 @@ wizard slides, a short terminal, and native 2.x Todo/LSP/permissions guidance.
 Native Todo/config and 2.x wizard guidance use synthetic capability projections
 on the pinned capture host; separate real-host smokes verify native 2.x operations.
 
-The v0.27.2 manual **Prepare Release** workflow refreshed the terminal gallery
+The v0.27.3 manual **Prepare Release** workflow refreshed the terminal gallery
 and all 31 Desktop captures, verified every PNG against a second capture,
 and merged the update after CI passed. The final run was
-[43069114630](https://github.com/St1ggy/opencode-navigator/actions/runs/43069114630),
-with [screenshot PR #40](https://github.com/St1ggy/opencode-navigator/pull/40).
+[43101163452](https://github.com/St1ggy/opencode-navigator/actions/runs/43101163452),
+with [screenshot PR #41](https://github.com/St1ggy/opencode-navigator/pull/41).
 
 ## Experimental Desktop
 
