@@ -325,8 +325,18 @@ Linux ARM64 Desktop package on Xvfb. Native macOS/Windows, browser Web and multi
 live Desktop windows are not claimed as real-host verification targets. Local,
 remote and multi-consumer guards have separate synthetic contract tests.
 See [Host API boundaries](HOST_API.md) for the native command-palette limitation.
-New GUI screenshots are generated only by the manual Prepare Release workflow;
-the existing gallery above remains the TUI interface until that capture PR lands.
+The manual Prepare Release workflow generated and byte-verified all 27 GUI
+captures using the real Desktop renderer on a virtual display. The terminal
+gallery above is rendered separately through Ghostty.
+
+![Desktop Search Everything with a synthetic Skill](screenshots/gui/02-desktop-search-skills.png)
+
+![Desktop mini-window preserving the current Todo filter](screenshots/gui/14-desktop-mini-window.png)
+
+![Desktop layout preview with a separate Apply action](screenshots/gui/07-desktop-layout-preview.png)
+
+See the [Desktop gallery](screenshots/README.md#experimental-desktop) for account
+linking, quotas, reviewed resets, profiles, onboarding and Bug reports.
 
 ### Install the corner font
 

@@ -234,6 +234,10 @@ Desktop and local TUI instances share the existing preferences file and lock. Fi
 
 The release workflow keeps its Ghostty captures for TUI and adds a separate set from the real packaged Desktop renderer on a virtual display. Both use synthetic data.
 
+![Search Everything in Desktop](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/gui/02-desktop-search-skills.png)
+
+![Navigator mini-window inside Desktop](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/gui/14-desktop-mini-window.png)
+
 ## Installation
 
 On OpenCode 2.2, Skills, MCP servers and Subagents read the host's reactive caches.

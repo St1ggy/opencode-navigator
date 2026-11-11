@@ -212,6 +212,10 @@ Screenshots are documentation, but in this project they are also rendering regre
 
 ## One core, separate terminal and Desktop views
 
+![Search Everything in Desktop](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/gui/02-desktop-search-skills.png)
+
+![Navigator mini-window inside Desktop](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/gui/14-desktop-mini-window.png)
+
 Navigator 0.27 adds an experimental Desktop interface. The package has a separate `./gui-experimental` export built with OpenCode's official GUI preset. The TUI keeps its own build and renderer.
 
 I moved the reusable session models, validators and action workflows behind headless entries. Native GUI components handle the presentation. This keeps Skill trust, MCP previews, account identity and reset retries in the same implementation instead of growing a second set of product rules.

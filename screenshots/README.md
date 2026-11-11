@@ -1,6 +1,6 @@
 # Screenshot Gallery
 
-These 96 deterministic captures render the real OpenCode TUI through Ghostty.
+The terminal captures render the real OpenCode TUI through Ghostty.
 Every task, session, workspace, path, skill, server, error, and preset is synthetic.
 
 The 13 additional v0.25.0 scenes cover
@@ -9,10 +9,41 @@ wizard slides, a short terminal, and native 2.x Todo/LSP/permissions guidance.
 Native Todo/config and 2.x wizard guidance use synthetic capability projections
 on the pinned capture host; separate real-host smokes verify native 2.x operations.
 
-The v0.25.0 manual **Prepare Release** workflow generated the gallery, verified every PNG
-against a second capture, and merged the update after CI passed. The final run was
-[41238652533](https://github.com/St1ggy/opencode-navigator/actions/runs/41238652533),
-with [screenshot PR #35](https://github.com/St1ggy/opencode-navigator/pull/35).
+The v0.27.0 manual **Prepare Release** workflow refreshed the terminal gallery
+and added 27 Desktop captures, verified every PNG against a second capture,
+and merged the update after CI passed. The final run was
+[42982104267](https://github.com/St1ggy/opencode-navigator/actions/runs/42982104267),
+with [screenshot PR #38](https://github.com/St1ggy/opencode-navigator/pull/38).
+
+## Experimental Desktop
+
+These captures use the official packaged OpenCode Desktop renderer on a virtual
+display, not Ghostty. All accounts, sources and session data are synthetic.
+
+![Search Everything](gui/02-desktop-search-skills.png)
+
+![Skill confirmation](gui/03-desktop-skill-confirmation.png)
+
+![Floating mini-window with a preserved filter](gui/14-desktop-mini-window.png)
+
+![Reviewed layout changes](gui/07-desktop-layout-preview.png)
+
+![Reviewed MCP preset](gui/11-desktop-mcp-preview.png)
+
+![Native Todo enablement](gui/12-desktop-todo-enablement.png)
+
+![Explicit account linking](gui/quota-17-desktop-account-link.png)
+
+![Account-scoped provider quota](gui/quota-18-desktop-limits.png)
+
+![Banked reset credits](gui/quota-19-desktop-reset-credits.png)
+
+![Separate reset confirmation](gui/quota-20-desktop-reset-confirmation.png)
+
+![Editable Bug report](gui/05-desktop-bug-report.png)
+
+Browse [all 27 Desktop states](gui/) for onboarding, toolbar customization,
+portable import and project/workspace profiles.
 
 The gallery includes About current,
 available/checking/failed update states; version list and release details; editable
