@@ -1,4 +1,4 @@
-import type { QuotaWindow } from '../../../entities/provider-limit'
+import type { QuotaWindow } from '../../../entities/provider-limit/model'
 
 function measurement(window: QuotaWindow, remaining: number | undefined) {
   if (remaining !== undefined) return `${remaining}${window.unit === '%' ? '' : ' '}${window.unit} left`

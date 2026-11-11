@@ -36,6 +36,8 @@ function iconList(value: unknown): value is string[] {
   return Array.isArray(value) && value.length <= 3 && value.every((item) => identifier(item))
 }
 
+export { identifier as validToolbarPinIcon, iconList as validToolbarPinIcons }
+
 export function validToolbarPinText(text: string): boolean {
   return (
     text.length <= 128 &&

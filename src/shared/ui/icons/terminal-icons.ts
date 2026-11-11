@@ -1,3 +1,7 @@
+import { ICON_CHOICE_IDS, iconChoiceLabel } from '../../lib/icon-choices'
+
+import type { IconChoiceId } from '../../lib/icon-choices'
+
 // Stable, single-cell action glyphs. Structural corner masks are not selectable.
 const glyphs: Record<string, readonly [string, string]> = {
   plus: ['\u{EA60}', '+'],
@@ -40,12 +44,12 @@ const glyphs: Record<string, readonly [string, string]> = {
   'arrow-down': ['\u{EA9A}', 'v'],
   warning: ['\u{EA6C}', '!'],
   close: ['\u{EA76}', 'x'],
-}
+} satisfies Record<IconChoiceId, readonly [string, string]>
 
-export const terminalIconIDs = Object.keys(glyphs)
+export const terminalIconIDs: string[] = [...ICON_CHOICE_IDS]
 export function terminalIcon(id: string, style: 'nerd' | 'text'): string {
   return (glyphs[id] ?? glyphs.bolt)[style === 'nerd' ? 0 : 1]
 }
 export function terminalIconLabel(id: string): string {
-  return id.replaceAll('-', ' ')
+  return iconChoiceLabel(id)
 }

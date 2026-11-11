@@ -3,7 +3,7 @@ import { createSignal } from 'solid-js'
 import { todoConfig } from './config'
 import { enableTodoConfig } from './config-patch'
 
-import type { NativeTodoSetupState } from '../../../entities/todo'
+import type { NativeTodoSetupState } from '../../../entities/todo/model'
 import type { SetupTarget, TodoSetupPreview, TodoSetupSource } from './types'
 
 export function createTodoSetupController(input: {
@@ -44,7 +44,11 @@ export function createTodoSetupController(input: {
       set(target.key, { status: 'ready', enabled: config.enabled, error: config.unavailable })
     } catch {
       if (!input.signal.aborted && revisions.get(target.key) === revision)
-        set(target.key, { status: 'error', error: 'Could not read OpenCode Todo configuration. Retry.' })
+        set(target.key, {
+          ...state(sessionID),
+          status: 'error',
+          error: 'Could not read OpenCode Todo configuration. Retry.',
+        })
     }
   }
   const unsubscribe = input.source.subscribe((directory) => {
@@ -129,3 +133,5 @@ export function createTodoSetupController(input: {
     current,
   }
 }
+
+export type TodoSetupController = ReturnType<typeof createTodoSetupController>

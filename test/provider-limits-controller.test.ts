@@ -12,6 +12,44 @@ const selected: SelectedModel = {
   accountID: 'account-1',
 }
 
+test('concurrent quota consumers await the same authoritative result', async () => {
+  let finish!: (snapshot: Awaited<ReturnType<ProviderQuotaAdapter['read']>>) => void
+  let calls = 0
+  const controller = createProviderLimitsController(
+    [
+      {
+        id: 'synthetic',
+        name: 'Synthetic',
+        supports: () => true,
+        read: () => {
+          calls++
+
+          return new Promise((resolve) => {
+            finish = resolve
+          })
+        },
+      },
+    ],
+    () => selected,
+  )
+  const first = controller.refresh()
+  const second = controller.refresh()
+
+  finish({
+    model: selected,
+    providerId: 'synthetic',
+    providerName: 'Synthetic',
+    fetchedAt: 1,
+    availability: 'ready',
+    windows: [],
+  })
+  await second
+  expect(calls).toBe(1)
+  expect(controller.snapshot()?.availability).toBe('ready')
+  await first
+  controller.dispose()
+})
+
 test('provider limits discard old reads after switching models, providers, or sessions', async () => {
   const [model, setModel] = createSignal<SelectedModel | undefined>(selected)
   let finish!: (value: Awaited<ReturnType<ProviderQuotaAdapter['read']>>) => void

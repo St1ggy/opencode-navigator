@@ -26,7 +26,7 @@ test('a stale refresh does not overwrite a newer todo event', async () => {
         return () => {}
       },
     },
-    lifecycle: { onDispose: () => () => {} },
+    lifecycle: { signal: new AbortController().signal, onDispose: () => () => {} },
     kv: { get: () => {}, set: () => {}, ready: true },
   } as unknown as TuiPluginApi
 

@@ -1,6 +1,6 @@
 import { createEffect, createMemo, onCleanup, untrack } from 'solid-js'
 
-import { toolbarPinIcons, toolbarPinKey } from '../../../entities/preferences'
+import { toolbarPinIcons } from '../../../entities/preferences'
 import {
   QUICK_ACTIONS,
   createQuickActionRevision,
@@ -10,6 +10,7 @@ import {
   quickActionStates,
 } from '../../../entities/quick-action'
 import { activateSkill, skillUnavailable } from '../../../entities/skill'
+import { createPinnedToolbarModel } from '../../../features/pinned-toolbar/model'
 import { createDialogStack, useIcons } from '../../../shared/ui'
 
 import type { PreferencesController, ToolbarPin } from '../../../entities/preferences'
@@ -51,75 +52,55 @@ export function createToolbarModel(props: ToolbarServices) {
       void props.skills.refresh(current).catch(() => {})
     })
   })
-  function view(pin: ToolbarPin) {
-    revision()
-
-    if (pin.kind === 'action') {
-      const action = QUICK_ACTIONS.find((item) => item.command === pin.id)!
-      const state = quickActionState(props.api, pin.id)
-      const stateLabel = quickActionStates(props.api, pin.id).find((item) => item.id === state)?.label
+  const model = createPinnedToolbarModel({
+    pins,
+    action(id) {
+      revision()
+      const action = QUICK_ACTIONS.find((item) => item.command === id)!
+      const state = quickActionState(props.api, id)
 
       return {
         label: quickActionLabel(props.api, action),
-        stateLabel,
-        icons: toolbarPinIcons(pin, state),
-        text: pin.text,
+        state,
+        stateLabel: quickActionStates(props.api, id).find((item) => item.id === state)?.label,
         reason: quickActionDisabledReason(props.api, action),
       }
-    }
+    },
+    skill(pin) {
+      const skill = props.skills.list(target()).find((item) => item.location === pin.location && item.name === pin.name)
+      const request = props.skills.state(target())
+      const unavailable = request.status === 'loading' ? 'Loading Skills' : 'Skill is unavailable in this workspace'
 
-    const skill = props.skills.list(target()).find((item) => item.location === pin.location && item.name === pin.name)
-    const request = props.skills.state(target())
-    const unavailable = request.status === 'loading' ? 'Loading Skills' : 'Skill is unavailable in this workspace'
+      return { skill, reason: request.error?.message ?? (skill ? skillUnavailable(props.skills, skill) : unavailable) }
+    },
+    unavailable: (title, message) => props.api.ui.toast({ variant: 'warning', title, message }),
+    runAction(id) {
+      if (id === 'session.new' && props.onNewSession?.()) return
 
-    return {
-      label: pin.name,
-      icons: toolbarPinIcons(pin),
-      text: pin.text,
-      stateLabel: undefined,
-      reason: request.error?.message ?? (skill ? skillUnavailable(props.skills, skill) : unavailable),
-    }
-  }
-  function run(key: string) {
-    const pin = pins().find((item) => toolbarPinKey(item) === key)
-
-    if (!pin) return
-
-    const item = view(pin)
-
-    if (item.reason) {
-      props.api.ui.toast({ variant: 'warning', title: item.label, message: item.reason })
-
-      return
-    }
-
-    if (pin.kind === 'action') {
-      if (pin.id === 'session.new' && props.onNewSession?.()) return
-
-      const result = props.interaction.dispatchFromReturnTarget(pin.id)
+      const result = props.interaction.dispatchFromReturnTarget(id)
 
       if (!result.ok)
-        props.api.ui.toast({ variant: 'warning', title: item.label, message: `Command is ${result.reason}` })
+        props.api.ui.toast({
+          variant: 'warning',
+          title: quickActionLabel(
+            props.api,
+            QUICK_ACTIONS.find((item) => item.command === id)!,
+          ),
+          message: `Command is ${result.reason}`,
+        })
+    },
+    runSkill(skill) {
+      const route = JSON.stringify(props.api.route.current)
+      const dialogs = createDialogStack(
+        props.api,
+        icons.style,
+        () => route === JSON.stringify(props.api.route.current),
+        icons.multilineCorners,
+      )
 
-      return
-    }
+      activateSkill({ api: props.api, controller: props.skills, access: props.preferences, skill, dialogs })
+    },
+  })
 
-    const skill = props.skills
-      .list(target())
-      .find((candidate) => candidate.location === pin.location && candidate.name === pin.name)
-
-    if (!skill) return
-
-    const route = JSON.stringify(props.api.route.current)
-    const dialogs = createDialogStack(
-      props.api,
-      icons.style,
-      () => route === JSON.stringify(props.api.route.current),
-      icons.multilineCorners,
-    )
-
-    activateSkill({ api: props.api, controller: props.skills, access: props.preferences, skill, dialogs })
-  }
-
-  return { pins, view, run, width: toolbarPinWidth }
+  return { ...model, width: toolbarPinWidth }
 }

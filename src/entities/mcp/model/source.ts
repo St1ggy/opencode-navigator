@@ -1,7 +1,7 @@
-import type { TuiSidebarMcpItem } from '@opencode-ai/plugin/tui'
-
-export type McpItem = Omit<TuiSidebarMcpItem, 'status'> & {
-  status: TuiSidebarMcpItem['status'] | 'pending'
+export type McpItem = {
+  name: string
+  status: 'connected' | 'disabled' | 'failed' | 'needs_auth' | 'needs_client_registration' | 'pending'
+  error?: string
   title?: string
 }
 
@@ -13,3 +13,16 @@ export type McpSource = {
     signal: AbortSignal,
   ): Promise<readonly McpItem[]>
 }
+
+export type McpTarget = {
+  key: string
+  scope: string
+  routing: { directory: string; workspace?: string }
+}
+
+export type McpMutation = (
+  target: McpTarget,
+  name: string,
+  action: 'connect' | 'disconnect',
+  signal: AbortSignal,
+) => Promise<void>

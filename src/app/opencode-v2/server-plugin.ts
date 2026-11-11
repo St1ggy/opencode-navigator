@@ -2,6 +2,7 @@ import { Plugin } from '@opencode/plugin'
 
 import { LegacyTodoArchiveRpc, readLegacyTodoArchive } from '../../entities/todo/server'
 import { setupProviderQuotaServer } from '../../features/provider-limits/server'
+import { setupProjectProfileServer } from '../../features/sidebar-settings/server'
 
 export default Plugin.define({
   // Retain the historical ID so existing plugin-scoped archive data stays readable.
@@ -15,9 +16,11 @@ export default Plugin.define({
       typeof host.integration?.connection?.active === 'function' && typeof host.provider?.get === 'function'
         ? await setupProviderQuotaServer(host)
         : undefined
+    const profileCleanup = typeof host.session?.get === 'function' ? await setupProjectProfileServer(host) : undefined
 
     return async () => {
       await quotaCleanup?.()
+      await profileCleanup?.()
       await archive.dispose()
     }
   },

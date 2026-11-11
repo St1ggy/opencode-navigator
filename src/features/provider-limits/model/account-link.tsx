@@ -2,6 +2,8 @@ import { createSignal } from 'solid-js'
 
 import { GuardedConfirmation } from '../../../shared/ui'
 
+import { CodexAccountMismatchError, createCodexAccountLinkModel } from './account-link-model'
+
 import type { PreferencesController } from '../../../entities/preferences'
 import type { ProviderQuotaAdapter, SelectedModel } from '../../../entities/provider-limit'
 import type { DialogNavigation } from '../../../shared/ui'
@@ -29,42 +31,29 @@ export function createCodexAccountLink(input: {
 
     if (selected.hostConnection && selected.hostConnection.status !== 'ready') return
 
-    const key = JSON.stringify(selected)
-    const current = () => JSON.stringify(input.model()) === key
     const signal = input.api.lifecycle?.signal ?? new AbortController().signal
-    const validHost = async () => !input.adapter.validateHost || (await input.adapter.validateHost(selected, signal))
+    const model = createCodexAccountLinkModel({
+      adapter: input.adapter,
+      selected: input.model,
+      signal,
+      bind: input.preferences.setCodexConnectionBinding,
+    })
+    const current = model.current
 
     setBusy(true)
     try {
-      if (!(await validHost()) || !current()) return
+      const preview = await model.discover()
 
-      const accountID = await input.adapter.discoverAccount(signal)
+      if (!preview) return
 
-      if (!current()) return
-
-      if (selected.hostConnection?.accountID && selected.hostConnection.accountID !== accountID) {
-        input.api.ui.toast({
-          variant: 'warning',
-          title: 'Codex account',
-          message: 'Sign in to Codex CLI with the account selected in OpenCode.',
-        })
-
-        return
-      }
+      const { accountID } = preview
 
       async function confirm() {
         if (busy() || !current()) return
 
         setBusy(true)
         try {
-          if (!(await validHost()) || !current()) return
-
-          const latest = await input.adapter.discoverAccount!(signal)
-
-          if (!current() || latest !== accountID) return
-
-          input.preferences.setCodexConnectionBinding(selected!.providerID, selected!.hostConnection?.id, accountID)
-          input.dialogs.back()
+          if (await model.confirm({ accountID })) input.dialogs.back()
         } catch {
           if (current())
             input.api.ui.toast({
@@ -86,12 +75,15 @@ export function createCodexAccountLink(input: {
           onConfirm={() => void confirm()}
         />
       ))
-    } catch {
+    } catch (error) {
       if (current())
         input.api.ui.toast({
           variant: 'warning',
           title: 'Codex account',
-          message: 'Install a supported Codex CLI and sign in with ChatGPT, then try again.',
+          message:
+            error instanceof CodexAccountMismatchError
+              ? error.message
+              : 'Install a supported Codex CLI and sign in with ChatGPT, then try again.',
         })
     } finally {
       setBusy(false)

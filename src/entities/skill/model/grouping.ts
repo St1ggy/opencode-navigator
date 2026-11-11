@@ -1,5 +1,5 @@
 import type { SkillGroups } from '../../../shared/config'
-import type { SkillInfo } from './controller'
+import type { SkillInfo } from './types'
 
 export type GroupedSkill = SkillInfo & { bucket: string; assignedGroup?: string }
 const BUCKET_RANK: Record<string, number> = { Favorites: 0, Ungrouped: 2 }

@@ -1,46 +1,13 @@
-import type { SubagentSource } from '../../entities/subagent'
+import { createNativeSubagentSource } from '../native/subagent-source'
+
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Plugin } from '@opencode/plugin/tui'
 
-export function createV2SubagentSource(context: Plugin.Context, api: TuiPluginApi): SubagentSource {
-  return {
-    list: (parentID) =>
-      context.data.session
-        .list()
-        .filter((item) => item.parentID === parentID)
-        .flatMap((item) => {
-          const value = api.state.session.get(item.id)
-
-          return value ? [value] : []
-        }),
+export function createV2SubagentSource(context: Plugin.Context, api: TuiPluginApi) {
+  return createNativeSubagentSource({
+    sessions: () => context.data.session,
+    client: () => context.client,
+    project: (info) => api.state.session.get(info.id),
     status: (id) => api.state.session.status(id) ?? { type: 'idle' },
-    startedAt(id) {
-      if (context.data.session.status(id) !== 'running') return
-
-      const time = context.data.session.get(id)?.time
-
-      // While running, idle and outcome still describe the previous execution.
-      if (!time?.busy || (time.idle !== undefined && time.idle >= time.busy)) return
-
-      return time.busy
-    },
-    async refresh(parentID, signal) {
-      signal.throwIfAborted()
-      let cursor: NonNullable<Parameters<typeof context.client.session.list>[0]>['cursor']
-
-      do {
-        const page = await context.client.session.list(cursor ? { cursor, limit: 100 } : { parentID, limit: 100 }, {
-          signal,
-        })
-
-        await Promise.all(
-          page.data
-            .filter((item) => !context.data.session.get(item.id))
-            .map((item) => context.data.session.sync(item.id)),
-        )
-        cursor = page.cursor.next ?? undefined
-        signal.throwIfAborted()
-      } while (cursor)
-    },
-  }
+  })
 }

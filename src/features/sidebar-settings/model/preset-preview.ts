@@ -2,8 +2,10 @@ import { createMemo } from 'solid-js'
 
 import { mcpPresetPreview } from '../../../shared/lib/preset-preview'
 
-import type { McpController } from '../../../entities/mcp'
-import type { DesiredMcpStates, PreferencesController, SectionLayoutDefault } from '../../../entities/preferences'
+import type { McpController } from '../../../entities/mcp/model'
+import type { DesiredMcpStates, PreferencesController, SectionLayoutDefault } from '../../../entities/preferences/model'
+
+const alwaysCurrent = () => true
 
 export function createLayoutPresetPreview(preferences: PreferencesController, name: string) {
   const scope = preferences.selectedScopeKey()
@@ -32,17 +34,24 @@ export function createLayoutPresetPreview(preferences: PreferencesController, na
   }
 }
 
-export function createMcpPresetPreview(controller: McpController, preferences: PreferencesController, name: string) {
+export function createMcpPresetPreview(
+  controller: Pick<McpController, 'target' | 'list' | 'state' | 'mutating' | 'refresh' | 'applyPreset'>,
+  preferences: Pick<PreferencesController, 'mcpPresets'>,
+  name: string,
+  isCurrent = alwaysCurrent,
+) {
   const target = controller.target()
   const valid = () => {
     const current = controller.target()
 
-    return current.key === target.key && current.scope === target.scope
+    return isCurrent() && current.key === target.key && current.scope === target.scope
   }
   const preset = createMemo<DesiredMcpStates | undefined>(() => preferences.mcpPresets()[name])
-  const preview = createMemo(() => mcpPresetPreview(controller.list(target), preset() ?? {}))
+  const preview = createMemo(() => mcpPresetPreview(valid() ? controller.list(target) : [], preset() ?? {}))
   const state = createMemo(() => controller.state(target))
   const blocked = createMemo(() => {
+    if (!valid()) return 'Session or server changed; reopen the preview.'
+
     if (!preset()) return 'Preset no longer exists.'
 
     if (controller.mutating(target)) return 'Wait for the current MCP operation to finish.'

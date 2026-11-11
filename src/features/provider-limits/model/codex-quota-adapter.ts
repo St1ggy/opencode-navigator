@@ -1,9 +1,14 @@
-import { normalizeProviderQuota } from '../../../entities/provider-limit'
+import { normalizeProviderQuota } from '../../../entities/provider-limit/model'
 
 import { codexQuotaWindows } from './codex-quota-windows'
 
-import type { ProviderQuotaAdapter, ProviderQuotaSnapshot, QuotaWindow } from '../../../entities/provider-limit'
-import type { CodexAppServerClient } from './codex-app-server'
+import type {
+  ProviderQuotaAdapter,
+  ProviderQuotaSnapshot,
+  QuotaWindow,
+  SelectedModel,
+} from '../../../entities/provider-limit/model'
+import type { CodexRpcClient } from './codex-port'
 import type { CodexLimit } from './codex-quota-windows'
 
 type Credit = {
@@ -23,18 +28,23 @@ type RateLimits = {
   rateLimitResetCredits: { availableCount: number; credits: Credit[] | null } | null
 }
 
+export function supportsCodexQuota(model: SelectedModel) {
+  return (
+    (model.providerID === 'openai' || model.hostConnection?.providerID === 'openai') &&
+    model.hostConnection?.method !== 'api' &&
+    Boolean(model.accountID) &&
+    (!model.hostConnection || model.hostConnection.status === 'ready')
+  )
+}
+
 export function createCodexQuotaAdapter(
-  client: CodexAppServerClient,
+  client: CodexRpcClient,
   validateHost?: ProviderQuotaAdapter['validateHost'],
 ): ProviderQuotaAdapter {
   const adapter: ProviderQuotaAdapter = {
     id: 'codex',
     name: 'Codex CLI',
-    supports: (model) =>
-      (model.providerID === 'openai' || model.hostConnection?.providerID === 'openai') &&
-      model.hostConnection?.method !== 'api' &&
-      Boolean(model.accountID) &&
-      (!model.hostConnection || model.hostConnection.status === 'ready'),
+    supports: supportsCodexQuota,
     ...(validateHost && { validateHost }),
     async discoverAccount(signal) {
       const account = await client.request<{ account: { type: string } | null }>(

@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js'
 
-import type { EventSessionError, SessionStatus } from '@opencode-ai/sdk/v2'
+import type { SubagentStatus as SessionStatus, SubagentError } from './types'
 
 export type SubagentRun = {
   sessionID: string
@@ -11,7 +11,7 @@ export type SubagentRun = {
   startedBeforeObservation: boolean
   nativeStartedAt?: number
 }
-export type SubagentError = NonNullable<EventSessionError['properties']['error']>
+export type { SubagentError } from './types'
 
 export function createSubagentHistory({ now = Date.now }: { now?: () => number } = {}) {
   const targets = new Map<string, { known: Set<string>; active: Map<string, SubagentRun>; recent: SubagentRun[] }>()
@@ -93,7 +93,10 @@ export function createSubagentHistory({ now = Date.now }: { now?: () => number }
       const isCancelled = error?.name === 'MessageAbortedError'
       const data = error && 'data' in error ? error.data : undefined
       const fallbackMessage = isCancelled ? 'Session aborted' : 'Session error'
-      const message = data && 'message' in data && typeof data.message === 'string' ? data.message : fallbackMessage
+      const message =
+        data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
+          ? data.message
+          : fallbackMessage
       const next: SubagentRun = {
         ...run,
         startedAt: Math.min(run.startedAt, at),

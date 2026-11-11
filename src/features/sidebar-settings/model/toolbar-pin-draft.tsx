@@ -1,19 +1,21 @@
-import { toolbarPinIcons, toolbarPinKey, validToolbarPinText } from '../../../entities/preferences'
+import {
+  toolbarPinAppearance,
+  toolbarPinAppearanceChange,
+  validToolbarPinText,
+} from '../../../entities/preferences/model'
 import { IconPicker, useDialogState, useDialogs } from '../../../shared/ui'
 
 import type { ToolbarPinSettings } from './toolbar-settings'
 
 export function createToolbarPinDraft(props: ToolbarPinSettings & { expected?: string }) {
   const dialogs = useDialogs(props.api)
-  const initialStates = Object.fromEntries(
-    Object.keys({ ...props.pin.stateIcons, ...props.pin.stateIconLists }).map((state) => [
-      state,
-      [...toolbarPinIcons(props.pin, state)],
-    ]),
+  const initial = toolbarPinAppearance(props.pin)
+  const [base, setBase] = useDialogState('pin-icons', [...initial.base])
+  const [text, setText] = useDialogState('pin-text', initial.text)
+  const [states, setStates] = useDialogState<Record<string, string[]>>(
+    'pin-state-groups',
+    Object.fromEntries(Object.entries(initial.states).map(([key, value]) => [key, [...value]])),
   )
-  const [base, setBase] = useDialogState('pin-icons', [...toolbarPinIcons(props.pin)])
-  const [text, setText] = useDialogState('pin-text', props.pin.text ?? '')
-  const [states, setStates] = useDialogState<Record<string, string[]>>('pin-state-groups', initialStates)
   const [sourceRoute] = useDialogState('pin-route', JSON.stringify(props.api.route.current))
   const [sourceTarget] = useDialogState('pin-target', props.skills?.target().key)
   const group = (state?: string) => (state ? (states()[state] ?? base()) : base())
@@ -59,43 +61,17 @@ export function createToolbarPinDraft(props: ToolbarPinSettings & { expected?: s
       if (sourceRoute() !== JSON.stringify(props.api.route.current) || sourceTarget() !== props.skills?.target().key)
         throw new Error('Workspace or session changed; reopen pin configuration')
 
-      if (!text() && (base().length === 0 || Object.values(states()).some((value) => value.length === 0)))
-        throw new Error('Add an icon or text for every configured appearance')
+      const source = props.pin.kind === 'skill' ? props.pin : undefined
 
-      const source = props.pin.kind === 'skill' ? props.pin.location : undefined
-
-      if (!props.expected && source && !props.skills?.list().some((skill) => skill.location === source))
+      if (
+        !props.expected &&
+        source &&
+        !props.skills?.list().some((skill) => skill.location === source.location && skill.name === source.name)
+      )
         throw new Error('Skill source changed; choose it again')
 
-      const stateIcons = Object.fromEntries(
-        Object.entries(states())
-          .filter(([, value]) => value.length === 1)
-          .map(([key, value]) => [key, value[0]]),
-      )
-      const stateIconLists = Object.fromEntries(Object.entries(states()).filter(([, value]) => value.length !== 1))
-      const pin = {
-        ...props.pin,
-        icon: base()[0] ?? props.pin.icon,
-        icons: base().length === 1 ? undefined : base(),
-        text: text() || undefined,
-        stateIcons,
-        stateIconLists,
-      }
-      const keys = Object.keys({ ...initialStates, ...states() })
-
       props.preferences.changeToolbarPin(
-        props.expected
-          ? {
-              operation: 'configure',
-              key: toolbarPinKey(pin),
-              icon: pin.icon,
-              icons: pin.icons ?? null,
-              text: pin.text ?? null,
-              expected: props.expected,
-              stateIcons: Object.fromEntries(keys.map((key) => [key, stateIcons[key] ?? null])),
-              stateIconLists: Object.fromEntries(keys.map((key) => [key, stateIconLists[key] ?? null])),
-            }
-          : { operation: 'pin', pin },
+        toolbarPinAppearanceChange(props.pin, { base: base(), text: text(), states: states() }, props.expected),
       )
       dialogs.back()
     } catch (error) {

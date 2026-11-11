@@ -2,7 +2,7 @@ import { For, createMemo, onMount } from 'solid-js'
 
 import { SECTION_DEFINITIONS } from '../../../entities/sidebar-layout'
 import { useDialogs, useIcons } from '../../../shared/ui'
-import { createLayoutPresetPreview, createMcpPresetPreview } from '../model/preset-preview'
+import { createWorkspacePresetPreview } from '../model/workspace-preset-preview'
 
 import { mcpPreviewRows, reportMcpApplyError } from './mcp-preset-preview'
 import { PresetPreviewFrame } from './preset-preview-frame'
@@ -20,10 +20,9 @@ export function LayoutPresetPreview(props: {
 }) {
   const dialogs = useDialogs(props.api)
   const icons = useIcons()
-  const model = createLayoutPresetPreview(props.preferences, props.name)
-  const linked = props.preferences.workspaceProfiles?.()[props.name]
-  const mcpModel =
-    props.controller && linked ? createMcpPresetPreview(props.controller, props.preferences, linked) : undefined
+  const combined = createWorkspacePresetPreview(props.preferences, props.name, props.controller)
+  const model = combined.layout
+  const mcpModel = combined.mcp
   const rows = createMemo(
     () =>
       model
@@ -68,8 +67,8 @@ export function LayoutPresetPreview(props: {
         { icon: 'done', label: `${rows().length - changed()} layout unchanged`, tone: 'muted' },
       ]}
       rowCount={rows().length + mcpRows().length}
-      valid={() => model.valid() && (!mcpModel || mcpModel.valid())}
-      blocked={model.blocked() || mcpModel?.blocked()}
+      valid={combined.valid}
+      blocked={combined.blocked()}
       onRefresh={mcpModel?.refresh}
       notice={
         mcpModel
@@ -77,11 +76,9 @@ export function LayoutPresetPreview(props: {
           : 'Applies layout changes. Save current layout as default to persist them.'
       }
       onApply={() => {
-        const request = mcpModel?.apply()
+        const request = combined.apply()
 
-        if (mcpModel && !request) return
-
-        if (!model.apply()) return
+        if (!request) return
 
         if (mcpModel) dialogs.close()
         else {
@@ -96,7 +93,7 @@ export function LayoutPresetPreview(props: {
           duration: 3000,
         })
 
-        if (request) reportMcpApplyError(props.api, request)
+        reportMcpApplyError(props.api, request)
       }}
     >
       <For each={rows()}>{(row) => <PresetPreviewRow api={props.api} {...row} />}</For>

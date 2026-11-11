@@ -1,4 +1,4 @@
-import type { SidebarTodo } from './controller'
+import type { SidebarTodo } from './types'
 
 export type TodoViewMode = 'all' | 'active' | 'finished'
 

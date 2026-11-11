@@ -1,4 +1,4 @@
-import type { SkillInfo } from './controller'
+import type { SkillInfo } from './types'
 
 export type SkillTarget = { key: string; routing: { directory?: string; workspace?: string } }
 export type SkillSource = {

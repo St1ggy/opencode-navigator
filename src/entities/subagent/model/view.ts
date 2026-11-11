@@ -1,7 +1,7 @@
 import { type Accessor, createEffect, createSignal, onCleanup } from 'solid-js'
 
 import type { SubagentRun } from './history'
-import type { Session, SessionStatus } from '@opencode-ai/sdk/v2'
+import type { SubagentSession as Session, SubagentStatus as SessionStatus } from './types'
 
 export type SubagentViewItem = { session: Session; status: SessionStatus; run?: SubagentRun; unavailable?: boolean }
 export type SubagentViewMode = 'all' | 'active' | 'recent' | 'errors'

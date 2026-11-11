@@ -1,4 +1,4 @@
-export type SetupTarget = { key: string; sessionID: string; routing: { directory: string } }
+export type SetupTarget = { key: string; sessionID: string; routing: { directory: string; workspace?: string } }
 export type ConfigDocument = { path?: string; experimental?: { todo?: boolean } }
 export type TodoSetupSource = {
   entries(target: SetupTarget, signal: AbortSignal): Promise<ConfigDocument[]>

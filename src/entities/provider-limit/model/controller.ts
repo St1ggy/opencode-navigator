@@ -13,6 +13,7 @@ export function createProviderLimitsController(
   refreshContext?: () => Promise<void>,
 ) {
   const requests = createRequestState(signal)
+  const pending = new Map<string, Promise<void>>()
   const [snapshots, setSnapshots] = createSignal<Record<string, ProviderQuotaSnapshot>>({})
   const targetKey = (model: SelectedModel) => JSON.stringify(model)
   let activeKey: string | undefined
@@ -25,6 +26,7 @@ export function createProviderLimitsController(
 
     if (activeKey !== key) {
       untrack(requests.abortAll)
+      pending.clear()
       targetAbort.abort()
       targetAbort = new AbortController()
       activeKey = key
@@ -41,38 +43,51 @@ export function createProviderLimitsController(
     if (!model || !adapter) return
 
     const key = targetKey(model)
+    const existing = pending.get(key)
+
+    if (existing && !force) return existing
+
     const request = requests.start(key, 'read provider limits', Boolean(snapshots()[key]), force)
 
     if (!request) return
 
-    try {
-      const snapshot = normalizeProviderQuota(await adapter.read(model, request.signal, force))
+    const promise = (async () => {
+      try {
+        const snapshot = normalizeProviderQuota(await adapter.read(model, request.signal, force))
 
-      if (!request.isCurrent() || targetKey(current().model ?? model) !== key) return
+        if (!request.isCurrent() || targetKey(current().model ?? model) !== key) return
 
-      setSnapshots((value) => ({ ...value, [key]: snapshot }))
-      request.succeed()
-    } catch (error) {
-      const status =
-        (error as { status?: number; response?: { status?: number } })?.status ??
-        (error as { response?: { status?: number } })?.response?.status
-
-      if (status === 429 && request.isCurrent()) {
-        setSnapshots((value) => ({
-          ...value,
-          [key]: {
-            model,
-            providerId: adapter.id,
-            providerName: adapter.name,
-            fetchedAt: Date.now(),
-            availability: 'rate_limited',
-            windows: [],
-          },
-        }))
+        setSnapshots((value) => ({ ...value, [key]: snapshot }))
         request.succeed()
-      } else request.fail(error)
+      } catch (error) {
+        const status =
+          (error as { status?: number; response?: { status?: number } })?.status ??
+          (error as { response?: { status?: number } })?.response?.status
+
+        if (status === 429 && request.isCurrent()) {
+          setSnapshots((value) => ({
+            ...value,
+            [key]: {
+              model,
+              providerId: adapter.id,
+              providerName: adapter.name,
+              fetchedAt: Date.now(),
+              availability: 'rate_limited',
+              windows: [],
+            },
+          }))
+          request.succeed()
+        } else request.fail(error)
+      } finally {
+        request.finish()
+      }
+    })()
+
+    pending.set(key, promise)
+    try {
+      await promise
     } finally {
-      request.finish()
+      if (pending.get(key) === promise) pending.delete(key)
     }
   }
 
@@ -97,7 +112,10 @@ export function createProviderLimitsController(
     dispose() {
       targetAbort.abort()
       requests.abortAll()
+      pending.clear()
       for (const adapter of adapters) void adapter.dispose?.()
     },
   }
 }
+
+export type ProviderLimitsController = ReturnType<typeof createProviderLimitsController>
