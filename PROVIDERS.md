@@ -5,6 +5,15 @@ It never treats session token/cost totals as remaining provider quota. Subscript
 windows, API rate limits, configured capacities, and monetary balances are different
 measurements and are labelled separately.
 
+The experimental Desktop entry shares quota normalization, refresh scheduling,
+account binding and reset-attempt rules with TUI. Its renderer uses the selected
+session's live server client/cache. Local Codex subprocess access is restricted to
+typed Desktop-main IPC for a host-verified same-machine connection; remote or
+unverified targets never borrow the Desktop's local account or binding. No tokens
+or credential files are returned to the renderer. Remote provider reads use the
+selected server's existing quota RPC. Missing capabilities and authentication
+failures remain explicit rather than enabling an alternate credential reader.
+
 The external provider contracts were rechecked on 2026-10-06; the public
 OpenCode Console/Go contract was added on 2026-10-28. The runtime also includes providers from
 the host catalog; an unrecognized provider gets an explicit unverified-source state

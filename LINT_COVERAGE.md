@@ -12,6 +12,11 @@ beside their individual settings in `oxlint.config.ts`.
 
 ## Preserved Checks
 
+- GUI-only overrides add native JSX accessibility checks for ARIA, labels/content,
+  keyboard parity and focusability while retaining every native plugin from the
+  published Solid preset. OpenTUI JSX is excluded from these HTML-specific rules.
+  Native host controls retain their own semantics; real Desktop keyboard checks
+  complement source linting.
 - Native ESLint, TypeScript, import and Unicorn rules remain enabled.
 - All published Solid, ESLint-core, import-x, stylistic, Unicorn, SonarJS and
   typescript-eslint JS plugins remain enabled.
