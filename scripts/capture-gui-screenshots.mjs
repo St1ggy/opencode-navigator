@@ -26,6 +26,7 @@ const normal = [
   '10-desktop-project-profile',
   '11-desktop-mcp-preview',
   '12-desktop-todo-enablement',
+  '13-desktop-mini-window-dark',
   '14-desktop-mini-window',
   '15-desktop-icon-picker',
   '16-desktop-toolbar-manager',
@@ -38,6 +39,7 @@ const quota = [
   '18-desktop-limits',
   '19-desktop-reset-credits',
   '20-desktop-reset-confirmation',
+  '21-desktop-credit-expiry',
 ]
 const expected = [...normal, ...quota.map((name) => `quota-${name}`)].map((name) => `${name}.png`).sort()
 

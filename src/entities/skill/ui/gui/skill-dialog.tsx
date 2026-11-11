@@ -70,15 +70,12 @@ export function GuiSkillDialog(props: {
       </section>
       <section>
         <h3>Confirmation</h3>
-        <label>
-          <input
-            type="checkbox"
-            checked={trust()}
-            disabled={!props.ready || !props.skill.location}
-            onChange={(event) => setTrust(event.currentTarget.checked)}
-          />
-          Trust this exact source for future use
-        </label>
+        <props.ui.Switch
+          label="Trust this exact source for future use"
+          checked={trust()}
+          disabled={!props.ready || !props.skill.location}
+          onChange={setTrust}
+        />
         <Button size="small" variant="ghost" disabled={!props.ready} onClick={props.toggleFavorite}>
           {props.favorite ? 'Remove bookmark' : 'Bookmark Skill'}
         </Button>

@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from 'solid-js'
+import { createEffect, onCleanup, onMount } from 'solid-js'
 
 import { clampMiniWindow, defaultMiniWindow } from '../../model'
 
@@ -19,11 +19,23 @@ export function createMiniWindowInteraction(props: {
   setRect(rect: MiniWindowRect): void
 }) {
   const update = (rect: MiniWindowRect) => props.setRect(clampMiniWindow(rect, miniWindowViewport()))
-  let drag: { mode: 'move' | 'resize'; x: number; y: number; rect: MiniWindowRect } | undefined
+  let drag:
+    | { mode: 'move' | 'resize'; x: number; y: number; rect: MiniWindowRect; pointer: number; target: HTMLElement }
+    | undefined
   const resize = () => update(props.rect)
-  const end = () => {
+  const end = (event?: PointerEvent) => {
+    if (event && drag?.pointer !== event.pointerId) return
+
+    const previous = drag
+
     drag = undefined
+
+    if (previous?.target.hasPointerCapture(previous.pointer)) previous.target.releasePointerCapture(previous.pointer)
   }
+
+  createEffect(() => {
+    if (props.modal) end()
+  })
 
   onMount(() => {
     globalThis.window.addEventListener('resize', resize)
@@ -37,15 +49,17 @@ export function createMiniWindowInteraction(props: {
   })
 
   function start(event: PointerEvent, mode: 'move' | 'resize') {
-    if (event.button !== 0 || props.modal) return
+    if (event.button !== 0 || props.modal || drag) return
 
     event.preventDefault()
     event.stopPropagation()
-    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
-    drag = { mode, x: event.clientX, y: event.clientY, rect: { ...props.rect } }
+    const target = event.currentTarget as HTMLElement
+
+    target.setPointerCapture(event.pointerId)
+    drag = { mode, x: event.clientX, y: event.clientY, rect: { ...props.rect }, pointer: event.pointerId, target }
   }
   function move(event: PointerEvent) {
-    if (!drag || props.modal) return
+    if (!drag || props.modal || drag.pointer !== event.pointerId) return
 
     const x = event.clientX - drag.x
     const y = event.clientY - drag.y

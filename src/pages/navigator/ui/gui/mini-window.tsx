@@ -17,7 +17,16 @@ export function NavigatorMiniWindow(props: {
   search(): void
 }) {
   const Button = props.ui.Button
+  const IconButton = props.ui.IconButton
   const interaction = createMiniWindowInteraction(props)
+
+  function dragHeader(event: PointerEvent) {
+    const target = event.target as Element
+
+    if (target.closest('button, input, select, textarea, a') && !target.closest('[data-navigator-move]')) return
+
+    interaction.start(event, 'move')
+  }
 
   return (
     <aside
@@ -35,30 +44,40 @@ export function NavigatorMiniWindow(props: {
         'flex-direction': 'column',
         'z-index': '40',
         visibility: props.modal ? 'hidden' : 'visible',
-        background: 'Canvas',
-        color: 'CanvasText',
+        background: 'var(--v2-background-bg-layer-01)',
+        color: 'var(--v2-text-text-base)',
         'color-scheme': props.mode,
-        border: '1px solid color-mix(in srgb, currentColor 25%, transparent)',
+        border: '1px solid var(--v2-border-border-base, color-mix(in srgb, currentColor 20%, transparent))',
         'border-radius': '12px',
-        'box-shadow': '0 8px 32px #0003',
+        'box-shadow': 'var(--v2-elevation-overlay, 0 8px 32px #0003)',
         overflow: 'hidden',
         'font-size': '13px',
       }}
     >
-      <header style={{ display: 'flex', 'align-items': 'center', gap: '4px', padding: '8px', 'flex-wrap': 'wrap' }}>
-        <button
-          type="button"
-          aria-label="Move Navigator mini-window"
+      <header
+        style={{
+          display: 'flex',
+          'align-items': 'center',
+          gap: '4px',
+          padding: '8px',
+          'flex-wrap': 'wrap',
+          cursor: 'move',
+          'touch-action': 'none',
+          'user-select': 'none',
+        }}
+        onPointerDown={dragHeader}
+        onPointerMove={interaction.move}
+        onPointerUp={interaction.end}
+        onPointerCancel={interaction.end}
+        onLostPointerCapture={interaction.end}
+      >
+        <span
+          data-navigator-move
           title="Drag or use arrow keys; Shift moves ten pixels"
-          style={{ cursor: 'move', 'touch-action': 'none' }}
-          onPointerDown={(event) => interaction.start(event, 'move')}
-          onPointerMove={interaction.move}
-          onPointerUp={interaction.end}
-          onLostPointerCapture={interaction.end}
           onKeyDown={(event) => interaction.key(event, 'move')}
         >
-          Move
-        </button>
+          <IconButton icon="dot-grid" label="Move Navigator mini-window" />
+        </span>
         <strong style={{ flex: '1', overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>
           {props.title}
         </strong>
@@ -77,19 +96,18 @@ export function NavigatorMiniWindow(props: {
         <Button size="small" variant="ghost-muted" onClick={interaction.reset}>
           Reset position
         </Button>
-        <button
-          type="button"
-          aria-label="Resize Navigator mini-window"
+        <span
           title="Drag or use arrow keys; Shift resizes ten pixels"
           style={{ 'margin-left': 'auto', cursor: 'nwse-resize', 'touch-action': 'none' }}
           onPointerDown={(event) => interaction.start(event, 'resize')}
           onPointerMove={interaction.move}
           onPointerUp={interaction.end}
+          onPointerCancel={interaction.end}
           onLostPointerCapture={interaction.end}
           onKeyDown={(event) => interaction.key(event, 'resize')}
         >
-          Resize
-        </button>
+          <IconButton icon="outline-expand" label="Resize Navigator mini-window" />
+        </span>
       </footer>
     </aside>
   )

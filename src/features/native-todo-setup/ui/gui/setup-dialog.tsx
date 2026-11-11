@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createSignal, onCleanup } from 'solid-js'
+import { Show, createEffect, createSignal, onCleanup } from 'solid-js'
 
 import { TodoEnableConfirmation } from './confirmation'
 
@@ -73,17 +73,13 @@ export function TodoSetupDialog(props: {
         </>
       }
     >
-      <label>
-        Configuration file
-        <select
-          aria-label="Todo configuration file"
-          value={selected()}
-          onChange={(event) => setPath(event.currentTarget.value)}
-          style={{ display: 'block', width: '100%', padding: '8px', color: 'inherit', background: 'transparent' }}
-        >
-          <For each={files()}>{(file) => <option value={file}>{file}</option>}</For>
-        </select>
-      </label>
+      <props.ui.Select
+        label="Todo configuration file"
+        value={selected()}
+        options={files().map((file) => ({ value: file, label: file }))}
+        onChange={setPath}
+        placeholder="Choose a configuration file"
+      />
       <Show when={files().length === 0}>
         <p>No editable configuration source is currently available.</p>
       </Show>

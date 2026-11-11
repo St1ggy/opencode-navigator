@@ -26,4 +26,6 @@ COPY test/gui/harness/settings-extras.mjs ./settings-extras.mjs
 COPY test/gui/harness/preset-management.mjs ./preset-management.mjs
 COPY test/gui/harness/capture.mjs ./capture.mjs
 COPY test/gui/harness/cleanup.mjs ./cleanup.mjs
+COPY test/gui/harness/floating.mjs ./floating.mjs
+COPY test/gui/harness/native-controls.mjs ./native-controls.mjs
 CMD ["xvfb-run", "--auto-servernum", "node", "/opt/navigator-smoke/run.mjs"]

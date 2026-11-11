@@ -20,6 +20,8 @@ import {
 } from './capture.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { closeProcessPipes } from './cleanup.mjs'
+import { verifyFloatingDarkTheme, verifyFloatingPointer, verifyFloatingTheme } from './floating.mjs'
+import { verifyTodoSelect, verifyTrustSwitch } from './native-controls.mjs'
 
 async function nativeLogs(root) {
   // All paths are inside this disposable, synthetic HOME, never the user's state.
@@ -296,6 +298,8 @@ async function main() {
     await captureGui(navigatorSearch, '02-desktop-search-skills')
     await navigatorSearch.getByRole('button', { name: /^synthetic-monitoring/u }).click()
     await page.getByRole('dialog').last().getByRole('button', { name: 'Use Skill', exact: true }).waitFor()
+    await verifyTrustSwitch(page.getByRole('dialog').last())
+
     await captureGui(page.getByRole('dialog').last(), '03-desktop-skill-confirmation')
     await page.keyboard.press('Escape')
 
@@ -337,6 +341,8 @@ async function main() {
     await panel.getByRole('button', { name: 'Enable Todo', exact: true }).click()
     const setup = page.getByRole('dialog').last()
 
+    await verifyTodoSelect(setup)
+
     await setup.getByRole('button', { name: 'Preview change', exact: true }).click()
     await page
       .getByRole('dialog')
@@ -368,6 +374,10 @@ async function main() {
 
     await floating.waitFor()
     await captureGui(floating, '14-desktop-mini-window')
+    await verifyFloatingPointer(page, floating)
+    await verifyFloatingPointer(page, floating, true)
+    await verifyFloatingTheme(floating)
+    await verifyFloatingDarkTheme(page, floating)
 
     if ((await floating.getByRole('textbox', { name: 'Filter Todo', exact: true }).inputValue()) !== 'preserved filter')
       throw new Error('Floating view lost shared Todo filter state')

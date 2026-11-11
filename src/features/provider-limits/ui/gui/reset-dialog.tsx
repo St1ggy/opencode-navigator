@@ -1,4 +1,8 @@
-import { For, Show, createEffect } from 'solid-js'
+import { For, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
+
+import { resetCreditLifetime } from '../../../../entities/provider-limit/model'
+
+import { GuiResetCreditExpiry } from './reset-credit-expiry'
 
 import type { PendingResetAttempt } from '../../../../entities/preferences/model'
 import type { BankedResets } from '../../../../entities/provider-limit/model'
@@ -18,6 +22,13 @@ export function GuiResetCreditDialog(props: {
 }) {
   const Dialog = props.ui.Dialog
   const Button = props.ui.Button
+  const [now, setNow] = createSignal(Date.now())
+
+  onMount(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+
+    onCleanup(() => clearInterval(timer))
+  })
 
   createEffect(() => {
     if (!props.current() && !props.busy) props.close()
@@ -49,16 +60,15 @@ export function GuiResetCreditDialog(props: {
               <p style={{ opacity: 0.65 }}>
                 {credit.status}
                 {credit.description ? ` · ${credit.description}` : ''}
-                {credit.expiresAt === undefined
-                  ? ''
-                  : ` · expires ${new Date(credit.expiresAt * 1000).toLocaleString()}`}
               </p>
+              <GuiResetCreditExpiry credit={credit} now={now()} />
               <Button
                 size="small"
                 disabled={
                   props.busy ||
                   Boolean(props.reason || props.pending) ||
                   credit.status !== 'available' ||
+                  resetCreditLifetime(credit, now()).expired ||
                   credit.type !== 'codexRateLimits'
                 }
                 onClick={() => props.review(credit.id)}

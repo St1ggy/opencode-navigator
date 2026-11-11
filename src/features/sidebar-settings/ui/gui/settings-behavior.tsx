@@ -22,6 +22,7 @@ export function GuiSettingsBehavior(props: GuiSettingsServices) {
         <Row title="Remember MCP states" description="Remember desired connections for this preference scope.">
           <Switch
             label="Remember MCP states"
+            hideLabel
             checked={props.preferences.selectedPersistMcp()}
             onChange={props.preferences.toggleMcpPersistence}
           />

@@ -1,4 +1,5 @@
 export * from './model/types'
+export { resetCreditLifetime } from './model/reset-credit-lifetime'
 export { providerAccountIdentity } from './model/account-identity'
 export { createProviderLimitsController } from './model/controller'
 export type { ProviderLimitsController } from './model/controller'

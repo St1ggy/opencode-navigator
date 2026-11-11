@@ -1,4 +1,4 @@
-import { createUniqueId } from 'solid-js'
+import { createSignal, createUniqueId } from 'solid-js'
 
 export function GuiMultilineField(props: {
   label: string
@@ -7,6 +7,7 @@ export function GuiMultilineField(props: {
   disabled?: boolean
 }) {
   const id = createUniqueId()
+  const [focused, setFocused] = createSignal(false)
 
   return (
     <label for={id} style={{ display: 'grid', gap: '8px' }}>
@@ -15,6 +16,8 @@ export function GuiMultilineField(props: {
         id={id}
         value={props.value}
         disabled={props.disabled}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         onInput={(event) => props.onInput(event.currentTarget.value)}
         style={{
           width: '100%',
@@ -22,9 +25,13 @@ export function GuiMultilineField(props: {
           'min-height': '160px',
           'max-height': '40vh',
           resize: 'vertical',
-          color: 'inherit',
-          background: 'transparent',
-          border: '1px solid currentColor',
+          color: 'var(--v2-text-text-base, inherit)',
+          background: 'var(--v2-background-bg-base, transparent)',
+          border: '0',
+          outline: focused() ? '1px solid var(--v2-border-border-focus)' : '1px solid transparent',
+          'box-shadow': focused() ? 'none' : 'var(--v2-elevation-input)',
+          'caret-color': 'var(--v2-text-text-base, auto)',
+          opacity: props.disabled ? '0.5' : '1',
           'border-radius': '6px',
           padding: '8px',
           font: 'inherit',

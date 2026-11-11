@@ -39,7 +39,40 @@ createInterface({ input: process.stdin }).on('line', (line) => {
           secondary: null,
         },
         rateLimitsByLimitId: null,
-        rateLimitResetCredits: { availableCount: state.keys.length > 0 ? 0 : 1, credits: null },
+        rateLimitResetCredits: existsSync('/tmp/navigator-synthetic-credit-details')
+          ? {
+              availableCount: 3,
+              credits: [
+                {
+                  id: 'synthetic-expiring',
+                  title: 'Expiring credit',
+                  description: null,
+                  resetType: 'codexRateLimits',
+                  status: 'available',
+                  grantedAt: Date.parse('2026-10-01T12:00:00Z') / 1000,
+                  expiresAt: Date.parse('2026-12-01T12:00:00Z') / 1000,
+                },
+                {
+                  id: 'synthetic-expired',
+                  title: 'Expired credit',
+                  description: null,
+                  resetType: 'codexRateLimits',
+                  status: 'available',
+                  grantedAt: Date.parse('2026-10-01T12:00:00Z') / 1000,
+                  expiresAt: Date.parse('2026-10-02T12:00:00Z') / 1000,
+                },
+                {
+                  id: 'synthetic-no-expiry',
+                  title: 'Undated credit',
+                  description: null,
+                  resetType: 'codexRateLimits',
+                  status: 'available',
+                  grantedAt: Date.parse('2026-10-01T12:00:00Z') / 1000,
+                  expiresAt: null,
+                },
+              ],
+            }
+          : { availableCount: state.keys.length > 0 ? 0 : 1, credits: null },
       }
       break
     }

@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, unlink, writeFile } from 'node:fs/promises'
 // oxlint-disable-next-line import-x-js/extensions
 import { assertNoConfigurationError, captureGui } from './capture.mjs'
 
@@ -40,6 +40,35 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
 
   console.log('Synthetic Desktop account-link cancel and authoritative save passed.')
   console.log('Synthetic account-scoped quota with nullable model metadata loaded.')
+  await writeFile('/tmp/navigator-synthetic-credit-details', 'synthetic')
+  await panel.getByRole('button', { name: 'Refresh', exact: true }).first().click()
+  await panel.getByRole('button', { name: 'Banked Resets', exact: true }).click()
+  const detailed = page.getByRole('dialog').last()
+
+  await detailed.getByRole('progressbar', { name: 'Time remaining for Expiring credit', exact: true }).waitFor()
+  const value = Number(
+    await detailed
+      .getByRole('progressbar', { name: 'Time remaining for Expiring credit', exact: true })
+      .getAttribute('aria-valuenow'),
+  )
+
+  if (value <= 0 || value >= 100) throw new Error('Credit expiry does not reflect the provider grant/expiry lifetime')
+
+  await detailed.getByText('Expiry not supplied by the provider', { exact: true }).waitFor()
+
+  if (
+    !(await detailed
+      .locator('li')
+      .filter({ hasText: 'Expired credit' })
+      .getByRole('button', { name: 'Review credit', exact: true })
+      .isDisabled())
+  )
+    throw new Error('Expired credit can still be reviewed for consumption')
+
+  await captureGui(detailed, '21-desktop-credit-expiry')
+  await detailed.getByRole('button', { name: 'Close', exact: true }).last().click()
+  await unlink('/tmp/navigator-synthetic-credit-details')
+  await panel.getByRole('button', { name: 'Refresh', exact: true }).first().click()
   await panel.getByRole('button', { name: 'Banked Resets', exact: true }).click()
   await captureGui(page.getByRole('dialog').last(), '19-desktop-reset-credits')
   await page
