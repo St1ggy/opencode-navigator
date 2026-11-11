@@ -72,16 +72,18 @@ export function createGuiConfiguredDefaults(context: Context, preferences: Prefe
         context.toast.show({ title: 'Navigator configuration', description: message, variant: 'error' })
     }
     const refresh = () =>
-      untrack(
-        () =>
-          void load().catch((error: unknown) => {
-            if (current() && !(error instanceof DOMException && error.name === 'AbortError'))
-              context.toast.show({
-                title: 'Navigator configuration could not be loaded; use Reload preferences to retry',
-                variant: 'error',
-              })
-          }),
-      )
+      untrack(() => {
+        const request = load()
+        const revision = generation
+
+        void request.catch((error: unknown) => {
+          if (revision === generation && current() && !(error instanceof DOMException && error.name === 'AbortError'))
+            context.toast.show({
+              title: 'Navigator configuration could not be loaded; use Reload preferences to retry',
+              variant: 'error',
+            })
+        })
+      })
     const unsubscribe = data.on('config.updated', (event) => {
       if (!event.location?.directory || event.location.directory === location.directory) refresh()
     })

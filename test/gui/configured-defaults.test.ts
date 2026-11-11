@@ -5,6 +5,7 @@ import { createGuiConfiguredDefaults } from '../../src/app/gui/configured-defaul
 import { createPreferencesModel, emptyPreferencesDocument } from '../../src/entities/preferences/model'
 import { pluginConfig } from '../../src/shared/config'
 
+import type { PreferencesController } from '../../src/entities/preferences/model'
 import type { Context, MountedSession } from '@opencode/plugin/gui'
 
 test('configured GUI defaults switch with the selected server without erasing private preferences or accepting late results', async () => {
@@ -76,6 +77,69 @@ test('configured GUI defaults switch with the selected server without erasing pr
     await Promise.resolve()
     expect(Object.keys(preferences.layoutPresets())).toEqual(['remote-b'])
     expect([...preferences.favoriteMcpServers()]).toEqual(['private-favorite'])
+  } finally {
+    root.dispose()
+  }
+})
+
+test('same-target refreshes ignore superseded transport failures but still report current failures', async () => {
+  const notifications: string[] = []
+  const requests: { resolve(value: string): void; reject(error: Error): void }[] = []
+  let refresh!: () => void
+  const root = createRoot((dispose) => {
+    const session = {
+      id: 'session',
+      location: { directory: '/synthetic' },
+      server: {
+        id: 'sidecar',
+        connected: true,
+        compatible: true,
+        data: {
+          on: (_type: string, listener: (event: object) => void) => {
+            refresh = () => listener({ location: { directory: '/synthetic' } })
+
+            return () => {}
+          },
+        },
+        client: {
+          rpc: () => ({
+            defaults: () =>
+              new Promise<string>((resolve, reject) => {
+                requests.push({ resolve, reject })
+              }),
+          }),
+        },
+      },
+    }
+    const context = {
+      options: {},
+      signal: new AbortController().signal,
+      sessions: { current: () => session },
+      toast: {
+        show: (value: { title: string }) => {
+          notifications.push(value.title)
+        },
+      },
+    } as unknown as Context
+
+    createGuiConfiguredDefaults(context, { setConfiguredDefaults() {} } as unknown as PreferencesController)
+
+    return { dispose }
+  })
+
+  try {
+    expect(requests).toHaveLength(1)
+    refresh()
+    expect(requests).toHaveLength(2)
+    requests[0].reject(new Error('Synthetic superseded transport request'))
+    requests[1].resolve(JSON.stringify({ defaults: {}, warnings: [] }))
+    await Bun.sleep(0)
+    expect(notifications).toEqual([])
+    refresh()
+    requests[2].reject(new Error('Synthetic current server failure'))
+    await Bun.sleep(0)
+    expect(notifications).toHaveLength(1)
+    expect(notifications[0]).toContain('configuration could not be loaded')
   } finally {
     root.dispose()
   }

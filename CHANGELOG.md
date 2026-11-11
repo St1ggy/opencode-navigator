@@ -5,6 +5,7 @@
 - Add an experimental OpenCode Desktop interface with a native panel, narrow-screen drawer, and opt-in in-app mini-window. Move, resize, reset and redock it with the mouse or keyboard while keeping the selected session and filters.
 - Bring Search Everything, Skills, MCP groups and presets, Quick Actions, and customizable toolbar pins to Desktop. Share private favorites, trust decisions and preferences with local TUI instances without duplicating monitoring.
 - Add native Desktop settings with scoped section controls, groups, reviewed presets and project profiles, portable import/export, a seven-slide setup guide, About, browsable release history and editable GitHub Bug reports.
+- Keep superseded Desktop configuration reads from showing a false error after a newer refresh, while preserving genuine failures and retry guidance.
 - Show verified provider/account quotas in Desktop with explicit account linking and separately confirmed banked resets. Keep remote sessions isolated from local accounts and preserve unresolved reset attempts across retries.
 - Support OpenCode 1.19.5 and 2.2.6 while preserving both TUI adapters, existing settings, pinned-source updates and read-only legacy Todo archives.
 

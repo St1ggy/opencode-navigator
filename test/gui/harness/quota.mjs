@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 // oxlint-disable-next-line import-x-js/extensions
-import { captureGui } from './capture.mjs'
+import { assertNoConfigurationError, captureGui } from './capture.mjs'
 
 export async function quotaInteractions(page, panel, command, preferencesPath) {
   const consumes = async () => {
@@ -31,6 +31,7 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   await page.getByRole('dialog').last().getByText('synthetic-account', { exact: true }).waitFor()
   await page.getByRole('dialog').last().getByRole('button', { name: 'Link account', exact: true }).click()
   await panel.getByRole('button', { name: 'Banked Resets', exact: true }).waitFor({ timeout: 30_000 })
+  await assertNoConfigurationError(page)
   await captureGui(panel, '18-desktop-limits')
   const linked = JSON.parse(await readFile(preferencesPath, 'utf8'))
 

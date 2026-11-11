@@ -182,7 +182,12 @@ const config = defineConfig({
       files: ['test/gui/harness/*.mjs', 'scripts/smoke-opencode-gui.mjs'],
       // The disposable synthetic container owns /tmp; host artifacts use mkdtemp.
       // This runner reports verification results rather than shipping console output.
-      rules: { 'sonarjs/publicly-writable-directories': 'off', 'eslint/no-console': 'off' },
+      rules: {
+        'sonarjs/publicly-writable-directories': 'off',
+        'eslint/no-console': 'off',
+        // Node executes these files directly; relative ESM imports require their .mjs suffix.
+        'import-x-js/extensions': ['error', 'never', { mjs: 'always' }],
+      },
     },
     {
       files: ['test/gui/bundle.test.ts', 'test/gui/fixture-clock.test.ts'],

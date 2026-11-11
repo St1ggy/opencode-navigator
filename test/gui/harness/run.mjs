@@ -11,7 +11,13 @@ import { quotaInteractions } from './quota.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { settingsInteractions } from './settings.mjs'
 // oxlint-disable-next-line import-x-js/extensions
-import { captureArguments, captureGui, capturesEnabled, prepareCaptureClock } from './capture.mjs'
+import {
+  assertNoConfigurationError,
+  captureArguments,
+  captureGui,
+  capturesEnabled,
+  prepareCaptureClock,
+} from './capture.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { closeProcessPipes } from './cleanup.mjs'
 
@@ -395,6 +401,7 @@ async function main() {
     await floating.waitFor()
     await command('Close synthetic fixture tabs')
     await floating.waitFor({ state: 'detached' })
+    await assertNoConfigurationError(page)
     console.log('Packaged Desktop panel, Todo preview/archive and floating keyboard interactions passed.')
     const native = await nativeLogs(root)
     const pluginFailure = /\[plugin\] opencode-navigator\.todo-server (?:AbortError|Error|TypeError)[^\n]*/u.exec(logs)

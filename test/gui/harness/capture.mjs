@@ -3,6 +3,14 @@ import { join } from 'node:path'
 
 export const capturesEnabled = process.env.NAVIGATOR_GUI_CAPTURE === '1'
 
+export async function assertNoConfigurationError(page) {
+  const error = page.getByText('Navigator configuration could not be loaded; use Reload preferences to retry', {
+    exact: true,
+  })
+
+  if (await error.count()) throw new Error('The synthetic happy path left a Navigator configuration error visible')
+}
+
 export function captureArguments() {
   // Partial tile reuse can vary a handful of rounded-edge pixels across fresh
   // processes. Pin rasterization, color and scale, not the comparison tolerance.
