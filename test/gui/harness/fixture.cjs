@@ -127,7 +127,10 @@ module.exports.default = Plugin.define({
         if (!server) throw new Error('Isolated Desktop sidecar unavailable')
 
         const location = { directory: '/synthetic/project' }
-        const parent = await server.client.session.create({ title: 'Synthetic monitoring session', location })
+        const parent = await server.client.session.create({
+          title: 'Synthetic monitoring session with a deliberately long title for header layout regressions',
+          location,
+        })
 
         await server.client.session.create({ title: 'Synthetic child session', parentID: parent.id, location })
         context.tabs.open({ server: server.id, id: parent.id }, { focus: true })

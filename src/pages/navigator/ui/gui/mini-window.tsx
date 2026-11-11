@@ -1,3 +1,5 @@
+import { GuiIconAction } from '../../../../shared/ui/gui'
+
 import { createMiniWindowInteraction } from './mini-window-interaction'
 
 import type { MiniWindowRect } from '../../model'
@@ -16,8 +18,6 @@ export function NavigatorMiniWindow(props: {
   refresh(): void
   search(): void
 }) {
-  const Button = props.ui.Button
-  const IconButton = props.ui.IconButton
   const interaction = createMiniWindowInteraction(props)
 
   function dragHeader(event: PointerEvent) {
@@ -56,11 +56,9 @@ export function NavigatorMiniWindow(props: {
     >
       <header
         style={{
-          display: 'flex',
-          'align-items': 'center',
-          gap: '4px',
+          display: 'grid',
+          gap: '6px',
           padding: '8px',
-          'flex-wrap': 'wrap',
           cursor: 'move',
           'touch-action': 'none',
           'user-select': 'none',
@@ -71,31 +69,41 @@ export function NavigatorMiniWindow(props: {
         onPointerCancel={interaction.end}
         onLostPointerCapture={interaction.end}
       >
-        <span
-          data-navigator-move
-          title="Drag or use arrow keys; Shift moves ten pixels"
-          onKeyDown={(event) => interaction.key(event, 'move')}
+        <strong
+          data-navigator-session-title
+          title={props.title}
+          style={{
+            'min-width': '0',
+            overflow: 'hidden',
+            'overflow-wrap': 'anywhere',
+            display: '-webkit-box',
+            '-webkit-line-clamp': '2',
+            '-webkit-box-orient': 'vertical',
+            'line-height': '20px',
+          }}
         >
-          <IconButton icon="dot-grid" label="Move Navigator mini-window" />
-        </span>
-        <strong style={{ flex: '1', overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>
           {props.title}
         </strong>
-        <Button size="small" variant="ghost" onClick={props.redock}>
-          Dock
-        </Button>
+        <div
+          role="group"
+          aria-label="Mini-window actions"
+          style={{ display: 'flex', gap: '4px', 'align-items': 'center' }}
+        >
+          <span
+            data-navigator-move
+            title="Drag or use arrow keys; Shift moves ten pixels"
+            onKeyDown={(event) => interaction.key(event, 'move')}
+          >
+            <GuiIconAction ui={props.ui} icon="dot-grid" label="Move Navigator mini-window" />
+          </span>
+          <GuiIconAction ui={props.ui} icon="layout-right" label="Dock" onClick={props.redock} />
+        </div>
       </header>
       {props.children}
       <footer style={{ display: 'flex', gap: '4px', padding: '6px', 'align-items': 'center' }}>
-        <Button size="small" variant="ghost" onClick={props.search}>
-          Search
-        </Button>
-        <Button size="small" variant="ghost-muted" onClick={props.refresh}>
-          Refresh
-        </Button>
-        <Button size="small" variant="ghost-muted" onClick={interaction.reset}>
-          Reset position
-        </Button>
+        <GuiIconAction ui={props.ui} icon="magnifying-glass" label="Search" onClick={props.search} />
+        <GuiIconAction ui={props.ui} icon="refresh" label="Refresh" onClick={props.refresh} />
+        <GuiIconAction ui={props.ui} icon="outline-reset" label="Reset position" onClick={interaction.reset} />
         <span
           title="Drag or use arrow keys; Shift resizes ten pixels"
           style={{ 'margin-left': 'auto', cursor: 'nwse-resize', 'touch-action': 'none' }}
@@ -106,7 +114,7 @@ export function NavigatorMiniWindow(props: {
           onLostPointerCapture={interaction.end}
           onKeyDown={(event) => interaction.key(event, 'resize')}
         >
-          <IconButton icon="outline-expand" label="Resize Navigator mini-window" />
+          <GuiIconAction ui={props.ui} icon="outline-expand" label="Resize Navigator mini-window" />
         </span>
       </footer>
     </aside>

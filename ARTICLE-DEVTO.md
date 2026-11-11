@@ -220,6 +220,8 @@ Navigator 0.27 adds an experimental Desktop interface. The package has a separat
 
 The smaller details follow the host too: completed Todo rows are crossed out, section arrows use native icons, and loading uses the host indicator. I removed the sidebar's duplicate model/effort selectors; those stay under chat. Drag handles reorder sections and toolbar buttons, with Space and arrows for keyboard users. Update progress reports the active stage rather than inventing a percentage for installers that expose no byte totals.
 
+The header gives the session title its own full-width row. Familiar actions use native icon buttons with tooltips and accessible names; Banked Resets and account linking keep text. Successful quota reads show just the update time above the data instead of repeating the account-scope explanation.
+
 I moved the reusable session models, validators and action workflows behind headless entries. Native GUI components handle the presentation. This keeps Skill trust, MCP previews, account identity and reset retries in the same implementation instead of growing a second set of product rules.
 
 The native panel and opt-in in-app mini-window share one leased runtime. Switching between them preserves filters without starting another polling loop. Private preferences still use the existing file and lock through typed IPC; the native GUI store holds placement state only. Remote sessions use their own server client and never fall back to local provider credentials.

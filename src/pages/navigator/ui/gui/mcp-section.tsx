@@ -1,6 +1,7 @@
 import { For, Show } from 'solid-js'
 
 import { matchingMcpPreset } from '../../../../entities/mcp/model'
+import { GuiIconAction } from '../../../../shared/ui/gui'
 
 import { useNavigatorGui } from './context'
 import { GuiMcpGroup } from './mcp-group'
@@ -37,16 +38,16 @@ export function McpSection() {
       />
       <Show when={state().error}>
         <p role="alert">{state().error?.message}</p>
-        <Button
-          size="small"
+        <GuiIconAction
+          ui={services.ui}
+          icon="refresh"
+          label="Retry"
           onClick={() =>
             void catalogs()
               .mcp.retry()
               .catch(() => {})
           }
-        >
-          Retry
-        </Button>
+        />
       </Show>
       <Show when={bulk().status === 'running' || bulk().status === 'error'}>
         <p role="status">

@@ -1,6 +1,7 @@
 import { Show } from 'solid-js'
 
 import { mcpToggleAction } from '../../../../entities/mcp/model'
+import { GuiIconAction } from '../../../../shared/ui/gui'
 
 import { CatalogRow } from './catalog-row'
 import { useNavigatorGui } from './context'
@@ -13,7 +14,6 @@ export function GuiMcpRow(props: { item: McpItem }) {
   const catalogs = () => services.runtime.catalogs!
   const state = () => catalogs().mcp.serverState(props.item.name)
   const error = () => props.item.error || state().error?.message
-  const Button = services.ui.Button
 
   return (
     <CatalogRow
@@ -31,13 +31,12 @@ export function GuiMcpRow(props: { item: McpItem }) {
       }
       trailing={
         <Show when={error()}>
-          <Button
-            size="small"
-            variant="ghost"
+          <GuiIconAction
+            ui={services.ui}
+            icon="info"
+            label={`Information about ${props.item.name}`}
             onClick={() => services.onMcpInformation({ ...props.item, error: error() })}
-          >
-            Info
-          </Button>
+          />
         </Show>
       }
     />

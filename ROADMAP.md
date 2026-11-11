@@ -19,6 +19,12 @@ and useful as a compact control center for an OpenCode session.
 
 ## Desktop layout, drag ordering and inline update progress follow-up
 
+- [x] Keep the Desktop session title readable on a separate full-width row in panel and Float. Replace familiar actions with native icon buttons and tooltips while retaining accessible names, private pins and descriptive labels for ambiguous operations. Verify long-title geometry and native controls/tooltips in both real Desktop placements, alongside drag/resize/theme behavior.
+- [ ] Refresh the changed header/action and compact Limits screenshots through manual Prepare Release before publication; keep local captures disabled and perform the separately authorized local plugin update only after verifying the published package.
+- [ ] Publish the authorized 0.27.3 follow-up after Prepare Release, merged screenshot PR and exact-head CI. Verify npm/GitHub and the archive before updating the discovered installed TUI/GUI package sources; preserve host versions, installation method, scope, themes and unrelated settings.
+
+- [x] Remove explanatory account/model quota-scope prose from successful Desktop Limits; retain only the updated-at timestamp, quiet TUI data and all actionable status guidance. Verify unit regressions, the real Desktop quota fixture and both TUI hosts without changing account scope, refresh or credit safeguards.
+
 - [ ] API-blocked: integrate Todo search and filter tabs into the native Todo popover when the host exposes a supported extension point. Desktop 2.2.6 exports composer pills beside native Todo, not an extension inside its popover; retain Navigator filtering meanwhile.
 
 - [x] Align Desktop Todo status icons, colors and spacing with audited native Todo source; strike through and mute completed/cancelled content while retaining read-only status semantics. Cover all four presentation states with unit assertions.
@@ -29,7 +35,7 @@ and useful as a compact control center for an OpenCode session.
 - [x] Add truthful inline TUI/Desktop update progress with finite real-byte percentage validation, native main IPC state and opt-in snapshot stages. Synthetic installer/error tests preserve safeguards; no actual local update is performed.
 - [x] Verify unit/render regressions, both real TUI hosts and packaged Desktop normal/quota smokes sequentially without local captures, installation changes or publication. Extend long-content and interaction fixtures for the manual CI harness.
 - [x] Add production Todo-row and update-stage synthetic capture scenes. Prepare Release 43069114630 generated and byte-verified the terminal gallery and 31 Desktop scenes; screenshot PR #40 passed CI and merged as 42b20f6. Review the generated task/progress, toolbar and quota captures without local screenshot generation.
-- [ ] Publish the authorized 0.27.2 patch release after exact-head final CI, then verify GitHub/npm and provenance. Do not update local installations.
+- [x] Publish v0.27.2 after exact-head CI 43076680474 and Publish 43077121631 succeeded. GitHub release/tag targets bf8c96f and npm latest is 0.27.2. Verify all 44 payload files, archive SHA-512 and CI SHA-1, two registry signatures with an unexpired key, and provenance matching the repository, commit, tag and workflow. Local Navigator/OpenCode installations, configuration and themes remain unchanged.
 
 ## Desktop native controls, credit expiry and Float follow-up
 

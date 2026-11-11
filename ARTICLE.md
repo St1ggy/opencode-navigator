@@ -232,6 +232,8 @@ The Desktop view opens in a native panel or an optional mini-window inside the a
 
 I kept model and effort selection under chat instead of repeating those controls in the sidebar. Completed tasks are muted and crossed out, like OpenCode's own Todo list. Settings use drag handles for ordering, with Space and arrow keys as the keyboard equivalent. During an update, the version label gives way to the current installation stage; a percentage appears only when the installer supplies real byte totals.
 
+The session title now has a row of its own. Search, refresh and settings use the host's icons with tooltips, so their labels no longer squeeze a long title out of view. Limits keeps its update time and quota data; the account-scope explanation stays in the documentation.
+
 Desktop and local TUI instances share the existing preferences file and lock. Filesystem and subprocess work stays behind typed main-process IPC. Requests for a remote session use that session's server; they never borrow the Desktop machine's local provider account. The verified Desktop target is the official 2.2.6 Linux ARM64 package. Browser Web, detached OS windows and unsupported LSP or Home-navigation hooks remain outside this version. The GUI needs no terminal corner font.
 
 The release workflow keeps its Ghostty captures for TUI and adds a separate set from the real packaged Desktop renderer on a virtual display. Both use synthetic data.

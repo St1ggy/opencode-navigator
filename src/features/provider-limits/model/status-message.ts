@@ -8,18 +8,14 @@ export function quotaStatusMessage(input: {
   snapshot?: ProviderQuotaSnapshot
   state: TargetRequestState
   hasAdapter: boolean
-  showReadyMessage?: boolean
+  showUpdatedAt?: boolean
 }) {
   const { model, snapshot, state } = input
 
   if (state.status === 'error') return snapshot ? 'Stale · refresh failed' : 'Quota read failed · refresh to retry'
 
-  if (
-    !input.showReadyMessage &&
-    snapshot?.availability === 'ready' &&
-    (snapshot.windows.length > 0 || snapshot.balances?.length)
-  )
-    return
+  if (snapshot?.availability === 'ready' && (snapshot.windows.length > 0 || snapshot.balances?.length))
+    return input.showUpdatedAt ? `Updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}` : undefined
 
   if (snapshot?.message) {
     if (snapshot.availability === 'stale') return `Stale · ${snapshot.message}`
@@ -55,13 +51,6 @@ export function quotaStatusMessage(input: {
   if (snapshot.availability === 'rate_limited') return 'Provider rate-limited this read · try again later'
 
   if (snapshot.availability === 'stale') return 'Stale provider data · refresh to update'
-
-  if (
-    snapshot.availability === 'ready' &&
-    input.showReadyMessage &&
-    (snapshot.windows.length > 0 || snapshot.balances?.length)
-  )
-    return
 
   return `Updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}`
 }

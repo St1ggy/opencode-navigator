@@ -305,6 +305,9 @@ contains independent TUI, server, RPC and GUI entries.
   one monitoring runtime and filters; switching does not duplicate polling.
   Drag the mini-window by its header or move handle; Dock remains a separate
   action. Its surface follows the current OpenCode theme.
+- The session title has its own full-width header row in both placements.
+  Familiar actions use native icon buttons with tooltips and accessible names;
+  account linking, Banked Resets and other ambiguous operations retain text.
 - **Navigator settings** opens native Settings with Global/Worktree scope,
   section controls, groups, trust, presets, portable/project profiles, About,
   release history and reviewed Bug reports. **Reload preferences** imports
@@ -327,6 +330,8 @@ contains independent TUI, server, RPC and GUI entries.
 - Provider quotas retain verified account scope. Local Codex access requires a
   verified same-machine connection; a remote session never borrows its credentials
   or private binding. Banked resets always require separate confirmation.
+  Successful quota reads show only their update time above the data; account/model
+  scope remains in the quota model rather than a persistent explanatory sentence.
   Model and reasoning-effort selection stays in the native chat controls, not
   the Navigator sidebar; quotas still follow the selected model.
 - During a confirmed update, About shows the installation stage inline.

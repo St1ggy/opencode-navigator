@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.27.3] - 2026-11-12
+
+- Keep the Desktop session title on its own full-width row in both the panel and floating mini-window, with readable wrapping instead of squeezing it between action labels.
+- Use native icon buttons with tooltips for familiar sidebar actions such as Search, Refresh, Settings, Float, Dock and information. Keep descriptive labels for account linking, Banked Resets, presets and other less obvious operations.
+- Remove the persistent account/model scope explanation from successful Desktop Limits. Keep the short update time, quota data and actionable warnings without changing account scope or reset-credit safeguards.
+
 ## [0.27.2] - 2026-11-11
 
 - Keep Desktop Settings fields and actions inside their rows at narrow widths, with readable labels and compact group creation.

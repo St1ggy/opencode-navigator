@@ -1,7 +1,7 @@
 import { For, Index, Show, createMemo } from 'solid-js'
 
 import { buildTodoView } from '../../../../entities/todo/model'
-import { GuiTabs } from '../../../../shared/ui/gui'
+import { GuiIconAction, GuiTabs } from '../../../../shared/ui/gui'
 
 import { useNavigatorGui } from './context'
 import { MonitoringSection } from './section'
@@ -36,9 +36,12 @@ export function TodoSection() {
               <Button size="small" onClick={props.onEnableTodo}>
                 Enable Todo
               </Button>
-              <Button size="small" variant="ghost" onClick={() => void props.runtime.refresh(true)}>
-                Retry
-              </Button>
+              <GuiIconAction
+                ui={props.ui}
+                icon="refresh"
+                label="Retry"
+                onClick={() => void props.runtime.refresh(true)}
+              />
             </div>
           }
         >

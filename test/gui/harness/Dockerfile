@@ -30,4 +30,5 @@ COPY test/gui/harness/floating.mjs ./floating.mjs
 COPY test/gui/harness/native-controls.mjs ./native-controls.mjs
 COPY test/gui/harness/settings-geometry.mjs ./settings-geometry.mjs
 COPY test/gui/harness/presentation.mjs ./presentation.mjs
+COPY test/gui/harness/header.mjs ./header.mjs
 CMD ["xvfb-run", "--auto-servernum", "node", "/opt/navigator-smoke/run.mjs"]

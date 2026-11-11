@@ -1,5 +1,7 @@
 import { For, Show } from 'solid-js'
 
+import { GuiIconAction } from '../../../../shared/ui/gui'
+
 import { useNavigatorGui } from './context'
 import { MonitoringSection } from './section'
 import { SectionFilter } from './section-filter'
@@ -21,16 +23,16 @@ export function SkillsSection() {
       />
       <Show when={catalogs().skills.error()}>
         <p role="alert">{catalogs().skills.error()}</p>
-        <Button
-          size="small"
+        <GuiIconAction
+          ui={services.ui}
+          icon="refresh"
+          label="Retry"
           onClick={() =>
             void catalogs()
               .skills.retry()
               .catch(() => {})
           }
-        >
-          Retry
-        </Button>
+        />
       </Show>
       <div style={{ display: 'flex', 'flex-direction': 'column', gap: '12px' }}>
         <For each={view().groups()} fallback={<p style={{ opacity: 0.65 }}>No matching Skills.</p>}>

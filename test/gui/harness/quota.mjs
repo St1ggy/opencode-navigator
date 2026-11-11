@@ -37,6 +37,17 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   if (controls.some((label) => /synthetic-model|Select model|reasoning|effort/iu.test(label)))
     throw new Error('Desktop Limits duplicated the native chat model or effort selector')
 
+  await limits.getByText(/^Updated /u).waitFor()
+  const text = (await limits.textContent()) ?? ''
+
+  if (/Codex account quota|shared across models|model-specific allowance/iu.test(text))
+    throw new Error('Successful Desktop Limits rendered explanatory quota-scope prose')
+
+  if (!(await limits.getByRole('button', { name: 'Refresh', exact: true }).isVisible()))
+    throw new Error('Removing quota prose hid Refresh')
+
+  await limits.getByText(/left$/u).first().waitFor()
+
   await assertNoConfigurationError(page)
   await captureGui(panel, '18-desktop-limits')
   const linked = JSON.parse(await readFile(preferencesPath, 'utf8'))

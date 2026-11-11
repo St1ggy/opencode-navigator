@@ -1,5 +1,7 @@
 import { Show } from 'solid-js'
 
+import { GuiIconAction } from '../../../../shared/ui/gui'
+
 import { MonitoringContent } from './monitoring-content'
 
 import type { MonitoringRuntime } from '../../model'
@@ -17,53 +19,67 @@ export function MonitoringPanel(
     onScroll(top: number): void
   },
 ) {
-  const Button = props.ui.Button
+  const Loader = props.ui.Loader
 
   return (
     <div
       data-navigator-panel
       style={{ display: 'flex', 'flex-direction': 'column', height: '100%', 'min-height': '0' }}
     >
-      <header style={{ padding: '8px 12px', display: 'flex', gap: '4px', 'align-items': 'center' }}>
+      <header
+        data-navigator-panel-header
+        style={{ padding: '8px 12px', display: 'grid', gap: '6px', 'min-width': '0' }}
+      >
         <strong
+          data-navigator-session-title
           style={{
-            flex: '1',
             'min-width': '0',
             overflow: 'hidden',
-            'text-overflow': 'ellipsis',
-            'white-space': 'nowrap',
+            'overflow-wrap': 'anywhere',
+            display: '-webkit-box',
+            '-webkit-line-clamp': '2',
+            '-webkit-box-orient': 'vertical',
+            'line-height': '20px',
           }}
           title={props.title}
         >
           {props.title}
         </strong>
-        <Button size="small" variant="ghost" onClick={props.search}>
-          Search
-        </Button>
-        <Button size="small" variant="ghost-muted" onClick={() => void props.runtime?.refresh(true)}>
-          Refresh
-        </Button>
-        <Button size="small" variant="ghost" onClick={props.float}>
-          Float
-        </Button>
-        <Show when={props.onSettings}>
-          <Button size="small" variant="ghost" onClick={props.onSettings}>
-            Settings
-          </Button>
-        </Show>
+        <div
+          role="group"
+          aria-label="Navigator actions"
+          style={{ display: 'flex', gap: '4px', 'align-items': 'center', 'flex-wrap': 'wrap' }}
+        >
+          <GuiIconAction ui={props.ui} icon="magnifying-glass" label="Search" onClick={props.search} />
+          <GuiIconAction
+            ui={props.ui}
+            icon="refresh"
+            label="Refresh"
+            onClick={() => void props.runtime?.refresh(true)}
+          />
+          <GuiIconAction ui={props.ui} icon="expand" label="Float" onClick={props.float} />
+          <Show when={props.onSettings}>
+            <GuiIconAction ui={props.ui} icon="settings-gear" label="Settings" onClick={props.onSettings} />
+          </Show>
+        </div>
       </header>
       <Show
         when={!props.floating}
         fallback={
           <div style={{ padding: '12px' }}>
             <p>Navigator is in its mini-window.</p>
-            <Button size="small" onClick={props.dock}>
-              Dock Navigator
-            </Button>
+            <GuiIconAction ui={props.ui} icon="layout-right" label="Dock Navigator" onClick={props.dock} />
           </div>
         }
       >
-        <Show when={props.runtime} fallback={<p role="status">Loading Navigator…</p>}>
+        <Show
+          when={props.runtime}
+          fallback={
+            <p role="status">
+              <Loader size="small" /> Loading Navigator…
+            </p>
+          }
+        >
           {(runtime) => <MonitoringContent {...props} runtime={runtime()} />}
         </Show>
       </Show>

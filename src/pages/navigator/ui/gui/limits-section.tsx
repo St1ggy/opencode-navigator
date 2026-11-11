@@ -1,6 +1,7 @@
 import { For, Show } from 'solid-js'
 
 import { canLinkCodexAccount, quotaStatusMessage } from '../../../../features/provider-limits/model'
+import { GuiIconAction } from '../../../../shared/ui/gui'
 
 import { useNavigatorGui } from './context'
 import { GuiQuotaWindow } from './quota-window'
@@ -18,7 +19,7 @@ export function LimitsSection() {
           snapshot: snapshot(),
           state: state() ?? { status: 'idle' },
           hasAdapter: Boolean(limits()?.controller.current().adapter),
-          showReadyMessage: true,
+          showUpdatedAt: true,
         })
       : 'Select a model in chat to view its provider limits.'
   const canLink = () => {
@@ -52,9 +53,12 @@ export function LimitsSection() {
               Banked Resets
             </Button>
           </Show>
-          <Button size="small" variant="ghost-muted" onClick={() => void limits()?.controller.refresh(true)}>
-            Refresh
-          </Button>
+          <GuiIconAction
+            ui={props.ui}
+            icon="refresh"
+            label="Refresh"
+            onClick={() => void limits()?.controller.refresh(true)}
+          />
         </>
       }
     >

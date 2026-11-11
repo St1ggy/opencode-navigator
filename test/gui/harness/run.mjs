@@ -24,6 +24,8 @@ import { verifyFloatingDarkTheme, verifyFloatingPointer, verifyFloatingTheme } f
 import { verifyTodoSelect, verifyTrustSwitch } from './native-controls.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { presentationInteractions } from './presentation.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { verifyNavigatorHeader } from './header.mjs'
 
 async function nativeLogs(root) {
   // All paths are inside this disposable, synthetic HOME, never the user's state.
@@ -297,6 +299,7 @@ async function main() {
 
     await panel.getByRole('heading', { name: 'Todo', exact: true }).waitFor({ timeout: 30_000 })
     await panel.getByRole('heading', { name: /^Subagents/u }).waitFor()
+    await verifyNavigatorHeader(page, panel, 'Navigator actions')
     await verifyObservedVersion(preferencesDirectory)
     await captureGui(panel, '01-desktop-panel')
     // The native palette has an independently tracked routed-context defect.
@@ -385,6 +388,9 @@ async function main() {
     await page.keyboard.press('Escape')
     await panel.getByRole('button', { name: 'Float', exact: true }).click()
     const floating = page.locator('[data-navigator-floating]')
+
+    await floating.waitFor()
+    await verifyNavigatorHeader(page, floating, 'Mini-window actions')
 
     await floating.waitFor()
     await captureGui(floating, '14-desktop-mini-window')
