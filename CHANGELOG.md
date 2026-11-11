@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.27.1] - 2026-11-11
+
+- Drag the Desktop mini-window by its header as well as its move handle, while keeping Dock a separate action. Match its surface and controls to OpenCode's light and dark themes.
+- Use native Desktop switches and selectors for Skill trust and Todo configuration, and align multiline fields with the host theme and focus styles.
+- Show a remaining-lifetime scale and time until expiry for banked reset credits with provider-supplied dates. Keep missing expiry explicit and prevent selecting expired credits for review.
+
 ## [0.27.0] - 2026-11-11
 
 - Add an experimental OpenCode Desktop interface with a native panel, narrow-screen drawer, and opt-in in-app mini-window. Move, resize, reset and redock it with the mouse or keyboard while keeping the selected session and filters.

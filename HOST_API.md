@@ -60,6 +60,13 @@ Desktop 2.2.6 keeps drawer opening in its own mobile navigation; Navigator does
 not click or move host elements to force it open. Revisit automatic drawer
 opening when the public layout API exposes that operation.
 
+GUI forms use `ctx.ui.Switch`, `TextInput`, `Select`, `Button` and the native
+Settings rows rather than importing or bundling `@opencode/ui`. Desktop 2.2.6's
+public UI facade has no multiline input, progress bar, disclosure row, or bookmark
+icon. Those focused semantic controls remain plugin-owned, using the host theme's
+surface, text, focus and elevation tokens. Remove these fallbacks when equivalent
+public controls preserve their multiline, expanded/selected and progress semantics.
+
 The Desktop model controls use the verified 2.2.6 commands `model.choose` and
 `model.variant.cycle`. These IDs are version-audited mappings, not portable
 TUI command names; a rejected dispatch reports that the control is unavailable.

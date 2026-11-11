@@ -40,6 +40,10 @@
 
 ## Shared Models And Desktop GUI
 
+- Use the host's public GUI UI-kit components for Navigator switches, inputs, buttons, selectors and other controls so they match the surrounding Desktop application; do not imitate host controls with independently styled HTML where an equivalent public component exists.
+- Show a banked-reset expiry progress bar using provider-supplied grant and expiry timestamps, with readable remaining time and explicit missing-date states instead of fabricated progress or an unsupported claim that a credit never expires.
+- Fix in-app Float dragging and keep the floating surface in the active host theme and palette. Reproduce pointer movement and theme inheritance in the isolated Desktop host before claiming either issue fixed.
+
 - Implement the approved Desktop GUI plan in delivery order, preserving both TUI adapters and the existing preferences, archive, account bindings, reset attempts and compatibility exports. The first GUI target is OpenCode Desktop 2.2.6; browser Web and detached operating-system windows are not supported targets for this cycle.
 - Share renderer-independent entity models and feature use cases, not universal JSX. Keep domain logic in its owning FSD slice, provide explicit headless `model.ts` public entries, and isolate TUI/GUI public entries and presentation. Headless dependency graphs must not import OpenTUI, DOM, Electron, Bun, filesystem, UI components or host-specific SDK DTOs; host-provided Solid reactivity is allowed.
 - Use narrow capability ports and real host adapters rather than a GUI implementation of the legacy TuiPluginApi or a new monolithic Navigator API. Prefer native host caches, events, dialogs, settings, commands and model selection. Preserve the historical server plugin ID and derive GUI namespaces from `ctx.id`.
@@ -206,6 +210,8 @@
 - Keep the bundle-size check active with the current 360,000-byte raw limit; account for measured growth when introducing features.
 
 ## Package identity and releases
+
+- On 2026-11-11, the user authorized committing/pushing and publishing a new patch release for the native GUI controls, banked-reset expiry and Float fixes. Run Prepare Release and its merged screenshot PR/CI gates before publication; this request does not separately authorize updating the local installed plugin or OpenCode hosts.
 
 - On 2026-11-11, the user explicitly authorized committing/pushing this Desktop GUI delivery, running the required Prepare Release gates, publishing the release, and then installing the verified published Navigator version for local TUI and Desktop GUI. Re-detect the active installation before updating it and preserve unrelated configuration and themes; do not assume the historical pinned snapshot still owns the current clients or upgrade OpenCode hosts without separate approval.
 - Publish as `opencode-navigator`. The legacy `opencode-pretty-sidebar` package is deprecated with migration guidance; retain existing published versions.

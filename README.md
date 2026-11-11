@@ -303,6 +303,8 @@ contains independent TUI, server, RPC and GUI entries.
   the selected session, hides on Home and yields to native dialogs. Move, resize,
   reset and redock controls support keyboard input too. Both placements share
   one monitoring runtime and filters; switching does not duplicate polling.
+  Drag the mini-window by its header or move handle; Dock remains a separate
+  action. Its surface follows the current OpenCode theme.
 - **Navigator settings** opens native Settings with Global/Worktree scope,
   section controls, groups, trust, presets, portable/project profiles, About,
   release history and reviewed Bug reports. **Reload preferences** imports
@@ -703,7 +705,10 @@ separate muted guidance.
 
 The header's **Banked Resets** button appears when credits or an unresolved attempt
 exist. It displays the provider's available count, optional credit
-details, statuses, and expiry. Selecting a credit first checks fresh eligibility
+details, statuses, and expiry. In Desktop, dated credits show a shrinking
+remaining-lifetime scale and time until expiry, calculated from the provider's
+grant and expiry timestamps. Missing dates never produce a fabricated percentage;
+expired credits cannot be selected for review. Selecting a credit first checks fresh eligibility
 and opens a separate confirmation tied to the current account and model. Cancel
 or Escape returns to the credit list without spending anything.
 

@@ -17,6 +17,14 @@ and useful as a compact control center for an OpenCode session.
 - Preserve useful defaults while supporting global and worktree-specific preferences.
 - Treat unavailable OpenCode APIs as explicit constraints rather than simulating unsupported actions.
 
+## Desktop native controls, credit expiry and Float follow-up
+
+- [x] Replace remaining GUI form checkbox/select controls with public host Switch/Select, retain native buttons/inputs and remove duplicate Settings-row switch labels. Document focused multiline/disclosure/bookmark/progress API gaps and use host theme tokens for fallbacks; real-host assertions verify native form controls.
+- [x] Add banked-reset expiry progress and remaining time using real provider timestamps, including missing and expired date states without assuming that absent expiry means a credit never expires. Verify lifetime fractions, minute/day boundaries, invalid dates, disabled expired review and the original confirmed/idempotent consumption flow.
+- [x] Reproduce and fix Float pointer dragging and host-theme inheritance in the isolated packaged Desktop host. Verify real Move/title pointer drags, light/dark theme transitions and existing keyboard/modal/Home/viewport behavior; preserve shared runtime state.
+- [x] Pass the full check pipeline (572 primary tests and 80 GUI tests, typecheck, lint, formatting and bundle budgets) and packaged Desktop normal/quota smokes. Extend manual-CI fixtures with dark Float and detailed-credit expiry scenes without local captures.
+- [ ] Publish v0.27.1 after the newly authorized source commits, Prepare Release PNG reproducibility, merged screenshot PR and exact-head CI. Verify GitHub/npm payload and provenance; leave the local installed plugin and OpenCode hosts unchanged.
+
 ## P0: Foundation
 
 Stabilize the architecture, persistence, request lifecycle, interaction model, and
