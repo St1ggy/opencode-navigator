@@ -3,6 +3,22 @@
 const { Plugin, Command, Slot } = require('@opencode/plugin/gui')
 
 module.exports.default = Plugin.define({
+  main(context) {
+    if (!context.options.captureClock) return
+
+    // Capture-only fixture: quota snapshots are timestamped in Desktop main,
+    // outside Playwright's renderer clock. Timers remain real in both processes.
+    const previous = Date.now
+
+    Date.now = () => Date.parse('2026-11-01T12:00:00Z')
+    context.signal.addEventListener(
+      'abort',
+      () => {
+        Date.now = previous
+      },
+      { once: true },
+    )
+  },
   setup(context) {
     context.add(Command, {
       id: 'ping',

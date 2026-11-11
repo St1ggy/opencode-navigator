@@ -185,8 +185,8 @@ const config = defineConfig({
       rules: { 'sonarjs/publicly-writable-directories': 'off', 'eslint/no-console': 'off' },
     },
     {
-      files: ['test/gui/bundle.test.ts'],
-      // Execute only our freshly built local CJS artifact in a deny-by-default module sandbox.
+      files: ['test/gui/bundle.test.ts', 'test/gui/fixture-clock.test.ts'],
+      // Execute only our local CJS artifact or synthetic fixture in a deny-by-default module sandbox.
       rules: { 'sonarjs/code-eval': 'off' },
     },
     {

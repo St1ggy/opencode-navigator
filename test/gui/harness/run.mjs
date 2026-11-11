@@ -11,7 +11,7 @@ import { quotaInteractions } from './quota.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { settingsInteractions } from './settings.mjs'
 // oxlint-disable-next-line import-x-js/extensions
-import { captureGui, prepareCaptureClock } from './capture.mjs'
+import { captureGui, capturesEnabled, prepareCaptureClock } from './capture.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { closeProcessPipes } from './cleanup.mjs'
 
@@ -56,6 +56,7 @@ async function main() {
   const config = join(root, 'config/opencode')
 
   await mkdir(config, { recursive: true })
+  await mkdir(join(root, 'Default Project'), { recursive: true })
   const install = spawnSync(
     '/usr/bin/npm',
     [
@@ -126,7 +127,11 @@ async function main() {
           : [{ package: join(root, 'node_modules/opencode-navigator') }]),
         {
           package: fixture,
-          options: { nativeDialogProbe: process.env.NAVIGATOR_GUI_NATIVE_DIALOG_PROBE === '1', quotaFixture },
+          options: {
+            nativeDialogProbe: process.env.NAVIGATOR_GUI_NATIVE_DIALOG_PROBE === '1',
+            quotaFixture,
+            captureClock: capturesEnabled,
+          },
         },
       ],
       skills: [skillDirectory],

@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export const capturesEnabled = process.env.NAVIGATOR_GUI_CAPTURE === '1'
@@ -13,10 +14,28 @@ export async function captureGui(locator, name) {
 
   const prefix = process.env.NAVIGATOR_GUI_QUOTA_FIXTURE === '1' ? 'quota-' : ''
 
-  await locator.screenshot({
-    path: join('/captures', `${prefix}${name}.png`),
-    animations: 'disabled',
-    caret: 'hide',
-    scale: 'css',
-  })
+  const frame = await stableFrame(() =>
+    locator.screenshot({
+      animations: 'disabled',
+      caret: 'hide',
+      scale: 'css',
+      style: '*, *::before, *::after { transition: none !important; animation: none !important; }',
+    }),
+  )
+
+  await writeFile(join('/captures', `${prefix}${name}.png`), frame)
+}
+
+export async function stableFrame(read) {
+  let previous = await read()
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const current = await read()
+
+    if (previous.equals(current)) return current
+
+    previous = current
+  }
+
+  throw new Error('Desktop capture did not settle to two byte-identical frames')
 }
