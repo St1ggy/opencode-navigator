@@ -139,7 +139,7 @@ verification workflow before expanding the product surface.
 
 ### v0.26.0 Release
 
-- [ ] Publish the verified API/timing and lifecycle fixes after thematic commits, the manual Prepare Release screenshot gate, screenshot PR CI/merge and release-head CI. Verify GitHub/npm publication and isolated packaged installation; preserve the installed Navigator snapshot and local host configuration.
+- [x] Publish v0.26.0 after thematic commits, Prepare Release 42204446365, reproducible screenshots, screenshot PR #37 with exact-head CI 42209026241, and release-head CI 42210429820. GitHub tag/release points to f59a62ac1563fff0eaeb68557087330c8988e0ae; Publish 42210763189 succeeded and npm latest is 0.26.0. Verify all 43 payload files, archive integrity, two registry signatures, provenance and an isolated registry-snapshot install/import. npm removes the repository-only FFI patch and patchedDependencies from the published package; consumer metadata remains upstream-owned. All 16 local installation/configuration/launcher fingerprints are preserved.
 
 ### Release Contract Audit: November 2026
 
@@ -155,7 +155,7 @@ verification workflow before expanding the product surface.
 - [x] Update the aligned OpenTUI development packages to 0.8.2 and verify wrapped-text measurement, resize, short dialogs and fixed navigation without bundling or replacing the host runtime.
 - [x] Use public OpenCode 2 execution start timestamps for exact active Subagent durations, retaining observed-history behavior and the 1.x fallback. Do not mistake the previous execution's idle timestamp/outcome for the active execution's result; preserve cancellation in recent history.
 - [x] Complete local regressions, both supported real-host smokes and isolated packed-runtime verification. Full check: 535 passing tests, one opt-in skip, 5,032 assertions; main bundle 349,163 / 360,000 bytes. Font, formatting and public-content audits pass. Hosts and the installed Navigator snapshot are not updated by this work.
-- [ ] Run the manual screenshot reproducibility/visual-review and release CI gates after a separate commit/push/release request. Session panels, schedules and artifacts remain separate opt-in product proposals, not implicit compatibility work.
+- [x] Run the manual screenshot reproducibility/visual-review and release CI gates after the explicit release request; publication is recorded under v0.26.0 above. Session panels, schedules and artifacts remain separate opt-in product proposals, not implicit compatibility work.
 
 ### v0.25.0 Release
 
