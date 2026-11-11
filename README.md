@@ -327,7 +327,7 @@ Linux ARM64 Desktop package on Xvfb. Native macOS/Windows, browser Web and multi
 live Desktop windows are not claimed as real-host verification targets. Local,
 remote and multi-consumer guards have separate synthetic contract tests.
 See [Host API boundaries](HOST_API.md) for the native command-palette limitation.
-The manual Prepare Release workflow generated and byte-verified all 27 GUI
+The manual Prepare Release workflow generated and byte-verified all 29 GUI
 captures using the real Desktop renderer on a virtual display. The terminal
 gallery above is rendered separately through Ghostty.
 

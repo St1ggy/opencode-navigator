@@ -9,11 +9,11 @@ wizard slides, a short terminal, and native 2.x Todo/LSP/permissions guidance.
 Native Todo/config and 2.x wizard guidance use synthetic capability projections
 on the pinned capture host; separate real-host smokes verify native 2.x operations.
 
-The v0.27.0 manual **Prepare Release** workflow refreshed the terminal gallery
-and added 27 Desktop captures, verified every PNG against a second capture,
+The v0.27.1 manual **Prepare Release** workflow refreshed the terminal gallery
+and all 29 Desktop captures, verified every PNG against a second capture,
 and merged the update after CI passed. The final run was
-[42982104267](https://github.com/St1ggy/opencode-navigator/actions/runs/42982104267),
-with [screenshot PR #38](https://github.com/St1ggy/opencode-navigator/pull/38).
+[43016467039](https://github.com/St1ggy/opencode-navigator/actions/runs/43016467039),
+with [screenshot PR #39](https://github.com/St1ggy/opencode-navigator/pull/39).
 
 ## Experimental Desktop
 
@@ -25,6 +25,8 @@ display, not Ghostty. All accounts, sources and session data are synthetic.
 ![Skill confirmation](gui/03-desktop-skill-confirmation.png)
 
 ![Floating mini-window with a preserved filter](gui/14-desktop-mini-window.png)
+
+![Floating mini-window following the host dark theme](gui/13-desktop-mini-window-dark.png)
 
 ![Reviewed layout changes](gui/07-desktop-layout-preview.png)
 
@@ -38,11 +40,13 @@ display, not Ghostty. All accounts, sources and session data are synthetic.
 
 ![Banked reset credits](gui/quota-19-desktop-reset-credits.png)
 
+![Credit expiry progress, expired and missing-date states](gui/quota-21-desktop-credit-expiry.png)
+
 ![Separate reset confirmation](gui/quota-20-desktop-reset-confirmation.png)
 
 ![Editable Bug report](gui/05-desktop-bug-report.png)
 
-Browse [all 27 Desktop states](gui/) for onboarding, toolbar customization,
+Browse [all 29 Desktop states](gui/) for onboarding, toolbar customization,
 portable import and project/workspace profiles.
 
 The gallery includes About current,
