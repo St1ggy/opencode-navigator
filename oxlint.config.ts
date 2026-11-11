@@ -10,6 +10,27 @@ const config = defineConfig({
   settings: { 'import-x/resolver': { typescript: { project: './tsconfig.lint.json', bun: true }, node: true } },
   overrides: [
     {
+      files: ['src/**/ui/gui/**/*.tsx', 'src/app/gui/**/*.tsx', 'src/shared/ui/gui/**/*.tsx'],
+      // DOM-only accessibility checks must not interpret OpenTUI renderables as HTML.
+      // Retain every native plugin from the published Solid preset in this override.
+      plugins: [...(solid.plugins ?? []), 'jsx-a11y'],
+      rules: {
+        'jsx-a11y/alt-text': 'error',
+        'jsx-a11y/anchor-has-content': 'error',
+        'jsx-a11y/aria-props': 'error',
+        'jsx-a11y/aria-proptypes': 'error',
+        'jsx-a11y/aria-unsupported-elements': 'error',
+        'jsx-a11y/click-events-have-key-events': 'error',
+        'jsx-a11y/heading-has-content': 'error',
+        'jsx-a11y/interactive-supports-focus': 'error',
+        'jsx-a11y/mouse-events-have-key-events': 'error',
+        'jsx-a11y/no-aria-hidden-on-focusable': 'error',
+        'jsx-a11y/role-has-required-aria-props': 'error',
+        'jsx-a11y/role-supports-aria-props': 'error',
+        'jsx-a11y/tabindex-no-positive': 'error',
+      },
+    },
+    {
       files: ['**/*.{ts,tsx,js,mjs}'],
       rules: {
         // Keep serialized host names and public controller APIs unchanged.
@@ -148,7 +169,7 @@ const config = defineConfig({
       },
     },
     {
-      files: ['oxlint.config.ts'],
+      files: ['oxlint.config.ts', 'vite.gui.config.ts'],
       // Node loads this configuration directly and needs the explicit TS extension.
       rules: { 'import-x-js/extensions': ['error', 'ignorePackages', { ts: 'always' }] },
     },
@@ -156,6 +177,27 @@ const config = defineConfig({
       files: ['scripts/pty-frame.mjs'],
       // This synthetic terminal decoder intentionally matches ANSI ESC/BEL bytes.
       rules: { 'eslint/no-control-regex': 'off' },
+    },
+    {
+      files: ['test/gui/harness/*.mjs', 'scripts/smoke-opencode-gui.mjs'],
+      // The disposable synthetic container owns /tmp; host artifacts use mkdtemp.
+      // This runner reports verification results rather than shipping console output.
+      rules: { 'sonarjs/publicly-writable-directories': 'off', 'eslint/no-console': 'off' },
+    },
+    {
+      files: ['test/gui/bundle.test.ts'],
+      // Execute only our freshly built local CJS artifact in a deny-by-default module sandbox.
+      rules: { 'sonarjs/code-eval': 'off' },
+    },
+    {
+      files: ['test/gui/harness/run.mjs'],
+      // Playwright's innerText() captures only visible synthetic diagnostics, not hidden DOM text.
+      rules: { 'unicorn/prefer-dom-node-text-content': 'off' },
+    },
+    {
+      files: ['src/app/gui/ipc/preferences-schema.ts'],
+      // Effect's declarative optional/struct/record schemas mirror the existing nested document.
+      rules: { 'unicorn/max-nested-calls': ['error', { max: 6 }] },
     },
   ],
 })

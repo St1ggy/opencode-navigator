@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "opencode-navigator",
-  "version": "0.26.0",
-  "description": "Search, navigate, and manage OpenCode sessions from the TUI",
+  "version": "0.27.0",
+  "description": "Search, navigate, and manage OpenCode sessions in the TUI and experimental Desktop GUI",
   "type": "module",
   "packageManager": "bun@1.4.4",
   "license": "MIT",
@@ -48,6 +48,7 @@
     "opencode-navigator-profile": "scripts/save-project-profile.mjs"
   },
   "exports": {
+    "./gui-experimental": "./dist/gui-experimental.cjs",
     "./tui": {
       "import": "./dist/tui.js"
     },
@@ -62,10 +63,11 @@
     "access": "public"
   },
   "engines": {
-    "opencode": "1.19.5 || 2.2.5"
+    "opencode": "1.19.5 || 2.2.6"
   },
   "scripts": {
     "build": "bun run build.ts",
+    "build:gui": "vite build --config vite.gui.config.ts",
     "bundle:size": "bun run build && bun run scripts/check-bundle-size.ts",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
@@ -77,16 +79,21 @@
     "prepublishOnly": "bun run check",
     "screenshots": "bash scripts/capture-screenshots.sh",
     "screenshots:verify": "bash scripts/capture-screenshots.sh --verify",
-    "test": "bun run build && bun test --preload @opentui/solid/preload",
+    "screenshots:gui": "bun scripts/capture-gui-screenshots.mjs",
+    "screenshots:gui:verify": "bun scripts/capture-gui-screenshots.mjs --verify",
+    "test": "bun run build && bun test --preload @opentui/solid/preload ./test/*.test.ts ./test/*.test.tsx",
     "test:e2e": "bun run build && bash scripts/smoke-opencode.sh && bash scripts/smoke-opencode-v2.sh",
     "test:e2e:v1": "bun run build && bash scripts/smoke-opencode.sh",
     "test:e2e:v2": "bun run build && bash scripts/smoke-opencode-v2.sh",
-    "typecheck": "tsc --noEmit && tsc --project tsconfig.ffi.json",
-    "check": "bun run test && bun run typecheck && bun run lint && bun run bundle:size && bun run format:check"
+    "test:gui": "bun run build:gui && bun test --conditions browser test/gui",
+    "test:e2e:gui": "bun run build && node scripts/smoke-opencode-gui.mjs",
+    "typecheck:gui": "tsc --project tsconfig.gui.json && tsc --project tsconfig.gui-test.json",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.ffi.json && bun run typecheck:gui",
+    "check": "bun run test && bun run test:gui && bun run typecheck && bun run lint && bun run bundle:size && bun run format:check"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": "1.19.5",
-    "@opencode/plugin": "2.2.5",
+    "@opencode/plugin": "2.2.6",
     "@opentui/core": ">=0.4.5",
     "@opentui/solid": ">=0.4.5",
     "solid-js": ">=1.9.12"
@@ -111,12 +118,18 @@
   "devDependencies": {
     "@opencode-ai/plugin": "1.19.5",
     "@opencode-ai/sdk": "1.19.5",
-    "@opencode/plugin": "2.2.5",
-    "@opentui/core": "0.8.2",
-    "@opentui/keymap": "0.8.2",
-    "@opentui/solid": "0.8.2",
+    "@opencode/client": "2.2.6",
+    "@opencode/plugin": "2.2.6",
+    "@opencode/theme": "2.2.6",
+    "@opentui/core": "0.8.3",
+    "@opentui/keymap": "0.8.3",
+    "@opentui/solid": "0.8.3",
+    "@playwright/test": "1.65.0",
     "@st1ggy/linter-config": "10.0.0",
     "@types/bun": "1.4.4",
+    "@types/node": "26.6.6",
+    "effect": "4.1.0",
+    "electron": "44.9.1",
     "eslint-plugin-solid": "0.18.1",
     "jsonc-parser": "3.3.1",
     "oxfmt": "0.75.0",
@@ -124,10 +137,12 @@
     "oxlint-tsgolint": "7.0.2005",
     "solid-js": "1.9.18",
     "typescript": "6.0.3",
+    "vite": "8.3.7",
+    "vite-plugin-solid": "2.11.15",
     "web-tree-sitter": "0.25.10"
   },
   "optionalDependencies": {
-    "@github/copilot-sdk": "1.0.28"
+    "@github/copilot-sdk": "1.0.30"
   },
   "patchedDependencies": {
     "bun-ffi-structs@0.3.1": "patches/bun-ffi-structs@0.3.1.patch"

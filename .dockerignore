@@ -1,6 +1,14 @@
 .git
 .DS_Store
 node_modules
+vibe
+.opencode
+ARTICLE-ATUSHKA.md
+cli.json
+tui.json
+opencode.json
+opencode.jsonc
 screenshots/*.png
+screenshots/gui
 screenshots/roadmap
 *.tgz

@@ -16,6 +16,27 @@ if (size > MAX_BUNDLE_BYTES) {
   process.exit(1)
 }
 
+// Desktop ships one official-preset CJS file, including main adapters and notes.
+// Measured stage-10 baseline: 553,980 bytes. Keep a separate bounded allowance;
+// never relax the unminified TUI budget to accommodate the GUI.
+const gui = Bun.file(new URL('../dist/gui-experimental.cjs', import.meta.url))
+
+if (!(await gui.exists())) {
+  console.error('Missing experimental GUI bundle: dist/gui-experimental.cjs')
+  process.exit(1)
+}
+
+const MAX_GUI_BYTES = 600_000
+
+console.log(
+  `dist/gui-experimental.cjs: ${gui.size.toLocaleString('en-US')} bytes (budget: ${MAX_GUI_BYTES.toLocaleString('en-US')})`,
+)
+
+if (gui.size > MAX_GUI_BYTES) {
+  console.error(`GUI bundle exceeds the ${MAX_GUI_BYTES.toLocaleString('en-US')}-byte budget`)
+  process.exit(1)
+}
+
 for (const name of [
   'mcp-groups',
   'skill-groups',

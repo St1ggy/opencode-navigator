@@ -17,5 +17,6 @@
     "skipLibCheck": true,
     "types": ["bun"]
   },
-  "include": ["src", "test", "scripts", "build.ts"]
+  "include": ["src", "test", "scripts", "build.ts"],
+  "exclude": ["src/gui.tsx", "src/app/gui", "src/**/ui/gui/**", "src/**/gui.ts", "test/gui"]
 }

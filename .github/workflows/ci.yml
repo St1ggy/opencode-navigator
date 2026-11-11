@@ -44,13 +44,24 @@ jobs:
           "$OPENCODE_SMOKE_BIN" --version
           bun run test:e2e:v1
 
+  headless-contracts:
+    name: Headless boundaries and lifecycle contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - run: bun test --preload @opentui/solid/preload test/headless-boundaries.test.ts test/host-port-contracts.test.ts test/lease-pool.test.ts test/monitoring-runtime.test.ts
+
   opencode-smoke-v2:
     name: OpenCode 2.x (${{ matrix.version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        version: ['2.2.5']
+        version: ['2.2.6']
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -74,3 +85,26 @@ jobs:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v10.1.0
       - run: uv run scripts/generate-corner-font.py --check
+
+  desktop-smoke:
+    name: Packaged Desktop (${{ matrix.mode }})
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [normal, quota]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26.12.1
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - name: Verify packed plugin in isolated Desktop
+        env:
+          NAVIGATOR_GUI_QUOTA_FIXTURE: ${{ matrix.mode == 'quota' && '1' || '0' }}
+        run: bun run test:e2e:gui

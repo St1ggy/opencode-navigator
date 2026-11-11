@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsxImportSource": "solid-js",
+    "types": ["node"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/gui.tsx", "src/app/gui", "src/**/gui.ts", "src/**/ui/gui", "src/env.d.ts", "vite.gui.config.ts"],
+  "exclude": []
+}

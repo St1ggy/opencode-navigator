@@ -44,25 +44,31 @@ export NAVIGATOR_SMOKE_TODO_SCRIPT="$root/scripts/smoke-native-todo.tcl"
 export NAVIGATOR_SMOKE_FRAME_SCRIPT="$root/scripts/pty-frame.mjs"
 export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
+host_version="$(node -p 'require(process.argv[1]).devDependencies["@opencode/plugin"]' "$root/package.json")"
 opencode_bin="${OPENCODE_V2_SMOKE_BIN:-$(command -v opencode2 || command -v opencode || true)}"
 if [[ -z "${OPENCODE_V2_SMOKE_BIN:-}" && -x /opt/homebrew/opt/opencode-v2/bin/opencode ]]; then
   # The interactive wrapper may load a user-specific server config; the smoke uses only its isolated fixture.
   opencode_bin=/opt/homebrew/opt/opencode-v2/bin/opencode
 fi
-opencode_version="$($opencode_bin --version 2>/dev/null || true)"
-if [[ "$opencode_version" != *2.* ]]; then
+opencode_version="$($opencode_bin --version 2>/dev/null | sed -nE 's/^(opencode )?v?([0-9]+\.[0-9]+\.[0-9]+)$/\2/p' || true)"
+if [[ "$opencode_version" != "$host_version" ]]; then
+  if [[ -n "${OPENCODE_V2_SMOKE_BIN:-}" ]]; then
+    printf 'Expected OpenCode %s, got %s from the explicit smoke executable.\n' "$host_version" "$opencode_version" >&2
+    exit 1
+  fi
+
   if ! command -v npm >/dev/null 2>&1; then
     printf 'OpenCode 2.x is required. Set OPENCODE_V2_SMOKE_BIN explicitly.\n' >&2
     exit 1
   fi
 
-  host_version="$(node -p 'require(process.argv[1]).devDependencies["@opencode/plugin"]' "$root/package.json")"
   npm install --prefix "$temporary/opencode-v2" --no-package-lock --no-save --silent "@opencode/cli@$host_version"
   opencode_bin="$temporary/opencode-v2/node_modules/.bin/opencode2"
 fi
 
-if [[ "$($opencode_bin --version 2>/dev/null || true)" != *2.* ]]; then
-  printf 'OpenCode 2.x compatibility smoke could not resolve a 2.x executable.\n' >&2
+resolved_version="$($opencode_bin --version 2>/dev/null | sed -nE 's/^(opencode )?v?([0-9]+\.[0-9]+\.[0-9]+)$/\2/p' || true)"
+if [[ "$resolved_version" != "$host_version" ]]; then
+  printf 'OpenCode compatibility smoke could not resolve the supported %s executable.\n' "$host_version" >&2
   exit 1
 fi
 
@@ -165,7 +171,9 @@ expect <<'EXPECT'
   log_file -a -noappend $env(OPENCODE_V2_SMOKE_TRANSCRIPT)
   set timeout 30
   set stty_init "rows 40 columns 120"
-  spawn -noecho $env(OPENCODE_V2_SMOKE_BIN) $env(OPENCODE_V2_SMOKE_WORKSPACE) --standalone --session $env(OPENCODE_V2_SMOKE_SESSION_ID) --print-logs --log-level debug
+  # Debug reconciliation logs overwrite PTY cells and invalidate frame-based readiness assertions.
+  # Retain printed errors, but keep normal host diagnostics out of the rendered interface.
+  spawn -noecho $env(OPENCODE_V2_SMOKE_BIN) $env(OPENCODE_V2_SMOKE_WORKSPACE) --standalone --session $env(OPENCODE_V2_SMOKE_SESSION_ID) --print-logs --log-level error
   after 100
   send -- "\033]10;rgb:ffff/ffff/ffff\007"
   send -- "\033]11;rgb:0000/0000/0000\007"
@@ -305,7 +313,7 @@ expect <<'EXPECT'
   log_file -a -noappend $env(OPENCODE_V2_SMOKE_NEW_TRANSCRIPT)
   set timeout 30
   set stty_init "rows 40 columns 120"
-  spawn -noecho $env(OPENCODE_V2_SMOKE_BIN) $env(OPENCODE_V2_SMOKE_WORKSPACE) --standalone --session $env(OPENCODE_V2_SMOKE_SESSION_ID) --print-logs --log-level debug
+  spawn -noecho $env(OPENCODE_V2_SMOKE_BIN) $env(OPENCODE_V2_SMOKE_WORKSPACE) --standalone --session $env(OPENCODE_V2_SMOKE_SESSION_ID) --print-logs --log-level error
   after 100
   send -- "\033]10;rgb:ffff/ffff/ffff\007"
   send -- "\033]11;rgb:0000/0000/0000\007"

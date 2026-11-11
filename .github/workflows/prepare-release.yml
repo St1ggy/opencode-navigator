@@ -26,10 +26,18 @@ jobs:
         with:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26.12.1
+          package-manager-cache: false
       - name: Capture deterministic screenshots
         run: bun run screenshots
       - name: Verify screenshot reproducibility
         run: bun run screenshots:verify
+      - name: Capture synthetic Desktop GUI states on a virtual display
+        run: bun run screenshots:gui
+      - name: Verify Desktop GUI screenshot reproducibility
+        run: bun run screenshots:gui:verify
       - name: Preserve screenshot diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
@@ -41,7 +49,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git add --all -- ':(glob)screenshots/*.png'
+          git add --all -- ':(glob)screenshots/*.png' ':(glob)screenshots/gui/*.png'
           if git diff --cached --quiet; then
             echo 'Screenshots already match the release sources.' >> "$GITHUB_STEP_SUMMARY"
             exit 0

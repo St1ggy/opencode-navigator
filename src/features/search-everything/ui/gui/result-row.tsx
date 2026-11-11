@@ -1,0 +1,64 @@
+import { Show } from 'solid-js'
+
+import type { SearchResult } from '../../model'
+import type { Ui } from '@opencode/plugin/gui'
+
+export function GuiSearchResultRow(props: {
+  ui: Ui
+  result: SearchResult
+  selected: boolean
+  busy: boolean
+  favorite?: boolean
+  focus(): void
+  run(): void
+  toggleFavorite(): void
+  information(): void
+}) {
+  const Button = props.ui.Button
+
+  return (
+    <li style={{ display: 'flex', gap: '4px', 'align-items': 'center', 'min-width': '0', padding: '3px 0' }}>
+      <button
+        type="button"
+        aria-current={props.selected ? 'true' : undefined}
+        aria-disabled={Boolean(props.result.disabled || props.busy)}
+        onFocus={props.focus}
+        onClick={(event) => {
+          event.stopPropagation()
+          props.run()
+        }}
+        style={{
+          flex: '1',
+          'min-width': '0',
+          'text-align': 'left',
+          padding: '8px',
+          color: 'inherit',
+          background: props.selected
+            ? 'var(--v2-overlay-simple-overlay-hover, color-mix(in srgb, currentColor 8%, transparent))'
+            : 'transparent',
+          border: '0',
+          'border-radius': '6px',
+          cursor: props.result.disabled ? 'not-allowed' : 'pointer',
+        }}
+      >
+        <strong style={{ display: 'block', 'overflow-wrap': 'anywhere' }}>{props.result.title}</strong>
+        <span style={{ display: 'block', opacity: 0.65, 'font-size': '12px', 'overflow-wrap': 'anywhere' }}>
+          {props.result.disabled || props.result.description}
+        </span>
+        <Show when={props.busy}>
+          <span role="status">Working…</span>
+        </Show>
+      </button>
+      <Show when={props.result.information}>
+        <Button size="small" variant="ghost" onClick={props.information}>
+          Info
+        </Button>
+      </Show>
+      <Show when={props.favorite !== undefined}>
+        <Button size="small" variant="ghost" onClick={props.toggleFavorite}>
+          {props.favorite ? 'Unbookmark' : 'Bookmark'}
+        </Button>
+      </Show>
+    </li>
+  )
+}

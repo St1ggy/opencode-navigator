@@ -337,3 +337,8 @@ await Bun.write(
   `${JSON.stringify({ version: 1, dependencies: runtimeDependencies }, null, 2)}\n`,
 )
 await Bun.write('dist/runtime-requirements.json', `${JSON.stringify({ version: 1, bun: '1.3.14', node: '26.4.0' })}\n`)
+
+// The official preset leaves existing outputs intact and writes one independent CJS entry.
+const gui = Bun.spawn(['bun', 'run', 'build:gui'], { stdout: 'inherit', stderr: 'inherit' })
+
+if ((await gui.exited) !== 0) throw new Error('GUI build failed')
