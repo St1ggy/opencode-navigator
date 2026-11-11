@@ -28,7 +28,8 @@ and useful as a compact control center for an OpenCode session.
 - [x] Replace visible GUI reorder buttons with shared accessible drag ordering for sections, Quick Actions, toolbar pins and draft icons. Verify pointer/keyboard pickup/drop, Escape, stale scopes and stable identity; packaged Desktop section and toolbar interactions pass.
 - [x] Add truthful inline TUI/Desktop update progress with finite real-byte percentage validation, native main IPC state and opt-in snapshot stages. Synthetic installer/error tests preserve safeguards; no actual local update is performed.
 - [x] Verify unit/render regressions, both real TUI hosts and packaged Desktop normal/quota smokes sequentially without local captures, installation changes or publication. Extend long-content and interaction fixtures for the manual CI harness.
-- [~] Prepare the authorized 0.27.2 patch release. Add dedicated production Todo-row and update-stage synthetic capture scenes; generate/verify screenshots through Prepare Release, merge its CI-green PR, then publish only after final CI.
+- [x] Add production Todo-row and update-stage synthetic capture scenes. Prepare Release 43069114630 generated and byte-verified the terminal gallery and 31 Desktop scenes; screenshot PR #40 passed CI and merged as 42b20f6. Review the generated task/progress, toolbar and quota captures without local screenshot generation.
+- [ ] Publish the authorized 0.27.2 patch release after exact-head final CI, then verify GitHub/npm and provenance. Do not update local installations.
 
 ## Desktop native controls, credit expiry and Float follow-up
 

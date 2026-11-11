@@ -9,11 +9,11 @@ wizard slides, a short terminal, and native 2.x Todo/LSP/permissions guidance.
 Native Todo/config and 2.x wizard guidance use synthetic capability projections
 on the pinned capture host; separate real-host smokes verify native 2.x operations.
 
-The v0.27.1 manual **Prepare Release** workflow refreshed the terminal gallery
-and all 29 Desktop captures, verified every PNG against a second capture,
+The v0.27.2 manual **Prepare Release** workflow refreshed the terminal gallery
+and all 31 Desktop captures, verified every PNG against a second capture,
 and merged the update after CI passed. The final run was
-[43016467039](https://github.com/St1ggy/opencode-navigator/actions/runs/43016467039),
-with [screenshot PR #39](https://github.com/St1ggy/opencode-navigator/pull/39).
+[43069114630](https://github.com/St1ggy/opencode-navigator/actions/runs/43069114630),
+with [screenshot PR #40](https://github.com/St1ggy/opencode-navigator/pull/40).
 
 ## Experimental Desktop
 
@@ -34,6 +34,10 @@ display, not Ghostty. All accounts, sources and session data are synthetic.
 
 ![Native Todo enablement](gui/12-desktop-todo-enablement.png)
 
+![Production Todo rows with completed, active, pending and cancelled synthetic tasks](gui/30-desktop-todo-states.png)
+
+![Production progress indicators with synthetic byte totals and opaque install stages](gui/31-desktop-update-stages.png)
+
 ![Explicit account linking](gui/quota-17-desktop-account-link.png)
 
 ![Account-scoped provider quota](gui/quota-18-desktop-limits.png)
@@ -46,7 +50,7 @@ display, not Ghostty. All accounts, sources and session data are synthetic.
 
 ![Editable Bug report](gui/05-desktop-bug-report.png)
 
-Browse [all 29 Desktop states](gui/) for onboarding, toolbar customization,
+Browse [all 31 Desktop states](gui/) for onboarding, toolbar customization,
 portable import and project/workspace profiles.
 
 The gallery includes About current,
