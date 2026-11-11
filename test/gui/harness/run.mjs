@@ -11,7 +11,7 @@ import { quotaInteractions } from './quota.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { settingsInteractions } from './settings.mjs'
 // oxlint-disable-next-line import-x-js/extensions
-import { captureGui, capturesEnabled, prepareCaptureClock } from './capture.mjs'
+import { captureArguments, captureGui, capturesEnabled, prepareCaptureClock } from './capture.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { closeProcessPipes } from './cleanup.mjs'
 
@@ -143,21 +143,25 @@ async function main() {
   )
   // Verified against the official 2.2.6 Debian package inventory.
   const executable = '/opt/OpenCode/ai.opencode'
-  const child = spawn(executable, ['--no-sandbox', '--disable-gpu', '--remote-debugging-port=9222'], {
-    env: {
-      ...process.env,
-      HOME: root,
-      PATH: fixturePath,
-      XDG_STATE_HOME: stateDirectory,
-      OPENCODE_DESKTOP_TEST_ROOT: root,
-      OPENCODE_DISABLE_MODELS_FETCH: 'true',
-      OPENCODE_DISABLE_AUTOUPDATE: 'true',
-      OPENCODE_DISABLE_EXTERNAL_SKILLS: 'true',
-      OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: 'true',
-      OPENCODE_DISABLE_PROJECT_CONFIG: 'true',
+  const child = spawn(
+    executable,
+    ['--no-sandbox', '--disable-gpu', '--remote-debugging-port=9222', ...captureArguments()],
+    {
+      env: {
+        ...process.env,
+        HOME: root,
+        PATH: fixturePath,
+        XDG_STATE_HOME: stateDirectory,
+        OPENCODE_DESKTOP_TEST_ROOT: root,
+        OPENCODE_DISABLE_MODELS_FETCH: 'true',
+        OPENCODE_DISABLE_AUTOUPDATE: 'true',
+        OPENCODE_DISABLE_EXTERNAL_SKILLS: 'true',
+        OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: 'true',
+        OPENCODE_DISABLE_PROJECT_CONFIG: 'true',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
+  )
   let logs = ''
   let failure
 
@@ -208,7 +212,7 @@ async function main() {
     page.on('pageerror', (error) => {
       logs = `${logs}\n[renderer error] ${error.message}`.slice(-200_000)
     })
-    await prepareCaptureClock(page)
+    await prepareCaptureClock(page, browser)
     await page.waitForLoadState('domcontentloaded')
     // The packaged shell's early window precedes its command registration and composer.
     await page.locator('[contenteditable="true"]').first().waitFor({ timeout: 60_000 })

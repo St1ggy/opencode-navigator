@@ -3,8 +3,32 @@ import { join } from 'node:path'
 
 export const capturesEnabled = process.env.NAVIGATOR_GUI_CAPTURE === '1'
 
-export async function prepareCaptureClock(page) {
-  if (capturesEnabled) await page.clock.setFixedTime(new Date('2026-11-01T12:00:00Z'))
+export function captureArguments() {
+  // Partial tile reuse can vary a handful of rounded-edge pixels across fresh
+  // processes. Pin rasterization, color and scale, not the comparison tolerance.
+  return capturesEnabled
+    ? [
+        '--disable-gpu-rasterization',
+        '--disable-partial-raster',
+        '--force-device-scale-factor=1',
+        '--force-color-profile=srgb',
+      ]
+    : []
+}
+
+export async function prepareCaptureClock(page, browser) {
+  if (!capturesEnabled) return
+
+  await page.clock.setFixedTime(new Date('2026-11-01T12:00:00Z'))
+  const session = await browser.newBrowserCDPSession()
+
+  try {
+    const info = await session.send('SystemInfo.getInfo')
+
+    console.log('Capture renderer features:', JSON.stringify(info.gpu.featureStatus))
+  } finally {
+    await session.detach()
+  }
 }
 
 export async function captureGui(locator, name) {

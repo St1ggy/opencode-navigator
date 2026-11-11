@@ -31,7 +31,8 @@ test('renderer capture helper cannot call screenshot outside the manual CI envir
 test('capture settling keeps exact bytes and rejects an unstable frame instead of tolerating differences', async () => {
   // Byte buffers only: this contract never opens a browser or takes a screenshot.
   const source = `import assert from 'node:assert/strict';
-    const { stableFrame } = await import('./test/gui/harness/capture.mjs');
+    const { stableFrame, captureArguments } = await import('./test/gui/harness/capture.mjs');
+    assert.deepEqual(captureArguments(), []);
     const frames = [Buffer.from('first'), Buffer.from('settled'), Buffer.from('settled')];
     let calls = 0;
     const frame = await stableFrame(async () => frames[calls++]);
@@ -55,4 +56,22 @@ test('capture settling keeps exact bytes and rejects an unstable frame instead o
   expect(code).toBe(0)
   expect(error).toBe('')
   expect(output).toContain('Exact-byte settling verified')
+})
+
+test('capture-only launch pins full software rasterization, color and scale without starting a browser', async () => {
+  const source = `const { captureArguments } = await import('./test/gui/harness/capture.mjs'); console.log(JSON.stringify(captureArguments()));`
+  const child = Bun.spawn([process.execPath, '--eval', source], {
+    env: { ...process.env, NAVIGATOR_GUI_CAPTURE: '1', GITHUB_ACTIONS: 'false' },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  const [code, output] = await Promise.all([child.exited, new Response(child.stdout).text()])
+
+  expect(code).toBe(0)
+  expect(JSON.parse(output)).toEqual([
+    '--disable-gpu-rasterization',
+    '--disable-partial-raster',
+    '--force-device-scale-factor=1',
+    '--force-color-profile=srgb',
+  ])
 })
