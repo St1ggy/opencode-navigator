@@ -202,7 +202,7 @@ The test suite now builds the unminified `dist/tui.js` that users load. Renderin
 
 This takes longer than testing source modules alone, but it covers the boundary where my most confusing bug actually lived: bundling and host integration.
 
-Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery contains 66 scenes, including native workspace budgets, Go allowance, sign-in guidance and Retry. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
+Screenshots go through an equally concrete path. A pinned Linux ARM64 Docker image starts the TUI in Ghostty on a virtual X11 display with a pinned JetBrains Mono Nerd Font. The gallery covers native workspace budgets, Go allowance, sign-in guidance, Retry and native Todo setup alongside the session views. Several scenes deliberately omit the bundled corner font, preserving the supported rectangular-highlight mode. Running the harness requires Docker with Linux ARM64 support.
 
 Every displayed task, session, workspace, path, skill, server, error, and preset is synthetic and deterministic. Verification renders the scenes again to a temporary directory and fails if any PNG differs.
 
@@ -210,10 +210,20 @@ Every displayed task, session, workspace, path, skill, server, error, and preset
 
 Screenshots are documentation, but in this project they are also rendering regression tests.
 
+## One core, separate terminal and Desktop views
+
+Navigator 0.27 adds an experimental Desktop interface. The package has a separate `./gui-experimental` export built with OpenCode's official GUI preset. The TUI keeps its own build and renderer.
+
+I moved the reusable session models, validators and action workflows behind headless entries. Native GUI components handle the presentation. This keeps Skill trust, MCP previews, account identity and reset retries in the same implementation instead of growing a second set of product rules.
+
+The native panel and opt-in in-app mini-window share one leased runtime. Switching between them preserves filters without starting another polling loop. Private preferences still use the existing file and lock through typed IPC; the native GUI store holds placement state only. Remote sessions use their own server client and never fall back to local provider credentials.
+
+Desktop verification uses the official OpenCode 2.2.6 Linux ARM64 package. Browser Web and detached OS windows are outside this release. Desktop loads the package from its global server plugin configuration, not a CLI-only `cli.json` entry. See the README for that setup. Its screenshots come from the real Desktop renderer on a virtual display; Ghostty still renders the terminal gallery.
+
 ## Installation
 
 OpenCode Navigator supports only the latest stable release in each major line:
-OpenCode **1.19.5** and **2.2.5**, verified with separate real-host checks.
+OpenCode **1.19.5** and **2.2.6**, verified with separate real-host checks.
 
 The 2.2 adapter reads the host's reactive Skill, MCP and session caches and uses
 its keymap layers. I retain exact Skill IDs instead of reconstructing them from

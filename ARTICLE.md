@@ -220,9 +220,19 @@ After the two-Solid-instance bug, I stopped treating unit tests as sufficient pr
 
 The tests click with the mouse, type into filters, navigate dialogs with the keyboard, and compare the resulting character frame. Separate checks cover 500-row lists and loading the built plugin into a real OpenCode process through a PTY.
 
-Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; several intentionally omit it. Every task, session, path, Skill, server, error, saved preset, and provider account is synthetic. The gallery contains 66 scenes, including Console budgets, Go allowance, sign-in guidance and request failure. The manual release workflow renders each scene twice and compares the PNG files byte for byte before merging its update.
+Screenshots also became reproducible test artifacts instead of a manual photo session before release. A Docker image runs the real Ghostty terminal through a virtual X11 display and uses a pinned Nerd Font. Most scenes install the corner font; several intentionally omit it. Every task, session, path, Skill, server, error, saved preset, and provider account is synthetic. The gallery covers Console budgets, Go allowance, sign-in guidance, request failure and native Todo setup alongside the session views. The manual release workflow renders each scene twice and compares the PNG files byte for byte before merging its update.
 
 That setup is not free. It requires Docker with Linux ARM64 support, and pixel-level comparison is sensitive to the environment, so Ghostty and font versions must be pinned. In return, the README screenshots and the tested interface are now produced by exactly the same process.
+
+## Bringing the Same Navigator to Desktop
+
+Version 0.27 adds an experimental OpenCode Desktop interface. I separated the session models and actions from their terminal components, then built native GUI views over that core. Search, MCP presets, Skill confirmations and account checks keep the same rules in both interfaces.
+
+The Desktop view opens in a native panel or an optional mini-window inside the app. Both placements use one session runtime, so moving the view preserves its filters and does not start another polling loop. The mini-window hides on Home and moves out of the way when a native dialog opens.
+
+Desktop and local TUI instances share the existing preferences file and lock. Filesystem and subprocess work stays behind typed main-process IPC. Requests for a remote session use that session's server; they never borrow the Desktop machine's local provider account. The verified Desktop target is the official 2.2.6 Linux ARM64 package. Browser Web, detached OS windows and unsupported LSP or Home-navigation hooks remain outside this version. The GUI needs no terminal corner font.
+
+The release workflow keeps its Ghostty captures for TUI and adds a separate set from the real packaged Desktop renderer on a virtual display. Both use synthetic data.
 
 ## Installation
 
@@ -237,7 +247,7 @@ percentages and reset times. This path needs no Navigator server plugin. A faile
 native read stays an error with Retry rather than triggering another reader.
 
 OpenCode Navigator supports only the latest stable release of each major line:
-OpenCode `1.19.5` and `2.2.5`. I verify these two real hosts separately.
+OpenCode `1.19.5` and `2.2.6`. I verify these two real hosts separately.
 
 To install it for all projects:
 
