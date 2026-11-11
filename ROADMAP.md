@@ -23,7 +23,7 @@ and useful as a compact control center for an OpenCode session.
 - [x] Add banked-reset expiry progress and remaining time using real provider timestamps, including missing and expired date states without assuming that absent expiry means a credit never expires. Verify lifetime fractions, minute/day boundaries, invalid dates, disabled expired review and the original confirmed/idempotent consumption flow.
 - [x] Reproduce and fix Float pointer dragging and host-theme inheritance in the isolated packaged Desktop host. Verify real Move/title pointer drags, light/dark theme transitions and existing keyboard/modal/Home/viewport behavior; preserve shared runtime state.
 - [x] Pass the full check pipeline (572 primary tests and 80 GUI tests, typecheck, lint, formatting and bundle budgets) and packaged Desktop normal/quota smokes. Extend manual-CI fixtures with dark Float and detailed-credit expiry scenes without local captures.
-- [ ] Publish v0.27.1 after the newly authorized source commits, Prepare Release PNG reproducibility, merged screenshot PR and exact-head CI. Verify GitHub/npm payload and provenance; leave the local installed plugin and OpenCode hosts unchanged.
+- [x] Publish v0.27.1 after Prepare Release 43016467039 byte-verified TUI and 29 GUI scenes, screenshot PR #39 passed CI and merged, and exact-head CI 43023080076 passed. GitHub release/tag targets 5915747; Publish 43023509835 succeeded and npm latest is 0.27.1. Verify all 44 payload files, archive SHA-512/CI SHA-1, an unexpired-key registry signature and provenance matching the archive, repository, commit, tag and workflow. Local plugin configuration and OpenCode hosts remain unchanged.
 
 ## P0: Foundation
 
