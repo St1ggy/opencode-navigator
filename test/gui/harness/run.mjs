@@ -12,6 +12,8 @@ import { quotaInteractions } from './quota.mjs'
 import { settingsInteractions } from './settings.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { captureGui, prepareCaptureClock } from './capture.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { closeProcessPipes } from './cleanup.mjs'
 
 async function nativeLogs(root) {
   // All paths are inside this disposable, synthetic HOME, never the user's state.
@@ -422,6 +424,7 @@ async function main() {
       })
     }
 
+    closeProcessPipes(child)
     const path = join(root, 'desktop-smoke.log')
 
     logs += await nativeLogs(root)
