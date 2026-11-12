@@ -1,97 +1,86 @@
-import { Show, createSignal } from 'solid-js'
+import { For, Show, createEffect, createSignal } from 'solid-js'
 
-import { GuiSettingsSurface } from '../../../../shared/ui/gui'
+import { GuiSettingsSurface, GuiTabs } from '../../../../shared/ui/gui'
 
 import { GuiSettingsAbout } from './settings-about'
 import { GuiSettingsBehavior } from './settings-behavior'
 import { GuiSettingsCatalogs } from './settings-catalogs'
 import { GuiSettingsPresets } from './settings-presets'
 import { GuiSettingsResets } from './settings-resets'
+import { GuiSettingsScope } from './settings-scope'
 import { GuiSettingsSections } from './settings-sections'
 
 import type { GuiSettingsServices } from './settings-contract'
 
-export function GuiNavigatorSettings(props: GuiSettingsServices) {
+const tabs = [
+  { id: 'layout', label: 'Layout' },
+  { id: 'behavior', label: 'Behavior' },
+  { id: 'actions', label: 'Quick Actions' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'mcp', label: 'MCP' },
+  { id: 'presets', label: 'Presets' },
+  { id: 'about', label: 'About' },
+] as const
+
+type SettingsTab = (typeof tabs)[number]['id']
+
+export function GuiNavigatorSettings(props: GuiSettingsServices & { target?: string }) {
   const Layout = props.ui.SettingsLayout
-  const Section = props.ui.SettingsSection
-  const Row = props.ui.SettingsRow
-  const Select = props.ui.Select
-  const Button = props.ui.Button
-  const [busy, setBusy] = createSignal(false)
-  const [status, setStatus] = createSignal('')
-
-  async function run(action: () => Promise<unknown>, message: string) {
-    if (busy()) return
-
-    setBusy(true)
-    setStatus('')
-    try {
-      await action()
-      setStatus(message)
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Settings could not be saved. Try again.')
-    } finally {
-      setBusy(false)
-    }
+  const [selected, setSelected] = createSignal<SettingsTab>('layout')
+  const [visited, setVisited] = createSignal<readonly SettingsTab[]>(['layout'])
+  const select = (id: SettingsTab) => {
+    setVisited((current) => (current.includes(id) ? current : [...current, id]))
+    setSelected(id)
   }
+
+  createEffect(() => {
+    if (props.target === 'navigator-overflow' || props.target === 'navigator-quota-refresh') select('behavior')
+  })
 
   return (
     <Layout title="Navigator" description="Shared sidebar settings for this Desktop and your local TUI instances.">
       <GuiSettingsSurface>
         <Show when={props.preferences.ready()} fallback={<p role="status">Loading Navigator preferences…</p>}>
-          <Section
-            title="Preference scope"
-            footer={
-              <Show when={status()}>
-                <p role="status">{status()}</p>
+          <GuiTabs
+            ui={props.ui}
+            label="Navigator settings categories"
+            selected={selected()}
+            options={tabs}
+            onSelect={select}
+          />
+          <GuiSettingsScope {...props} layout={selected() === 'layout'} />
+          <For each={tabs}>
+            {(tab) => (
+              <Show when={visited().includes(tab.id)}>
+                <section
+                  hidden={selected() !== tab.id}
+                  aria-label={`${tab.label} settings`}
+                  style={{ display: selected() === tab.id ? 'grid' : 'none', gap: '32px', 'min-width': '0' }}
+                >
+                  <Show when={tab.id === 'layout'}>
+                    <GuiSettingsSections {...props} />
+                    <GuiSettingsResets {...props} section="layout" />
+                  </Show>
+                  <Show when={tab.id === 'behavior'}>
+                    <GuiSettingsBehavior {...props} />
+                    <GuiSettingsResets {...props} section="behavior" />
+                  </Show>
+                  <Show when={tab.id === 'actions' || tab.id === 'skills' || tab.id === 'mcp'}>
+                    <GuiSettingsCatalogs {...props} section={tab.id as 'actions' | 'skills' | 'mcp'} />
+                  </Show>
+                  <Show when={tab.id === 'mcp'}>
+                    <GuiSettingsResets {...props} section="mcp" />
+                  </Show>
+                  <Show when={tab.id === 'presets'}>
+                    <GuiSettingsPresets {...props} />
+                  </Show>
+                  <Show when={tab.id === 'about'}>
+                    <GuiSettingsAbout ui={props.ui} about={props.about} showGuide={props.showGuide} />
+                  </Show>
+                </section>
               </Show>
-            }
-          >
-            <Row
-              title="Scope"
-              description="Global applies everywhere. Worktree overrides use the currently selected server and location."
-            >
-              <Select
-                label="Navigator preference scope"
-                value={props.preferences.preferenceScope()}
-                options={[
-                  { value: 'global', label: 'Global' },
-                  ...(props.preferences.canUseWorktreeScope()
-                    ? [{ value: 'worktree' as const, label: 'Worktree' }]
-                    : []),
-                ]}
-                onChange={props.preferences.setPreferenceScope}
-              />
-            </Row>
-            <Row
-              title="Layout default"
-              description="Changing section visibility or order does not implicitly replace the saved default."
-            >
-              <Button
-                busy={busy()}
-                onClick={() => void run(props.preferences.saveLayoutAsDefault, 'Layout default saved for this scope.')}
-              >
-                Save layout as default
-              </Button>
-            </Row>
-            <Row
-              title="Reload private preferences"
-              description="Flush local writes, then load changes from other Navigator instances. Temporary layout overrides are cleared."
-            >
-              <Button
-                busy={busy()}
-                onClick={() => void run(props.preferences.reloadFromFile, 'Private preferences reloaded.')}
-              >
-                Reload preferences
-              </Button>
-            </Row>
-          </Section>
-          <GuiSettingsSections {...props} />
-          <GuiSettingsBehavior {...props} />
-          <GuiSettingsPresets {...props} />
-          <GuiSettingsCatalogs {...props} />
-          <GuiSettingsResets {...props} />
-          <GuiSettingsAbout ui={props.ui} about={props.about} showGuide={props.showGuide} />
+            )}
+          </For>
         </Show>
       </GuiSettingsSurface>
     </Layout>

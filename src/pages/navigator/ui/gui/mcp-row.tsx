@@ -5,7 +5,6 @@ import { GuiIconAction } from '../../../../shared/ui/gui'
 
 import { CatalogRow } from './catalog-row'
 import { useNavigatorGui } from './context'
-import { McpIndicator } from './mcp-indicator'
 
 import type { McpItem } from '../../../../entities/mcp/model'
 
@@ -14,6 +13,9 @@ export function GuiMcpRow(props: { item: McpItem }) {
   const catalogs = () => services.runtime.catalogs!
   const state = () => catalogs().mcp.serverState(props.item.name)
   const error = () => props.item.error || state().error?.message
+  const Switch = services.ui.Switch
+  const Loader = services.ui.Loader
+  const busy = () => state().status === 'loading' || props.item.status === 'pending'
 
   return (
     <CatalogRow
@@ -22,12 +24,25 @@ export function GuiMcpRow(props: { item: McpItem }) {
       favorite={catalogs().preferences.favoriteMcpServers().has(props.item.name)}
       bookmarkDisabled={!catalogs().preferences.ready()}
       bookmark={() => catalogs().preferences.toggleFavoriteMcpServer(props.item.name)}
-      leading={<McpIndicator status={state().status === 'loading' ? 'pending' : props.item.status} />}
-      disabled={!mcpToggleAction(props.item.status) || state().status === 'loading'}
-      activate={() =>
-        void catalogs()
-          .mcp.toggle(props.item.name)
-          .catch(() => {})
+      content={
+        <div style={{ flex: '1', 'min-width': '0', 'overflow-wrap': 'anywhere' }} aria-busy={busy()}>
+          <Switch
+            label={props.item.name}
+            description={props.item.title}
+            checked={props.item.status === 'connected'}
+            disabled={!mcpToggleAction(props.item.status) || catalogs().mcp.mutating() || busy()}
+            onChange={() =>
+              void catalogs()
+                .mcp.toggle(props.item.name)
+                .catch(() => {})
+            }
+          />
+          <Show when={busy()}>
+            <span role="status">
+              <Loader size="small" /> Updating connection…
+            </span>
+          </Show>
+        </div>
       }
       trailing={
         <Show when={error()}>

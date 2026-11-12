@@ -78,6 +78,16 @@ list row: the host requires it to render inside a menu. Section disclosure keeps
 `aria-expanded` on its semantic button and uses a native icon with fixed geometry.
 Revisit these wrappers when the host exposes equivalent accessible components.
 
+Desktop's Extensions page does have native pill tabs: the packaged 2.2.6 renderer
+uses its internal Tabs root, List, Trigger and Content components. They are not
+exported by the plugin UI facade. Navigator therefore composes its category
+navigation from public small neutral/ghost-muted Buttons, matching its Todo filters,
+without importing the private Tabs module or copying the host DOM. Settings panels
+mount on first visit and remain hidden rather than unmounting on category changes,
+preserving drafts. Settings search passes the public `SettingsPage.render.target`
+through to reveal the Behavior category for the registered entries. Replace this
+wrapper when public tabs support selection, keyboard navigation and retained panels.
+
 The native Todo popover has no public content slot. Composer pill contributions
 are adjacent pills, not extensions of native Todo, so Navigator cannot add search
 or tabs there through Desktop 2.2.6's public API. Its read-only Todo rows follow

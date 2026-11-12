@@ -22,4 +22,11 @@ test('missing expiry and invalid lifetime never invent percentages or expiry', (
   expect(resetCreditLifetime({ grantedAt: 9000, expiresAt: 8200 }, 4_600_000).remaining).toBeUndefined()
   expect(resetCreditLifetime({ grantedAt: NaN, expiresAt: 8200 }, 4_600_000).remaining).toBeUndefined()
   expect(resetCreditLifetime({ grantedAt: 1000, expiresAt: Infinity }, 4_600_000).remaining).toBeUndefined()
+  for (const expiresAt of [NaN, Infinity, -1, 0, 9e15]) {
+    expect(resetCreditLifetime({ grantedAt: 1000, expiresAt }, 4_600_000)).toEqual({
+      label: 'Expiry date is invalid',
+      remaining: undefined,
+      expired: false,
+    })
+  }
 })

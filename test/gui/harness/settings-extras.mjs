@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises'
 import { clickNativeSwitch } from './native-controls.mjs'
 
 export async function extraSettingsInteractions(page) {
+  const tabs = page.getByRole('navigation', { name: 'Navigator settings categories', exact: true })
+
+  await tabs.getByRole('button', { name: 'Layout', exact: true }).click()
   const skills = page.getByRole('group', { name: 'Skills section controls', exact: true })
   const limit = skills.getByRole('textbox', { name: 'Skills item limit (0 for all)', exact: true })
   const save = skills.getByRole('button', { name: 'Save item limit', exact: true })
@@ -15,21 +18,26 @@ export async function extraSettingsInteractions(page) {
   await save.click()
   await limit.fill('0')
   await save.click()
+  await tabs.getByRole('button', { name: 'Skills', exact: true }).click()
   const skillGroup = page.getByRole('group', { name: /^synthetic-monitoring .* grouping$/u }).first()
 
   await skillGroup.getByRole('button', { name: 'New group', exact: true }).click()
   await skillGroup.getByRole('textbox').fill('Synthetic Skill Group')
   await skillGroup.getByRole('button', { name: 'Save group', exact: true }).click()
+  await tabs.getByRole('button', { name: 'MCP', exact: true }).click()
   const mcpGroup = page.getByRole('group', { name: 'synthetic-absent grouping', exact: true })
 
   await mcpGroup.getByRole('button', { name: 'New group', exact: true }).click()
   await mcpGroup.getByRole('textbox').fill('Synthetic MCP Updated')
   await mcpGroup.getByRole('button', { name: 'Save group', exact: true }).click()
+  await tabs.getByRole('button', { name: 'Quick Actions', exact: true }).click()
   await clickNativeSwitch(page, 'Show action Permissions settings')
   await page.getByRole('switch', { name: 'Show action Permissions settings', exact: true }).focus()
   await page.keyboard.press('Space')
+  await tabs.getByRole('button', { name: 'Behavior', exact: true }).click()
   await page.getByRole('button', { name: 'Restore shared behavior', exact: true }).click()
   await page.getByRole('dialog').last().getByRole('button', { name: 'Cancel', exact: true }).click()
+  await tabs.getByRole('button', { name: 'MCP', exact: true }).click()
   await page.getByRole('button', { name: 'Clear remembered MCP states', exact: true }).click()
   await page.getByRole('dialog').last().getByRole('button', { name: 'Reset', exact: true }).click()
   await page.getByText('Navigator preferences reset', { exact: true }).waitFor()

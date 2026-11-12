@@ -23,8 +23,11 @@ function remainingLabel(seconds: number) {
 export function resetCreditLifetime(credit: Pick<BankedResetCredit, 'grantedAt' | 'expiresAt'>, now: number) {
   const expiry = credit.expiresAt
 
-  if (expiry === undefined || !Number.isFinite(expiry) || expiry <= 0)
+  if (expiry === undefined)
     return { label: 'Expiry not supplied by the provider', remaining: undefined, expired: false }
+
+  if (!Number.isFinite(expiry) || expiry <= 0 || !Number.isFinite(new Date(expiry * 1000).getTime()))
+    return { label: 'Expiry date is invalid', remaining: undefined, expired: false }
 
   const seconds = Math.max(0, expiry - now / 1000)
   const lifetime = expiry - credit.grantedAt

@@ -20,11 +20,15 @@ export function GuiTabs<T extends string>(props: {
 
     event.preventDefault()
     event.stopPropagation()
-    const index = enabled.findIndex((option) => option.id === props.selected)
+    const buttons = [
+      ...(event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('button:not(:disabled)'),
+    ]
+    const focused = buttons.indexOf(event.target as HTMLButtonElement)
+    const index = focused === -1 ? enabled.findIndex((option) => option.id === props.selected) : focused
     const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + enabled.length) % enabled.length
 
     props.onSelect(enabled[next].id)
-    ;(event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('button:not(:disabled)')[next]?.focus()
+    buttons[next]?.focus()
   }
 
   return (

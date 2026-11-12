@@ -31,7 +31,7 @@ export type SearchResult = SearchEntry &
   (
     | { group: 'Skills'; skill: SkillInfo }
     | { group: 'Subagents'; sessionID: string }
-    | { group: 'MCP'; server: string }
+    | { group: 'MCP'; server: string; connected?: boolean }
     | { group: 'Actions'; command: QuickActionId }
   )
 
@@ -97,6 +97,7 @@ export function buildSearchCandidates(input: {
       keywords: input.mcpGroups?.[item.name],
       disabled: input.mcpBusy || !mcpToggleAction(item.status) ? 'MCP operation in progress' : undefined,
       server: item.name,
+      connected: item.status === 'connected',
       ...(input.mcpErrorMode === 'details' &&
         item.error && {
           information: { title: `MCP · ${item.name}`, body: `Status: ${item.status}\n\n${item.error}` },

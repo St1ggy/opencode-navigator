@@ -1,9 +1,8 @@
 import { For, Show } from 'solid-js'
 
-import { mcpGroupStatus } from '../../../../entities/mcp/model'
+import { mcpGroupStatus, mcpGroupToggleAction } from '../../../../entities/mcp/model'
 
 import { useNavigatorGui } from './context'
-import { McpIndicator } from './mcp-indicator'
 import { GuiMcpRow } from './mcp-row'
 
 export function GuiMcpGroup(props: { group: string }) {
@@ -12,29 +11,40 @@ export function GuiMcpGroup(props: { group: string }) {
   const view = () => catalogs().views.mcp
   const bucket = () => view().bucket(props.group)
   const busy = () => catalogs().mcp.bulkState().group === props.group && catalogs().mcp.bulkState().status === 'running'
+  const Switch = services.ui.Switch
+  const Loader = services.ui.Loader
   const Button = services.ui.Button
+  const disabled = () => catalogs().mcp.mutating() || !mcpGroupToggleAction(bucket())
+  const toggle = () =>
+    void catalogs()
+      .mcp.toggleGroup(
+        props.group,
+        bucket().map((item) => item.name),
+      )
+      ?.catch(() => {})
 
   return (
     <div>
-      <Button
-        variant="ghost"
-        size="small"
-        disabled={catalogs().mcp.mutating()}
-        onClick={() =>
-          void catalogs()
-            .mcp.toggleGroup(
-              props.group,
-              bucket().map((item) => item.name),
-            )
-            ?.catch(() => {})
-        }
-      >
-        <McpIndicator status={mcpGroupStatus(bucket(), busy())} />
-        <strong style={{ overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>
-          {props.group}
-        </strong>
-        <span style={{ opacity: 0.6, 'font-weight': '400' }}>{bucket().length}</span>
-      </Button>
+      <div style={{ display: 'flex', gap: '6px', 'align-items': 'center', 'min-width': '0' }} aria-busy={busy()}>
+        <Switch
+          label={`${props.group} MCP group`}
+          hideLabel
+          checked={mcpGroupStatus(bucket()) === 'connected'}
+          disabled={disabled()}
+          onChange={toggle}
+        />
+        <Button size="small" variant="ghost" disabled={disabled()} onClick={toggle}>
+          <strong style={{ overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>
+            {props.group}
+          </strong>
+          <span style={{ opacity: 0.6, 'font-weight': '400' }}>{bucket().length}</span>
+        </Button>
+        <Show when={busy()}>
+          <span role="status" aria-label={`Updating ${props.group} MCP group`}>
+            <Loader size="small" />
+          </span>
+        </Show>
+      </div>
       <ul style={{ margin: '0', padding: '0 0 0 10px', 'list-style': 'none' }}>
         <For
           each={view()

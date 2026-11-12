@@ -17,6 +17,21 @@ and useful as a compact control center for an OpenCode session.
 - Preserve useful defaults while supporting global and worktree-specific preferences.
 - Treat unavailable OpenCode APIs as explicit constraints rather than simulating unsupported actions.
 
+## Required pull-request CI
+
+- [~] Prepare sole-owner CODEOWNERS and activate separate review ruleset 27109858 with the user-selected @St1ggy-only PR review bypass; keep all CI checks mandatory without bypass. The native exception depends on the merger, not the author. Verify CODEOWNERS on main after the release PR merges; preserve existing review statuses.
+- [ ] Split the verified local UI and governance work into thematic commits and publish the authorized patch release through a release PR, Prepare Release, merged screenshots and exact-head CI. Do not update installed Navigator or OpenCode.
+
+- [x] Enable and independently verify active main-branch ruleset 27108667 requiring all seven existing CI contexts from GitHub Actions (app 15368), an up-to-date base and no bypass actors, including the administrator. Confirm the effective main-branch rule through the API. Preserve workflows, permissions and review statuses; no mandatory approvals, commit, push or publication of the pending local UI work.
+
+## Local reset progress, native MCP switches and tabbed Desktop Settings follow-up
+
+- [x] Add TUI banked-reset expiry progress using the shared lifetime model, with remaining time, explicit missing/invalid-date states and unchanged guarded credit actions. Verify both icon modes and non-consuming inspection with rendering tests and both supported TUI host smokes.
+- [x] Replace GUI MCP connection toggles with native Switch controls in sidebar groups/rows and Search Everything. Verify individual/mixed-group state, pending disablement, full hidden buckets, separate error information and keyboard bookmarks in the isolated Desktop presentation fixture.
+- [x] Organize Desktop Settings into Layout, Behavior, Quick Actions, Skills, MCP, Presets and About categories using public native Buttons; the host's internal pill Tabs is not exported to plugins. Preserve scope, lazy-mounted drafts and search targets. Verify all category widths, focused-button arrow navigation, presets/import/back/cancel/apply, groups, trust and resets in the packaged Desktop host.
+- [x] Before release authorization, verify the local tree with bun run check (589 primary tests, one opt-in skip, 87 GUI tests), both supported TUI host smokes and packaged Desktop normal/quota smokes. Native Settings and MCP assertions, reset cancellation and same-key reconciliation pass. Keep synthetic capture fixtures ready for manual CI without local screenshots; that local-only phase did not commit, push, publish or update installed plugins/hosts.
+- [x] Review GitHub PR #36 read-only at head abb824b after implementation; report findings, risks and possible fixes in chat only. Keep the PR, comments and every review status unchanged; store isolated reproduction evidence under ignored vibe/.
+
 ## Desktop layout, drag ordering and inline update progress follow-up
 
 - [x] Keep the Desktop session title readable on a separate full-width row in panel and Float. Replace familiar actions with native icon buttons and tooltips while retaining accessible names, private pins and descriptive labels for ambiguous operations. Verify long-title geometry and native controls/tooltips in both real Desktop placements, alongside drag/resize/theme behavior.

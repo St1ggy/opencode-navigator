@@ -1,5 +1,7 @@
 // oxlint-disable-next-line import-x-js/extensions
 import { captureGui } from './capture.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { mcpInteractions } from './mcp.mjs'
 
 export async function presentationInteractions(page, command) {
   await command('Synthetic Todo states')
@@ -46,4 +48,5 @@ export async function presentationInteractions(page, command) {
   await captureGui(updates, '31-desktop-update-stages')
   await updates.getByRole('button', { name: 'Close', exact: true }).last().click()
   console.log('Production Todo presentation and determinate/indeterminate update states passed in Desktop.')
+  await mcpInteractions(page, command)
 }

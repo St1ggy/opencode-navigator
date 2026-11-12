@@ -141,7 +141,7 @@ The OpenCode 2 server plugin adds documented subscription reads for MiniMax, Nan
 
 For Console and Go on OpenCode 2.2, I call the public `client.usage.limits` API directly. Console budgets stay in USD with workspace scope; Go windows show remaining percentages and native reset times. No Navigator server is needed for this source. Authentication and network failures stay on that path with guidance or Retry, without falling back to credential reads.
 
-For banked resets, the available count survives a missing credit detail list. The review screen shows any supplied details and expiry. Picking a credit opens a separate confirmation after a fresh eligibility check; a full usage bar alone is not permission to redeem one. If the request times out, the pending attempt keeps one idempotency key for reconciliation, including after a restart. Changing the model, session, or linked account closes a stale confirmation.
+For banked resets, the available count survives a missing credit detail list. The terminal and Desktop show remaining lifetime from the provider's grant and expiry dates, with explicit missing or invalid-date states. Picking a credit opens a separate confirmation after a fresh eligibility check; a full usage bar alone is not permission to redeem one. If the request times out, the pending attempt keeps one idempotency key for reconciliation, including after a restart. Changing the model, session, or linked account closes a stale confirmation.
 
 ![Account-bound confirmation before using a reset credit](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/41-reset-confirmation.png)
 
@@ -221,6 +221,8 @@ Navigator 0.27 adds an experimental Desktop interface. The package has a separat
 The smaller details follow the host too: completed Todo rows are crossed out, section arrows use native icons, and loading uses the host indicator. I removed the sidebar's duplicate model/effort selectors; those stay under chat. Drag handles reorder sections and toolbar buttons, with Space and arrows for keyboard users. Update progress reports the active stage rather than inventing a percentage for installers that expose no byte totals.
 
 The header gives the session title its own full-width row. Familiar actions use native icon buttons with tooltips and accessible names; Banked Resets and account linking keep text. Successful quota reads show just the update time above the data instead of repeating the account-scope explanation.
+
+Settings now has categories for Layout, Behavior, Quick Actions, Skills, MCP, Presets and About. I can leave a draft in one category and return to it without losing the text. MCP uses native switches in the sidebar and Search Everything. Group switches act on the full group, even when a filter hides some servers, and failures have a separate information control.
 
 I moved the reusable session models, validators and action workflows behind headless entries. Native GUI components handle the presentation. This keeps Skill trust, MCP previews, account identity and reset retries in the same implementation instead of growing a second set of product rules.
 

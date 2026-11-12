@@ -57,6 +57,7 @@ async function harness(
     height?: number
     style?: 'nerd' | 'text'
     creditCount?: number
+    creditDates?: { grantedAt: number; expiresAt?: number }
     sourceMessage?: string
     read?: ProviderQuotaAdapter['read']
     consume?: NonNullable<ProviderQuotaAdapter['consumeResetCredit']>
@@ -114,6 +115,7 @@ async function harness(
               grantedAt: 1_800_000_000,
               title: 'Synthetic reset',
               expiresAt: 1_900_000_000,
+              ...input.creditDates,
             },
           ],
         }),
@@ -376,6 +378,52 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
     expect(h.consumes()).toBe(0)
   } finally {
     h.destroy()
+  }
+})
+
+test('reset credits render live provider lifetime progress in both icon modes without consuming on inspection', async () => {
+  for (const style of ['nerd', 'text'] as const) {
+    const seconds = Date.now() / 1000
+    const h = await harness({ style, creditDates: { grantedAt: seconds - 1000, expiresAt: seconds + 1000 } })
+
+    try {
+      await h.link()
+      await h.click('Banked Resets')
+      const frame = h.captureCharFrame()
+
+      expect(frame).toContain('Expires in 17 minutes')
+      expect(frame).toContain(style === 'text' ? '====----' : '━━━━────')
+      expect(h.consumes()).toBe(0)
+      await h.click('Synthetic reset')
+      expect(h.captureCharFrame()).toContain('Use one banked reset?')
+      await h.click('Cancel')
+      expect(h.captureCharFrame()).toContain('Expires in 17 minutes')
+      expect(h.consumes()).toBe(0)
+    } finally {
+      h.destroy()
+    }
+  }
+})
+
+test('reset credits distinguish missing and invalid dates without fabricated progress', async () => {
+  for (const [expiresAt, label] of [
+    [undefined, 'Expiry not supplied by the provider'],
+    [-1, 'Expiry date is invalid'],
+  ] as const) {
+    const h = await harness({ style: 'text', creditDates: { grantedAt: 1000, expiresAt } })
+
+    try {
+      await h.link()
+      await h.click('Banked Resets')
+      const frame = h.captureCharFrame()
+
+      expect(frame).toContain(label)
+      expect(frame).not.toContain('====----')
+      expect(frame).not.toContain('Invalid Date')
+      expect(h.consumes()).toBe(0)
+    } finally {
+      h.destroy()
+    }
   }
 })
 

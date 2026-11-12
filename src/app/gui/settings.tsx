@@ -23,7 +23,7 @@ export function registerGuiSettings(context: Context, services: GuiSettingsServi
       { id: 'navigator-overflow', title: 'Toolbar overflow', keywords: 'pins wrap More' },
       { id: 'navigator-quota-refresh', title: 'Limits refresh', keywords: 'quota interval minutes' },
     ],
-    render: () => <GuiNavigatorSettings {...services} showGuide={showGuide} />,
+    render: (input) => <GuiNavigatorSettings {...services} target={input.target} showGuide={showGuide} />,
   })
   context.add(Command, { id: 'settings', title: 'Navigator settings', run: open })
 

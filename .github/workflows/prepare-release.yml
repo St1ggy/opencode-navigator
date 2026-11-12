@@ -91,6 +91,12 @@ jobs:
           fi
 
           gh run watch "$ci_run_id" --exit-status
+          review_decision="$(gh pr view "$pr_url" --json reviewDecision --jq '.reviewDecision')"
+          if [[ "$review_decision" == REVIEW_REQUIRED ]]; then
+            printf 'Screenshot PR: %s\nCI passed. Waiting for the repository owner to review and merge.\n' "$pr_url" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
           gh pr merge "$pr_url" \
             --squash \
             --delete-branch \
