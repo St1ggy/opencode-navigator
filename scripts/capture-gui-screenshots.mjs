@@ -32,6 +32,14 @@ const normal = [
   '16-desktop-toolbar-manager',
   '30-desktop-todo-states',
   '31-desktop-update-stages',
+  '32-desktop-mcp-switches',
+  '33-desktop-settings-layout',
+  '33-desktop-settings-behavior',
+  '33-desktop-settings-quick-actions',
+  '33-desktop-settings-skills',
+  '33-desktop-settings-mcp',
+  '33-desktop-settings-presets',
+  '33-desktop-settings-about',
 ]
 const quota = [
   '01-desktop-panel',

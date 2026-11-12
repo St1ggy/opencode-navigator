@@ -13,9 +13,12 @@ export async function mcpInteractions(page, command) {
   if (!(await connected.isChecked()) || (await failed.isChecked()) || (await group.isChecked()))
     throw new Error('Native MCP switches misrepresent individual or mixed group state')
 
-  await dialog.getByRole('button', { name: 'Information about synthetic-failed', exact: true }).click()
-  await dialog.getByRole('status').filter({ hasText: 'Synthetic connection failure' }).waitFor()
+  const information = dialog.getByRole('button', { name: 'Information about synthetic-failed', exact: true })
+
+  await information.hover()
   await captureGui(dialog, '32-desktop-mcp-switches')
+  await information.click()
+  await dialog.getByRole('status').filter({ hasText: 'Synthetic connection failure' }).waitFor()
   await clickNativeSwitch(dialog, 'Show one synthetic server')
   await clickNativeSwitch(dialog, 'Synthetic MCP group')
 

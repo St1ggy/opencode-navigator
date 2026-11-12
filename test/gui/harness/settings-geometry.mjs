@@ -7,10 +7,7 @@ async function captureCategory(page, category, width) {
   if (category === 'About')
     await page.getByRole('region', { name: 'About settings', exact: true }).getByRole('list').first().waitFor()
 
-  await captureGui(
-    page.locator('[data-navigator-settings]'),
-    `33-desktop-settings-${category.toLowerCase().replaceAll(' ', '-')}`,
-  )
+  await captureGui(page, `33-desktop-settings-${category.toLowerCase().replaceAll(' ', '-')}`)
 }
 
 export async function verifySettingsGeometry(page) {
