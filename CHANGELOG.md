@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.6] - 2026-11-13
+
+- Make Limits more compact in Desktop and TUI: place window icons and quota values above adjacent quota and blue period scales, with provider credit balances below the quota windows.
+- Show reset time once in a swap-icon row. Click it or use the keyboard to switch between the relative countdown and absolute reset date/time without refreshing the provider. Keep the selected format across quota refreshes and show missing or invalid dates explicitly.
+
 ## [0.27.5] - 2026-11-12
 
 - Show quota remaining and blue time-remaining scales in Limits, with live reset countdowns. Quota pace turns yellow, orange or red when the allowance is running ahead of the period; missing provider dates or durations stay explicit.

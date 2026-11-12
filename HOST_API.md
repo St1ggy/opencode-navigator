@@ -1,5 +1,13 @@
 # Public Host APIs And Remaining Gaps
 
+The compact Limits reset-time row uses the public Desktop Button and TUI sidebar
+interaction controller for keyboard and mouse activation. Desktop 2.2.6 exports
+neither a swap icon nor arbitrary Button style/ARIA props, so the native button
+contains one small swap SVG, a clipped time label and a screen-reader action hint.
+Replace only the SVG when a supported public swap icon becomes available; do not
+replace the native button or reach into host DOM. Relative/absolute presentation
+is local per quota-window identity and never invokes the quota adapter.
+
 Navigator supports only OpenCode **1.19.5** and **2.2.6**, the current stable
 release in each major line. Published SDK declarations and real-host checks
 define the boundary; internal host components are not plugin APIs.
