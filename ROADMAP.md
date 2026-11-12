@@ -19,8 +19,10 @@ and useful as a compact control center for an OpenCode session.
 
 ## Required pull-request CI
 
-- [~] Prepare sole-owner CODEOWNERS and activate separate review ruleset 27109858 with the user-selected @St1ggy-only PR review bypass; keep all CI checks mandatory without bypass. The native exception depends on the merger, not the author. Verify CODEOWNERS on main after the release PR merges; preserve existing review statuses.
-- [ ] Split the verified local UI and governance work into thematic commits and publish the authorized patch release through a release PR, Prepare Release, merged screenshots and exact-head CI. Do not update installed Navigator or OpenCode.
+- [x] Enable native auto-merge for Prepare Release screenshot PRs before waiting for CI, retaining owner approval, exact-head guards and all mandatory checks. Submitted PR reviews run the complete read-only CI suite on the PR merge ref without review-state skips. Verify five workflow regressions and the full check pipeline; observe the live bot-PR approval-to-merge path during the next Prepare Release.
+
+- [x] Activate sole-owner CODEOWNERS and separate review ruleset 27109858 with the user-selected @St1ggy-only PR review bypass; all seven CI checks remain mandatory without bypass. Verify both effective rulesets and error-free CODEOWNERS on main after PR #42 merges. The native exception depends on the merger, not the author; preserve existing review statuses.
+- [x] Split the verified UI and governance work into five thematic commits, merge release PR #42 and publish v0.27.4 at e4ad981 after Prepare Release 43206854581, owner-approved screenshot PR #44 and all seven exact-head CI jobs in 43215014303 pass. Publish 43215561633 succeeds; verify npm latest, all 44 payload files, archive hashes, two registry signatures and provenance claims matching the commit/tag/workflow/run. Installed Navigator, OpenCode, themes and private configuration remain unchanged.
 
 - [x] Enable and independently verify active main-branch ruleset 27108667 requiring all seven existing CI contexts from GitHub Actions (app 15368), an up-to-date base and no bypass actors, including the administrator. Confirm the effective main-branch rule through the API. Preserve workflows, permissions and review statuses; no mandatory approvals, commit, push or publication of the pending local UI work.
 
@@ -31,6 +33,7 @@ and useful as a compact control center for an OpenCode session.
 - [x] Organize Desktop Settings into Layout, Behavior, Quick Actions, Skills, MCP, Presets and About categories using public native Buttons; the host's internal pill Tabs is not exported to plugins. Preserve scope, lazy-mounted drafts and search targets. Verify all category widths, focused-button arrow navigation, presets/import/back/cancel/apply, groups, trust and resets in the packaged Desktop host.
 - [x] Before release authorization, verify the local tree with bun run check (589 primary tests, one opt-in skip, 87 GUI tests), both supported TUI host smokes and packaged Desktop normal/quota smokes. Native Settings and MCP assertions, reset cancellation and same-key reconciliation pass. Keep synthetic capture fixtures ready for manual CI without local screenshots; that local-only phase did not commit, push, publish or update installed plugins/hosts.
 - [x] Review GitHub PR #36 read-only at head abb824b after implementation; report findings, risks and possible fixes in chat only. Keep the PR, comments and every review status unchanged; store isolated reproduction evidence under ignored vibe/.
+- [x] Repeat the read-only review of PR #36 at 22ef3e7 after its external-confirmation fix. Inspect the full base-to-head diff and rerun 49 confirmation/account/provider render regressions successfully. The previous external-dialog replacement case now passes; no new actionable findings. Real-host reproduction was not rerun; no PR comments or review statuses changed.
 
 ## Desktop layout, drag ordering and inline update progress follow-up
 
