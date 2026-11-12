@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Owner reviews also attach the full CI suite to bot-created screenshot PRs.
+  # Do not skip required jobs by review state: skipped jobs can count as success.
+  pull_request_review:
+    types: [submitted]
   workflow_dispatch:
 
 permissions:

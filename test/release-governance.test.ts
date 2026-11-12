@@ -33,7 +33,7 @@ esac
   )
   chmodSync(gh, 0o700)
   const source = readFileSync('.github/workflows/prepare-release.yml', 'utf8')
-  const start = source.indexOf('          gh run watch "$ci_run_id" --exit-status')
+  const start = source.indexOf('          gh pr merge "$pr_url"')
 
   expect(start).toBeGreaterThan(0)
   const script = source
@@ -59,28 +59,31 @@ esac
   return { exitCode: result.exitCode, calls: readFileSync(calls, 'utf8'), summary: Bun.file(summary) }
 }
 
-test('release screenshot automation waits for the owner instead of bypassing required review', async () => {
+test('release screenshot automation enables auto-merge while owner review is pending', async () => {
   const result = runReleaseTail('REVIEW_REQUIRED')
 
   expect(result.exitCode).toBe(0)
-  expect(result.calls).not.toContain('pr merge')
-  expect(await result.summary.text()).toContain('Waiting for the repository owner to review and merge.')
+  expect(result.calls).toContain('pr merge https://github.com/synthetic/repository/pull/1 --auto --squash')
+  expect(result.calls).not.toContain('--admin')
+  expect(await result.summary.text()).toContain('owner approval and all required checks remain mandatory')
 })
 
-test('release screenshot automation merges only after CI and an available review decision', () => {
+test('release screenshot automation arms exact-head auto-merge before waiting for CI', () => {
   const result = runReleaseTail('APPROVED')
 
   expect(result.exitCode).toBe(0)
-  expect(result.calls.indexOf('run watch')).toBeLessThan(result.calls.indexOf('pr merge'))
+  expect(result.calls.indexOf('pr merge')).toBeLessThan(result.calls.indexOf('run watch'))
   expect(result.calls).toContain('--match-head-commit synthetic-head')
   expect(result.calls).not.toContain('--admin')
 })
 
-test('release screenshot automation never merges after failed CI', () => {
+test('release screenshot automation reports failed CI without bypassing auto-merge gates', () => {
   const result = runReleaseTail('APPROVED', true)
 
   expect(result.exitCode).toBe(1)
-  expect(result.calls).not.toContain('pr merge')
+  expect(result.calls).toContain('--auto')
+  expect(result.calls).not.toContain('--admin')
+  expect(result.calls.match(/pr merge/gu)).toHaveLength(1)
 })
 
 test('all repository paths have exactly one designated owner', () => {
@@ -89,4 +92,13 @@ test('all repository paths have exactly one designated owner', () => {
     .filter((line) => line.trim() && !line.startsWith('#'))
 
   expect(rules).toEqual(['* @St1ggy'])
+})
+
+test('submitted reviews run the full PR-associated CI suite without skipped required jobs', () => {
+  const source = readFileSync('.github/workflows/ci.yml', 'utf8')
+
+  expect(source).toContain('pull_request_review:\n    types: [submitted]')
+  expect(source).not.toContain('github.event.review.state')
+  expect(source).not.toContain('pull_request_target:')
+  expect(source).toContain('permissions:\n  contents: read')
 })
