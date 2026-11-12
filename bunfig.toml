@@ -1,0 +1,12 @@
+[test]
+coverageSkipTestFiles = true
+coveragePathIgnorePatterns = [
+  "**/node_modules/**",
+  "**/test/**",
+  "**/dist/**",
+  "**/screenshots/**",
+  "**/scripts/**",
+  "**/vibe/**",
+  "**/*.config.*",
+  "**/build.ts",
+]

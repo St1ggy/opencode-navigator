@@ -1,0 +1,6 @@
+# Reporting only: retain the existing seven required GitHub Actions contexts.
+comment: false
+coverage:
+  status:
+    project: off
+    patch: off
