@@ -10,6 +10,7 @@ import { SelectionBox } from './selection-box'
 
 import type { UiIcon } from './icons'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { JSX } from 'solid-js'
 
 export type SelectionOption = { title: string; value: string; description: string; icon?: UiIcon }
 
@@ -20,6 +21,7 @@ export function SelectionMenu(props: {
   height?: number
   lift?: boolean
   adaptive?: boolean
+  renderDetails?: (option: SelectionOption) => JSX.Element
   onSelect: (option: SelectionOption) => void
 }) {
   const icons = useIcons()
@@ -111,6 +113,7 @@ export function SelectionMenu(props: {
                 <text fg={theme().textMuted} wrapMode="word">
                   {option.description}
                 </text>
+                {props.renderDetails?.(option)}
               </SelectionBox>
             )}
           </For>
