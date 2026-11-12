@@ -146,6 +146,8 @@ Limits uses Codex's documented app-server API. OpenCode 2 exposes the account id
 
 Banked resets need a stronger boundary. The credit list shows the available count even when the provider omits individual details. Both interfaces show expiry progress when the provider supplies usable grant and expiry dates; missing or invalid dates stay explicit. Choosing a credit checks eligibility and opens a separate account-bound confirmation. Escape goes back to the list. If submission times out, a private pending-attempt journal keeps the same idempotency key for reconciliation after a restart; opening the sidebar or polling limits never spends a credit.
 
+I gave each reset credit its own card, with its status, expiry and review action kept together. The provider's longer message stays behind a details button on Desktop and in the terminal's review step. Two credits no longer look like one continuous block of text.
+
 Limits is first and expanded by default, and I can hide or reorder it in the same scoped section settings. The OpenCode 2 server plugin also reads documented sources for MiniMax, NanoGPT, Copilot, OpenRouter, and several API balance providers. Native HTTP response counters give me API limits without an extra model call. Subscription windows, configured capacities, and balances retain their own units. The public source inventory explains the prerequisites and the gaps. CodexBar helped me discover possible integrations; the data reads use public provider contracts and OpenCode's active connection APIs.
 
 ![Codex account quota windows and banked resets](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/39-provider-limits.png)

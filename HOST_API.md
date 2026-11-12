@@ -67,6 +67,12 @@ icon. Those focused semantic controls remain plugin-owned, using the host theme'
 surface, text, focus and elevation tokens. Remove these fallbacks when equivalent
 public controls preserve their multiline, expanded/selected and progress semantics.
 
+Reset-credit cards are semantic list-item layouts with host-themed borders; the
+public facade has no generic card component. Their actions, detail disclosure and
+icons use public `Ui.Button` and `Ui.Icon`. Expiry progress keeps the existing
+provider-timestamp model and accessible progress semantics rather than implying
+that a missing date means unlimited credit lifetime.
+
 Desktop model and reasoning-effort selection belongs to the native chat controls.
 Navigator does not duplicate these selectors in its sidebar. Limits continue to
 follow the host's reactive selected model; the TUI retains its model/variant controls.
@@ -173,6 +179,7 @@ justify bypassing a native API.
 | Console/Go request lifecycle and projection | `client.experimental.usage.limits` is public, but the internal usage cache and budget selectors are not in published Plugin Context. Workspace IDs are not provider account IDs. | Equivalent public cache and selector on the plugin interface. |
 | External quotas / reset credits | Console/Go is not a universal provider API and has no Codex reset-credit consume operation. Sources stay documented, account-bound and portable. Native auth/request errors never enable a bypass reader. | Host APIs matching provider/account/units/resets and idempotent consume semantics. |
 | Pinned-file snapshot installer | Native package updates do not implement the recognized versioned wrapper/staging layout. Preserve installation source and scope. | A public atomic file-snapshot update API with equivalent verification. |
+| Exact npm revision updates | Native `plugin.check`/`plugin.update` skip exact revisions. After a successful native check, query the public npm latest record; confirmed updates replace only the owning JSONC string, retaining options and scope. TUI uses its global `cli.json` first; server-owned entries use public server file APIs. Reject ambiguous owners, changed files, clients and locations. Server writes have no CAS: preflight checks and readback are safeguards, not an atomic transaction. A changed pin is prepared configuration, not evidence that the new runtime is loaded. | A native exact-revision update API preserving source, options, scope and stale-target protection. |
 | Corner masks and product UI | Multiline shape, three-cell controls, filters, groups, presets and pins are product features. Paint hooks only draw; scroll restoration runs outside paint. | Equivalent public primitives preserving geometry, behavior and fallback mode. |
 
 ## Unavailable Features

@@ -143,6 +143,8 @@ For Console and Go on OpenCode 2.2, I call the public `client.usage.limits` API 
 
 For banked resets, the available count survives a missing credit detail list. The terminal and Desktop show remaining lifetime from the provider's grant and expiry dates, with explicit missing or invalid-date states. Picking a credit opens a separate confirmation after a fresh eligibility check; a full usage bar alone is not permission to redeem one. If the request times out, the pending attempt keeps one idempotency key for reconciliation, including after a restart. Changing the model, session, or linked account closes a stale confirmation.
 
+Each credit now has a separate card. Status, expiry and the review action stay inside its boundary, with icons from the host or terminal icon set. Longer provider messages appear on demand in Desktop, or during review in the terminal, so they do not drown out the dates.
+
 ![Account-bound confirmation before using a reset credit](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/41-reset-confirmation.png)
 
 ## Versions, reports and a steadier sidebar
