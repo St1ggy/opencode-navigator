@@ -4,6 +4,8 @@ import { For } from 'solid-js'
 import { TodoRow } from '../../../src/pages/navigator/ui/gui/todo-row'
 import { GuiProgress } from '../../../src/shared/ui/gui/progress'
 
+import { McpFixture } from './mcp-fixture'
+
 // The isolated probe is explicitly CommonJS; Vite does not infer its .cjs suffix.
 // oxlint-disable-next-line import/extensions
 import fixture from './fixture.cjs'
@@ -25,6 +27,18 @@ export default Plugin.define({
 
     const Dialog = context.ui.Dialog
     const Button = context.ui.Button
+
+    context.add(Command, {
+      id: 'mcp-switches',
+      title: 'Synthetic MCP switches',
+      run() {
+        context.dialogs.open((handle) => (
+          <Dialog title="Synthetic MCP switches" footer={<Button onClick={handle.close}>Close</Button>}>
+            <McpFixture ui={context.ui} />
+          </Dialog>
+        ))
+      },
+    })
 
     context.add(Command, {
       id: 'todo-states',

@@ -8,8 +8,8 @@ function navigate(event: KeyboardEvent) {
   if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
 
   const row = event.currentTarget as HTMLElement
-  const buttons = [...row.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')]
-  const index = buttons.indexOf(event.target as HTMLButtonElement)
+  const buttons = [...row.querySelectorAll<HTMLElement>('button:not(:disabled), input[role="switch"]:not(:disabled)')]
+  const index = buttons.indexOf(event.target as HTMLElement)
   const next = Math.max(0, Math.min(buttons.length - 1, index + (event.key === 'ArrowRight' ? 1 : -1)))
 
   if (index === -1 || next === index) return
@@ -27,7 +27,8 @@ export function CatalogRow(props: {
   disabled?: boolean
   leading?: JSX.Element
   trailing?: JSX.Element
-  activate(): void
+  content?: JSX.Element
+  activate?(): void
   bookmark(): void
 }) {
   const [hovered, setHovered] = createSignal(false)
@@ -51,36 +52,38 @@ export function CatalogRow(props: {
         visible={hovered() || focused()}
         toggle={props.bookmark}
       />
-      <button
-        type="button"
-        aria-disabled={props.disabled}
-        onClick={(event) => {
-          event.stopPropagation()
+      {props.content ?? (
+        <button
+          type="button"
+          aria-disabled={props.disabled}
+          onClick={(event) => {
+            event.stopPropagation()
 
-          if (!props.disabled) props.activate()
-        }}
-        style={{
-          flex: '1',
-          'min-width': '0',
-          display: 'flex',
-          gap: '6px',
-          'align-items': 'center',
-          'text-align': 'left',
-          padding: '4px',
-          color: 'inherit',
-          background: hovered() || focused() ? 'var(--v2-overlay-simple-overlay-hover, transparent)' : 'transparent',
-          border: '0',
-          'border-radius': '6px',
-        }}
-      >
-        {props.leading}
-        <span style={{ 'min-width': '0', flex: '1' }}>
-          <span style={{ display: 'block', 'overflow-wrap': 'anywhere' }}>{props.title}</span>
-          <span style={{ display: 'block', opacity: 0.65, 'font-size': '12px', 'overflow-wrap': 'anywhere' }}>
-            {props.details}
+            if (!props.disabled) props.activate?.()
+          }}
+          style={{
+            flex: '1',
+            'min-width': '0',
+            display: 'flex',
+            gap: '6px',
+            'align-items': 'center',
+            'text-align': 'left',
+            padding: '4px',
+            color: 'inherit',
+            background: hovered() || focused() ? 'var(--v2-overlay-simple-overlay-hover, transparent)' : 'transparent',
+            border: '0',
+            'border-radius': '6px',
+          }}
+        >
+          {props.leading}
+          <span style={{ 'min-width': '0', flex: '1' }}>
+            <span style={{ display: 'block', 'overflow-wrap': 'anywhere' }}>{props.title}</span>
+            <span style={{ display: 'block', opacity: 0.65, 'font-size': '12px', 'overflow-wrap': 'anywhere' }}>
+              {props.details}
+            </span>
           </span>
-        </span>
-      </button>
+        </button>
+      )}
       {props.trailing}
     </li>
   )
