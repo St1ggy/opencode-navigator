@@ -369,7 +369,7 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
     expect(h.reads()).toBe(0)
     await h.link()
     expect(h.captureCharFrame()).toContain('[OpenAI] Synthetic Codex')
-    expect(h.captureCharFrame()).toContain('0% left')
+    expect(h.captureCharFrame()).toContain('0%')
     expect(h.captureCharFrame()).toContain('Resets ')
     expect(h.captureCharFrame()).not.toContain('Updated ')
     expect(h.captureCharFrame()).toContain('Banked Resets')
@@ -590,7 +590,7 @@ test('foreign integration/provider bursts preserve Limits scales, credits, row i
     const credits = h.renderer.root.findDescendantById('opencode-navigator.limits.credits')!
 
     expect(frame).toContain('Banked Resets')
-    expect(frame).toContain('0% left')
+    expect(frame).toContain('0%')
     for (let burst = 0; burst < 3; burst++) {
       native.emit('integration.updated', {}, { directory: '/other-workspace' })
       native.emit('provider.updated', {}, { directory: '/other-workspace' })
@@ -833,7 +833,7 @@ test('Limits keeps unsupported providers calm and shows stale read failures with
     await h.controller.refresh(true)
     await h.flush()
     expect(h.captureCharFrame()).toContain('Stale · refresh failed')
-    expect(h.captureCharFrame()).toContain('0% left')
+    expect(h.captureCharFrame()).toContain('0%')
     expect(h.interaction.available().some((item) => item.id === 'opencode-navigator.limits.refresh')).toBe(true)
   } finally {
     h.destroy()
@@ -868,7 +868,7 @@ test('Limits renders the real nullable Codex account bucket with explicit scope 
   try {
     await h.link()
     expect(h.captureCharFrame()).not.toContain('Account · 5h')
-    expect(h.captureCharFrame()).toContain('65% left')
+    expect(h.captureCharFrame()).toContain('65%')
     expect(h.captureCharFrame()).toContain('Banked Resets')
     expect(h.captureCharFrame()).not.toContain('No documented quota bucket')
     await h.click('Banked Resets')
@@ -886,7 +886,7 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     await h.link()
     const lines = h.captureCharFrame().split('\n')
     const header = lines.findIndex((line) => line.includes('LIMITS'))
-    const remaining = lines.findIndex((line) => line.includes('0% left'))
+    const remaining = lines.findIndex((line) => line.includes('0%'))
     const buffer = h.renderer.currentRenderBuffer
     const color = (row: number, column: number) => {
       const offset = (row * buffer.width + column) * 4
@@ -899,14 +899,14 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     expect(lines[header + 2]).toContain('[OpenAI] Synthetic Codex')
     expect(lines[header + 2]).toContain('·')
     expect(lines[header + 2]).toContain('high')
-    expect(lines[remaining]).toContain('Quota remaining')
+    expect(lines[remaining]).not.toContain('Quota remaining')
     expect(lines[remaining + 3]).toContain('Reset in')
     expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
     expect(
-      color(remaining - 1, lines[remaining - 1].indexOf('---')).equals(subtleLineColor('#111111', '#555555')),
+      color(remaining + 1, lines[remaining + 1].indexOf('---')).equals(subtleLineColor('#111111', '#555555')),
     ).toBe(true)
-    expect(lines[remaining - 1]).not.toMatch(/[│|]/)
-    expect(color(remaining + 3, lines[remaining + 3].indexOf('Reset')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(lines[remaining + 1]).not.toMatch(/[│|]/)
+    expect(color(remaining + 3, lines[remaining + 3].indexOf('Reset')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
     expect(h.captureCharFrame()).not.toContain('Unlink Codex')
     expect(h.captureCharFrame()).not.toContain('Updated ')
     const refresh = h.renderer.root.findDescendantById('opencode-navigator.limits.refresh') as BoxRenderable
@@ -923,6 +923,47 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     h.destroy()
   }
 })
+
+test.each(['nerd', 'text'] as const)(
+  'single reset row toggles on mouse-up and keyboard without quota reads (%s)',
+  async (style) => {
+    const h = await harness({ style, width: 70 })
+
+    try {
+      await h.link()
+      const id = 'opencode-navigator.limits.reset.window-one'
+      const row = h.renderer.root.findDescendantById(id) as BoxRenderable
+      const reads = h.reads()
+
+      expect(h.captureCharFrame().match(/Reset in/g)).toHaveLength(1)
+      expect(h.captureCharFrame()).not.toMatch(/Resets \S/u)
+      await h.mockMouse.pressDown(row.screenX + 2, row.screenY)
+      expect(h.captureCharFrame()).toContain('Reset in')
+      await h.mockMouse.release(row.screenX + 2, row.screenY)
+      await h.flush()
+      expect(h.captureCharFrame()).toMatch(/Resets \S/u)
+      expect(h.captureCharFrame()).not.toContain('Reset in')
+      expect(h.reads()).toBe(reads)
+      await h.controller.refresh(true)
+      await h.flush()
+      expect(h.renderer.root.findDescendantById(id)?.num).toBe(row.num)
+      expect(h.captureCharFrame()).toMatch(/Resets \S/u)
+      h.interaction.focus(undefined, id)
+      await h.flush()
+      h.mockInput.pressEnter()
+      await h.flush()
+      expect(h.captureCharFrame()).toContain('Reset in')
+      expect(h.captureCharFrame()).not.toMatch(/Resets \S/u)
+      h.mockInput.pressEnter()
+      await h.flush()
+      expect(h.captureCharFrame()).toMatch(/Resets \S/u)
+      expect(h.reads()).toBe(reads + 1)
+      expect(h.consumes()).toBe(0)
+    } finally {
+      h.destroy()
+    }
+  },
+)
 
 test('model and variant controls open native pickers on mouse release and keyboard activation', async () => {
   const mouse = await harness({ variant: 'high' })
@@ -1003,14 +1044,14 @@ test('Limits fills its sidebar content area without painting into the surroundin
     await h.link()
     const root = h.renderer.root.findDescendantById('limits-test-root') as BoxRenderable
     const lines = h.captureCharFrame().split('\n')
-    const row = lines.findIndex((line) => line.includes('0% left'))
+    const row = lines.findIndex((line) => line.includes('0%'))
     const right = root.screenX + root.width - 2
 
     expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
     expect(lines[row + 3]).toContain('Reset in')
     expect(lines[row]).not.toContain('Account')
-    expect(lines[row - 1].slice(right).trim()).toBe('')
-    expect(Bun.stringWidth(lines[row - 1].trimEnd())).toBe(right)
+    expect(lines[row + 1].slice(right).trim()).toBe('')
+    expect(Bun.stringWidth(lines[row + 1].trimEnd())).toBe(right)
     expect(h.captureCharFrame()).not.toContain('1w')
   } finally {
     h.destroy()

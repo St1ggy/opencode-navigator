@@ -57,7 +57,7 @@ export default Plugin.define({
       run() {
         context.dialogs.open((handle) => (
           <Dialog title="Synthetic quota scales" footer={<Button onClick={handle.close}>Close</Button>}>
-            <QuotaScalesFixture />
+            <QuotaScalesFixture ui={context.ui} />
           </Dialog>
         ))
       },

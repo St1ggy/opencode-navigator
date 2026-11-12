@@ -79,7 +79,7 @@ export function LimitsSection() {
         {(value) => (
           <>
             <For each={value().windows.map((window) => window.id)}>
-              {(_, index) => <GuiQuotaWindow window={value().windows[index()]} now={now()} />}
+              {(_, index) => <GuiQuotaWindow ui={props.ui} window={value().windows[index()]} now={now()} />}
             </For>
             <For each={value().balances}>
               {(balance) => (

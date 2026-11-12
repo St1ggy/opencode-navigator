@@ -9,6 +9,9 @@ export async function presentationInteractions(page, command) {
   const states = await quotas.locator('[data-navigator-quota-window]').evaluateAll((nodes) =>
     nodes.map((node) => {
       const meters = [...node.querySelectorAll('[role="meter"]')]
+      const labels = [...node.querySelectorAll('[data-navigator-quota-label]')]
+      const quotaBox = meters[0].getBoundingClientRect()
+      const timeBox = meters[1].getBoundingClientRect()
 
       return {
         pace: node.dataset.pace,
@@ -17,16 +20,48 @@ export async function presentationInteractions(page, command) {
         quotaColor: getComputedStyle(meters[0].firstElementChild).backgroundColor,
         timeColor: getComputedStyle(meters[1].firstElementChild).backgroundColor,
         bounded: meters.every((meter) => meter.getBoundingClientRect().width <= 301),
+        paired: Math.abs(timeBox.top - quotaBox.bottom) <= 2,
+        labelOrder:
+          labels[0].getBoundingClientRect().bottom < quotaBox.top &&
+          labels[1].getBoundingClientRect().top > timeBox.bottom,
       }
     }),
   )
 
   if (
     states.map((state) => state.pace).join(',') !== 'normal,yellow,orange,red' ||
-    states.some((state) => state.time !== '81' || state.timeColor !== 'rgb(66, 165, 245)' || !state.bounded) ||
+    states.some(
+      (state) =>
+        state.time !== '81' ||
+        state.timeColor !== 'rgb(66, 165, 245)' ||
+        !state.bounded ||
+        !state.paired ||
+        !state.labelOrder,
+    ) ||
     new Set(states.map((state) => state.quotaColor)).size !== 4
   )
     throw new Error(`Incorrect quota/time scales: ${JSON.stringify(states)}`)
+
+  const reset = quotas.locator('[data-navigator-quota-window]').first().getByRole('button')
+
+  await reset.getByText(/Reset in/u).waitFor()
+  await reset.click()
+  await reset.getByText(/^Resets /u).waitFor()
+
+  if (
+    (await quotas
+      .locator('[data-navigator-quota-window]')
+      .first()
+      .getByText(/Reset in/u)
+      .count()) !== 0
+  )
+    throw new Error('Reset row duplicated relative and absolute dates')
+
+  await reset.focus()
+  await page.keyboard.press('Enter')
+  await reset.getByText(/Reset in/u).waitFor()
+  await page.keyboard.press('Space')
+  await reset.getByText(/^Resets /u).waitFor()
 
   await quotas.getByRole('button', { name: 'Close', exact: true }).last().click()
   console.log('Two quota/period scales, blue period fill and four pace colors passed.')

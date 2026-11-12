@@ -34,3 +34,33 @@ test('quota presentation preserves explicit native remaining values and never in
   })
   expect(quotaPresentation({ ...window, used: 105 })).toMatchObject({ value: '-5% left', ratio: 0 })
 })
+test('single reset label preserves explicit unknown dates and unknown periods in both display modes', () => {
+  const now = 1_800_000_000_000
+  const quota = {
+    id: 'single-reset',
+    label: 'Quota',
+    unit: '%',
+    remaining: 68,
+    durationMinutes: 100,
+    resetsAt: now / 1000 + 4620,
+  }
+  const view = quotaPresentation(quota, now)
+
+  expect(view.compactValue).toBe('68%')
+  expect(view.period.detail).toBe('77%')
+  expect(view.canToggleReset).toBe(true)
+  expect(view.relativeReset).toBe('Reset in 1h 17m')
+  expect(view.absoluteReset).toStartWith('Resets ')
+  expect(view.absoluteReset).not.toContain('Reset in')
+  for (const resetsAt of [undefined, NaN, -1]) {
+    const invalid = quotaPresentation({ ...quota, resetsAt }, now)
+
+    expect(invalid.canToggleReset).toBe(false)
+    expect(invalid.relativeReset).toContain(resetsAt === undefined ? 'Reset time unknown' : 'Reset date invalid')
+    expect(invalid.absoluteReset).toContain('Period progress unknown')
+  }
+  const unknown = quotaPresentation({ ...quota, durationMinutes: undefined }, now)
+
+  expect(unknown.relativeReset).toContain('Period duration unknown')
+  expect(unknown.absoluteReset).toContain('Period duration unknown')
+})

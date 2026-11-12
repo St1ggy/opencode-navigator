@@ -21,6 +21,7 @@ const ICONS = {
   add: ['\u{EA60}', '+'],
   edit: ['\u{EA73}', '[R]'],
   history: ['\u{EA82}', '[T]'],
+  swap: ['\u{F04E1}', '<>'],
   copy: ['\u{EBCC}', '[C]'],
   export: ['\u{EBAC}', '[E]'],
   compact: ['\u{EAF5}', '[-]'],

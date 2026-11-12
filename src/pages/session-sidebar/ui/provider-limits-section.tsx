@@ -5,6 +5,7 @@ import { PLUGIN_ID } from '../../../shared/config'
 import { useDialogs } from '../../../shared/ui'
 
 import { CodexAccountControls } from './codex-account-controls'
+import { LimitsAction } from './limits-action'
 import { LimitsHeaderControls } from './limits-header-controls'
 import { LimitsModelRow } from './limits-model-row'
 import { LimitsStatus } from './limits-status'
@@ -82,7 +83,25 @@ export function ProviderLimitsSection(props: {
             <LimitsModelRow {...props} model={selected()} selection={props.modelSelection} />
             <CodexAccountControls {...props} model={selected()} />
             <Show when={snapshot() && ['ready', 'stale'].includes(snapshot()!.availability) ? snapshot() : undefined}>
-              {(quota) => <QuotaSnapshotRows api={props.api} snapshot={quota()} />}
+              {(quota) => (
+                <QuotaSnapshotRows
+                  api={props.api}
+                  snapshot={quota()}
+                  renderResetTime={(reset) => (
+                    <LimitsAction
+                      api={props.api}
+                      interaction={props.interaction}
+                      fullWidth
+                      id={`${PLUGIN_ID}.limits.reset.${reset.id}`}
+                      position={{ section: props.navigationSection, row: 10 + reset.index, column: 0 }}
+                      label={reset.label}
+                      trailingLabel={reset.value}
+                      disabled={reset.disabled}
+                      onActivate={reset.onActivate}
+                    />
+                  )}
+                />
+              )}
             </Show>
             <LimitsStatus api={props.api} controller={props.controller} />
           </box>
