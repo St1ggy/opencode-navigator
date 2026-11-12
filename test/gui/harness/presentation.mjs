@@ -4,6 +4,32 @@ import { captureGui } from './capture.mjs'
 import { mcpInteractions } from './mcp.mjs'
 
 export async function presentationInteractions(page, command) {
+  await command('Synthetic quota scales')
+  const quotas = page.getByRole('dialog').last()
+  const states = await quotas.locator('[data-navigator-quota-window]').evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const meters = [...node.querySelectorAll('[role="meter"]')]
+
+      return {
+        pace: node.dataset.pace,
+        quota: meters[0].getAttribute('aria-valuenow'),
+        time: meters[1].getAttribute('aria-valuenow'),
+        quotaColor: getComputedStyle(meters[0].firstElementChild).backgroundColor,
+        timeColor: getComputedStyle(meters[1].firstElementChild).backgroundColor,
+        bounded: meters.every((meter) => meter.getBoundingClientRect().width <= 301),
+      }
+    }),
+  )
+
+  if (
+    states.map((state) => state.pace).join(',') !== 'normal,yellow,orange,red' ||
+    states.some((state) => state.time !== '81' || state.timeColor !== 'rgb(66, 165, 245)' || !state.bounded) ||
+    new Set(states.map((state) => state.quotaColor)).size !== 4
+  )
+    throw new Error(`Incorrect quota/time scales: ${JSON.stringify(states)}`)
+
+  await quotas.getByRole('button', { name: 'Close', exact: true }).last().click()
+  console.log('Two quota/period scales, blue period fill and four pace colors passed.')
   await command('Synthetic Todo states')
   const tasks = page.getByRole('dialog').last()
   const rows = await tasks.locator('[data-navigator-todo-row]').evaluateAll((nodes) =>
@@ -34,6 +60,16 @@ export async function presentationInteractions(page, command) {
   await tasks.getByRole('button', { name: 'Close', exact: true }).last().click()
   await command('Synthetic update stages')
   const updates = page.getByRole('dialog').last()
+  const slot = updates.locator('[data-navigator-update-control]')
+
+  await slot.getByRole('button', { name: 'Check for updates', exact: true }).click()
+  await slot.getByRole('button', { name: 'Update Navigator…', exact: true }).click()
+  await slot.getByRole('progressbar', { name: 'Downloading 40%', exact: true }).waitFor()
+  await updates.getByRole('button', { name: 'Finish synthetic update', exact: true }).click()
+  await slot.getByText('Restart OpenCode to load the update.', { exact: true }).waitFor()
+
+  if (await slot.getByRole('button').count()) throw new Error('Restart state retained an update button')
+
   const transfer = updates.getByRole('progressbar', { name: 'Navigator · Downloading 40%', exact: true })
 
   if ((await transfer.getAttribute('aria-valuenow')) !== '40') throw new Error('Real-byte progress lost its percentage')

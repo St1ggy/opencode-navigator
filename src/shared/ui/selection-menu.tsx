@@ -17,11 +17,13 @@ export type SelectionOption = { title: string; value: string; description: strin
 export function SelectionMenu(props: {
   api: TuiPluginApi
   title: string
+  description?: string
   options: SelectionOption[]
   height?: number
   lift?: boolean
   adaptive?: boolean
   renderDetails?: (option: SelectionOption) => JSX.Element
+  renderOption?: (option: SelectionOption) => JSX.Element
   onSelect: (option: SelectionOption) => void
 }) {
   const icons = useIcons()
@@ -72,6 +74,11 @@ export function SelectionMenu(props: {
           {icons.key('esc')}
         </text>
       </box>
+      {props.description && (
+        <text fg={theme().textMuted} wrapMode="word">
+          {props.description}
+        </text>
+      )}
       <scrollbox
         ref={(node) => {
           body = node
@@ -102,18 +109,22 @@ export function SelectionMenu(props: {
                   props.onSelect(option)
                 }}
               >
-                <text
-                  attributes={active() === index() ? TextAttributes.BOLD : undefined}
-                  fg={theme().text}
-                  wrapMode="word"
-                >
-                  {option.icon ? `${icons.icon(option.icon)} ` : ''}
-                  {option.title}
-                </text>
-                <text fg={theme().textMuted} wrapMode="word">
-                  {option.description}
-                </text>
-                {props.renderDetails?.(option)}
+                {props.renderOption?.(option) ?? (
+                  <>
+                    <text
+                      attributes={active() === index() ? TextAttributes.BOLD : undefined}
+                      fg={theme().text}
+                      wrapMode="word"
+                    >
+                      {option.icon ? `${icons.icon(option.icon)} ` : ''}
+                      {option.title}
+                    </text>
+                    <text fg={theme().textMuted} wrapMode="word">
+                      {option.description}
+                    </text>
+                    {props.renderDetails?.(option)}
+                  </>
+                )}
               </SelectionBox>
             )}
           </For>

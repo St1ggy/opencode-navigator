@@ -1,3 +1,5 @@
+import { quotaPace, quotaPaceLabels, quotaPeriod } from './quota-period'
+
 import type { QuotaWindow } from '../../../entities/provider-limit/model'
 
 function measurement(window: QuotaWindow, remaining: number | undefined) {
@@ -10,6 +12,9 @@ function measurement(window: QuotaWindow, remaining: number | undefined) {
 
 function resetTime(seconds: number | undefined, now: number) {
   if (seconds === undefined) return 'Reset time unknown'
+
+  if (!Number.isFinite(seconds) || seconds <= 0 || !Number.isFinite(new Date(seconds * 1000).getTime()))
+    return 'Reset date invalid'
 
   const date = new Date(seconds * 1000)
   const clock = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
@@ -28,5 +33,19 @@ export function quotaPresentation(window: QuotaWindow, now = Date.now()) {
       ? Math.max(0, Math.min(1, remaining / total))
       : undefined
 
-  return { value: measurement(window, remaining), ratio, reset: resetTime(window.resetsAt, now) }
+  const period = quotaPeriod(window, now)
+  const pace = quotaPace(ratio, period)
+  const reset = resetTime(window.resetsAt, now)
+  const resetSummary =
+    period.seconds !== undefined && period.seconds > 0 ? `${period.countdown} · ${reset}` : period.countdown
+
+  return {
+    value: measurement(window, remaining),
+    ratio,
+    reset,
+    resetSummary,
+    period,
+    pace,
+    paceLabel: quotaPaceLabels[pace],
+  }
 }

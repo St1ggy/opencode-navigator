@@ -1,5 +1,6 @@
 import { For, Show } from 'solid-js'
 
+import { createQuotaClock } from '../../../../features/provider-limits/gui'
 import { canLinkCodexAccount, quotaStatusMessage } from '../../../../features/provider-limits/model'
 import { GuiIconAction } from '../../../../shared/ui/gui'
 
@@ -9,6 +10,7 @@ import { MonitoringSection } from './section'
 
 export function LimitsSection() {
   const props = useNavigatorGui()
+  const now = createQuotaClock()
   const limits = () => props.runtime.limits
   const snapshot = () => limits()?.controller.snapshot()
   const state = () => limits()?.controller.state()
@@ -50,7 +52,7 @@ export function LimitsSection() {
             }
           >
             <Button size="small" variant="ghost" onClick={props.onBankedResets}>
-              Banked Resets
+              Banked Resets{snapshot()?.bankedResets ? ` (${snapshot()!.bankedResets!.availableCount})` : ''}
             </Button>
           </Show>
           <GuiIconAction
@@ -76,7 +78,9 @@ export function LimitsSection() {
       <Show when={snapshot()}>
         {(value) => (
           <>
-            <For each={value().windows}>{(window) => <GuiQuotaWindow window={window} />}</For>
+            <For each={value().windows.map((window) => window.id)}>
+              {(_, index) => <GuiQuotaWindow window={value().windows[index()]} now={now()} />}
+            </For>
             <For each={value().balances}>
               {(balance) => (
                 <p>

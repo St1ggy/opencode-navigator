@@ -25,6 +25,7 @@ import { nativeHostFixture } from './fixtures/native-host'
 
 import type { PreferencesController } from '../src/entities/preferences'
 import type {
+  BankedResetCredit,
   ProviderAccountSource,
   ProviderQuotaAdapter,
   ProviderQuotaSnapshot,
@@ -59,6 +60,8 @@ async function harness(
     height?: number
     style?: 'nerd' | 'text'
     creditCount?: number
+    credits?: readonly BankedResetCredit[]
+    corners?: boolean
     creditDates?: { grantedAt: number; expiresAt?: number }
     sourceMessage?: string
     read?: ProviderQuotaAdapter['read']
@@ -109,7 +112,7 @@ async function harness(
       availableCount: input.creditCount ?? 3,
       ...(!input.countOnly &&
         input.creditCount !== 0 && {
-          credits: [
+          credits: input.credits ?? [
             {
               id: 'credit-one',
               type: 'codexRateLimits',
@@ -272,7 +275,7 @@ async function harness(
     interaction = createSidebarInteraction(api, () => {})
 
     return (
-      <IconProvider style={() => input.style ?? 'text'}>
+      <IconProvider style={() => input.style ?? 'text'} multilineCorners={() => input.corners ?? true}>
         <Show when={input.observe}>
           <LimitsPersistence
             controller={controller}
@@ -429,6 +432,107 @@ test('reset credits distinguish missing and invalid dates without fabricated pro
     } finally {
       h.destroy()
     }
+  }
+})
+
+test.each([
+  ['text', true],
+  ['nerd', true],
+  ['nerd', false],
+] as const)('reset cards separate credits and preserve review/back in %s with corners %s', async (style, corners) => {
+  const seconds = Date.now() / 1000
+  const description = 'Synthetic provider details remain available during review.'
+  const h = await harness({
+    style,
+    corners,
+    height: 60,
+    creditCount: 2,
+    credits: ['first', 'second'].map((id) => ({
+      id,
+      type: 'codexRateLimits',
+      status: 'available',
+      title: `Reset ${id}`,
+      description,
+      grantedAt: seconds - 1000,
+      expiresAt: seconds + 1000,
+    })),
+  })
+
+  try {
+    await h.link()
+    await h.click('Banked Resets')
+    const first = h.renderer.root.findDescendantById('opencode-navigator.reset-credit.first')!
+    const second = h.renderer.root.findDescendantById('opencode-navigator.reset-credit.second')!
+    const frame = h.captureCharFrame()
+
+    expect(second.screenY).toBeGreaterThanOrEqual(first.screenY + first.height)
+    expect(frame.match(/Review credit/gu)).toHaveLength(2)
+    expect(frame).toContain('Nothing is used until you confirm')
+    expect(frame).not.toContain(description)
+    expect(frame).toContain('Available')
+    expect(h.consumes()).toBe(0)
+    await h.click('Reset first')
+    expect(h.confirmation().message).toContain(description)
+    expect(h.confirmation().title).toBe('Use one banked reset?')
+    await h.click('Cancel')
+    expect(h.captureCharFrame()).toContain('Reset second')
+    expect(h.consumes()).toBe(0)
+  } finally {
+    h.destroy()
+  }
+})
+
+test('expired reset cards cannot open a consumption confirmation', async () => {
+  const h = await harness({ creditCount: 1, creditDates: { grantedAt: 100, expiresAt: 200 } })
+
+  try {
+    await h.link()
+    await h.click('Banked Resets')
+    expect(h.captureCharFrame()).toContain('Cannot use this credit')
+    await h.click('Synthetic reset')
+    expect(h.captureCharFrame()).not.toContain('Use one banked reset?')
+    expect(h.consumes()).toBe(0)
+  } finally {
+    h.destroy()
+  }
+})
+
+test('reset cards scroll by keyboard inside a narrow short terminal and restore selection on Escape', async () => {
+  const seconds = Date.now() / 1000
+  const h = await harness({
+    width: 50,
+    height: 24,
+    creditCount: 2,
+    credits: ['first', 'second'].map((id) => ({
+      id,
+      type: 'codexRateLimits',
+      status: 'available',
+      title: `Reset ${id}`,
+      grantedAt: seconds - 1000,
+      expiresAt: seconds + 1000,
+    })),
+  })
+
+  try {
+    await h.link()
+    await h.click('Banked Resets')
+    h.mockInput.pressArrow('down')
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Reset second')
+    const card = h.renderer.root.findDescendantById('opencode-navigator.reset-credit.second')!
+
+    expect(card.screenX).toBeGreaterThanOrEqual(0)
+    expect(card.screenX + card.width).toBeLessThanOrEqual(50)
+    h.mockInput.pressEnter()
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Use one banked reset?')
+    h.mockInput.pressEscape()
+    await Bun.sleep(60)
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Reset second')
+    expect(h.consumes()).toBe(0)
+  } finally {
+    h.destroy()
   }
 })
 
@@ -791,17 +895,18 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
     }
 
     expect(lines[header]).toContain('Banked Resets')
-    expect(lines[header]).not.toContain('3')
+    expect(lines[header]).toContain('3 Banked Resets')
     expect(lines[header + 2]).toContain('[OpenAI] Synthetic Codex')
     expect(lines[header + 2]).toContain('·')
     expect(lines[header + 2]).toContain('high')
-    expect(lines[remaining]).toContain('Resets ')
+    expect(lines[remaining]).toContain('Quota remaining')
+    expect(lines[remaining + 3]).toContain('Reset in')
     expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
     expect(
       color(remaining - 1, lines[remaining - 1].indexOf('---')).equals(subtleLineColor('#111111', '#555555')),
     ).toBe(true)
     expect(lines[remaining - 1]).not.toMatch(/[│|]/)
-    expect(color(remaining, lines[remaining].indexOf('Resets')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
+    expect(color(remaining + 3, lines[remaining + 3].indexOf('Reset')).equals(RGBA.fromHex('#aaaaaa'))).toBe(true)
     expect(h.captureCharFrame()).not.toContain('Unlink Codex')
     expect(h.captureCharFrame()).not.toContain('Updated ')
     const refresh = h.renderer.root.findDescendantById('opencode-navigator.limits.refresh') as BoxRenderable
@@ -902,7 +1007,7 @@ test('Limits fills its sidebar content area without painting into the surroundin
     const right = root.screenX + root.width - 2
 
     expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
-    expect(lines[row]).toContain('Resets ')
+    expect(lines[row + 3]).toContain('Reset in')
     expect(lines[row]).not.toContain('Account')
     expect(lines[row - 1].slice(right).trim()).toBe('')
     expect(Bun.stringWidth(lines[row - 1].trimEnd())).toBe(right)

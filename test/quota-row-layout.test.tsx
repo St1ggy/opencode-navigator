@@ -4,7 +4,9 @@ import { testRender } from '@opentui/solid'
 import { expect, test } from 'bun:test'
 import { createSignal } from 'solid-js'
 
+import { quotaColors } from '../src/features/provider-limits/ui/quota-colors'
 import { QuotaWindowGroup } from '../src/features/provider-limits/ui/quota-window-group'
+import { QuotaWindowRow } from '../src/features/provider-limits/ui/quota-window-row'
 import { SectionBoundary } from '../src/pages/session-sidebar/ui/section-boundary'
 import { IconProvider } from '../src/shared/ui'
 
@@ -23,6 +25,65 @@ const window: QuotaWindow = {
 const darkTheme = { text: '#ffffff', textMuted: '#aaaaaa', backgroundPanel: '#111111', borderSubtle: '#555555' }
 const api = { theme: { current: darkTheme } } as unknown as TuiPluginApi
 
+test.each(['nerd', 'text'] as const)(
+  'quota and period scales use independent colors and live time (%s)',
+  async (style) => {
+    const time = 1_800_000_000_000
+    const reset = time / 1000 + 8100
+    const [now, setNow] = createSignal(time)
+    const [remaining, setRemaining] = createSignal(74)
+    const h = await testRender(
+      () => (
+        <IconProvider style={() => style}>
+          <box width={34}>
+            <QuotaWindowRow
+              api={api}
+              now={now()}
+              window={{
+                id: 'synthetic',
+                label: 'Quota',
+                unit: '%',
+                remaining: remaining(),
+                durationMinutes: 10_000 / 60,
+                resetsAt: reset,
+              }}
+            />
+          </box>
+        </IconProvider>
+      ),
+      { width: 40, height: 8 },
+    )
+
+    try {
+      for (const [amount, color] of [
+        [90, darkTheme.textMuted],
+        [74, quotaColors.yellow],
+        [60, quotaColors.orange],
+        [40, quotaColors.red],
+      ] as const) {
+        setRemaining(amount)
+        await h.flush()
+        const lines = h.captureCharFrame().split('\n')
+        const row = lines.findIndex((line) => line.includes(`${amount}% left`))
+        const buffer = h.renderer.currentRenderBuffer
+        const at = (y: number) =>
+          buffer.withBuffers(({ fg }) => new RGBA(fg.slice(y * buffer.width * 4, y * buffer.width * 4 + 4)))
+
+        expect(at(row - 1).equals(RGBA.fromHex(color))).toBe(true)
+        expect(at(row + 1).equals(RGBA.fromHex(quotaColors.blue))).toBe(true)
+        expect(lines[row + 2]).toContain('81%')
+        expect(lines[row + 3]).toContain('Reset in 2h 15m')
+      }
+      setNow(reset * 1000)
+      await h.flush()
+      expect(h.captureCharFrame()).toContain('Reset due; refresh to verify')
+      expect(h.captureCharFrame()).not.toContain('Critical usage pace')
+    } finally {
+      h.renderer.destroy()
+    }
+  },
+)
+
 async function harness(style: 'nerd' | 'text' = 'nerd', windows: readonly QuotaWindow[] = [window], themeApi = api) {
   const [width, setWidth] = createSignal(34)
   const [currentWindows, setWindows] = createSignal(windows)
@@ -37,7 +98,7 @@ async function harness(style: 'nerd' | 'text' = 'nerd', windows: readonly QuotaW
         </box>
       </IconProvider>
     ),
-    { width: 80, height: 8 },
+    { width: 80, height: 22 },
   )
 
   await setup.flush()
@@ -236,8 +297,8 @@ test.each(['nerd', 'text'] as const)(
       const first = lines.findIndex((line) => line.includes('71% left'))
       const second = lines.findIndex((line) => line.includes('26% left'))
 
-      expect(second).toBe(first + 3)
-      expect(lines[first + 1].trim()).toBe('')
+      expect(second).toBe(first + 6)
+      expect(lines[first + 4].trim()).toBe('')
       expect(h.captureCharFrame()).not.toMatch(/[│|]/)
       const sidebar = h.renderer.root.findDescendantById('sidebar') as BoxRenderable
       const left = sidebar.screenX + 3

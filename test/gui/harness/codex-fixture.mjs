@@ -6,6 +6,10 @@ import { createInterface } from 'node:readline'
 const statePath = '/tmp/navigator-synthetic-codex.json'
 const logPath = '/tmp/navigator-synthetic-codex-methods.jsonl'
 const state = existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8')) : { keys: [] }
+const now =
+  process.env.NAVIGATOR_GUI_CAPTURE === '1' ? Date.parse('2026-11-01T12:00:00Z') / 1000 : Math.floor(Date.now() / 1000)
+
+state.resetsAt ??= now + 14_580
 
 createInterface({ input: process.stdin }).on('line', (line) => {
   const request = JSON.parse(line)
@@ -35,7 +39,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
           limitId: 'codex',
           limitName: 'Codex',
           normalModelSlug: null,
-          primary: { usedPercent: state.keys.length > 0 ? 0 : 100, windowDurationMins: 300, resetsAt: 1_900_000_000 },
+          primary: { usedPercent: state.keys.length > 0 ? 0 : 100, windowDurationMins: 300, resetsAt: state.resetsAt },
           secondary: null,
         },
         rateLimitsByLimitId: null,
@@ -46,7 +50,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
                 {
                   id: 'synthetic-expiring',
                   title: 'Expiring credit',
-                  description: null,
+                  description: 'Synthetic provider grant details. This message is available without spending a credit.',
                   resetType: 'codexRateLimits',
                   status: 'available',
                   grantedAt: Date.parse('2026-10-01T12:00:00Z') / 1000,
