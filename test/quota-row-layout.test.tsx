@@ -25,6 +25,11 @@ const window: QuotaWindow = {
 const darkTheme = { text: '#ffffff', textMuted: '#aaaaaa', backgroundPanel: '#111111', borderSubtle: '#555555' }
 const api = { theme: { current: darkTheme } } as unknown as TuiPluginApi
 
+// Astral Nerd Font icons occupy one cell but two UTF-16 code units.
+function frameLines(frame: string) {
+  return frame.replaceAll(/[\u{10000}-\u{10FFFF}]/gu, '?').split('\n')
+}
+
 test.each(['nerd', 'text'] as const)(
   'quota and period scales use independent colors and live time (%s)',
   async (style) => {
@@ -63,15 +68,15 @@ test.each(['nerd', 'text'] as const)(
       ] as const) {
         setRemaining(amount)
         await h.flush()
-        const lines = h.captureCharFrame().split('\n')
-        const row = lines.findIndex((line) => line.includes(`${amount}% left`))
+        const lines = frameLines(h.captureCharFrame())
+        const row = lines.findIndex((line) => line.includes(`${amount}%`))
         const buffer = h.renderer.currentRenderBuffer
         const at = (y: number) =>
           buffer.withBuffers(({ fg }) => new RGBA(fg.slice(y * buffer.width * 4, y * buffer.width * 4 + 4)))
 
-        expect(at(row - 1).equals(RGBA.fromHex(color))).toBe(true)
-        expect(at(row + 1).equals(RGBA.fromHex(quotaColors.blue))).toBe(true)
-        expect(lines[row + 2]).toContain('81%')
+        expect(at(row + 1).equals(RGBA.fromHex(color))).toBe(true)
+        expect(at(row + 2).equals(RGBA.fromHex(quotaColors.blue))).toBe(true)
+        expect(lines[row + 3]).toContain('81%')
         expect(lines[row + 3]).toContain('Reset in 2h 15m')
       }
       setNow(reset * 1000)
@@ -137,14 +142,14 @@ test.each(['nerd', 'text'] as const)(
       expect(h.rows()[0].num).toBe(rows[1].num)
       expect(h.rows()[1].num).toBe(rows[0].num)
       await h.flush()
-      expect(h.captureCharFrame()).toContain('25% left')
-      expect(h.captureCharFrame()).toContain('50% left')
+      expect(h.captureCharFrame()).toContain('25%')
+      expect(h.captureCharFrame()).toContain('50%')
       h.setWidth(26)
       await h.flush()
       await h.flush()
       expect(h.rows()[0].num).toBe(rows[1].num)
       expect(h.rows()[0].width).toBe(21)
-      expect(h.captureCharFrame()).toContain('25% left')
+      expect(h.captureCharFrame()).toContain('25%')
       h.setWindows([{ ...window, id: 'replacement' }])
       await h.flush()
       expect(h.rows()).toHaveLength(1)
@@ -166,28 +171,28 @@ test.each(['nerd', 'text'] as const)(
 
     try {
       const sidebar = h.renderer.root.findDescendantById('sidebar') as BoxRenderable
-      const lines = h.captureCharFrame().split('\n')
-      const row = lines.findIndex((line) => line.includes('71% left'))
+      const lines = frameLines(h.captureCharFrame())
+      const row = lines.findIndex((line) => line.includes('71%'))
       const left = sidebar.screenX + 3
       const right = sidebar.screenX + sidebar.width - 2
 
-      expect(lines[row].slice(left, right)).toContain('71% left')
+      expect(lines[row].slice(left, right)).toContain('71%')
       expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
-      expect(lines[row].slice(right - 8, right)).toBe('71% left')
-      expect(lines[row - 1].slice(left, right)).toMatch(style === 'nerd' ? /^[━─]+$/ : /^[=-]+$/)
+      expect(lines[row].slice(right - 3, right)).toBe('71%')
+      expect(lines[row + 1].slice(left, right)).toMatch(style === 'nerd' ? /^[━─]+$/ : /^[=-]+$/)
       expect(h.captureCharFrame()).not.toMatch(/[│|]/)
-      expect(lines[row - 1]).not.toMatch(/[[\]█░#]/)
-      expect(lines[row - 1].slice(right).trim()).toBe('')
+      expect(lines[row + 1]).not.toMatch(/[[\]█░#]/)
+      expect(lines[row + 1].slice(right).trim()).toBe('')
       expect(lines[row]).not.toContain('Account')
       expect(lines[row]).not.toContain('1w')
-      const offset = (row * h.renderer.currentRenderBuffer.width + right - 8) * 4
+      const offset = (row * h.renderer.currentRenderBuffer.width + right - 3) * 4
 
       expect(
         h.renderer.currentRenderBuffer
           .withBuffers(({ fg }) => new RGBA(fg.slice(offset, offset + 4)))
           .equals(RGBA.fromHex('#ffffff')),
       ).toBe(true)
-      const muted = ((row - 1) * h.renderer.currentRenderBuffer.width + left) * 4
+      const muted = ((row + 1) * h.renderer.currentRenderBuffer.width + left) * 4
 
       expect(
         h.renderer.currentRenderBuffer
@@ -209,15 +214,15 @@ test('quota lines recompute their scale on shrink and growth without painting ou
       await h.flush()
       // Width-dependent text follows the parent layout pass.
       await h.flush()
-      const lines = h.captureCharFrame().split('\n')
-      const row = lines.findIndex((line) => line.includes('71% left'))
+      const lines = frameLines(h.captureCharFrame())
+      const row = lines.findIndex((line) => line.includes('71%'))
       const right = 7 + width - 2
 
       expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
       expect(lines[row].slice(right).trim()).toBe('')
-      expect(lines[row].slice(right - 8, right)).toBe('71% left')
-      expect(lines[row - 1].slice(right).trim()).toBe('')
-      expect(Bun.stringWidth(lines[row - 1].trimEnd())).toBe(right)
+      expect(lines[row].slice(right - 3, right)).toBe('71%')
+      expect(lines[row + 1].slice(right).trim()).toBe('')
+      expect(Bun.stringWidth(lines[row + 1].trimEnd())).toBe(right)
     }
   } finally {
     h.renderer.destroy()
@@ -244,11 +249,11 @@ test.each(['nerd', 'text'] as const)(
       ]) {
         setTheme(palette)
         await h.flush()
-        const lines = h.captureCharFrame().split('\n')
-        const details = lines.findIndex((line) => line.includes('71% left'))
-        const unfilled = lines[details - 1].lastIndexOf(style === 'nerd' ? '─' : '-')
-        const filled = lines[details - 1].indexOf(style === 'nerd' ? '━' : '=')
-        const divider = lines.findIndex((line, row) => row > details && line.includes('─'))
+        const lines = frameLines(h.captureCharFrame())
+        const details = lines.findIndex((line) => line.includes('71%'))
+        const unfilled = lines[details + 1].lastIndexOf(style === 'nerd' ? '─' : '-')
+        const filled = lines[details + 1].indexOf(style === 'nerd' ? '━' : '=')
+        const divider = lines.findIndex((line, row) => row > details + 3 && line.includes('─'))
         const buffer = h.renderer.currentRenderBuffer
         const color = (row: number, column: number) => {
           const offset = (row * buffer.width + column) * 4
@@ -258,9 +263,9 @@ test.each(['nerd', 'text'] as const)(
 
         expect(unfilled).toBeGreaterThan(filled)
         expect(divider).toBeGreaterThan(details)
-        expect(color(details - 1, unfilled).equals(color(divider, lines[divider].indexOf('─')))).toBe(true)
-        expect(color(details - 1, unfilled).equals(RGBA.fromHex(palette.textMuted))).toBe(false)
-        expect(color(details - 1, filled).equals(RGBA.fromHex(palette.textMuted))).toBe(true)
+        expect(color(details + 1, unfilled).equals(color(divider, lines[divider].indexOf('─')))).toBe(true)
+        expect(color(details + 1, unfilled).equals(RGBA.fromHex(palette.textMuted))).toBe(false)
+        expect(color(details + 1, filled).equals(RGBA.fromHex(palette.textMuted))).toBe(true)
         expect(color(details, lines[details].indexOf('71%')).equals(RGBA.fromHex(palette.text))).toBe(true)
       }
     } finally {
@@ -275,13 +280,12 @@ test('reset text is clipped at the padded sidebar edge even when the terminal is
   try {
     h.setWidth(26)
     await h.flush()
-    const lines = h.captureCharFrame().split('\n')
-    const row = lines.findIndex((line) => line.includes('71% left'))
+    const lines = frameLines(h.captureCharFrame())
+    const row = lines.findIndex((line) => line.includes('71%'))
 
     expect(lines[row].slice(7 + 26 - 2).trim()).toBe('')
-    expect(lines[row].trimEnd()).toEndWith('71% left')
-    expect(lines[row].slice(10, 23).trim()).not.toContain('71%')
-    expect(lines[row].slice(10, 23)).toContain('...')
+    expect(lines[row].trimEnd()).toEndWith('71%')
+    expect(lines[row + 3].slice(7 + 26 - 2).trim()).toBe('')
   } finally {
     h.renderer.destroy()
   }
@@ -293,18 +297,18 @@ test.each(['nerd', 'text'] as const)(
     const h = await harness(style, [window, { ...window, id: 'second', used: 74 }])
 
     try {
-      const lines = h.captureCharFrame().split('\n')
-      const first = lines.findIndex((line) => line.includes('71% left'))
-      const second = lines.findIndex((line) => line.includes('26% left'))
+      const lines = frameLines(h.captureCharFrame())
+      const first = lines.findIndex((line) => line.includes('71%'))
+      const second = lines.findIndex((line) => line.includes('26%'))
 
-      expect(second).toBe(first + 6)
+      expect(second).toBe(first + 5)
       expect(lines[first + 4].trim()).toBe('')
       expect(h.captureCharFrame()).not.toMatch(/[│|]/)
       const sidebar = h.renderer.root.findDescendantById('sidebar') as BoxRenderable
       const left = sidebar.screenX + 3
 
-      expect(lines[first - 1][left]).toBe(style === 'nerd' ? '━' : '=')
-      expect(lines[second - 1][left]).toBe(style === 'nerd' ? '━' : '=')
+      expect(lines[first + 1][left]).toBe(style === 'nerd' ? '━' : '=')
+      expect(lines[second + 1][left]).toBe(style === 'nerd' ? '━' : '=')
     } finally {
       h.renderer.destroy()
     }
@@ -320,11 +324,11 @@ test('unknown scales and long native measurements stay inside extremely narrow c
     await h.flush()
     const sidebar = h.renderer.root.findDescendantById('sidebar') as BoxRenderable
     const right = sidebar.screenX + sidebar.width - 2
-    const lines = h.captureCharFrame().split('\n')
+    const lines = frameLines(h.captureCharFrame())
 
     for (const line of lines) expect(line.slice(right).trim()).toBe('')
-    expect(lines[1].trimStart()).toStartWith('1234')
-    expect(lines[1].trimEnd()).not.toContain('Resets')
+    expect(lines[0].trimStart()).toStartWith('1234')
+    expect(lines[0].trimEnd()).not.toContain('Resets')
   } finally {
     h.renderer.destroy()
   }

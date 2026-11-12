@@ -698,7 +698,11 @@ least the remaining share of the period. It turns yellow below that pace, orange
 at a 15-percentage-point deficit, and red at 30 points. This comparison is a pace
 indicator, not a forecast. It requires a provider-supplied reset time and window
 duration; missing duration is shown as unknown rather than inferred from a label.
-The reset countdown updates locally without extra quota requests. An elapsed
+The two scales sit together, with the quota value above and one reset-time row
+below. Activate the swap-icon row to alternate between the relative countdown
+and absolute reset date/time; use Enter on the focused TUI row or Enter/Space on
+the Desktop button. Changing the display does not refresh the provider. The
+reset countdown updates locally without extra quota requests. An elapsed
 window stays due until a provider refresh confirms the next one. Native credit
 balances retain their units; the Banked Resets action shows its separate available
 reset-credit count.

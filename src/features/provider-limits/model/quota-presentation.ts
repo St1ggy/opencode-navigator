@@ -41,9 +41,14 @@ export function quotaPresentation(window: QuotaWindow, now = Date.now()) {
 
   return {
     value: measurement(window, remaining),
+    compactValue:
+      window.unit === '%' && ratio !== undefined ? `${Math.round(ratio * 100)}%` : measurement(window, remaining),
     ratio,
     reset,
     resetSummary,
+    canToggleReset: reset.startsWith('Resets '),
+    relativeReset: period.ratio === undefined ? `${period.countdown} · ${period.detail}` : period.countdown,
+    absoluteReset: period.ratio === undefined ? `${reset} · ${period.detail}` : reset,
     period,
     pace,
     paceLabel: quotaPaceLabels[pace],

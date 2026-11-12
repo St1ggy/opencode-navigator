@@ -1,3 +1,5 @@
+import { Show } from 'solid-js'
+
 import { SelectionBox } from '../../../shared/ui'
 
 import { useSidebarItem } from './sidebar-item'
@@ -17,6 +19,8 @@ export function LimitsAction(props: {
   inline?: boolean
   flexGrow?: number
   maxWidth?: number
+  trailingLabel?: string
+  fullWidth?: boolean
 }) {
   const item = useSidebarItem(
     props.api,
@@ -36,6 +40,8 @@ export function LimitsAction(props: {
       ref={(node: BoxRenderable) => item.ref(node)}
       id={props.id}
       height={1}
+      width={props.fullWidth ? '100%' : undefined}
+      flexDirection="row"
       flexGrow={props.flexGrow}
       maxWidth={props.maxWidth}
       flexShrink={1}
@@ -48,9 +54,14 @@ export function LimitsAction(props: {
         item.activate(event)
       }}
     >
-      <text fg={item.foregroundColor()} wrapMode="none" truncate>
+      <text fg={item.foregroundColor()} flexGrow={1} minWidth={0} wrapMode="none" truncate>
         {props.label}
       </text>
+      <Show when={props.trailingLabel}>
+        <text fg={item.foregroundColor()} flexShrink={0}>
+          {props.trailingLabel}
+        </text>
+      </Show>
     </SelectionBox>
   )
 }

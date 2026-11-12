@@ -1,9 +1,58 @@
-export function GuiQuotaMeter(props: { label: string; value: string; ratio?: number; color: string; name: string }) {
+import { type JSX, Show } from 'solid-js'
+
+export function GuiQuotaMeter(props: {
+  label: string
+  value: string
+  ratio?: number
+  color: string
+  name: string
+  icon?: JSX.Element
+  labelAbove?: boolean
+  row?: JSX.Element
+}) {
   return (
-    <div style={{ display: 'grid', gap: '6px', 'min-width': '0' }}>
-      <div style={{ display: 'flex', gap: '8px', 'justify-content': 'space-between', 'font-size': '12px' }}>
-        <span style={{ overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>{props.label}</span>
-        <span style={{ 'flex-shrink': '0' }}>{props.value}</span>
+    <div
+      style={{
+        display: 'flex',
+        'flex-direction': props.labelAbove ? 'column' : 'column-reverse',
+        gap: '6px',
+        'min-width': '0',
+      }}
+    >
+      <div
+        data-navigator-quota-label
+        style={{
+          display: 'flex',
+          gap: '8px',
+          'align-items': 'center',
+          'justify-content': 'space-between',
+          'font-size': '12px',
+          'min-width': '0',
+        }}
+      >
+        <Show
+          when={props.row}
+          fallback={
+            <>
+              {props.icon}
+              <span
+                title={props.label}
+                style={{
+                  flex: '1',
+                  'min-width': '0',
+                  overflow: 'hidden',
+                  'text-overflow': 'ellipsis',
+                  'white-space': 'nowrap',
+                }}
+              >
+                {props.label}
+              </span>
+              <span style={{ 'flex-shrink': '0', 'font-variant-numeric': 'tabular-nums' }}>{props.value}</span>
+            </>
+          }
+        >
+          {props.row}
+        </Show>
       </div>
       <div
         role="meter"

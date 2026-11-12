@@ -1,9 +1,10 @@
-import { createSignal } from 'solid-js'
+import { Show, createSignal } from 'solid-js'
 
 import { subtleLineColor, useIcons } from '../../../shared/ui'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { BoxRenderable, RGBA } from '@opentui/core'
+import type { JSX } from 'solid-js'
 
 export function QuotaMeter(props: {
   api: TuiPluginApi
@@ -11,6 +12,9 @@ export function QuotaMeter(props: {
   value: string
   ratio?: number
   color: string | RGBA
+  labelAbove?: boolean
+  row?: JSX.Element
+  onActivate?: () => void
 }) {
   const icons = useIcons()
   const [columns, setColumns] = createSignal(0)
@@ -30,6 +34,7 @@ export function QuotaMeter(props: {
       width="100%"
       minWidth={0}
       height={2}
+      flexDirection={props.labelAbove ? 'column-reverse' : 'column'}
       overflow="hidden"
       onSizeChange={function (this: BoxRenderable) {
         setColumns(this.width)
@@ -43,28 +48,44 @@ export function QuotaMeter(props: {
           {scale().unfilled}
         </span>
       </text>
-      <box width="100%" height={1} flexDirection="row" overflow="hidden">
-        <text
-          width={Math.max(0, columns() - valueWidth() - gap())}
-          minWidth={0}
-          height={1}
-          fg={props.api.theme.current.textMuted}
-          wrapMode="none"
-          truncate
-        >
-          {props.label}
-        </text>
-        <text
-          width={valueWidth()}
-          height={1}
-          marginLeft={gap()}
-          fg={props.api.theme.current.text}
-          wrapMode="none"
-          truncate
-        >
-          {props.value}
-        </text>
-      </box>
+      <Show
+        when={props.row}
+        fallback={
+          <box
+            width="100%"
+            height={1}
+            flexDirection="row"
+            overflow="hidden"
+            onMouseUp={(event) => {
+              event.stopPropagation()
+              props.onActivate?.()
+            }}
+          >
+            <text
+              width={Math.max(0, columns() - valueWidth() - gap())}
+              minWidth={0}
+              height={1}
+              fg={props.api.theme.current.textMuted}
+              wrapMode="none"
+              truncate
+            >
+              {props.label}
+            </text>
+            <text
+              width={valueWidth()}
+              height={1}
+              marginLeft={gap()}
+              fg={props.api.theme.current.text}
+              wrapMode="none"
+              truncate
+            >
+              {props.value}
+            </text>
+          </box>
+        }
+      >
+        {props.row}
+      </Show>
     </box>
   )
 }

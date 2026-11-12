@@ -46,7 +46,7 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   if (!(await limits.getByRole('button', { name: 'Refresh', exact: true }).isVisible()))
     throw new Error('Removing quota prose hid Refresh')
 
-  await limits.getByText(/left$/u).first().waitFor()
+  await limits.getByRole('meter').first().waitFor()
   const quotaWindow = limits.locator('[data-navigator-quota-window]').first()
   const timeMeter = quotaWindow.getByRole('meter', { name: /^Time remaining/u })
   const timeRemaining = Number(await timeMeter.getAttribute('aria-valuenow'))
@@ -58,6 +58,18 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
     (await quotaWindow.getAttribute('data-pace')) !== 'red'
   )
     throw new Error('Native provider duration/reset did not produce the two quota/time scales')
+
+  const resetTime = quotaWindow.getByRole('button')
+  const readsBeforeToggle = await readFile('/tmp/navigator-synthetic-codex-methods.jsonl', 'utf8')
+
+  await resetTime.click()
+  await resetTime.getByText(/^Resets /u).waitFor()
+  await resetTime.focus()
+  await page.keyboard.press('Enter')
+  await resetTime.getByText(/^Reset in /u).waitFor()
+
+  if ((await readFile('/tmp/navigator-synthetic-codex-methods.jsonl', 'utf8')) !== readsBeforeToggle)
+    throw new Error('Switching the reset-time display issued a provider request')
 
   await assertNoConfigurationError(page)
   await captureGui(panel, '18-desktop-limits')
