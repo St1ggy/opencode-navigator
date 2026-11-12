@@ -40,6 +40,12 @@
 
 ## Shared Models And Desktop GUI
 
+- Add the banked-reset expiry progress treatment to TUI as well as GUI, using the shared provider-supplied grant/expiry model, readable remaining time and explicit missing/invalid-date states. Preserve confirmed credit consumption, stale-account guards, retries and idempotency; never imply that an undated credit is non-expiring.
+- Use public native Desktop Switch controls for MCP connection actions instead of imitated radio/status toggles. Keep individual and whole-group semantics, pending/disabled/error handling, exact server identity, bookmarks and separate error information; retain the established TUI indicators.
+- Simplify Navigator Desktop Settings into task-oriented tabs comparable to the host Extensions pages while preserving every existing capability, scope, drafts, dialogs, keyboard access and native controls. Audit public host tab/navigation contracts before choosing a fallback; do not patch host DOM or import private UI modules.
+- Use the host Todo filter tabs and Extensions MCP/Plugins/Skills tabs as the visual references for Desktop tab navigation. Distinguish visible native host tabs from components actually exported to plugins; verify their implementation before claiming that a native tab option is unavailable.
+- The follow-up after 0.27.3 was implemented and verified locally, and PR #36 was reviewed; the user subsequently authorized posting the agreed single plain comment. On 2026-11-12, the user authorized splitting the current changes into thematic commits, pushing and publishing the next patch release after Prepare Release, merged screenshot PR and CI gates. This does not authorize updating installed Navigator/OpenCode or changing any existing PR comment/review issue status. PR #36 itself must remain unmodified.
+
 - Use the host's public GUI UI-kit components for Navigator switches, inputs, buttons, selectors and other controls so they match the surrounding Desktop application; do not imitate host controls with independently styled HTML where an equivalent public component exists.
 - Apply native UI-kit alignment across the entire Desktop Navigator surface, including section disclosure, tabs, dialogs, headings, icons, focus/hover/disabled states and settings composition. Audit public host equivalents before retaining custom presentation; keep custom layout or controls only for verified public-API gaps, without changing TUI presentation or using host internals.
 - Show a banked-reset expiry progress bar using provider-supplied grant and expiry timestamps, with readable remaining time and explicit missing-date states instead of fabricated progress or an unsupported claim that a credit never expires.
@@ -134,11 +140,11 @@
 - Search full source lists independently of sidebar visibility and item limits. Background updates must preserve row identity, selection, scroll, and cached results.
 - Enabling or disabling MCP from Search Everything must not close the dialog, including on failure. Keep the query and current view in place.
 - Guard session/workspace-specific operations against stale targets.
-- MCP on/off indicators look like radio buttons. MCP favorites use the compact filled/outlined bookmark pair that fits a terminal cell.
+- TUI MCP on/off indicators look like radio buttons; Desktop connection actions use native Switch controls. MCP favorites use the compact filled/outlined bookmark pair that fits a terminal cell.
 - Failed MCP rows expose a dedicated information control instead of rendering the error inline; it opens a scrollable dialog with the server, status, and full error text.
 - MCP custom groups are user-wide, assign at most one group per exact server name, keep favorites in a leading bucket, sort named groups and their servers alphabetically, and retain assignments for servers absent from the current workspace.
 - Let users activate any sidebar MCP group heading (including Favorites and Ungrouped) by mouse or keyboard to connect its remaining eligible members, or disconnect its connected members when none need connecting. Affect the full bucket regardless of the current filter or item limit, keep preset and scope guards, and reuse bulk progress, failure, and retry handling.
-- Show no Connect/Disconnect action text on MCP group headings. Give their single status icon the same meaning, glyph, color, and pending behavior as an individual MCP server: filled only when all members are connected, empty when any needs connecting, and pending while the group changes. Keep the heading interactive and derive its state from the full bucket rather than the visible subset.
+- Show no Connect/Disconnect action text on MCP group headings. In TUI, give their single status icon the same meaning, glyph, color, and pending behavior as an individual MCP server: filled only when all members are connected, empty when any needs connecting, and pending while the group changes. In Desktop, use a native group Switch with the same all-connected/missing-members semantics and explicit pending/disabled feedback. Keep the heading interactive and derive state from the full bucket rather than the visible subset.
 - MCP group assignment must offer existing groups as selectable options while retaining an input for creating a new group.
 - For local MCP cleanup, remove retired integrations from effective host configuration and private Navigator state while preserving source repositories unless explicitly requested. Keep remaining user-wide groups compact and leave favorites and unrelated settings intact.
 - Treat the local dev-team CLI and MCP deepagent as separate integrations; removing dev-team must leave deepagent available.
@@ -210,6 +216,9 @@
 - Every tracked repository file must be English-only and contain no Cyrillic text. The ignored local/internal `ARTICLE-ATUSHKA.md` is exempt and may remain in Russian.
 
 ## Toolchain and verification
+
+- Require all seven current CI contexts before merging into main: check, both supported TUI-host smokes, headless boundaries/lifecycle contracts, corner-font reproducibility, and both packaged Desktop modes. Bind required checks to GitHub Actions, require an up-to-date base and keep this CI ruleset free of bypass actors. Keep contexts synchronized when host matrix versions or job names change.
+- Require @St1ggy as the sole code owner for all files and an approving code-owner review through a separate main-branch review ruleset. The user selected GitHub's native owner-only pull-request review bypass for merging their own PRs rather than a custom author-sensitive check. GitHub also technically permits that same user to bypass review on another author's PR; do not describe this as a strict author-based exemption. No other actor may bypass review, and nobody may bypass the separate CI ruleset. Do not enable stale-review dismissal or automatic review-thread resolution without a separate request; preserve existing review/comment statuses.
 
 - Keep `packageManager` pinned to the latest available stable Bun release when updating the local Bun toolchain.
 - Use the latest stable `@st1ggy/linter-config` with its `solid-ox` and `oxfmt-common` presets. Run Oxlint with type-aware analysis and Oxfmt for formatting; explain project-specific exceptions in `oxlint.config.ts` and retain deliberate formatter exclusions in `oxfmt.config.ts`.

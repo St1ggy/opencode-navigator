@@ -38,6 +38,22 @@ display, not Ghostty. All accounts, sources and session data are synthetic.
 
 ![Production progress indicators with synthetic byte totals and opaque install stages](gui/31-desktop-update-stages.png)
 
+![Native MCP switches, mixed group state and separate error information](gui/32-desktop-mcp-switches.png)
+
+![Desktop Layout settings](gui/33-desktop-settings-layout.png)
+
+![Desktop Behavior settings](gui/33-desktop-settings-behavior.png)
+
+![Desktop Quick Actions settings](gui/33-desktop-settings-quick-actions.png)
+
+![Desktop Skill groups and trust settings](gui/33-desktop-settings-skills.png)
+
+![Desktop MCP group settings](gui/33-desktop-settings-mcp.png)
+
+![Desktop presets and portable profiles](gui/33-desktop-settings-presets.png)
+
+![Desktop About and bundled release history](gui/33-desktop-settings-about.png)
+
 ![Explicit account linking](gui/quota-17-desktop-account-link.png)
 
 ![Account-scoped provider quota](gui/quota-18-desktop-limits.png)
@@ -50,7 +66,7 @@ display, not Ghostty. All accounts, sources and session data are synthetic.
 
 ![Editable Bug report](gui/05-desktop-bug-report.png)
 
-Browse [all 31 Desktop states](gui/) for onboarding, toolbar customization,
+Browse [all Desktop states](gui/) for onboarding, toolbar customization,
 portable import and project/workspace profiles.
 
 The gallery includes About current,

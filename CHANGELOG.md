@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.4] - 2026-11-12
+
+- Show banked-reset expiry progress in the terminal, with readable remaining time and explicit missing or invalid dates. Keep credit use separately confirmed.
+- Use native Desktop switches for individual MCP connections, whole groups and Search Everything results, with pending feedback and separate error information.
+- Split Desktop Settings into Layout, Behavior, Quick Actions, Skills, MCP, Presets and About categories. Keep scoped preferences, existing actions and unsaved drafts when switching categories.
+- Move between Desktop category buttons with Left/Right from the currently focused button, even when it is not the selected category.
+
 ## [0.27.3] - 2026-11-12
 
 - Keep the Desktop session title on its own full-width row in both the panel and floating mini-window, with readable wrapping instead of squeezing it between action labels.

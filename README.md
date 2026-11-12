@@ -309,9 +309,14 @@ contains independent TUI, server, RPC and GUI entries.
   Familiar actions use native icon buttons with tooltips and accessible names;
   account linking, Banked Resets and other ambiguous operations retain text.
 - **Navigator settings** opens native Settings with Global/Worktree scope,
-  section controls, groups, trust, presets, portable/project profiles, About,
-  release history and reviewed Bug reports. **Reload preferences** imports
+  categories for Layout, Behavior, Quick Actions, Skills, MCP, Presets and About.
+  Groups, trust, portable/project profiles, release history and reviewed Bug
+  reports remain available. Category changes preserve unsaved drafts; Left/Right
+  navigates the category buttons. **Reload preferences** imports
   changes from other local Navigator instances explicitly.
+- MCP connections use native switches for individual servers and whole groups,
+  including members hidden by filters. Pending operations disable duplicate changes;
+  connection errors remain available through a separate information action.
 - Reorder sections, Quick Actions, toolbar pins and button icons by dragging
   their handles. With the keyboard, focus a handle, press Space, use Up/Down,
   then press Space to drop or Escape to cancel. Icon changes remain drafts until saved.
@@ -330,6 +335,8 @@ contains independent TUI, server, RPC and GUI entries.
 - Provider quotas retain verified account scope. Local Codex access requires a
   verified same-machine connection; a remote session never borrows its credentials
   or private binding. Banked resets always require separate confirmation.
+  Both terminal and Desktop credit lists show provider-dated expiry progress and
+  readable remaining time. Missing or invalid dates never imply an unlimited lifetime.
   Successful quota reads show only their update time above the data; account/model
   scope remains in the quota model rather than a persistent explanatory sentence.
   Model and reasoning-effort selection stays in the native chat controls, not
@@ -344,7 +351,7 @@ Linux ARM64 Desktop package on Xvfb. Native macOS/Windows, browser Web and multi
 live Desktop windows are not claimed as real-host verification targets. Local,
 remote and multi-consumer guards have separate synthetic contract tests.
 See [Host API boundaries](HOST_API.md) for the native command-palette limitation.
-The manual Prepare Release workflow generated and byte-verified all 31 GUI
+The manual Prepare Release workflow generates and byte-verifies the GUI
 captures using the real Desktop renderer on a virtual display. The terminal
 gallery above is rendered separately through Ghostty.
 
@@ -355,6 +362,10 @@ gallery above is rendered separately through Ghostty.
 ![Production Todo rows with four synthetic task states](screenshots/gui/30-desktop-todo-states.png)
 
 ![Production update indicators with synthetic transfer and installation stages](screenshots/gui/31-desktop-update-stages.png)
+
+![Desktop Settings categories and scoped behavior controls](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/gui/33-desktop-settings-behavior.png)
+
+![Native Desktop MCP connection switches and separate error information](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/gui/32-desktop-mcp-switches.png)
 
 ![Desktop layout preview with a separate Apply action](screenshots/gui/07-desktop-layout-preview.png)
 
