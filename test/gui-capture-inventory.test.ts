@@ -1,6 +1,15 @@
 import { expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 
+test('isolated packaged Desktop blocks the live updater without masking host chrome', () => {
+  const source = readFileSync('test/gui/harness/run.mjs', 'utf8')
+
+  expect(source).toContain('--host-resolver-rules=MAP opencode.ai ~NOTFOUND')
+  expect(source).toContain('Isolated Desktop unexpectedly reached the live host update service')
+  expect(source).toContain("OPENCODE_DISABLE_AUTOUPDATE: 'true'")
+  expect(source).not.toContain('--host-resolver-rules=MAP *')
+})
+
 test('reviewed Desktop capture inventory includes MCP switches and every Settings category', () => {
   const source = readFileSync('scripts/capture-gui-screenshots.mjs', 'utf8')
 

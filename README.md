@@ -3,13 +3,14 @@
 [![GitHub Release](https://img.shields.io/github/v/release/St1ggy/opencode-navigator?display_name=tag&label=release)](https://github.com/St1ggy/opencode-navigator/releases/latest)
 [![CI: tests, builds, types, lint and host smokes](https://github.com/St1ggy/opencode-navigator/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/St1ggy/opencode-navigator/actions/workflows/ci.yml)
 [![Publish](https://github.com/St1ggy/opencode-navigator/actions/workflows/publish.yml/badge.svg?event=release)](https://github.com/St1ggy/opencode-navigator/actions/workflows/publish.yml)
-[![Unit coverage](https://img.shields.io/codecov/c/github/St1ggy/opencode-navigator/main?label=unit%20coverage)](https://app.codecov.io/gh/St1ggy/opencode-navigator)
 [![License](https://img.shields.io/github/license/St1ggy/opencode-navigator)](LICENSE)
 
 [![OpenCode 1.x compatibility](https://img.shields.io/badge/OpenCode%201.x-1.19.5-4c8bf5)](#installation)
 [![OpenCode 2.x compatibility](https://img.shields.io/badge/OpenCode%202.x-2.2.6-4c8bf5)](#installation)
 [![Desktop experimental](https://img.shields.io/badge/Desktop-experimental-orange)](#experimental-opencode-desktop)
 [![Monthly npm downloads](https://img.shields.io/npm/dm/opencode-navigator?label=npm%20downloads%2Fmonth)](https://www.npmjs.com/package/opencode-navigator)
+
+[Unit coverage reports](https://github.com/St1ggy/opencode-navigator/actions/workflows/ci.yml)
 
 Search, navigate, and manage OpenCode sessions from the TUI, with an experimental
 OpenCode Desktop interface. Navigator combines
@@ -1163,13 +1164,11 @@ dependencies and packaged-host smoke runs. These Bun LCOV reports do not provide
 branch coverage. The separate host checks remain mandatory. Coverage is
 reporting-only; no minimum threshold or additional status gate is enabled.
 
-CI retains the reports as the `unit-coverage` artifact and adds the line summary
-to the job summary. Only successful `main` push checks upload to Codecov, using
-GitHub OIDC in a separate job; PR/review jobs keep read-only repository permissions
-and never receive the upload permission. Codecov comments and additional coverage
-status gates are disabled. The coverage badge stays unknown until Codecov accepts
-the first report; repository activation in Codecov may be required. No Codecov
-token is stored in this repository.
+CI retains the reports for 14 days as the `unit-coverage` artifact and adds the
+line summary to the check job's summary on pushes, pull requests and submitted
+reviews. The coverage link above opens those CI runs; it is not a separate
+pass/fail or percentage badge. No external coverage account, upload token,
+OIDC permission or automated PR comment is needed.
 
 `bun run screenshots` builds a pinned Linux ARM64 image and captures the real TUI
 through Ghostty on Xvfb. The image includes the bundled corner font and a pinned
