@@ -20,36 +20,28 @@ export function createV2UI(context: Plugin.Context, api: () => TuiPluginApi) {
     const generation = dialogGeneration
 
     async function confirm() {
-      let result: ReturnType<typeof context.ui.dialog.confirm>
-
       // The native promise dialog replaces this component; that unmount is not cancellation.
       handingOff = true
       try {
-        result = context.ui.dialog.confirm({ title: props.title, message: props.message })
+        return context.ui.dialog.confirm({ title: props.title, message: props.message })
       } finally {
         handingOff = false
       }
-      const confirmed = await result
-
-      if (generation !== dialogGeneration || api().lifecycle.signal.aborted) return
-
-      dialogOpen = false
-
-      if (confirmed) props.onConfirm?.()
-      else props.onCancel?.()
     }
     onMount(() => {
-      void confirm().catch(() => {
-        if (
-          generation !== dialogGeneration ||
-          api().lifecycle.signal.aborted ||
-          context.keymap.mode.current() === 'modal'
-        )
-          return
+      void confirm()
+        .catch(() => false)
+        .then((confirmed) => {
+          if (generation !== dialogGeneration || api().lifecycle.signal.aborted) return
 
-        dialogOpen = false
-        props.onCancel?.()
-      })
+          dialogOpen = false
+
+          // Undefined also means replacement. A still-active host modal must keep ownership.
+          if (context.keymap.mode.current() === 'modal') return
+
+          if (confirmed) props.onConfirm?.()
+          else props.onCancel?.()
+        })
     })
 
     return <box />

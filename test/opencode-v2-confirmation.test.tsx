@@ -6,8 +6,8 @@ import { Show, createSignal } from 'solid-js'
 import { createV2UI } from '../src/app/opencode-v2/ui-adapter'
 import { createDialogStack } from '../src/shared/ui/dialog/dialog-stack'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 import type { JSX } from 'solid-js'
 
 async function harness() {
@@ -23,6 +23,7 @@ async function harness() {
     setRender(() => next)
   }
   const context = {
+    keymap: { mode: { current: () => (render() ? 'modal' : 'base') } },
     ui: {
       dialog: {
         show,
@@ -88,7 +89,14 @@ async function harness() {
     cancellations: () => cancellations,
     finish(value: boolean | undefined) {
       settle?.(value)
-      show()
+
+      if (close === settle) show()
+    },
+    escape: () => show(),
+    replaceExternally(result?: boolean) {
+      if (result !== undefined) settle?.(result)
+
+      show(() => <text>External host dialog</text>)
     },
   }
 }
@@ -113,6 +121,71 @@ test.each([true, false, undefined])('native confirmation delivers %s after repla
   }
 })
 
+test.each([
+  [true, undefined],
+  [false, undefined],
+  [true, true],
+  [false, true],
+  [true, false],
+  [false, false],
+] as const)(
+  'external replacement preserves its dialog with parent frame %s after result %s',
+  async (parent, result) => {
+    const h = await harness()
+
+    try {
+      if (parent) {
+        h.dialogs.open(() => <text>Previous screen</text>)
+        await h.flush()
+      }
+
+      h.open()
+      await h.flush()
+      expect(h.captureCharFrame()).toContain('Native confirmation')
+      h.replaceExternally(result)
+      await h.flush()
+      expect(h.confirmations()).toBe(0)
+      expect(h.cancellations()).toBe(0)
+      expect(h.captureCharFrame()).toContain('External host dialog')
+      expect(h.captureCharFrame()).not.toContain('Previous screen')
+      expect(h.api.ui.dialog.open).toBe(false)
+    } finally {
+      h.renderer.destroy()
+    }
+  },
+)
+
+test.each([
+  [true, 'Escape'],
+  [false, 'Escape'],
+  [true, 'Cancel'],
+  [false, 'Cancel'],
+] as const)('native confirmation with parent frame %s returns on %s', async (parent, action) => {
+  const h = await harness()
+
+  try {
+    if (parent) {
+      h.dialogs.open(() => <text>Previous screen</text>)
+      await h.flush()
+    }
+
+    h.open()
+    await h.flush()
+
+    if (action === 'Escape') h.escape()
+    else h.finish(false)
+
+    await h.flush()
+    expect(h.confirmations()).toBe(0)
+    expect(h.cancellations()).toBe(1)
+    expect(h.captureCharFrame()).not.toContain('Native confirmation')
+    expect(h.captureCharFrame().includes('Previous screen')).toBe(parent)
+    expect(h.api.ui.dialog.open).toBe(parent)
+  } finally {
+    h.renderer.destroy()
+  }
+})
+
 test.each(['replace', 'clear', 'dispose'])('native confirmation ignores results after %s', async (action) => {
   const h = await harness()
 
@@ -128,6 +201,8 @@ test.each(['replace', 'clear', 'dispose'])('native confirmation ignores results 
     await h.flush()
     expect(h.confirmations()).toBe(0)
     expect(h.cancellations()).toBe(0)
+
+    if (action === 'replace') expect(h.captureCharFrame()).toContain('New screen')
   } finally {
     h.renderer.destroy()
   }

@@ -3,8 +3,8 @@ import { onCleanup } from 'solid-js'
 
 import { createV2UI } from '../../src/app/opencode-v2/ui-adapter'
 
-import type { Plugin } from '@opencode/plugin/tui'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
+import type { Plugin } from '@opencode/plugin/tui'
 
 export function useNativeConfirmationUI(api: TuiPluginApi) {
   const original = api.ui
@@ -13,6 +13,7 @@ export function useNativeConfirmationUI(api: TuiPluginApi) {
   onCleanup(() => lifecycle.abort())
   Object.assign(api, { lifecycle: { signal: lifecycle.signal } })
   const context = {
+    keymap: { mode: { current: () => (original.dialog.open ? 'modal' : 'base') } },
     ui: {
       toast: { show: original.toast },
       dialog: {
