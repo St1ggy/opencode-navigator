@@ -1,5 +1,6 @@
 export { createResetCreditModel, resetAttemptMatches } from './model/reset-credit-model'
 export { resetCreditOutcomeMessage } from './model/reset-credit-message'
+export { resetCreditView } from './model/reset-credit-view'
 export { createProviderAccountSource } from './model/account-source'
 export { bindCodexAccount } from './model/bind-account'
 export { CodexAccountMismatchError, canLinkCodexAccount, createCodexAccountLinkModel } from './model/account-link-model'

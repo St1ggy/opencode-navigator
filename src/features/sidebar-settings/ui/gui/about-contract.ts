@@ -11,4 +11,7 @@ export type GuiAboutServices = {
   update(): Promise<void>
   report(): void
   progress?(): UpdateProgress | undefined
+  checking?(): boolean
+  latest?(): string | undefined
+  restart?(): boolean
 }

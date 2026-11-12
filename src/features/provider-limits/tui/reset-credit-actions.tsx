@@ -65,12 +65,19 @@ export function createResetCreditActions(input: {
 
       if (!snapshot) return
 
+      const credit = snapshot.bankedResets?.credits?.find((item) => item.id === creditID)
+
       input.dialogs.open(() => (
         <GuardedConfirmation
           api={input.api}
           current={input.current}
           title="Use one banked reset?"
-          message={`Account ${snapshot.accountId} · model ${input.model.modelID}. This may reset other eligible Codex windows.`}
+          message={[
+            `Account ${snapshot.accountId} · model ${input.model.modelID}. This may reset other eligible Codex windows.`,
+            credit?.description,
+          ]
+            .filter(Boolean)
+            .join('\n\n')}
           onConfirm={() => void consume(creditID)}
         />
       ))

@@ -1,10 +1,12 @@
 import { Command, Plugin } from '@opencode/plugin/gui'
-import { For } from 'solid-js'
+import { For, createSignal } from 'solid-js'
 
+import { GuiUpdateAction } from '../../../src/features/sidebar-settings/ui/gui/update-action'
 import { TodoRow } from '../../../src/pages/navigator/ui/gui/todo-row'
 import { GuiProgress } from '../../../src/shared/ui/gui/progress'
 
 import { McpFixture } from './mcp-fixture'
+import { QuotaScalesFixture } from './quota-scales-fixture'
 
 // The isolated probe is explicitly CommonJS; Vite does not infer its .cjs suffix.
 // oxlint-disable-next-line import/extensions
@@ -18,6 +20,27 @@ const tasks = [
   { content: 'Retire the superseded synthetic task', status: 'cancelled' },
 ]
 
+function UpdateFixture(props) {
+  const [stage, setStage] = createSignal('check')
+  const about = {
+    busy: () => stage() === 'progress',
+    checking: () => false,
+    available: () => stage() === 'update',
+    latest: () => '1.2.4',
+    restart: () => stage() === 'restart',
+    progress: () => (stage() === 'progress' ? { phase: 'downloading', received: 4, total: 10 } : undefined),
+    check: async () => setStage('update'),
+    update: async () => setStage('progress'),
+  }
+
+  return (
+    <>
+      <GuiUpdateAction ui={props.ui} about={about} />
+      <props.ui.Button onClick={() => setStage('restart')}>Finish synthetic update</props.ui.Button>
+    </>
+  )
+}
+
 export default Plugin.define({
   main: base.main,
   setup(context) {
@@ -27,6 +50,18 @@ export default Plugin.define({
 
     const Dialog = context.ui.Dialog
     const Button = context.ui.Button
+
+    context.add(Command, {
+      id: 'quota-scales',
+      title: 'Synthetic quota scales',
+      run() {
+        context.dialogs.open((handle) => (
+          <Dialog title="Synthetic quota scales" footer={<Button onClick={handle.close}>Close</Button>}>
+            <QuotaScalesFixture />
+          </Dialog>
+        ))
+      },
+    })
 
     context.add(Command, {
       id: 'mcp-switches',
@@ -68,6 +103,7 @@ export default Plugin.define({
             footer={<Button onClick={handle.close}>Close</Button>}
           >
             <div style={{ display: 'grid', gap: '24px' }}>
+              <UpdateFixture ui={context.ui} />
               <GuiProgress ui={context.ui} label="Navigator · Downloading 40%" value={0.4} />
               <GuiProgress ui={context.ui} label="Navigator · Downloading / installing" />
               <GuiProgress ui={context.ui} label="Navigator · Verifying" />

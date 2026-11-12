@@ -11,7 +11,7 @@ expect {
   timeout { puts stderr "About tab did not render"; exit 1 }
 }
 after 150
-send -- "\033\[B\033\[B\r"
+send -- "\033\[B\r"
 expect {
   -re {Navigator changelog} {}
   timeout { puts stderr "Versioned changelog did not open"; exit 1 }

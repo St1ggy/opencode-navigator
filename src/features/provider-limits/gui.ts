@@ -1,2 +1,5 @@
 export { GuiCodexAccountDialog } from './ui/gui/account-dialog'
 export { GuiResetCreditDialog } from './ui/gui/reset-dialog'
+export { GuiQuotaMeter } from './ui/gui/quota-meter'
+export { quotaColors } from './ui/quota-colors'
+export { createQuotaClock } from './model/quota-clock'

@@ -36,7 +36,13 @@ function response(request) {
         ordinaryUsageAllowed: false,
         rateLimits: limit,
         rateLimitsByLimitId: { codex: limit },
-        rateLimitResetCredits: { availableCount: 2, credits: scene === 'limits-count-only' ? null : [credit] },
+        rateLimitResetCredits: {
+          availableCount: 2,
+          credits: scene === 'limits-count-only' ? null : [
+            credit,
+            { ...credit, id: 'synthetic-reset-02', title: 'Additional reset credit', expiresAt: now + 691_200 },
+          ],
+        },
       }
     }
     default: {

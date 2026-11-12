@@ -26,7 +26,9 @@ if (!(await gui.exists())) {
   process.exit(1)
 }
 
-const MAX_GUI_BYTES = 600_000
+// Guarded updates, native section icons and two-scale quota/period presentation
+// measure approximately 613 KB. Keep a bounded GUI-only allowance, without minifying.
+const MAX_GUI_BYTES = 620_000
 
 console.log(
   `dist/gui-experimental.cjs: ${gui.size.toLocaleString('en-US')} bytes (budget: ${MAX_GUI_BYTES.toLocaleString('en-US')})`,

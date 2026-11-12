@@ -173,6 +173,7 @@ function stripGeneratedIndentation(source: string) {
 function consolidateNamedImports(source: string) {
   const imports = new Map<string, string[]>()
   const pattern = /^import \{(.+)\} from (['"].+['"])$/gm
+  const body = source.replaceAll(pattern, '')
 
   for (const match of source.matchAll(pattern)) {
     const [, names, module] = match
@@ -189,9 +190,18 @@ function consolidateNamedImports(source: string) {
 
     emitted.add(module)
     const names = imports.get(module) ?? []
-    const specifiers = [...new Set(names.flatMap((value) => value.split(',')))].join(',')
+    // Bun may retain external import aliases from tree-shaken deferred modules.
+    // Remove only unreferenced bindings; preserve module evaluation and names.
+    const specifiers = [...new Set(names.flatMap((value) => value.split(',')))]
+      .filter((specifier) => {
+        const local = specifier.trim().split(' as ').at(-1)!
+        const escaped = local.replaceAll('$', String.raw`\$`)
 
-    return `import {${specifiers}} from ${module}`
+        return new RegExp(String.raw`(?<![\w$])${escaped}(?![\w$])`).test(body)
+      })
+      .join(',')
+
+    return specifiers ? `import {${specifiers}} from ${module}` : `import ${module}`
   })
 }
 
@@ -296,6 +306,10 @@ if (!dialogs.success) {
 }
 
 for (const output of dialogs.outputs) {
+  // The update adapter bundles regex-heavy JSONC/path dependencies. Preserve its
+  // generated source rather than applying the UI-only whitespace scanner.
+  if (output.path.endsWith('/navigator-updates.js')) continue
+
   if (output.kind === 'entry-point' || output.kind === 'chunk')
     await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
 }

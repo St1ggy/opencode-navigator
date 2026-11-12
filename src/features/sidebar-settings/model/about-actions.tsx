@@ -17,7 +17,10 @@ export function selectAboutAction(
 
   switch (value) {
     case 'about:check': {
-      if (!service.checking() && !service.updating()) void service.check()
+      if (!service.checking() && !service.updating() && !service.installed?.()) {
+        if (service.checkState().status === 'available') service.update(dialogs)
+        else void service.check()
+      }
 
       break
     }

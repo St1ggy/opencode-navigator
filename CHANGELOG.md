@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.27.5] - 2026-11-12
+
+- Show quota remaining and blue time-remaining scales in Limits, with live reset countdowns. Quota pace turns yellow, orange or red when the allowance is running ahead of the period; missing provider dates or durations stay explicit.
+- Show the available Banked Resets count and separate compact credit cards with icons, readable expiry and provider details on demand. Credit use still needs a separate confirmation.
+- Add native icons beside Desktop sidebar section titles, independently of their disclosure arrows.
+- Combine About's update check, update offer, installation progress and restart guidance in one stable control. Fix skipped exact-version checks and the historical plugin-ID lookup while preserving the installation source and configuration options.
+- Recognize ChatGPT token-sharing connections and allow an explicit Codex account link without treating the client ID as an account identity.
+- Preserve native confirmation results and externally opened dialogs when returning to Navigator in OpenCode 2.
+
 ## [0.27.4] - 2026-11-12
 
 - Show banked-reset expiry progress in the terminal, with readable remaining time and explicit missing or invalid dates. Keep credit use separately confirmed.

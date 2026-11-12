@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { PLUGIN_ID } from '../shared/config'
 import { isSameMajorVersion } from '../shared/lib/version'
 
+import { advanceCliPin } from './cli-pin'
+import { advanceServerPin, exactNavigatorPin } from './plugin-pin'
 import { runSnapshotUpdate } from './snapshot-update-process'
 
 import type { UpdateProgress } from '../entities/navigator-release/model'
@@ -119,8 +121,12 @@ export function createOpenCodeV2VersionUpdater(context: Plugin.Context, execute:
     openCode: (target) => upgradeHost(context.app.version, target, execute),
     async navigator(target, progress) {
       progress?.({ phase: 'preparing' })
-      const response = await context.client.plugin.list(context.location ? { location: context.location } : {})
-      const item = response.data.find((plugin) => plugin.id === PLUGIN_ID)
+      const client = context.client
+      const location = JSON.stringify(context.location)
+      const response = await client.plugin.list(context.location ? { location: context.location } : {})
+      const item = response.data.find(
+        (plugin) => plugin.id === 'opencode-navigator.todo-server' || plugin.id === PLUGIN_ID,
+      )
 
       if (!item) throw new Error('Navigator is not in the active plugin list')
 
@@ -141,6 +147,42 @@ export function createOpenCodeV2VersionUpdater(context: Plugin.Context, execute:
         return pinnedUpdate(join(fileURLToPath(item.source.target), 'tui.js'), target, execute, progress)
 
       if (item.source.target.startsWith('.')) throw new Error('Unrecognized local Navigator source')
+
+      if (exactNavigatorPin(item.source.target)) {
+        if (context.client !== client || JSON.stringify(context.location) !== location)
+          throw new Error('Navigator installation changed; check again')
+
+        const loadedPin =
+          typeof __NAVIGATOR_VERSION__ === 'string' ? `opencode-navigator@${__NAVIGATOR_VERSION__}` : item.source.target
+
+        if (
+          exactNavigatorPin(loadedPin) !== target &&
+          (await advanceCliPin(
+            loadedPin,
+            target,
+            undefined,
+            () => context.client === client && JSON.stringify(context.location) === location,
+          ))
+        ) {
+          progress?.({ phase: 'verifying' })
+
+          return
+        }
+
+        if (exactNavigatorPin(item.source.target) !== target)
+          await advanceServerPin(
+            client,
+            { location: response.location },
+            item.source.target,
+            target,
+            AbortSignal.timeout(120_000),
+            () => context.client === client && JSON.stringify(context.location) === location,
+          )
+
+        progress?.({ phase: 'verifying' })
+
+        return
+      }
 
       progress?.({ phase: 'installing' })
       await context.client.plugin.update({ location: response.location, targets: [item.source.target] })

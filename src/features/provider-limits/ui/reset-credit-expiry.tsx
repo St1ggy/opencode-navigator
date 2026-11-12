@@ -37,6 +37,9 @@ export function ResetCreditExpiry(props: { api: TuiPluginApi; credit: BankedRese
         setColumns(this.width)
       }}
     >
+      <text fg={props.api.theme.current.text} wrapMode="word">
+        {icons.icon('recent')} {lifetime().label}
+      </text>
       <Show when={lifetime().remaining !== undefined}>
         <text height={1} width="100%" wrapMode="none" truncate fg={props.api.theme.current.textMuted}>
           {scale().filled}
@@ -49,13 +52,10 @@ export function ResetCreditExpiry(props: { api: TuiPluginApi; credit: BankedRese
           </span>
         </text>
       </Show>
-      <text fg={props.api.theme.current.textMuted} wrapMode="word">
-        {lifetime().label}
-      </text>
       <Show when={expiry()}>
         {(date) => (
           <text fg={props.api.theme.current.textMuted} wrapMode="word">
-            {`Expires ${date().toLocaleString()}`}
+            {`Expires ${date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`}
           </text>
         )}
       </Show>

@@ -1,9 +1,10 @@
-import { Show, createEffect, createSignal, onCleanup } from 'solid-js'
+import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 
 import { SelectionMenu, type SelectionOption, useDialogs } from '../../../shared/ui'
 import { createResetCreditActions } from '../model/reset-credit-actions'
+import { resetCreditView } from '../model/reset-credit-view'
 
-import { ResetCreditExpiry } from './reset-credit-expiry'
+import { ResetCreditCard } from './reset-credit-card'
 
 import type { PreferencesController } from '../../../entities/preferences'
 import type {
@@ -35,12 +36,12 @@ export function ResetCreditDialog(props: {
     if (!current()) dialogs.close()
   })
 
-  const options = (): SelectionOption[] => [
+  const options = createMemo<SelectionOption[]>(() => [
     ...(credits()?.credits?.map((credit) => ({
       title: credit.title ?? `Credit ${credit.id}`,
       value: `credit:${credit.id}`,
       icon: 'presets' as const,
-      description: [credit.status, credit.description].filter(Boolean).join(' · '),
+      description: '',
     })) ?? []),
     ...(credits()?.availableCount && (credits()?.credits?.length ?? 0) < credits()!.availableCount
       ? [
@@ -63,25 +64,41 @@ export function ResetCreditDialog(props: {
         ]
       : []),
     { title: 'Cancel', value: 'cancel', icon: 'close', description: 'No credit is used' },
-  ]
+  ])
 
   return (
     <SelectionMenu
       api={props.api}
       title={`Banked resets · ${credits()?.availableCount ?? 0} available${actions.busy() ? ' · pending' : ''}`}
+      description="Review a credit first. Nothing is used until you confirm."
       options={options()}
-      height={Math.min(22, options().length * 6)}
+      height={Math.min(24, options().length * 8)}
       adaptive
-      renderDetails={(option) => (
-        <Show when={credits()?.credits?.find((credit) => option.value === `credit:${credit.id}`)}>
-          {(credit) => <ResetCreditExpiry api={props.api} credit={credit()} now={now()} />}
-        </Show>
-      )}
+      renderOption={(option) => {
+        const credit = credits()?.credits?.find((item) => option.value === `credit:${item.id}`)
+
+        return (
+          credit && (
+            <ResetCreditCard
+              api={props.api}
+              credit={credit}
+              now={now()}
+              disabled={actions.busy() || Boolean(pending())}
+            />
+          )
+        )
+      }}
       onSelect={(option) => {
         if (option.value === 'cancel') dialogs.back()
-        else if (option.value === 'retry') void actions.consume(pending()?.creditID)
-        else if (option.value.startsWith('credit:'))
-          void actions.review(option.value.slice('credit:'.length) || undefined)
+        else if (!actions.busy()) {
+          if (option.value === 'retry') void actions.consume(pending()?.creditID)
+          else if (!pending() && option.value.startsWith('credit:')) {
+            const id = option.value.slice('credit:'.length) || undefined
+            const credit = credits()?.credits?.find((item) => item.id === id)
+
+            if (!credit || resetCreditView(credit, now()).canReview) void actions.review(id)
+          }
+        }
       }}
     />
   )

@@ -30,7 +30,7 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   await link.click()
   await page.getByRole('dialog').last().getByText('synthetic-account', { exact: true }).waitFor()
   await page.getByRole('dialog').last().getByRole('button', { name: 'Link account', exact: true }).click()
-  await panel.getByRole('button', { name: 'Banked Resets', exact: true }).waitFor({ timeout: 30_000 })
+  await panel.getByRole('button', { name: 'Banked Resets (1)', exact: true }).waitFor({ timeout: 30_000 })
   const limits = panel.getByRole('region', { name: 'Limits', exact: true })
   const controls = await limits.getByRole('button').allTextContents()
 
@@ -47,6 +47,17 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
     throw new Error('Removing quota prose hid Refresh')
 
   await limits.getByText(/left$/u).first().waitFor()
+  const quotaWindow = limits.locator('[data-navigator-quota-window]').first()
+  const timeMeter = quotaWindow.getByRole('meter', { name: /^Time remaining/u })
+  const timeRemaining = Number(await timeMeter.getAttribute('aria-valuenow'))
+
+  if (
+    (await quotaWindow.getByRole('meter').count()) !== 2 ||
+    timeRemaining < 79 ||
+    timeRemaining > 82 ||
+    (await quotaWindow.getAttribute('data-pace')) !== 'red'
+  )
+    throw new Error('Native provider duration/reset did not produce the two quota/time scales')
 
   await assertNoConfigurationError(page)
   await captureGui(panel, '18-desktop-limits')
@@ -59,7 +70,7 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   console.log('Synthetic account-scoped quota with nullable model metadata loaded.')
   await writeFile('/tmp/navigator-synthetic-credit-details', 'synthetic')
   await panel.getByRole('button', { name: 'Refresh', exact: true }).first().click()
-  await panel.getByRole('button', { name: 'Banked Resets', exact: true }).click()
+  await panel.getByRole('button', { name: 'Banked Resets (3)', exact: true }).click()
   const detailed = page.getByRole('dialog').last()
 
   await detailed.getByRole('progressbar', { name: 'Time remaining for Expiring credit', exact: true }).waitFor()
@@ -70,6 +81,49 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   )
 
   if (value <= 0 || value >= 100) throw new Error('Credit expiry does not reflect the provider grant/expiry lifetime')
+
+  const cards = detailed.locator('[data-reset-credit-card]')
+
+  if ((await cards.count()) !== 3) throw new Error('Detailed reset credits must each have their own card')
+
+  const note = 'Synthetic provider grant details. This message is available without spending a credit.'
+
+  if (await detailed.getByText(note, { exact: true }).isVisible())
+    throw new Error('Provider details crowd the reset cards')
+
+  await cards.first().getByRole('button', { name: 'Provider details', exact: true }).click()
+  await detailed.getByText(note, { exact: true }).waitFor()
+  await cards.first().getByRole('button', { name: 'Hide details', exact: true }).click()
+
+  for (const width of [1280, 800]) {
+    await page.setViewportSize({ width, height: 900 })
+    const failures = await cards.evaluateAll((items) =>
+      items.flatMap((card, index) => {
+        const bounds = card.getBoundingClientRect()
+        const previous = items[index - 1]?.getBoundingClientRect()
+        const buttons = [...card.querySelectorAll('button')]
+
+        return [
+          ...(card.scrollWidth > card.clientWidth + 2 ? ['card overflow'] : []),
+          ...(previous && bounds.top < previous.bottom + 6 ? ['cards have no clear gap'] : []),
+          ...buttons
+            .filter((button) => {
+              const box = button.getBoundingClientRect()
+
+              return box.left < bounds.left || box.right > bounds.right
+            })
+            .map(() => 'action outside its card'),
+        ]
+      }),
+    )
+
+    if (failures.length > 0) throw new Error(`Reset credit cards fail at ${width}px: ${failures.join(', ')}`)
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 })
+  const inspected = await consumes()
+
+  if (inspected.length > 0) throw new Error('Inspecting reset card details consumed a credit')
 
   await detailed.getByText('Expiry not supplied by the provider', { exact: true }).waitFor()
 
@@ -86,7 +140,7 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   await detailed.getByRole('button', { name: 'Close', exact: true }).last().click()
   await unlink('/tmp/navigator-synthetic-credit-details')
   await panel.getByRole('button', { name: 'Refresh', exact: true }).first().click()
-  await panel.getByRole('button', { name: 'Banked Resets', exact: true }).click()
+  await panel.getByRole('button', { name: 'Banked Resets (1)', exact: true }).click()
   await captureGui(page.getByRole('dialog').last(), '19-desktop-reset-credits')
   await page
     .getByRole('dialog')

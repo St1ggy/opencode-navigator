@@ -61,9 +61,7 @@ export function ProviderLimitsSection(props: {
           api={props.api}
           interaction={props.interaction}
           navigationSection={props.navigationSection}
-          credits={
-            (snapshot()?.bankedResets?.availableCount ?? 0) > 0 || Boolean(props.preferences.pendingResetAttempt())
-          }
+          credits={snapshot()?.bankedResets?.availableCount || Boolean(props.preferences.pendingResetAttempt())}
           refreshing={['loading', 'refreshing'].includes(props.controller.state().status)}
           canRefresh={Boolean(
             model() && (props.controller.current().adapter ?? model()?.hostConnection?.status === 'unavailable'),

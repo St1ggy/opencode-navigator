@@ -12,7 +12,7 @@ export function LimitsHeaderControls(props: {
   api: TuiPluginApi
   interaction?: SidebarInteraction
   navigationSection: number
-  credits: boolean
+  credits: boolean | number
   refreshing: boolean
   canRefresh: boolean
   onCredits: () => void
@@ -29,7 +29,7 @@ export function LimitsHeaderControls(props: {
           position={{ section: props.navigationSection, row: 0, column: 1 }}
           action={{
             id: `${PLUGIN_ID}.limits.credits`,
-            label: () => 'Banked Resets',
+            label: () => (typeof props.credits === 'number' ? `${props.credits} Banked Resets` : 'Banked Resets'),
             disabled: () => false,
             onActivate: props.onCredits,
           }}

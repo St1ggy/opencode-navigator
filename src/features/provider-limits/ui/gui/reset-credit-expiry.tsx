@@ -3,8 +3,10 @@ import { Show } from 'solid-js'
 import { resetCreditLifetime } from '../../../../entities/provider-limit/model'
 
 import type { BankedResetCredit } from '../../../../entities/provider-limit/model'
+import type { Ui } from '@opencode/plugin/gui'
 
-export function GuiResetCreditExpiry(props: { credit: BankedResetCredit; now: number }) {
+export function GuiResetCreditExpiry(props: { ui: Ui; credit: BankedResetCredit; now: number }) {
+  const Icon = props.ui.Icon
   const lifetime = () => resetCreditLifetime(props.credit, props.now)
   const expiry = () => {
     const timestamp = props.credit.expiresAt
@@ -17,7 +19,13 @@ export function GuiResetCreditExpiry(props: { credit: BankedResetCredit; now: nu
   }
 
   return (
-    <div style={{ display: 'grid', gap: '6px', margin: '8px 0' }}>
+    <div style={{ display: 'grid', gap: '6px' }}>
+      <span style={{ display: 'flex', 'align-items': 'center', gap: '6px' }}>
+        <span aria-hidden="true">
+          <Icon name="outline-reset" size="small" />
+        </span>
+        {lifetime().label}
+      </span>
       <Show when={lifetime().remaining !== undefined}>
         <div
           role="progressbar"
@@ -44,13 +52,15 @@ export function GuiResetCreditExpiry(props: { credit: BankedResetCredit; now: nu
           />
         </div>
       </Show>
-      <span>{lifetime().label}</span>
       <Show when={expiry()}>
         {(date) => (
           <time dateTime={date().toISOString()} style={{ color: 'var(--v2-text-text-muted)' }}>
-            {date().toLocaleString()}
+            Expires {date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
           </time>
         )}
+      </Show>
+      <Show when={lifetime().remaining === undefined && expiry()}>
+        <span style={{ color: 'var(--v2-text-text-muted)' }}>Grant date unavailable or invalid; progress unknown</span>
       </Show>
     </div>
   )

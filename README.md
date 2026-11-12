@@ -1,5 +1,16 @@
 # OpenCode Navigator
 
+[![GitHub Release](https://img.shields.io/github/v/release/St1ggy/opencode-navigator?display_name=tag&label=release)](https://github.com/St1ggy/opencode-navigator/releases/latest)
+[![CI: tests, builds, types, lint and host smokes](https://github.com/St1ggy/opencode-navigator/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/St1ggy/opencode-navigator/actions/workflows/ci.yml)
+[![Publish](https://github.com/St1ggy/opencode-navigator/actions/workflows/publish.yml/badge.svg?event=release)](https://github.com/St1ggy/opencode-navigator/actions/workflows/publish.yml)
+[![Unit coverage](https://img.shields.io/codecov/c/github/St1ggy/opencode-navigator/main?label=unit%20coverage)](https://app.codecov.io/gh/St1ggy/opencode-navigator)
+[![License](https://img.shields.io/github/license/St1ggy/opencode-navigator)](LICENSE)
+
+[![OpenCode 1.x compatibility](https://img.shields.io/badge/OpenCode%201.x-1.19.5-4c8bf5)](#installation)
+[![OpenCode 2.x compatibility](https://img.shields.io/badge/OpenCode%202.x-2.2.6-4c8bf5)](#installation)
+[![Desktop experimental](https://img.shields.io/badge/Desktop-experimental-orange)](#experimental-opencode-desktop)
+[![Monthly npm downloads](https://img.shields.io/npm/dm/opencode-navigator?label=npm%20downloads%2Fmonth)](https://www.npmjs.com/package/opencode-navigator)
+
 Search, navigate, and manage OpenCode sessions from the TUI, with an experimental
 OpenCode Desktop interface. Navigator combines
 Search Everything, task and subagent views, skills, MCP presets, and quick actions
@@ -337,6 +348,9 @@ contains independent TUI, server, RPC and GUI entries.
   or private binding. Banked resets always require separate confirmation.
   Both terminal and Desktop credit lists show provider-dated expiry progress and
   readable remaining time. Missing or invalid dates never imply an unlimited lifetime.
+  Each credit has its own compact card with a status and review action. Desktop
+  provider messages expand under **Provider details**; the terminal keeps them in
+  the separate review step rather than repeating them throughout the list.
   Successful quota reads show only their update time above the data; account/model
   scope remains in the quota model rather than a persistent explanatory sentence.
   Model and reasoning-effort selection stays in the native chat controls, not
@@ -676,6 +690,17 @@ its visibility and order under **Settings → Sections** in Global or Current
 worktree scope. Hiding or collapsing it does not stop background refreshes, and
 does not grant permission to spend a reset credit. **Focus Limits** is also
 available from the command palette.
+
+Each quota window shows two scales: quota remaining and a blue time-remaining
+scale. The quota scale keeps its normal theme color while quota remaining is at
+least the remaining share of the period. It turns yellow below that pace, orange
+at a 15-percentage-point deficit, and red at 30 points. This comparison is a pace
+indicator, not a forecast. It requires a provider-supplied reset time and window
+duration; missing duration is shown as unknown rather than inferred from a label.
+The reset countdown updates locally without extra quota requests. An elapsed
+window stays due until a provider refresh confirms the next one. Native credit
+balances retain their units; the Banked Resets action shows its separate available
+reset-credit count.
 
 ![Codex quota windows and reset times](screenshots/39-provider-limits.png)
 
@@ -1116,13 +1141,35 @@ bun run check
 
 `bun run check` runs the TUI and browser-conditioned GUI tests, separate JSX
 typechecks, Oxlint, bundle-size guards, and Oxfmt. The unminified TUI bundle is
-limited to 360,000 bytes; the independent single-file GUI budget is 600,000 bytes
-(stage-10 measured baseline: about 554 kB). DOM accessibility checks apply only
+limited to 360,000 bytes; the independent single-file GUI budget is 620,000 bytes
+(two-scale quota presentation: about 612 kB). DOM accessibility checks apply only
 to GUI modules, never to terminal renderables.
 Font generation is a separate development task: `bun run font:build` and
 `bun run font:check` use `uv` and the pinned FontTools dependency. Users install
 the already generated font; Python and FontTools are not needed at runtime.
 CI checks that the bundled font matches its generator.
+
+### Coverage
+
+Run `bun run test:coverage` to measure the primary TUI and browser-conditioned
+GUI unit/render suites separately. LCOV reports are written to
+`coverage/tui/lcov.info` and `coverage/gui/lcov.info`; `coverage/summary.md` and
+`coverage/summary.json` report each suite and their unique source-line union.
+Shared lines count once and are covered when either suite executes them.
+
+This is coverage of executable `src/` lines loaded by those suites, not every
+source file in the repository. It excludes generated bundles, test fixtures,
+dependencies and packaged-host smoke runs. These Bun LCOV reports do not provide
+branch coverage. The separate host checks remain mandatory. Coverage is
+reporting-only; no minimum threshold or additional status gate is enabled.
+
+CI retains the reports as the `unit-coverage` artifact and adds the line summary
+to the job summary. Only successful `main` push checks upload to Codecov, using
+GitHub OIDC in a separate job; PR/review jobs keep read-only repository permissions
+and never receive the upload permission. Codecov comments and additional coverage
+status gates are disabled. The coverage badge stays unknown until Codecov accepts
+the first report; repository activation in Codecov may be required. No Codecov
+token is stored in this repository.
 
 `bun run screenshots` builds a pinned Linux ARM64 image and captures the real TUI
 through Ghostty on Xvfb. The image includes the bundled corner font and a pinned
@@ -1163,3 +1210,13 @@ The workflow uses npm Trusted Publishing with provenance. Configure
 publisher in the package settings on npmjs.com before publishing a release.
 The new npm package needs its own trusted-publisher configuration; the old
 package's settings are not transferred by renaming the GitHub repository.
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=St1ggy%2Fopencode-navigator&amp;type=date&amp;legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=St1ggy/opencode-navigator&amp;type=date&amp;theme=dark&amp;legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=St1ggy/opencode-navigator&amp;type=date&amp;legend=top-left" />
+    <img alt="Star history for OpenCode Navigator" src="https://api.star-history.com/chart?repos=St1ggy/opencode-navigator&amp;type=date&amp;legend=top-left" width="800" />
+  </picture>
+</a>

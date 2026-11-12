@@ -53,7 +53,8 @@ export function AboutVersionStatus(props: { api: TuiPluginApi }) {
             : props.api.theme.current.textMuted
         }
       >
-        {service()?.updating() ? 'Installing Navigator. Restart OpenCode after completion.' : status()}
+        {service()?.installation?.navigatorError() ||
+          (service()?.updating() ? 'Keep OpenCode open while Navigator updates.' : status())}
       </text>
       <text height={1} truncate wrapMode="none" fg={props.api.theme.current.textMuted}>
         {service()?.checkState().checkedAt

@@ -1,6 +1,7 @@
 import { Show } from 'solid-js'
 
 import { useNavigatorGui } from './context'
+import { sectionIcons } from './section-icons'
 
 import type { SidebarSection } from '../../../../shared/config'
 import type { JSX } from 'solid-js'
@@ -51,6 +52,20 @@ export function MonitoringSection(props: {
               }}
             >
               <Icon name="chevron-down" size="small" />
+            </span>
+            <span
+              aria-hidden="true"
+              data-navigator-section-icon={props.id}
+              style={{
+                display: 'inline-flex',
+                width: '16px',
+                height: '16px',
+                'flex-shrink': '0',
+                'align-items': 'center',
+                'justify-content': 'center',
+              }}
+            >
+              <Icon name={sectionIcons[props.id]} size="small" />
             </span>
             <span style={{ overflow: 'hidden', 'text-overflow': 'ellipsis', 'white-space': 'nowrap' }}>
               {props.title}
