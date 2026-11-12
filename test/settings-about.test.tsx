@@ -95,14 +95,20 @@ test('About update confirmation restores its parent on Cancel and shares the exi
   const h = await toolbarHarness(() => <box height={6} />)
   let installs = 0
   let remembered = 0
+  let finish!: () => void
+  const installation = new Promise<void>((resolve) => {
+    finish = resolve
+  })
   const target = '9.0.0'
   const updates = createVersionUpdateActions(
     h.api,
     { openCodeUpdate: () => {}, navigatorUpdate: () => target },
     {
       openCode: async () => {},
-      navigator: async () => {
+      navigator: async (_target, progress) => {
         installs++
+        progress?.({ phase: 'downloading', received: 4, total: 10 })
+        await installation
       },
     },
     async () => {
@@ -112,11 +118,14 @@ test('About update confirmation restores its parent on Cancel and shares the exi
   const info = aboutServicesFixture(h.api, (dialogs) => updates.navigator(target, dialogs))
 
   info.service.installed = updates.navigatorInstalled
+  info.service.updating = updates.navigatorUpdating
+  info.service.installation = updates
   info.setState({ status: 'available', latest: target })
 
   try {
-    openSettings(h.api, h.preferences, 'about:update')
+    openSettings(h.api, h.preferences, 'about:check')
     await h.wait('Update Navigator')
+    expect(h.captureCharFrame()).not.toContain('Check for updates')
     await h.click('Update Navigator')
     await h.wait(`Install Navigator ${target}`)
     h.mockInput.pressEscape()
@@ -127,13 +136,19 @@ test('About update confirmation restores its parent on Cancel and shares the exi
     await h.wait(`Install Navigator ${target}`)
     h.mockInput.pressArrow('down')
     h.mockInput.pressEnter()
+    await h.wait('Downloading 40%')
+    expect(h.captureCharFrame()).toContain('Navigator settings')
+    expect(h.captureCharFrame()).not.toContain('Update Navigator…')
+    finish()
     await h.wait(`Restart OpenCode to use Navigator ${target}`)
+    expect(h.captureCharFrame()).not.toContain('Check for updates')
     expect(installs).toBe(1)
     expect(remembered).toBe(1)
     updates.navigator(target)
     await h.flush()
     expect(installs).toBe(1)
   } finally {
+    finish()
     info.dispose()
     h.renderer.destroy()
   }

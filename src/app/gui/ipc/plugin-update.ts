@@ -11,6 +11,7 @@ export function pluginUpdateIpc(pluginID: string) {
           status: Schema.Literals(['current', 'available', 'unsupported']),
           message: Schema.String,
           token: Schema.optional(Schema.String),
+          latest: Schema.optional(Schema.String),
         }),
       },
       install: { input: Schema.Struct({ token: Schema.String }) },

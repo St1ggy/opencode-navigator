@@ -17,6 +17,7 @@ export function bindNavigatorAbout(
     checking: () => status.navigatorCheckState?.().status === 'checking',
     updating: updates.navigatorUpdating,
     installed: updates.navigatorInstalled,
+    installation: updates,
     check: () => status.refreshNavigator?.() ?? Promise.resolve('unavailable'),
     update(dialogs) {
       const target = status.navigatorUpdate()

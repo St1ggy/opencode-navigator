@@ -1,3 +1,5 @@
+import { navigatorUpdateAction } from '../../../entities/navigator-release/model'
+
 import { getNavigatorAboutServices } from './about-services'
 
 import type { useIcons } from '../../../shared/ui'
@@ -7,25 +9,22 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 export function aboutSettingsOptions(api: TuiPluginApi, icons: ReturnType<typeof useIcons>): SettingsOption[] {
   const service = getNavigatorAboutServices(api)
   const state = service?.checkState()
-  const busy = !service || service.checking() || service.updating()
-  let updateDescription = 'No confirmed update available'
-
-  if (service?.installed?.()) updateDescription = 'Installed; restart OpenCode'
-  else if (service?.updating()) updateDescription = 'Installing…'
-  else if (state?.status === 'available') updateDescription = `Install ${state.latest}`
+  const action = navigatorUpdateAction({
+    checking: service?.checking() ?? false,
+    busy: !service || service.updating(),
+    available: state?.status === 'available',
+    latest: state?.latest,
+    restart: service?.installed?.(),
+    progress: service?.installation?.navigatorProgress(),
+  })
+  const icon = action.kind === 'update' ? 'update' : 'retry'
 
   return [
     {
-      title: `${icons.icon('retry')} Check for updates`,
+      title: `${icons.icon(icon)} ${action.label}`,
       value: 'about:check',
-      description: service?.checking() ? 'Checking…' : 'Check the published Navigator version',
-      disabled: busy,
-    },
-    {
-      title: `${icons.icon('update')} Update Navigator…`,
-      value: 'about:update',
-      description: updateDescription,
-      disabled: busy || state?.status !== 'available' || Boolean(service?.installed?.()),
+      description: action.detail,
+      disabled: action.kind === 'waiting' || action.kind === 'restart',
     },
     {
       title: `${icons.icon('history')} Changelog by version…`,

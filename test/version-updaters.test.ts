@@ -136,6 +136,32 @@ test('OpenCode 2 keeps an absolute directory package source when updating a pinn
   expect(calls[0].slice(2)).toEqual(['/snapshots/opencode-navigator/tui.js', target])
 })
 
+test('OpenCode 2 resolves the historical server plugin ID instead of its TUI ID', async () => {
+  const updates: unknown[] = []
+  const updater = createOpenCodeV2VersionUpdater({
+    location: { directory: '/synthetic/project' },
+    client: {
+      plugin: {
+        list: async () => ({
+          location: { directory: '/synthetic/project' },
+          data: [
+            {
+              id: 'opencode-navigator.todo-server',
+              source: { type: 'package', target: 'opencode-navigator', version: '1.2.3' },
+            },
+          ],
+        }),
+        update: async (value: unknown) => {
+          updates.push(value)
+        },
+      },
+    },
+  } as unknown as Plugin.Context)
+
+  await updater.navigator('1.2.4')
+  expect(updates).toEqual([{ location: { directory: '/synthetic/project' }, targets: ['opencode-navigator'] }])
+})
+
 test('the packaged update chunk resolves the shipped pinned-snapshot installer for both hosts', async () => {
   const updates = (await import(
     new URL('../dist/navigator-updates.js', import.meta.url).href

@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto'
 
+import { isNewerVersion } from '../../../shared/lib/version'
+import { advanceServerPin, exactNavigatorPin, latestNavigator } from '../../plugin-pin'
+
 import type { UpdateProgress } from '../../../entities/navigator-release/model'
 import type { PluginInfo } from '@opencode/client'
 import type { MainContext } from '@opencode/plugin/gui/main'
@@ -22,8 +25,17 @@ function sourceIdentity(item: PluginInfo | undefined) {
   )
 }
 
-export function createMainPluginUpdate(context: MainContext, changed: () => void = () => {}) {
-  let prepared: { token: string; source: string; target: string } | undefined
+export function createMainPluginUpdate(context: MainContext, changed: () => void = () => {}, latest = latestNavigator) {
+  let prepared:
+    | {
+        token: string
+        source: string
+        target: string
+        version?: string
+        client: MainContext['client']
+        location: string
+      }
+    | undefined
   let busy = false
   let phase: UpdateProgress['phase'] | 'idle' = 'idle'
   const report = (next: typeof phase) => {
@@ -58,17 +70,38 @@ export function createMainPluginUpdate(context: MainContext, changed: () => void
       if (context.client !== client || sourceIdentity(current) !== sourceIdentity(item))
         throw new Error('Navigator installation changed during the check. Check again.')
 
-      if (current?.source.type !== 'package' || !current.source.outdated)
-        return { status: 'current' as const, message: 'The native plugin manager reports Navigator is up to date.' }
+      const pinned = exactNavigatorPin(target)
+      const version = pinned ? await latest(signal) : undefined
+
+      signal.throwIfAborted()
+
+      if (context.client !== client) throw new Error('Navigator installation changed during the check. Check again.')
+
+      if (current?.source.type !== 'package' || (pinned ? !isNewerVersion(version!, pinned) : !current.source.outdated))
+        return {
+          status: 'current' as const,
+          message: 'The checked Navigator installation is up to date.',
+          latest: current?.source.type === 'package' ? current.source.version : undefined,
+        }
 
       const token = randomUUID()
 
-      prepared = { token, target, source: sourceIdentity(current) }
+      prepared = {
+        token,
+        target,
+        source: sourceIdentity(current),
+        version,
+        client,
+        location: JSON.stringify(response.location),
+      }
 
       return {
         status: 'available' as const,
-        message: 'The native plugin manager found an update for this installation.',
+        message: version
+          ? `Navigator ${version} is available. Confirmation advances this installation's exact pin without removing it.`
+          : 'The native plugin manager found an update for this installation.',
         token,
+        latest: version,
       }
     },
     async install(input: { token: string }, caller: { signal: AbortSignal }) {
@@ -88,13 +121,26 @@ export function createMainPluginUpdate(context: MainContext, changed: () => void
 
         if (
           context.client !== client ||
+          client !== expected.client ||
+          JSON.stringify(response.location) !== expected.location ||
           sourceIdentity(item) !== expected.source ||
           packageTarget(item) !== expected.target
         )
           throw new Error('Navigator installation changed. Check again before installing.')
 
-        report('installing')
-        await client.plugin.update({ location: response.location, targets: [expected.target] }, { signal })
+        report(expected.version ? 'preparing' : 'installing')
+
+        if (expected.version) {
+          await advanceServerPin(
+            client,
+            { location: response.location },
+            expected.target,
+            expected.version,
+            signal,
+            () => context.client === client,
+          )
+          report('verifying')
+        } else await client.plugin.update({ location: response.location, targets: [expected.target] }, { signal })
       } finally {
         busy = false
         report('idle')

@@ -55,8 +55,11 @@ export async function settingsInteractions(page, panel, command) {
   await settings.getByRole('button', { name: 'Check for updates', exact: true }).click()
   await settings.getByText('This GUI uses a local or unrecognized source.', { exact: false }).waitFor()
 
-  if (!(await settings.getByRole('button', { name: 'Update Navigator', exact: true }).isDisabled()))
-    throw new Error('Local packaged GUI fixture offered a package-replacing update')
+  if (
+    (await settings.locator('[data-navigator-update-control] button').count()) !== 1 ||
+    (await settings.getByRole('button', { name: 'Update Navigator…', exact: true }).count()) !== 0
+  )
+    throw new Error('Local packaged GUI fixture duplicated update controls or offered a package-replacing update')
 
   await settings.getByRole('heading', { name: 'Changelog', exact: true }).waitFor()
   await settings.getByRole('button', { name: 'Open Navigator guide', exact: true }).click()

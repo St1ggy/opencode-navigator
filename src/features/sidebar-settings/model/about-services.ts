@@ -1,6 +1,7 @@
 import { createSignal } from 'solid-js'
 
 import type { ChangelogEntry, NavigatorUpdateCheck } from '../../../entities/navigator-release'
+import type { UpdateProgress } from '../../../entities/navigator-release/model'
 import type { DialogNavigation } from '../../../shared/ui'
 import type { BugReportTransport } from './github-bug-report'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -13,6 +14,7 @@ export type NavigatorAboutServices = {
   checking: Accessor<boolean>
   updating: Accessor<boolean>
   installed?: Accessor<string | undefined>
+  installation?: { navigatorProgress(): UpdateProgress | undefined; navigatorError(): string | undefined }
   check(): Promise<unknown>
   update(dialogs: DialogNavigation): void
   changelog(): Promise<ChangelogEntry[]>

@@ -21,6 +21,7 @@ export function createVersionUpdateActions(
   const busy = new Set<UpdateKind>()
   const [navigatorUpdating, setNavigatorUpdating] = createSignal(false)
   const [navigatorInstalled, setNavigatorInstalled] = createSignal<string>()
+  const [navigatorError, setNavigatorError] = createSignal<string>()
   const [progress, setProgress] = createSignal<Partial<Record<UpdateKind, UpdateProgress>>>({})
   const installed: Partial<Record<UpdateKind, string>> = {}
   let disposed = false
@@ -34,7 +35,7 @@ export function createVersionUpdateActions(
     return kind === 'openCode' ? 'OpenCode' : 'Navigator'
   }
 
-  function update(kind: UpdateKind, version: string) {
+  function update(kind: UpdateKind, version: string, navigation?: DialogNavigation) {
     if (disposed || busy.has(kind)) return
 
     if (version !== target(kind)) {
@@ -47,11 +48,16 @@ export function createVersionUpdateActions(
       return
     }
 
-    api.ui.dialog.clear()
+    if (navigation) navigation.back()
+    else api.ui.dialog.clear()
+
     busy.add(kind)
     setProgress((previous) => ({ ...previous, [kind]: { phase: 'preparing' } }))
 
-    if (kind === 'navigator') setNavigatorUpdating(true)
+    if (kind === 'navigator') {
+      setNavigatorUpdating(true)
+      setNavigatorError(undefined)
+    }
 
     api.ui.toast({ variant: 'info', title: `Updating ${label(kind)}`, message: `Installing ${version}...` })
     void (async () => {
@@ -82,6 +88,8 @@ export function createVersionUpdateActions(
       })
       .catch((error) => {
         if (disposed) return
+
+        if (kind === 'navigator') setNavigatorError(error instanceof Error ? error.message : 'Update failed')
 
         api.ui.toast({
           variant: 'error',
@@ -116,7 +124,7 @@ export function createVersionUpdateActions(
       if (id !== confirmation) return
 
       confirmation++
-      update(kind, version)
+      update(kind, version, navigation)
     }
 
     if (navigation) {
@@ -208,6 +216,7 @@ export function createVersionUpdateActions(
     navigator: (version: string, navigation?: DialogNavigation) => open('navigator', version, navigation),
     navigatorUpdating,
     navigatorInstalled,
+    navigatorError,
     navigatorProgress: () => progress().navigator,
     openCodeProgress: () => progress().openCode,
   }

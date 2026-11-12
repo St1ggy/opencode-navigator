@@ -40,7 +40,7 @@ export function openAboutScene(api, scene, dispatch, schedule = setTimeout) {
   if (scene.startsWith('settings-about')) return
 
   schedule(() => {
-    for (let index = 0; index < (scene.startsWith('changelog-') ? 2 : 3); index++) dispatch('opencode-navigator.settings.next')
+    for (let index = 0; index < (scene.startsWith('changelog-') ? 1 : 2); index++) dispatch('opencode-navigator.settings.next')
     dispatch('opencode-navigator.settings.select')
   }, 850)
 
