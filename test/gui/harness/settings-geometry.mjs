@@ -1,3 +1,18 @@
+// oxlint-disable-next-line import-x-js/extensions
+import { captureGui, capturesEnabled } from './capture.mjs'
+
+async function captureCategory(page, category, width) {
+  if (!capturesEnabled || width !== 1280) return
+
+  if (category === 'About')
+    await page.getByRole('region', { name: 'About settings', exact: true }).getByRole('list').first().waitFor()
+
+  await captureGui(
+    page.locator('[data-navigator-settings]'),
+    `33-desktop-settings-${category.toLowerCase().replaceAll(' ', '-')}`,
+  )
+}
+
 export async function verifySettingsGeometry(page) {
   const original =
     page.viewportSize() ??
@@ -6,44 +21,55 @@ export async function verifySettingsGeometry(page) {
   try {
     for (const width of [1280, 1040, 800]) {
       await page.setViewportSize({ width, height: 900 })
-      const failures = await page.locator('.settings-tab-body').evaluateAll((bodies) => {
-        const errors = []
+      const navigation = page.getByRole('navigation', { name: 'Navigator settings categories', exact: true })
 
-        const rows = bodies.flatMap((body) => [...body.querySelectorAll('[data-component="settings-row"]')])
+      for (const category of ['Layout', 'Behavior', 'Quick Actions', 'Skills', 'MCP', 'Presets', 'About']) {
+        await navigation.getByRole('button', { name: category, exact: true }).click()
+        const failures = await page.locator('.settings-tab-body').evaluateAll((bodies) => {
+          const errors = []
 
-        for (const row of rows) {
-          const bounds = row.getBoundingClientRect()
+          const rows = bodies.flatMap((body) => [...body.querySelectorAll('[data-component="settings-row"]')])
 
-          if (!bounds.width) continue
+          for (const row of rows) {
+            const bounds = row.getBoundingClientRect()
 
-          if (row.scrollWidth > row.clientWidth + 2)
-            errors.push({ label: 'Row content overflows', width: bounds.width, content: row.scrollWidth })
+            if (!bounds.width) continue
 
-          for (const control of row.querySelectorAll('button, input, textarea, [role="switch"]')) {
-            const rect = control.getBoundingClientRect()
+            if (row.scrollWidth > row.clientWidth + 2)
+              errors.push({ label: 'Row content overflows', width: bounds.width, content: row.scrollWidth })
 
-            if (rect.width && (rect.left < bounds.left - 2 || rect.right > bounds.right + 2))
-              errors.push({
-                label: control.getAttribute('aria-label') || control.textContent,
-                width: bounds.width,
-                left: rect.left - bounds.left,
-                right: rect.right - bounds.right,
-              })
+            for (const control of row.querySelectorAll('button, input, textarea, [role="switch"]')) {
+              const rect = control.getBoundingClientRect()
+
+              if (rect.width && (rect.left < bounds.left - 2 || rect.right > bounds.right + 2))
+                errors.push({
+                  label: control.getAttribute('aria-label') || control.textContent,
+                  width: bounds.width,
+                  left: rect.left - bounds.left,
+                  right: rect.right - bounds.right,
+                })
+            }
+            const copy = row.querySelector('[data-slot="settings-row-copy"]')?.getBoundingClientRect()
+
+            if (copy && copy.width < Math.min(160, bounds.width * 0.3))
+              errors.push({ label: 'Compressed row label', width: copy.width })
           }
-          const copy = row.querySelector('[data-slot="settings-row-copy"]')?.getBoundingClientRect()
 
-          if (copy && copy.width < Math.min(160, bounds.width * 0.3))
-            errors.push({ label: 'Compressed row label', width: copy.width })
-        }
+          return errors.slice(0, 8)
+        })
 
-        return errors.slice(0, 8)
-      })
+        if (failures.length > 0)
+          throw new Error(`Navigator Settings geometry fails at ${width}px: ${JSON.stringify(failures)}`)
 
-      if (failures.length > 0)
-        throw new Error(`Navigator Settings geometry fails at ${width}px: ${JSON.stringify(failures)}`)
+        await captureCategory(page, category, width)
+      }
     }
   } finally {
     await page.setViewportSize(original)
+    await page
+      .getByRole('navigation', { name: 'Navigator settings categories', exact: true })
+      .getByRole('button', { name: 'Layout', exact: true })
+      .click()
   }
 }
 

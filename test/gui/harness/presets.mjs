@@ -3,6 +3,12 @@ import { readFile } from 'node:fs/promises'
 import { captureGui } from './capture.mjs'
 
 export async function presetInteractions(page) {
+  const category = (name) =>
+    page
+      .getByRole('navigation', { name: 'Navigator settings categories', exact: true })
+      .getByRole('button', { name, exact: true })
+      .click()
+
   await page.getByRole('textbox', { name: 'New preset name', exact: true }).fill('Synthetic layout')
   await page.getByRole('button', { name: 'Save layout preset', exact: true }).click()
   await page.getByText('Preset saved.', { exact: true }).waitFor()
@@ -48,9 +54,12 @@ export async function presetInteractions(page) {
   await dialog.getByRole('button', { name: 'Preview import', exact: true }).click()
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
 
+  await category('Layout')
+
   if (!(await page.getByRole('switch', { name: 'Show Skills', exact: true }).isChecked()))
     throw new Error('Cancelled import changed the sidebar layout')
 
+  await category('Presets')
   await page.getByRole('button', { name: 'Import settings', exact: true }).click()
   dialog = page.getByRole('dialog').last()
   await dialog.getByRole('textbox', { name: 'Portable settings JSON', exact: true }).fill(source)
@@ -58,10 +67,13 @@ export async function presetInteractions(page) {
   await dialog.getByRole('button', { name: 'Apply imported settings', exact: true }).click()
   await dialog.waitFor({ state: 'detached' })
 
+  await category('Layout')
+
   if (await page.getByRole('switch', { name: 'Show Skills', exact: true }).isChecked())
     throw new Error('Confirmed import did not change the selected scope')
 
   await clickNativeSwitch(page, 'Show Skills')
+  await category('Presets')
   await page.getByRole('button', { name: 'Save project profile…', exact: true }).click()
   await page
     .getByRole('dialog')
