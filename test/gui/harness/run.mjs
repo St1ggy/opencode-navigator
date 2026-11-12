@@ -164,7 +164,16 @@ async function main() {
   const executable = '/opt/OpenCode/ai.opencode'
   const child = spawn(
     executable,
-    ['--no-sandbox', '--disable-gpu', '--remote-debugging-port=9222', ...captureArguments()],
+    [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--remote-debugging-port=9222',
+      // Desktop 2.2.6's packaged updater ignores the server's auto-update flag.
+      // Its feed is on opencode.ai (electron-builder.config.ts). Isolate only this
+      // test process from that live service; preserve real host UI and PNG checks.
+      '--host-resolver-rules=MAP opencode.ai ~NOTFOUND',
+      ...captureArguments(),
+    ],
     {
       env: {
         ...process.env,
@@ -434,6 +443,9 @@ async function main() {
     await assertNoConfigurationError(page)
     console.log('Packaged Desktop panel, Todo preview/archive and floating keyboard interactions passed.')
     const native = await nativeLogs(root)
+
+    assertNoHostUpdate(native)
+
     const pluginFailure = /\[plugin\] opencode-navigator\.todo-server (?:AbortError|Error|TypeError)[^\n]*/u.exec(logs)
 
     if (pluginFailure) throw new Error(`Navigator renderer contribution failed: ${pluginFailure[0]}`)
@@ -482,6 +494,11 @@ async function main() {
 }
 
 await main()
+
+function assertNoHostUpdate(logs) {
+  if (/New version .* has been downloaded|updater state changed.*to: '(?:downloading|ready)'/u.test(logs))
+    throw new Error('Isolated Desktop unexpectedly reached the live host update service')
+}
 
 async function verifyObservedVersion(directory) {
   const preferences = JSON.parse(await readFile(join(directory, 'preferences.json'), 'utf8'))
