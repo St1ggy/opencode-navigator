@@ -20,6 +20,7 @@ import { createCodexQuotaAdapter } from '../src/features/provider-limits/model/c
 import { ProviderLimitsSection, createSidebarInteraction } from '../src/pages/session-sidebar'
 import { IconProvider, subtleLineColor } from '../src/shared/ui'
 
+import { useNativeConfirmationUI } from './fixtures/native-confirmation-ui'
 import { nativeHostFixture } from './fixtures/native-host'
 
 import type { PreferencesController } from '../src/entities/preferences'
@@ -48,6 +49,7 @@ async function harness(
     hostConnection?: NonNullable<SelectedModel['hostConnection']>
     observe?: boolean
     accountSource?: ProviderAccountSource
+    nativeConfirm?: boolean
     countOnly?: boolean
     provider?: string
     variant?: string
@@ -227,6 +229,9 @@ async function harness(
         },
       },
     } as unknown as TuiPluginApi
+
+    if (input.nativeConfirm) useNativeConfirmationUI(api)
+
     Object.assign(api.state, {
       provider: [
         {
@@ -494,6 +499,62 @@ test('foreign integration/provider bursts preserve Limits scales, credits, row i
     }
     expect(h.reads()).toBe(1)
     expect(metadataReads).toBe(1)
+    expect(h.consumes()).toBe(0)
+  } finally {
+    h.destroy()
+    source.dispose()
+    await native.dispose()
+  }
+})
+
+test('token-sharing credentials require explicit Codex linking and do not reuse it after switching connections', async () => {
+  const native = nativeHostFixture()
+  let credentialID = 'sharing-one'
+
+  Object.assign(native.context.client, {
+    provider: { get: async () => ({ data: { id: 'openai', integrationID: 'openai' } }) },
+    credential: {
+      list: async () => [
+        {
+          id: credentialID,
+          integrationID: 'openai',
+          active: true,
+          value: {
+            type: 'oauth',
+            methodID: 'chatgpt-token-sharing',
+            metadata: { clientID: 'synthetic-client', scopes: ['chatgpt.tokens.use.direct'] },
+          },
+        },
+      ],
+    },
+  })
+  const source = createOpenCodeV2AccountSource(native.context, native.api.lifecycle.signal)
+  const h = await harness({ observe: true, accountSource: source, nativeConfirm: true })
+
+  try {
+    await source.refresh(selected)
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Link Codex CLI account')
+    expect(h.reads()).toBe(0)
+    await h.click('Link Codex CLI account')
+    expect(h.captureCharFrame()).toContain('Confirm')
+    expect(h.reads()).toBe(0)
+    await h.click('Confirm')
+    await h.controller.refresh(true)
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Banked Resets')
+    expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
+    h.setSelection({ ...selected, modelID: 'second-model' })
+    await h.controller.refresh(true)
+    await h.flush()
+    expect(h.controller.current().model?.accountID).toBe('synthetic-account')
+    expect(h.captureCharFrame()).not.toContain('Link Codex CLI account')
+    credentialID = 'sharing-two'
+    native.emit('credential.switched', {})
+    await source.refresh(selected)
+    await h.flush()
+    expect(h.captureCharFrame()).toContain('Link Codex CLI account')
+    expect(h.controller.current().model?.accountID).toBeUndefined()
     expect(h.consumes()).toBe(0)
   } finally {
     h.destroy()

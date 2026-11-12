@@ -8,7 +8,7 @@ import type { Plugin } from '@opencode/plugin/tui'
 
 const model: SelectedModel = { providerID: 'openai', modelID: 'synthetic-model', sessionID: 'one' }
 
-function harness() {
+function harness(methodID = 'chatgpt-browser') {
   type Observation = { location?: { directory: string } }
   const callbacks = new Map<string, (event?: Observation) => void>()
   let reads = 0
@@ -28,9 +28,12 @@ function harness() {
       active: true,
       value: {
         type: 'oauth',
-        methodID: 'chatgpt-browser',
+        methodID,
         expires: 1,
-        metadata: { accountID: 'account-a' },
+        metadata:
+          methodID === 'chatgpt-token-sharing'
+            ? { clientID: 'synthetic-client', scopes: ['chatgpt.tokens.use.direct'] }
+            : { accountID: 'account-a' },
         get access(): string {
           throw new Error('Access tokens must not be inspected')
         },
@@ -129,6 +132,46 @@ test('account switches eagerly invalidate old targets and live validation reject
     await h.source.refresh(model)
     expect(await h.source.validate(previous, new AbortController().signal)).toBe(false)
     expect(h.source.current(model).hostConnection?.accountID).toBe('account-b')
+  } finally {
+    h.source.dispose()
+  }
+})
+
+test('token sharing exposes a connection for explicit linking without treating client IDs or headers as account IDs', async () => {
+  const h = harness('chatgpt-token-sharing')
+
+  try {
+    await h.source.refresh(model)
+    const selected = h.source.current(model)
+
+    expect(selected.hostConnection).toEqual({
+      status: 'ready',
+      id: 'credential:one',
+      method: 'oauth',
+      providerID: 'openai',
+    })
+    expect(h.source.current({ ...model, modelID: 'another-model' }).hostConnection).toEqual(selected.hostConnection)
+    const linked = { ...selected, accountID: 'confirmed-codex-account' }
+
+    expect(await h.source.validate(linked, new AbortController().signal)).toBe(true)
+    h.setCredentials([{ ...h.credentials()[0], id: 'two' }])
+    h.callbacks.get('credential.switched')?.()
+    expect(h.source.current(model).hostConnection?.status).toBe('loading')
+    await h.source.refresh(model)
+    expect(h.source.current(model).hostConnection?.id).toBe('credential:two')
+    expect(await h.source.validate(linked, new AbortController().signal)).toBe(false)
+    expect(JSON.stringify(h.source.current(model))).not.toContain('synthetic-client')
+  } finally {
+    h.source.dispose()
+  }
+})
+
+test('unrecognized OpenAI OAuth methods remain unsupported', async () => {
+  const h = harness('synthetic-unknown-method')
+
+  try {
+    await h.source.refresh(model)
+    expect(h.source.current(model).hostConnection).toEqual({ status: 'unsupported', id: 'credential:one' })
   } finally {
     h.source.dispose()
   }

@@ -13,7 +13,7 @@ type AccountCredential = {
   active: boolean
   value: { type: string; methodID?: string; metadata?: Readonly<Record<string, unknown>> }
 }
-const CHATGPT_METHODS = new Set(['chatgpt-browser', 'chatgpt-headless'])
+const CHATGPT_METHODS = new Set(['chatgpt-browser', 'chatgpt-headless', 'chatgpt-token-sharing'])
 
 export function providerAccountIdentity(
   provider: AccountProvider,
