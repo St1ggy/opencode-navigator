@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.8] - 2026-11-14
+
+- Add Code Mode activity inside MCP or in a separate sidebar section in Desktop and TUI. Browse active and recent execute runs, compact source references marked In code, and Code/Response/Error views with full public JSON and independent scrolling. Unknown references and unavailable nested calls remain explicit.
+- Preview and confirm per-server Code Mode/Direct routing changes without changing connection state. Preserve comments and unrelated fields in both native and supported legacy configuration files.
+- Keep MCP routing, information and connection controls aligned as errors, labels and pending states change. Loading indicators replace connection controls in place without extra captions or rows. Multiline Code Mode entries no longer overlap, and TUI summaries keep status and duration readable.
+- Present Desktop configuration, preset, import, project-profile and Todo-enablement previews with native controls and a clearer hierarchy while preserving review, back, cancel and explicit confirmation.
+- Round displayed credit balances to two decimal places while preserving the provider's original precision and distinct missing/unlimited states.
+
 ## [0.27.7] - 2026-11-13
 
 - Refine Limits in Desktop and TUI: show the provider before the update time, use icon-only quota and period rows, give the two scales one outer rounded contour, and keep reset-time switching on its own row.

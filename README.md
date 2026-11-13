@@ -1153,8 +1153,9 @@ bun run check
 
 `bun run check` runs the TUI and browser-conditioned GUI tests, separate JSX
 typechecks, Oxlint, bundle-size guards, and Oxfmt. The unminified TUI bundle is
-limited to 360,000 bytes; the independent single-file GUI budget is 620,000 bytes
-(two-scale quota presentation: about 612 kB). DOM accessibility checks apply only
+limited to 360,000 bytes; the independent single-file GUI budget is 675,000 bytes.
+The GUI uses Vite's production Oxc minifier (about 393 kB with Code Mode); this
+does not change the unminified TUI delivery. DOM accessibility checks apply only
 to GUI modules, never to terminal renderables.
 Font generation is a separate development task: `bun run font:build` and
 `bun run font:check` use `uv` and the pinned FontTools dependency. Users install
@@ -1201,6 +1202,45 @@ without stopping interaction timers or adding comparison tolerances. GUI
 capture commands reject non-CI invocation; ordinary Desktop smoke tests never
 take screenshots. Reproducible captures and the screenshot PR's required CI remain
 pre-release gates; the release App does not need a manual PR approval.
+
+## Code Mode activity
+
+In Settings → Behavior, choose **Inside MCP** (the default) or **Separate section**
+for Code Mode activity. Both placements share the current session's Active/Recent
+selection and runtime in TUI and Desktop. MCP connection controls remain separate
+from the Code Mode/Direct action.
+
+On the audited OpenCode 2.x host, open an execute row to browse public input,
+output and errors. Missing timing and nested MCP payloads are marked unavailable;
+execute counts are not MCP call counts or token-savings estimates. The 1.x
+adapter shows a capability notice instead of guessing routing or telemetry.
+
+Both interfaces show compact `namespace → method` references **In code**, with one
+status and duration for the entire execute run. References describe source text,
+not confirmed nested calls; dynamic and partially understood inputs stay explicit.
+Use **Code**, **Response** and **Error** tabs with independent scroll positions.
+**All execute parameters** and **Full response JSON** expose complete public
+payloads, including fields outside the code/text view. Operation IDs, timestamps
+and the complete reference list remain available under Details. Desktop uses native controls. Each MCP server's
+routing action sits between its name and right-aligned connection switch;
+group switches use the same right edge. During a connection change, a loader replaces
+the switch or TUI indicator in place, without a loading caption or extra row.
+Routing and information controls retain stable slots, including when errors appear
+or the routing label changes.
+Routing previews support native and
+host-supported legacy configuration files without rewriting their structure.
+Credit balances are displayed to two decimal places; the provider's original
+decimal string remains unchanged in the quota model.
+
+![Code Mode activity with several source references in one execute run](./screenshots/97-code-mode-activity.png)
+
+![Desktop Code Mode payload inspector](./screenshots/gui/34-desktop-code-mode-payloads.png)
+
+Changing routing previews the discovered server configuration source and exact
+field change before confirmation. It preserves JSONC comments and unrelated
+fields, rejects stale files/session/server targets, and never changes permissions
+or connection state. The file may also affect other projects. In-flight work is
+not cancelled; catalog availability may follow at a later step boundary.
 
 ## Publishing
 

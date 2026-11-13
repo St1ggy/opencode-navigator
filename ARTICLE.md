@@ -76,6 +76,14 @@ For a long list, bookmarks alone were not enough. I added custom MCP groups in s
 
 ![Custom MCP groups](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/31-mcp-groups.png)
 
+## Reading Code Mode Runs
+
+I also wanted a useful summary of an execute run before opening its JavaScript payload. Code Mode activity can sit inside MCP or in a section of its own. A run keeps one status and duration even when its source mentions several tools. Those names are marked **In code** because the host does not expose confirmed nested calls. Opening the row gives me Code, Response and Error tabs, with the original JSON available when I need the extra fields.
+
+Routing and connection state are separate controls. Switching a server between Code Mode and Direct starts with a configuration preview and requires confirmation; it does not reconnect the server. Pending indicators stay in the connection-control slot, and an error-information button no longer pushes the routing control sideways.
+
+![One execute run with several source references](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/97-code-mode-activity.png)
+
 ## Search Everything: One Entry Point for Four Lists
 
 As soon as sections gained row limits and could be hidden, I needed a way to search their complete source lists. That became Search Everything. It opens with `Ctrl+Shift+K` and combines four tabs: Skills, Subagents, MCP, and Actions.
