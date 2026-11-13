@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 
+import { rulesetWithAudit } from './policy-audit'
+
 export type CheckRun = {
   name: string
   status: string
@@ -8,9 +10,11 @@ export type CheckRun = {
 }
 
 export type Ruleset = {
+  id: number
+  updated_at: string
   enforcement: string
   conditions: { ref_name: { include: string[]; exclude: string[] } }
-  bypass_actors: { actor_id: number; actor_type: string; bypass_mode: string }[]
+  bypass_actors?: { actor_id: number; actor_type: string; bypass_mode: string }[]
   rules: {
     type: string
     parameters: {
@@ -20,6 +24,16 @@ export type Ruleset = {
       require_code_owner_review?: boolean
     }
   }[]
+}
+
+export type VisibleRuleset = Ruleset & { bypass_actors: NonNullable<Ruleset['bypass_actors']> }
+
+export type PolicyAudit = {
+  version: 1
+  repository: string
+  appId: number
+  ci: VisibleRuleset
+  review: VisibleRuleset
 }
 
 export type ScreenshotPull = {
@@ -43,7 +57,22 @@ export function requiredContexts(versions: { v1: string; v2: string }) {
   ]
 }
 
-export function assertPolicies(ci: Ruleset, review: Ruleset, contexts: string[], appId: number) {
+export function assertPolicies(
+  observedCI: Ruleset,
+  observedReview: Ruleset,
+  contexts: string[],
+  appId: number,
+  audit?: PolicyAudit,
+) {
+  if (audit) {
+    assert.equal(audit.version, 1)
+    assert.equal(audit.repository, 'St1ggy/opencode-navigator')
+    assert.equal(audit.appId, appId)
+  }
+
+  const ci = rulesetWithAudit(observedCI, audit?.ci)
+  const review = rulesetWithAudit(observedReview, audit?.review)
+
   for (const ruleset of [ci, review]) {
     assert.equal(ruleset.enforcement, 'active')
     assert.deepEqual(ruleset.conditions.ref_name, { include: ['refs/heads/main'], exclude: [] })

@@ -38,6 +38,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_APP_ID: ${{ vars.RELEASE_APP_ID }}
+          RELEASE_POLICY_AUDIT: ${{ secrets.RELEASE_POLICY_AUDIT }}
           RELEASE_SHA: ${{ github.sha }}
         run: bun scripts/release.ts preflight
 

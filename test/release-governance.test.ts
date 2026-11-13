@@ -12,7 +12,7 @@ import {
 } from '../scripts/release/guards'
 import { assertProvenance } from '../scripts/release/provenance'
 
-import type { Ruleset, ScreenshotPull } from '../scripts/release/guards'
+import type { Ruleset, ScreenshotPull, VisibleRuleset } from '../scripts/release/guards'
 
 const contexts = requiredContexts({
   v1: metadata.devDependencies['@opencode-ai/plugin'],
@@ -22,10 +22,12 @@ const success = contexts.map((name) => ({ name, app: { id: 15_368 }, status: 'co
 
 function policies() {
   const base = {
+    id: 1,
+    updated_at: '2026-01-01T03:00:00.000+03:00',
     enforcement: 'active',
     conditions: { ref_name: { include: ['refs/heads/main'], exclude: [] } },
   }
-  const ci: Ruleset = {
+  const ci: VisibleRuleset = {
     ...base,
     bypass_actors: [],
     rules: [
@@ -38,8 +40,9 @@ function policies() {
       },
     ],
   }
-  const review: Ruleset = {
+  const review: VisibleRuleset = {
     ...structuredClone(base),
+    id: 2,
     bypass_actors: [{ actor_id: 42, actor_type: 'Integration', bypass_mode: 'pull_request' }],
     rules: [
       { type: 'pull_request', parameters: { required_approving_review_count: 1, require_code_owner_review: true } },
@@ -48,6 +51,36 @@ function policies() {
 
   return { ci, review }
 }
+
+test('restricted ruleset responses need a matching revision-bound owner audit, never an assumed empty bypass', () => {
+  const { ci, review } = policies()
+  const audit = {
+    version: 1 as const,
+    repository: 'St1ggy/opencode-navigator',
+    appId: 42,
+    ci: structuredClone(ci),
+    review: structuredClone(review),
+  }
+  const restrictedCI = { ...ci, updated_at: '2026-01-01T00:00:00.000Z' }
+  const restrictedReview = { ...review, updated_at: '2026-01-01T00:00:00.000Z' }
+
+  delete (restrictedCI as any).bypass_actors
+  delete (restrictedReview as any).bypass_actors
+  expect(() => assertPolicies(restrictedCI, restrictedReview, contexts, 42)).toThrow()
+  expect(() => assertPolicies(restrictedCI, restrictedReview, contexts, 42, audit)).not.toThrow()
+  expect(() =>
+    assertPolicies({ ...restrictedCI, updated_at: '2026-01-02T00:00:00Z' }, restrictedReview, contexts, 42, audit),
+  ).toThrow('changed since')
+  const changed = structuredClone(restrictedCI)
+
+  changed.rules[0].parameters.strict_required_status_checks_policy = false
+  expect(() => assertPolicies(changed, restrictedReview, contexts, 42, audit)).toThrow('changed since')
+  expect(() => assertPolicies(restrictedCI, restrictedReview, contexts, 42, { ...audit, appId: 99 })).toThrow()
+  const unsafe = structuredClone(audit)
+
+  unsafe.ci.bypass_actors = review.bypass_actors
+  expect(() => assertPolicies(restrictedCI, restrictedReview, contexts, 42, unsafe)).toThrow('never have bypass')
+})
 
 test('release App bypasses only ownership review while all seven native CI checks remain required', () => {
   const { ci, review } = policies()

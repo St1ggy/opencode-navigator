@@ -1238,6 +1238,16 @@ policies before doing release work. Do not add an approval-protected environment
 to this unattended path. The App token is minted only after screenshot capture;
 PR checks never receive it or an owner credential.
 
+GitHub hides ruleset bypass lists from tokens without ruleset-write access. Do
+not grant the App administrative writes just to inspect those lists. Once the
+App exception is configured, run `bun scripts/release/audit-policy.ts` locally
+with the already authenticated owner. It validates both policies and stores only
+their server revisions and configuration in `RELEASE_POLICY_AUDIT`, an Actions
+secret, without copying any owner credential. The release accepts a hidden list
+only when the public rules and server revision still match that audit; unknown
+or changed policies stop publication. Re-run the audit only after deliberately
+changing a policy, not for every release.
+
 The existing `publish.yml` uses npm Trusted Publishing with provenance. Configure
 `St1ggy/opencode-navigator` and `publish.yml` as the trusted GitHub Actions
 publisher in the package settings on npmjs.com before publishing a release.
