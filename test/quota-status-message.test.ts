@@ -16,9 +16,9 @@ const snapshot: ProviderQuotaSnapshot = {
 }
 const updated = `Updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}`
 
-test('successful Desktop account quotas show only their update time, never scope prose', () => {
+test('successful quotas show provider before update time, never scope prose', () => {
   expect(quotaStatusMessage({ snapshot, state: { status: 'ready' }, hasAdapter: true, showUpdatedAt: true })).toBe(
-    updated,
+    `Codex CLI · ${updated}`,
   )
 })
 
@@ -38,9 +38,21 @@ test('successful balances and windows without descriptive messages use the same 
   ]) {
     expect(
       quotaStatusMessage({ snapshot: value, state: { status: 'ready' }, hasAdapter: true, showUpdatedAt: true }),
-    ).toBe(updated)
+    ).toBe(`Codex CLI · ${updated}`)
     expect(quotaStatusMessage({ snapshot: value, state: { status: 'ready' }, hasAdapter: true })).toBeUndefined()
   }
+})
+
+test('native host provider name takes precedence over the quota transport label', () => {
+  expect(
+    quotaStatusMessage({
+      snapshot,
+      state: { status: 'ready' },
+      hasAdapter: true,
+      showUpdatedAt: true,
+      providerName: 'OpenAI',
+    }),
+  ).toBe(`OpenAI · ${updated}`)
 })
 
 test('failed refreshes override the quiet success state for both renderers', () => {

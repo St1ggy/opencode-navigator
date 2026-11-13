@@ -1,4 +1,4 @@
-import { createSignal, untrack } from 'solid-js'
+import { Show, createSignal, untrack } from 'solid-js'
 
 import { useIcons } from '../../../shared/ui'
 import { quotaPresentation } from '../model/quota-presentation'
@@ -45,7 +45,7 @@ export function QuotaWindowRow(props: {
         return resetLabel()
       },
       get value() {
-        return view().period.ratio === undefined ? '' : view().period.detail
+        return ''
       },
       get disabled() {
         return !view().canToggleReset
@@ -60,24 +60,44 @@ export function QuotaWindowRow(props: {
   }
 
   return (
-    <box width="100%" minWidth={0} flexShrink={1} height={4} overflow="hidden">
+    <box width="100%" minWidth={0} flexShrink={1} height={5} overflow="hidden">
       <QuotaMeter
         api={props.api}
-        label={`${icons.section('limits')} ${props.window.label}`}
+        label={icons.icon('quota')}
         value={view().compactValue}
         ratio={view().ratio}
         color={color()}
         labelAbove
+        cap="top"
       />
       <QuotaMeter
         api={props.api}
-        label={resetLabel()}
-        value={view().period.ratio === undefined ? '' : view().period.detail}
+        label={icons.icon('clock')}
+        value={view().period.ratio === undefined ? 'Unknown' : view().period.detail}
         ratio={view().period.ratio}
         color={quotaColors.blue}
-        onActivate={toggle}
-        row={resetControl}
+        cap="bottom"
       />
+      <Show
+        when={resetControl}
+        fallback={
+          <text
+            width="100%"
+            height={1}
+            fg={props.api.theme.current.textMuted}
+            wrapMode="none"
+            truncate
+            onMouseUp={(event) => {
+              event.stopPropagation()
+              toggle()
+            }}
+          >
+            {resetLabel()}
+          </text>
+        }
+      >
+        {resetControl}
+      </Show>
     </box>
   )
 }

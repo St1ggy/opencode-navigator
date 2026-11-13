@@ -85,6 +85,17 @@ export function createGuiLimits(
     codex,
     accountSource: accounts,
     selected,
+    providerName: () => {
+      if (!access.current(scope)) return
+
+      const model = selected()
+      const request = access.cache(scope)
+
+      return (
+        request.data.location.provider.list(request.location)?.find((provider) => provider.id === model?.providerID)
+          ?.name ?? model?.providerID
+      )
+    },
     label: () => {
       const model = selected()
 

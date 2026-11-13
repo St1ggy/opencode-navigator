@@ -307,7 +307,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     expect(frame).toContain('TODO')
     expect(frame).toContain('LIMITS')
     expect(frame.indexOf('LIMITS')).toBeLessThan(frame.indexOf('TODO'))
-    expect(frame).toContain('[synthetic-provider] synthetic-model')
+    expect(frame).toContain('synthetic-model')
     expect(frame.replaceAll(/\s+/g, ' ')).toContain('server plugin for native provider quotas and balances')
     expect(frame).not.toContain('Review reset credits')
     expect(frame.replaceAll(/\s+/g, ' ')).toContain('Native OpenCode Todo')

@@ -25,10 +25,10 @@ export function LimitsModelRow(props: {
         interaction={props.interaction}
         inline
         flexGrow={1}
-        maxWidth={Bun.stringWidth(`[${names().provider}] ${names().model}`) + 2}
+        maxWidth={Bun.stringWidth(names().model) + 2}
         id={`${PLUGIN_ID}.limits.model`}
         position={{ section: props.navigationSection, row: 1, column: 0 }}
-        label={`[${names().provider}] ${names().model}`}
+        label={names().model}
         disabled={!props.selection?.canOpen('model', props.model)}
         onActivate={() => props.selection?.open('model', props.model)}
       />

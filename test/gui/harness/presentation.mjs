@@ -12,6 +12,7 @@ export async function presentationInteractions(page, command) {
       const labels = [...node.querySelectorAll('[data-navigator-quota-label]')]
       const quotaBox = meters[0].getBoundingClientRect()
       const timeBox = meters[1].getBoundingClientRect()
+      const scales = node.querySelector('[data-navigator-quota-scales]')
 
       return {
         pace: node.dataset.pace,
@@ -21,6 +22,13 @@ export async function presentationInteractions(page, command) {
         timeColor: getComputedStyle(meters[1].firstElementChild).backgroundColor,
         bounded: meters.every((meter) => meter.getBoundingClientRect().width <= 301),
         paired: Math.abs(timeBox.top - quotaBox.bottom) <= 2,
+        sharedRounding:
+          getComputedStyle(scales).borderRadius === '4px' &&
+          getComputedStyle(scales).overflow === 'hidden' &&
+          meters.every((meter) => getComputedStyle(meter).borderRadius === '0px'),
+        iconOnly: labels.every(
+          (label) => label.children.length === 2 && !/Synthetic|Reset|Codex/u.test(label.textContent),
+        ),
         labelOrder:
           labels[0].getBoundingClientRect().bottom < quotaBox.top &&
           labels[1].getBoundingClientRect().top > timeBox.bottom,
@@ -36,7 +44,9 @@ export async function presentationInteractions(page, command) {
         state.timeColor !== 'rgb(66, 165, 245)' ||
         !state.bounded ||
         !state.paired ||
-        !state.labelOrder,
+        !state.labelOrder ||
+        !state.sharedRounding ||
+        !state.iconOnly,
     ) ||
     new Set(states.map((state) => state.quotaColor)).size !== 4
   )

@@ -15,6 +15,7 @@ export function QuotaMeter(props: {
   labelAbove?: boolean
   row?: JSX.Element
   onActivate?: () => void
+  cap?: 'top' | 'bottom'
 }) {
   const icons = useIcons()
   const [columns, setColumns] = createSignal(0)
@@ -24,7 +25,12 @@ export function QuotaMeter(props: {
     const filled = Math.round(props.ratio * columns())
     const symbols = icons.style() === 'text' ? ['=', '-'] : ['━', '─']
 
-    return { filled: symbols[0].repeat(filled), unfilled: symbols[1].repeat(columns() - filled) }
+    let line = symbols[0].repeat(filled) + symbols[1].repeat(columns() - filled)
+
+    if (props.cap && icons.style() !== 'text' && columns() >= 2)
+      line = (props.cap === 'top' ? '╭' : '╰') + line.slice(1, -1) + (props.cap === 'top' ? '╮' : '╯')
+
+    return { filled: line.slice(0, filled), unfilled: line.slice(filled) }
   }
   const valueWidth = () => Math.min(columns(), Bun.stringWidth(props.value))
   const gap = () => (columns() > valueWidth() ? 1 : 0)

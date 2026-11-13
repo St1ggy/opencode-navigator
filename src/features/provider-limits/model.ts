@@ -10,3 +10,4 @@ export { createCodexQuotaAdapter, supportsCodexQuota } from './model/codex-quota
 export type { CodexRpcClient } from './model/codex-port'
 export { quotaPresentation } from './model/quota-presentation'
 export { quotaStatusMessage } from './model/status-message'
+export { quotaBalanceValue } from './model/balance-value'

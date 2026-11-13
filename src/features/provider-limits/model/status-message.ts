@@ -9,13 +9,16 @@ export function quotaStatusMessage(input: {
   state: TargetRequestState
   hasAdapter: boolean
   showUpdatedAt?: boolean
+  providerName?: string
 }) {
   const { model, snapshot, state } = input
 
   if (state.status === 'error') return snapshot ? 'Stale · refresh failed' : 'Quota read failed · refresh to retry'
 
   if (snapshot?.availability === 'ready' && (snapshot.windows.length > 0 || snapshot.balances?.length))
-    return input.showUpdatedAt ? `Updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}` : undefined
+    return input.showUpdatedAt
+      ? `${input.providerName ?? snapshot.providerName} · Updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}`
+      : undefined
 
   if (snapshot?.message) {
     if (snapshot.availability === 'stale') return `Stale · ${snapshot.message}`

@@ -6,6 +6,8 @@ export type SectionIconName = 'limits' | 'todo' | 'subagents' | 'skills' | 'quic
 // Nerd Font glyphs, paired with font-independent ASCII fallbacks.
 const ICONS = {
   limits: ['\u{F029A}', '%'],
+  quota: ['\u{F0E4}', '%'],
+  clock: ['\u{EA82}', 'T'],
   todo: ['\u{EAB3}', '[T]'],
   subagents: ['\u{EA7E}', '[A]'],
   skills: ['\u{EAA4}', '[S]'],

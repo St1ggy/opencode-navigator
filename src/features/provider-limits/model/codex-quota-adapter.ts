@@ -1,5 +1,6 @@
 import { normalizeProviderQuota } from '../../../entities/provider-limit/model'
 
+import { codexCreditBalance } from './codex-credit-balance'
 import { codexQuotaWindows } from './codex-quota-windows'
 
 import type {
@@ -93,20 +94,23 @@ export function createCodexQuotaAdapter(
       if (!usage.accountId || usage.accountId !== model.accountID) return { ...base, availability: 'unauthenticated' }
 
       const windows = codexQuotaWindows(usage, model.modelID)
+      const balances = codexCreditBalance(usage)
       const creditSummary = usage.rateLimitResetCredits
 
       return normalizeProviderQuota({
         ...base,
         accountId: usage.accountId,
-        availability: windows.length > 0 ? 'ready' : 'unavailable',
+        availability: windows.length > 0 || balances.length > 0 ? 'ready' : 'unavailable',
         ordinaryUsageAllowed: usage.ordinaryUsageAllowed ?? undefined,
         windows,
+        ...(balances.length > 0 && { balances }),
         ...(windows.some((window) => window.scope === 'account') && {
           message: 'Codex account quota; shared across models, not a model-specific allowance.',
         }),
-        ...(windows.length === 0 && {
-          message: 'Codex reported no applicable usage windows for this account and model.',
-        }),
+        ...(windows.length === 0 &&
+          balances.length === 0 && {
+            message: 'Codex reported no applicable usage windows for this account and model.',
+          }),
         ...(creditSummary && {
           bankedResets: {
             availableCount: creditSummary.availableCount,
