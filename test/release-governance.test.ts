@@ -1,92 +1,256 @@
-import { afterEach, expect, test } from 'bun:test'
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
 
-const directories: string[] = []
+import metadata from '../package.json'
+import {
+  assertChecks,
+  assertPolicies,
+  assertRun,
+  assertScreenshotFiles,
+  assertScreenshotPull,
+  requiredContexts,
+} from '../scripts/release/guards'
+import { assertProvenance } from '../scripts/release/provenance'
 
-afterEach(() => {
-  for (const directory of directories) rmSync(directory, { recursive: true, force: true })
+import type { Ruleset, ScreenshotPull } from '../scripts/release/guards'
 
-  directories.length = 0
+const contexts = requiredContexts({
+  v1: metadata.devDependencies['@opencode-ai/plugin'],
+  v2: metadata.devDependencies['@opencode/plugin'],
 })
+const success = contexts.map((name) => ({ name, app: { id: 15_368 }, status: 'completed', conclusion: 'success' }))
 
-function runReleaseTail(review: string, ciFailure = false) {
-  const directory = mkdtempSync(join(tmpdir(), 'navigator-release-governance-'))
+function policies() {
+  const base = {
+    enforcement: 'active',
+    conditions: { ref_name: { include: ['refs/heads/main'], exclude: [] } },
+  }
+  const ci: Ruleset = {
+    ...base,
+    bypass_actors: [],
+    rules: [
+      {
+        type: 'required_status_checks',
+        parameters: {
+          strict_required_status_checks_policy: true,
+          required_status_checks: contexts.map((context) => ({ context, integration_id: 15_368 })),
+        },
+      },
+    ],
+  }
+  const review: Ruleset = {
+    ...structuredClone(base),
+    bypass_actors: [{ actor_id: 42, actor_type: 'Integration', bypass_mode: 'pull_request' }],
+    rules: [
+      { type: 'pull_request', parameters: { required_approving_review_count: 1, require_code_owner_review: true } },
+    ],
+  }
 
-  directories.push(directory)
-  const calls = join(directory, 'calls')
-  const summary = join(directory, 'summary')
-  const gh = join(directory, 'gh')
-
-  writeFileSync(
-    gh,
-    `#!/bin/sh
-printf '%s\n' "$*" >> "$CALLS"
-case "$1 $2" in
-  'run watch') exit "$CI_EXIT" ;;
-  'pr view') printf '%s\n' "$REVIEW" ;;
-  'pr merge') exit 0 ;;
-  *) exit 99 ;;
-esac
-`,
-  )
-  chmodSync(gh, 0o700)
-  const source = readFileSync('.github/workflows/prepare-release.yml', 'utf8')
-  const start = source.indexOf('          gh pr merge "$pr_url"')
-
-  expect(start).toBeGreaterThan(0)
-  const script = source
-    .slice(start)
-    .split('\n')
-    .map((line) => line.slice(10))
-    .join('\n')
-  const result = Bun.spawnSync(['bash', '-e', '-s'], {
-    stdin: Buffer.from(
-      `ci_run_id=123\npr_url=https://github.com/synthetic/repository/pull/1\nhead_sha=synthetic-head\n${script}`,
-    ),
-    env: {
-      PATH: `${directory}:/usr/bin:/bin`,
-      CALLS: calls,
-      GITHUB_STEP_SUMMARY: summary,
-      REVIEW: review,
-      CI_EXIT: ciFailure ? '1' : '0',
-    },
-    stdout: 'pipe',
-    stderr: 'pipe',
-  })
-
-  return { exitCode: result.exitCode, calls: readFileSync(calls, 'utf8'), summary: Bun.file(summary) }
+  return { ci, review }
 }
 
-test('release screenshot automation enables auto-merge while owner review is pending', async () => {
-  const result = runReleaseTail('REVIEW_REQUIRED')
+test('release App bypasses only ownership review while all seven native CI checks remain required', () => {
+  const { ci, review } = policies()
 
-  expect(result.exitCode).toBe(0)
-  expect(result.calls).toContain('pr merge https://github.com/synthetic/repository/pull/1 --auto --squash')
-  expect(result.calls).not.toContain('--admin')
-  expect(await result.summary.text()).toContain('owner approval and all required checks remain mandatory')
+  expect(() => assertPolicies(ci, review, contexts, 42)).not.toThrow()
+  ci.bypass_actors = review.bypass_actors
+  expect(() => assertPolicies(ci, review, contexts, 42)).toThrow('never have bypass')
+  ci.bypass_actors = []
+  review.bypass_actors[0].bypass_mode = 'always'
+  expect(() => assertPolicies(ci, review, contexts, 42)).toThrow('owner-review')
+  review.bypass_actors[0].bypass_mode = 'pull_request'
+  expect(() => assertPolicies(ci, review, contexts, 99)).toThrow('owner-review')
 })
 
-test('release screenshot automation arms exact-head auto-merge before waiting for CI', () => {
-  const result = runReleaseTail('APPROVED')
+test('release rejects weakened, wrong-integration, stale-base and inactive CI policies', () => {
+  for (const mutate of [
+    (ci: Ruleset) => {
+      ci.enforcement = 'disabled'
+    },
+    (ci: Ruleset) => {
+      ci.conditions.ref_name.exclude = ['refs/heads/main']
+    },
+    (ci: Ruleset) => {
+      ci.rules[0].parameters.strict_required_status_checks_policy = false
+    },
+    (ci: Ruleset) => {
+      ci.rules[0].parameters.required_status_checks!.pop()
+    },
+    (ci: Ruleset) => {
+      ci.rules[0].parameters.required_status_checks![0].integration_id = 42
+    },
+  ]) {
+    const { ci, review } = policies()
 
-  expect(result.exitCode).toBe(0)
-  expect(result.calls.indexOf('pr merge')).toBeLessThan(result.calls.indexOf('run watch'))
-  expect(result.calls).toContain('--match-head-commit synthetic-head')
-  expect(result.calls).not.toContain('--admin')
+    mutate(ci)
+    expect(() => assertPolicies(ci, review, contexts, 42)).toThrow()
+  }
 })
 
-test('release screenshot automation reports failed CI without bypassing auto-merge gates', () => {
-  const result = runReleaseTail('APPROVED', true)
+test('missing, skipped, failed, cancelled, pending or foreign checks cannot authorize screenshot merge', () => {
+  expect(() => assertChecks(success, contexts)).not.toThrow()
+  expect(() => assertChecks(success.slice(1), contexts)).toThrow('Missing')
+  for (const conclusion of ['failure', 'cancelled', 'skipped', 'neutral', null]) {
+    expect(() => assertChecks([{ ...success[0], conclusion }, ...success.slice(1)], contexts)).toThrow('not successful')
+  }
 
-  expect(result.exitCode).toBe(1)
-  expect(result.calls).toContain('--auto')
-  expect(result.calls).not.toContain('--admin')
-  expect(result.calls.match(/pr merge/gu)).toHaveLength(1)
+  expect(() => assertChecks([{ ...success[0], status: 'in_progress' }, ...success.slice(1)], contexts)).toThrow()
+  expect(() =>
+    assertChecks(
+      success.map((check) => ({ ...check, app: { id: 42 } })),
+      contexts,
+    ),
+  ).toThrow('Missing')
 })
 
-test('all repository paths have exactly one designated owner', () => {
+const target = {
+  repository: 'synthetic/navigator',
+  base: 'base',
+  head: 'head',
+  branch: 'automation/screenshots',
+  bot: 'release[bot]',
+}
+
+function screenshotPull(): ScreenshotPull {
+  return {
+    state: 'open',
+    merged: false,
+    merge_commit_sha: null,
+    user: { login: target.bot, type: 'Bot' },
+    head: { sha: target.head, ref: target.branch, repo: { full_name: target.repository } },
+    base: { sha: target.base, ref: 'main', repo: { full_name: target.repository } },
+  }
+}
+
+test('screenshot merge rejects foreign authors/repos and changed source/head identities', () => {
+  expect(() => assertScreenshotPull(screenshotPull(), target)).not.toThrow()
+  for (const mutate of [
+    (pull: ScreenshotPull) => {
+      pull.user.login = 'another[bot]'
+    },
+    (pull: ScreenshotPull) => {
+      pull.user.type = 'User'
+    },
+    (pull: ScreenshotPull) => {
+      pull.head.repo.full_name = 'foreign/navigator'
+    },
+    (pull: ScreenshotPull) => {
+      pull.head.sha = 'new-head'
+    },
+    (pull: ScreenshotPull) => {
+      pull.base.sha = 'new-base'
+    },
+    (pull: ScreenshotPull) => {
+      pull.state = 'closed'
+    },
+  ]) {
+    const pull = screenshotPull()
+
+    mutate(pull)
+    expect(() => assertScreenshotPull(pull, target)).toThrow()
+  }
+})
+
+test('only added/modified PNGs in the two public screenshot directories can merge autonomously', () => {
+  expect(() =>
+    assertScreenshotFiles([
+      { filename: 'screenshots/sidebar.png', status: 'modified' },
+      { filename: 'screenshots/gui/limits.png', status: 'added' },
+    ]),
+  ).not.toThrow()
+  expect(() => assertScreenshotFiles([])).toThrow('empty')
+  for (const filename of [
+    '.github/workflows/ci.yml',
+    'screenshots/../source.png',
+    'screenshots/gui/deep/file.png',
+    'screenshots/file.svg',
+  ]) {
+    expect(() => assertScreenshotFiles([{ filename, status: 'modified' }])).toThrow()
+  }
+
+  for (const status of ['removed', 'renamed']) {
+    expect(() => assertScreenshotFiles([{ filename: 'screenshots/file.png', status }])).toThrow()
+  }
+})
+
+test('dispatched CI and npm Publish must complete successfully on the exact release commit', () => {
+  const run = { head_sha: 'sha', event: 'workflow_dispatch', path: '.github/workflows/ci.yml', conclusion: 'success' }
+
+  expect(() => assertRun(run, 'sha', 'ci.yml', 'workflow_dispatch')).not.toThrow()
+  expect(() => assertRun(run, 'other', 'ci.yml', 'workflow_dispatch')).toThrow('different commit')
+  expect(() => assertRun(run, 'sha', 'publish.yml', 'release')).toThrow()
+  for (const conclusion of ['failure', 'cancelled', 'skipped', null]) {
+    expect(() => assertRun({ ...run, conclusion }, 'sha', 'ci.yml', 'workflow_dispatch')).toThrow('did not succeed')
+  }
+})
+
+test('registry provenance binds the package digest to the tag, commit and original npm Publish identity', () => {
+  const expected = {
+    version: '1.2.3',
+    sha: 'source-sha',
+    sha512: 'digest',
+    run: 123,
+    repository: 'synthetic/navigator',
+  }
+  const statement = {
+    subject: [{ name: 'pkg:npm/opencode-navigator@1.2.3', digest: { sha512: 'digest' } }],
+    predicate: {
+      buildDefinition: {
+        externalParameters: {
+          workflow: {
+            ref: 'refs/tags/v1.2.3',
+            repository: 'https://github.com/synthetic/navigator',
+            path: '.github/workflows/publish.yml',
+          },
+        },
+        resolvedDependencies: [{ digest: { gitCommit: 'source-sha' } }],
+      },
+      runDetails: { metadata: { invocationId: 'https://github.com/synthetic/navigator/actions/runs/123/attempts/1' } },
+    },
+  }
+
+  expect(() => assertProvenance(statement, expected)).not.toThrow()
+  for (const changed of [
+    { sha: 'other' },
+    { sha512: 'other' },
+    { run: 456 },
+    { version: '1.2.4' },
+    { repository: 'other/navigator' },
+  ]) {
+    expect(() => assertProvenance(statement, { ...expected, ...changed })).toThrow()
+  }
+})
+
+test('single Release launch orders all stages without environments, reviews or owner credentials', () => {
+  const source = readFileSync('.github/workflows/release.yml', 'utf8')
+  const workflow = Bun.YAML.parse(source) as any
+
+  expect(workflow.on).toHaveProperty('workflow_dispatch')
+  expect(workflow.concurrency['cancel-in-progress']).toBe(false)
+  expect(workflow.jobs['source-ci'].needs).toBe('preflight')
+  expect(workflow.jobs.screenshots.needs).toEqual(['preflight', 'source-ci'])
+  expect(workflow.jobs['final-ci'].needs).toBe('screenshots')
+  expect(workflow.jobs.publish.needs).toEqual(['preflight', 'screenshots', 'final-ci'])
+  expect(source).not.toContain('environment:')
+  expect(source).not.toContain('OWNER_TOKEN')
+  expect(source).not.toContain('gh pr review')
+  expect(source).toContain('bun scripts/release/verify.ts')
+  const prepare = readFileSync('.github/workflows/prepare-release.yml', 'utf8')
+
+  expect(prepare).toContain('workflow_call:')
+  expect(prepare).not.toContain('workflow_dispatch:')
+  expect(prepare.indexOf('bun run screenshots:verify')).toBeLessThan(
+    prepare.indexOf('actions/create-github-app-token@'),
+  )
+  expect(prepare).toContain('persist-credentials: false')
+  const merge = readFileSync('scripts/release/screenshots.ts', 'utf8')
+
+  expect(merge.indexOf("'--auto'")).toBeLessThan(merge.indexOf('await runCI('))
+  expect(merge.indexOf('assertScreenshotFiles(pages')).toBeLessThan(merge.indexOf("'PUT'"))
+  expect(merge).not.toContain('review')
+})
+
+test('all repository paths retain the sole designated code owner', () => {
   const rules = readFileSync('.github/CODEOWNERS', 'utf8')
     .split('\n')
     .filter((line) => line.trim() && !line.startsWith('#'))
@@ -94,7 +258,7 @@ test('all repository paths have exactly one designated owner', () => {
   expect(rules).toEqual(['* @St1ggy'])
 })
 
-test('submitted reviews run the full PR-associated CI suite without skipped required jobs', () => {
+test('submitted reviews retain full read-only PR-associated CI without skipped required jobs', () => {
   const source = readFileSync('.github/workflows/ci.yml', 'utf8')
 
   expect(source).toContain('pull_request_review:\n    types: [submitted]')

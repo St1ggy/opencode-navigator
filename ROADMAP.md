@@ -1,5 +1,12 @@
 # Roadmap
 
+## Single autonomous release flow
+
+- [x] Set up the user-selected dedicated private GitHub App for this repository only, with Actions variable/secret credentials and a pull-request-only owner-review exception. Verified that the independent CI ruleset is unchanged and has no bypass actors. End-to-end autonomous release verification remains pending.
+- [x] Implement the single Release entrypoint, reusable screenshot stage, exact commit/run/policy/author/path/ancestry guards and registry signature/provenance verification while preserving the existing npm publishing identity. Local verification: 670 primary tests, one existing skip, 115 GUI tests, types/lint/format/budgets, actionlint and the real read-only policy preflight pass. Actual Actions execution is tracked separately below.
+
+- [~] Replace the agent-orchestrated release sequence with one user-triggered Actions flow that runs all mandatory checks, captures/verifies and merges screenshots, then publishes the exact verified version with no runtime manual workflow/review approvals or agent intervention. Resolve the one-time automation identity/review-policy setup explicitly; preserve CI and normal contributor protections and never copy owner credentials into CI. The pending 0.27.7 publication should use the verified unified flow rather than another manual release sequence.
+
 ## Corrected Limits layout and missing data follow-up
 
 - [~] Publish 0.27.7 through the authorized source PR, Prepare Release/screenshot PR and mandatory CI gates; verify registry/provenance/payload, then re-detect and update only the existing local Navigator GUI/TUI sources.

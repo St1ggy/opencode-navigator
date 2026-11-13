@@ -1,27 +1,39 @@
 name: Prepare Release
 
 on:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      source-sha:
+        required: true
+        type: string
+    secrets:
+      RELEASE_APP_PRIVATE_KEY:
+        required: true
+    outputs:
+      sha:
+        description: Exact main commit after the verified screenshot merge
+        value: ${{ jobs.screenshots.outputs.sha }}
 
 permissions:
-  actions: write
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 concurrency:
-  group: prepare-release-screenshots
+  group: navigator-release-screenshots
   cancel-in-progress: false
 
 jobs:
   screenshots:
     name: Refresh screenshots
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    outputs:
+      sha: ${{ steps.merge.outputs.sha }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: main
+          ref: ${{ inputs.source-sha }}
+          persist-credentials: false
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
@@ -45,56 +57,21 @@ jobs:
           name: screenshot-diagnostics
           path: screenshots/
           retention-days: 7
-      - name: Create and merge screenshot pull request
+      # No App token exists while capture/build code executes. Mint it only now.
+      - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        id: app
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-actions: write
+          permission-checks: read
+      - name: Create, verify and merge the exact screenshot PR
+        id: merge
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git add --all -- ':(glob)screenshots/*.png' ':(glob)screenshots/gui/*.png'
-          if git diff --cached --quiet; then
-            echo 'Screenshots already match the release sources.' >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          branch="automation/release-screenshots-${GITHUB_RUN_ID}"
-          git config user.name 'opencode-navigator-screenshot-bot'
-          git config user.email 'opencode-navigator-screenshot-bot@users.noreply.github.com'
-          git switch --create "$branch"
-          git commit --message 'Refresh release screenshots'
-          head_sha="$(git rev-parse HEAD)"
-          git push --set-upstream origin "$branch"
-
-          pr_url="$(gh pr create \
-            --base main \
-            --head "$branch" \
-            --title 'docs: refresh release screenshots' \
-            --body 'Automated deterministic screenshot refresh from the Prepare Release workflow.')"
-          gh pr edit "$pr_url" --add-label skip-changelog
-          gh workflow run ci.yml --ref "$branch"
-
-          ci_run_id=
-          for _ in {1..60}; do
-            ci_run_id="$(gh run list \
-              --workflow ci.yml \
-              --branch "$branch" \
-              --event workflow_dispatch \
-              --commit "$head_sha" \
-              --limit 1 \
-              --json databaseId \
-              --jq '.[0].databaseId // empty')"
-            [[ -n "$ci_run_id" ]] && break
-            sleep 5
-          done
-
-          if [[ -z "$ci_run_id" ]]; then
-            echo 'Timed out waiting for the screenshot pull request CI run.' >&2
-            exit 1
-          fi
-
-          gh pr merge "$pr_url" \
-            --auto \
-            --squash \
-            --delete-branch \
-            --match-head-commit "$head_sha"
-
-          printf 'Screenshot PR: %s\nAuto-merge enabled; owner approval and all required checks remain mandatory.\n' "$pr_url" >> "$GITHUB_STEP_SUMMARY"
-          gh run watch "$ci_run_id" --exit-status
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          RELEASE_APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          RELEASE_SHA: ${{ inputs.source-sha }}
+        run: bun scripts/release.ts screenshots
