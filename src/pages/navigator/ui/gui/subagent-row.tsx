@@ -14,7 +14,9 @@ export function SubagentRow(props: { ui: Ui; item: SubagentViewItem; now: number
         {props.item.session.title}
       </Button>
       <p style={{ 'font-size': '12px', opacity: 0.65, margin: '0 0 8px', 'overflow-wrap': 'anywhere' }}>
-        {props.item.run?.errorMessage ?? props.item.run?.outcome ?? props.item.status.type}
+        {props.item.run?.errorMessage ??
+          props.item.run?.outcome ??
+          (props.item.status.type === 'idle' ? 'Idle · run history not observed' : props.item.status.type)}
         <Show when={props.item.run}>
           {(run) => (
             <span>

@@ -26,6 +26,8 @@ import { verifyTodoSelect, verifyTrustSwitch } from './native-controls.mjs'
 import { presentationInteractions } from './presentation.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { verifyNavigatorHeader } from './header.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { verifyIdleSubagent } from './subagents.mjs'
 
 async function nativeLogs(root) {
   // All paths are inside this disposable, synthetic HOME, never the user's state.
@@ -310,6 +312,7 @@ async function main() {
     await panel.getByRole('heading', { name: /^Subagents/u }).waitFor()
     await verifyNavigatorHeader(page, panel, 'Navigator actions')
     await verifyObservedVersion(preferencesDirectory)
+    await verifyIdleSubagent(panel)
     await captureGui(panel, '01-desktop-panel')
     // The native palette has an independently tracked routed-context defect.
     // Keep Home palette registration coverage above; dispatch session commands

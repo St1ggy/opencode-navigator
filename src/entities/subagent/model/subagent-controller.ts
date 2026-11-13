@@ -296,11 +296,25 @@ export function createSubagentModel(options: {
     const current = target(parentID)
     const sessions = new Map((snapshots()[current.key] ?? []).map((session) => [session.id, session]))
 
-    return history.recent(current.key).flatMap((run) => {
+    const recorded = history.recent(current.key).flatMap((run) => {
       const session = sessions.get(run.sessionID)
 
       return session ? [{ session, status: { type: 'idle' as const }, run, unavailable: false }] : []
     })
+    const known = new Set(recorded.map((item) => item.session.id))
+    const unobserved = [...sessions.values()]
+      .filter((session) => {
+        if (known.has(session.id) || unavailable()[current.key]?.[session.id]) return false
+
+        const status = options.cache === 'source' ? source.status(session.id) : statuses()[current.key]?.[session.id]
+
+        return status?.type === 'idle'
+      })
+      .map((session) => ({ session, status: { type: 'idle' as const }, run: undefined, unavailable: false }))
+
+    return [...recorded, ...unobserved]
+      .sort((a, b) => (b.run?.finishedAt ?? b.session.time.updated) - (a.run?.finishedAt ?? a.session.time.updated))
+      .slice(0, 10)
   }
 
   const unsubscribe = options.subscribe((event) => {
