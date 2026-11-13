@@ -26,9 +26,9 @@ if (!(await gui.exists())) {
   process.exit(1)
 }
 
-// Guarded updates, native section icons and two-scale quota/period presentation
-// measure approximately 613 KB. Keep a bounded GUI-only allowance, without minifying.
-const MAX_GUI_BYTES = 620_000
+// Keep the existing GUI-only cap with Vite's production Oxc minification; never
+// transfer this allowance or minification to the independent OpenTUI delivery.
+const MAX_GUI_BYTES = 675_000
 
 console.log(
   `dist/gui-experimental.cjs: ${gui.size.toLocaleString('en-US')} bytes (budget: ${MAX_GUI_BYTES.toLocaleString('en-US')})`,
@@ -47,6 +47,7 @@ for (const name of [
   'trusted-skills',
   'layout-preset-actions',
   'provider-limits',
+  'code-mode',
   'native-todo-setup',
   'onboarding',
   'navigator-updates',

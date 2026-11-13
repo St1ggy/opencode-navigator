@@ -78,6 +78,14 @@ Applying either kind of preset starts with a preview. MCP previews separate conn
 
 Navigator can also remember MCP state globally or per worktree, meaning the current project checkout. This has one unavoidable timing limitation: OpenCode initializes enabled MCP servers before TUI plugins. A server remembered as disabled can therefore connect briefly during startup before Navigator disconnects it.
 
+## Code Mode runs need their own summary
+
+An execute run can mention several MCP tools. I keep those references together under one run-level status and duration. The **In code** label matters: these are references found in the source, not proof that each nested call happened. Dynamic references remain unresolved rather than becoming guessed tool names.
+
+The activity list lives inside MCP by default; a Behavior setting moves it to a separate section. I can open a run to browse Code, Response or Error and expand the full public JSON. Each view keeps its scroll position. A server's Code Mode/Direct action is separate from its connection switch and always opens a configuration preview before anything is written.
+
+![Code Mode activity and source references](https://raw.githubusercontent.com/St1ggy/opencode-navigator/main/screenshots/97-code-mode-activity.png)
+
 ## Search should ignore the sidebar's size
 
 Once I made the sidebar compact, I had another problem: where should everything else go?

@@ -3,6 +3,7 @@ import { For, Match, Show, Switch } from 'solid-js'
 import { SIDEBAR_SECTIONS } from '../../../../shared/config'
 
 import { ActionsSection } from './actions-section'
+import { GuiCodeModeSection } from './code-mode-activity'
 import { useNavigatorGui } from './context'
 import { LimitsSection } from './limits-section'
 import { McpSection } from './mcp-section'
@@ -17,7 +18,10 @@ export function NavigatorSections() {
     section !== 'lsp' && (Boolean(services.runtime.catalogs) || ['limits', 'todo', 'subagents'].includes(section))
   const sections = () =>
     (preferences()?.sectionOrder() ?? SIDEBAR_SECTIONS).filter(
-      (section) => supported(section) && preferences()?.sections()[section] !== false,
+      (section) =>
+        supported(section) &&
+        preferences()?.sections()[section] !== false &&
+        (section !== 'code_mode' || (services.runtime.codeMode && preferences()?.codeModePlacement() === 'section')),
     )
 
   return (
@@ -45,6 +49,9 @@ export function NavigatorSections() {
             </Match>
             <Match when={section === 'mcp'}>
               <McpSection />
+            </Match>
+            <Match when={section === 'code_mode'}>
+              <GuiCodeModeSection />
             </Match>
           </Switch>
         </>

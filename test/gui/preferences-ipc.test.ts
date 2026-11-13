@@ -73,6 +73,17 @@ test('Desktop preference IPC shares the established filesystem document/lock wit
       caller(),
     )
     expect((await tui.load()).global.behavior?.sectionItemLimits).toEqual({ skills: 3 })
+    await gui.update(
+      {
+        change: JSON.stringify({
+          behavior: { codeModePlacement: 'section' },
+          layout: { sections: { code_mode: false }, expanded: { code_mode: false } },
+        }),
+      },
+      caller(),
+    )
+    expect((await tui.load()).global.behavior?.codeModePlacement).toBe('section')
+    expect((await tui.load()).global.layout?.sections?.code_mode).toBe(false)
   } finally {
     await tui.flush()
     await rm(directory, { recursive: true, force: true })

@@ -732,6 +732,63 @@ test('the built MCP section filters servers by name', async () => {
   }
 })
 
+test('MCP pending replaces row and group indicators without loading captions or extra rows', async () => {
+  const [pending, setPending] = createSignal(false)
+  let toggles = 0
+  const api = { theme: { current: sidebarTheme }, ui: { toast: () => {} } } as unknown as TuiPluginApi
+  const controller = {
+    target: () => ({ key: 'test', scope: '/test', routing: { directory: '/test' } }),
+    list: () => [{ name: 'synthetic-server', status: pending() ? 'pending' : 'connected' }],
+    state: () => ({ status: 'ready' }),
+    serverState: () => ({ status: pending() ? 'loading' : 'ready' }),
+    mutating: () => pending(),
+    bulkState: () => ({
+      status: pending() ? 'running' : 'idle',
+      group: 'Synthetic',
+      action: 'connect',
+      completed: 0,
+      total: 1,
+      failed: [],
+    }),
+    toggle: async () => {
+      toggles++
+    },
+    toggleGroup: async () => {
+      toggles++
+    },
+  }
+  const preferences = {
+    expanded: () => expandedLayout,
+    toggleSectionExpanded: () => {},
+    mcpServerGroups: () => ({ 'synthetic-server': 'Synthetic' }),
+  }
+  const setup = await testRender(() => <McpSection api={api} controller={controller} preferences={preferences} />, {
+    width: 44,
+    height: 14,
+  })
+
+  try {
+    await setup.renderOnce()
+    const before = setup.captureCharFrame().split('\n')
+
+    setPending(true)
+    await setup.renderOnce()
+    const frame = setup.captureCharFrame()
+    const lines = frame.split('\n')
+    const row = lines.findIndex((line) => line.includes('synthetic-server'))
+
+    expect(row).toBe(before.findIndex((line) => line.includes('synthetic-server')))
+    expect(lines[row]).toContain(uiIcon('pending'))
+    expect(lines.find((line) => line.includes('Synthetic'))).toContain(uiIcon('pending'))
+    expect(frame).not.toMatch(/Connecting|Disconnecting|Applying|Updating/u)
+    expect(lines.filter((line) => line.trim())).toHaveLength(before.filter((line) => line.trim()).length)
+    await setup.mockMouse.click(12, row)
+    expect(toggles).toBe(0)
+  } finally {
+    setup.renderer.destroy()
+  }
+})
+
 test('the built MCP section opens its preset selector from the header', async () => {
   let opened = 0
   let toggled = 0
@@ -1012,6 +1069,7 @@ test('the built settings dialog saves the current layout as default', async () =
     setPreferenceScope: () => {},
     persistMcp: () => true,
     selectedPersistMcp: () => true,
+    selectedCodeModePlacement: () => 'mcp',
     selectedStartInChat: () => false,
     autoApprovePermissions: () => {},
     setAutoApprovePermissions: () => autoApproveToggles++,

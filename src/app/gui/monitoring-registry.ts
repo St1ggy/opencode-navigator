@@ -5,6 +5,7 @@ import { type MonitoringRuntime, createCatalogRuntime, createMonitoringRuntime }
 import { createLeasePool } from '../../shared/lib/lifecycle'
 
 import { createGuiCatalogSources } from './adapters/catalog-sources'
+import { createGuiCodeMode } from './adapters/code-mode'
 import { createGuiLimits } from './adapters/limits'
 import { guiPreferenceScope } from './adapters/preference-scope'
 import { createGuiQuickActions } from './adapters/quick-actions'
@@ -69,6 +70,7 @@ export function createMonitoringRegistry(context: Context, preferences: Preferen
         },
       })
       const value = createMonitoringRuntime({
+        codeMode: createGuiCodeMode(access, scope, lifecycle),
         lifecycle,
         target: scope.target,
         todo: createGuiTodoSource(access, scope),

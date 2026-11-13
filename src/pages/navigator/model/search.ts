@@ -22,6 +22,7 @@ export function createNavigatorSearch(catalogs: CatalogRuntime, subagents: Subag
       hasSession: true,
       mcpErrorMode: 'details',
       mcpBusy: catalogs.mcp.mutating(),
+      mcpPending: (name) => ['loading', 'refreshing'].includes(catalogs.mcp.serverState(name).status),
       actionLabel: (action) => catalogs.actionState(action.command).label,
       actionDisabledReason: (action) => catalogs.actionState(action.command).reason,
     }),

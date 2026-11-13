@@ -8,6 +8,7 @@ import { configureAboutFixture, isAboutScene, openAboutScene } from './about-sce
 import { createFixtureDispatch } from './fixture-commands.mjs'
 import { createHostUsageFixture } from './host-usage.mjs'
 import { createNativeTodoScene, openWizardScene } from './native-todo-scenes.mjs'
+import { openCodeModeScene } from './code-mode-scenes.mjs'
 
 const FIXTURE_NOW = 1_893_456_000_000
 const DIRECTORY = '/workspace/atlas-console'
@@ -457,6 +458,7 @@ const plugin = {
       openToolbarScene(api, dispatch, later)
       openAboutScene(fixtureApi, SCENE, dispatch)
       nativeTodoScene?.open(dispatch)
+      openCodeModeScene(fixtureApi, SCENE)
       openWizardScene(SCENE, dispatch)
 
       if (['limits-credits', 'limits-confirmation', 'limits-count-only'].includes(SCENE)) {

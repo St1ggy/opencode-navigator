@@ -404,7 +404,7 @@ test('workspace profiles preview and apply linked layout and MCP presets togethe
     expect(frame).toContain('visible -> hidden')
     expect(h.preferences.selectedSections().mcp).toBe(true)
     expect(calls).toEqual([])
-    for (let index = 0; index < 8; index++) h.mockInput.pressArrow('down')
+    for (let index = 0; index < 12; index++) h.mockInput.pressArrow('down')
     await h.flush()
     expect(h.captureCharFrame()).toContain('CONNECT')
     await h.escape()

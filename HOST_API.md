@@ -1,5 +1,19 @@
 # Public Host APIs And Remaining Gaps
 
+## Code Mode activity and routing
+
+- The shared operation inspector presents code from a public code input or text from a single exact plain-text output envelope. Concrete full-parameters/response/error JSON actions retain the complete value, including extra fields, attachments, multiple items, null, false and provider metadata. Code/Response/Error tabs preserve independent per-view scroll state, and live elapsed time uses the existing controller clock rather than new requests or polling.
+
+- A bounded lexical reader extracts only literal source references such as `tools.namespace.method` and bracket/optional-chain equivalents. It skips comments and strings and stops conservatively at ambiguous slash/template syntax, private identifiers or unsupported non-ASCII syntax outside strings/comments. Dynamic references and exhausted bounds remain partial/unknown. Labels explicitly say In code: references are not confirmed calls, per-method outcomes or nested-call counts. Each execute run keeps only its own public status/duration.
+
+- Effective configuration documents use the native MCP shape, but a discovered source file may retain the supported legacy `mcp.<server>` form. Routing previews locate that exact source definition (including partial overriding definitions) without migrating it, copying credentials or modifying connection flags. Ambiguous mixed forms and duplicate keys are refused. Desktop routing and other configuration/preset/import previews use native settings sections/rows and code blocks; only layout and semantic metadata are Navigator-owned.
+
+- OpenCode 2.2.6 TUI and Desktop use the selected server's public message cache and tool events for `execute` runs. IDs, statuses, input, output/error and timestamps are projected independently of source-reference inspection, without treating an execute run as an MCP call. Reverted messages are excluded. Unknown timing stays unknown; clock ticks do not request snapshots.
+- Configured MCP routing comes from ordered public configuration documents, not connection state. Actual per-agent tool availability and a stable nested-call/payload contract are not exposed by the audited client; both remain explicitly unavailable. Generic metadata is not interpreted as undocumented telemetry.
+- The audited `experimental.config.update` only updates the shell. `experimental.mcp.add` takes an entire server definition without a source selector; it is not equivalent to changing one routing field. Navigator uses the selected server's existing config/file APIs to preview and confirm a precise JSONC `codemode` edit in the highest-precedence defining file. It does not copy server definitions, change permissions, or reconnect/cancel running work. Replace this focused file adapter when a public source-aware routing mutation becomes equivalent.
+- Preview/apply rechecks server/session/location identity, configuration precedence and exact file contents. Non-file definitions, unavailable sources, malformed/duplicate JSONC and request/authentication failures are errors, not permission to select a different write path. A server-discovered file may be shared with other projects; no unsupported Global/Project scope is inferred from its basename.
+- The audited 1.x SDK does not expose the matching routing/execute contract. Existing MCP connection controls stay available with a Code Mode capability notice; this does not claim that Code Mode cannot exist anywhere in that host line.
+
 The compact Limits reset-time row uses the public Desktop Button and TUI sidebar
 interaction controller for keyboard and mouse activation. Desktop 2.2.6 exports
 neither a swap icon nor arbitrary Button style/ARIA props, so the native button

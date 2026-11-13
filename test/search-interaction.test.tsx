@@ -146,6 +146,7 @@ test('Search Everything supports typing, tabs, skill confirmation and source act
       state: () => ({ status: 'ready' }),
       refresh: async () => [],
       mutating: busy,
+      serverState: () => ({ status: 'ready' }),
       bulkState: () => ({ status: 'idle' }),
       toggle: async (name: string) => {
         toggled.push(name)

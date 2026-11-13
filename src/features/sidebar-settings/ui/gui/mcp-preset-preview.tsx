@@ -1,5 +1,7 @@
 import { Show, createSignal, onCleanup, onMount } from 'solid-js'
 
+import { GuiNotice, GuiReviewBody } from '../../../../shared/ui/gui'
+
 import { GuiMcpPreviewRows } from './mcp-preview-rows'
 
 import type { createMcpPresetPreview } from '../../model'
@@ -58,15 +60,22 @@ export function GuiMcpPresetPreview(props: {
         </>
       }
     >
-      <p>
-        {props.persistent
-          ? 'Desired states will be remembered for this scope, including unavailable servers.'
-          : 'MCP persistence is off; desired states will not be saved.'}
-      </p>
-      <Show when={props.model.blocked() || error()}>
-        <p role="alert">{error() || props.model.blocked()}</p>
-      </Show>
-      <GuiMcpPreviewRows model={props.model} />
+      <GuiReviewBody>
+        <GuiNotice
+          ui={props.ui}
+          title={props.persistent ? 'Connection states will be remembered' : 'Connection states are temporary'}
+        >
+          {props.persistent
+            ? 'Desired states will be remembered for this scope, including unavailable servers.'
+            : 'MCP persistence is off; desired states will not be saved.'}
+        </GuiNotice>
+        <Show when={props.model.blocked() || error()}>
+          <GuiNotice ui={props.ui} title="Review required" error>
+            {error() || props.model.blocked()}
+          </GuiNotice>
+        </Show>
+        <GuiMcpPreviewRows ui={props.ui} model={props.model} />
+      </GuiReviewBody>
     </Dialog>
   )
 }

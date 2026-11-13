@@ -17,6 +17,7 @@ export function builtInPreferences(defaults: PluginConfig): ResolvedPreferences 
       lspIconStyle: defaults.lspIconStyle,
       rowDensity: defaults.rowDensity,
       toolbarOverflow: defaults.toolbarOverflow,
+      codeModePlacement: defaults.codeModePlacement,
       sectionItemLimits: defaults.sectionItemLimits,
       quickActionOrder: defaults.quickActionOrder,
       quickActionVisibility: defaults.quickActionVisibility,

@@ -24,7 +24,7 @@ export function McpGroupHeader(props: {
   const item = useSidebarItem(props.api, props.interaction, {
     id: id(),
     position: () => props.position,
-    disabled: () => props.disabled,
+    disabled: () => props.disabled || props.status === 'pending',
     activate: props.onToggle,
   })
 

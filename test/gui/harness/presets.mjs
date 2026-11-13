@@ -44,7 +44,7 @@ export async function presetInteractions(page) {
 
   await dialog.getByRole('textbox', { name: 'Portable settings JSON', exact: true }).fill(source)
   await dialog.getByRole('button', { name: 'Preview import', exact: true }).click()
-  await dialog.getByText('Skipped unsupported field: /unrelated', { exact: true }).waitFor()
+  await dialog.getByText('/unrelated', { exact: true }).waitFor()
   await captureGui(dialog, '09-desktop-import-preview')
   await dialog.getByRole('button', { name: 'Back', exact: true }).click()
 

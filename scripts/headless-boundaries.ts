@@ -29,6 +29,7 @@ export const HEADLESS_ENTRIES = [
   'src/features/search-everything/model.ts',
   'src/features/sidebar-settings/model.ts',
   'src/features/provider-limits/model.ts',
+  'src/features/code-mode/model.ts',
   'src/pages/navigator/model.ts',
   'src/features/native-todo-setup/model.ts',
   'src/features/pinned-toolbar/model.ts',

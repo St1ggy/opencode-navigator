@@ -42,6 +42,7 @@ export function pluginConfig(options: Record<string, unknown> | undefined): Plug
     lspIconStyle: iconStyle === 'text' ? 'text' : 'nerd',
     rowDensity: options?.row_density === 'comfortable' ? 'comfortable' : 'compact',
     toolbarOverflow: options?.toolbar_overflow === 'wrap' ? 'wrap' : 'menu',
+    codeModePlacement: options?.code_mode_placement === 'section' ? 'section' : 'mcp',
     sectionItemLimits: parseSectionItemLimits(options?.section_item_limits),
     quickActionOrder: parseQuickActionOrder(options?.quick_action_order) ?? [...QUICK_ACTION_IDS],
     quickActionVisibility: parseQuickActionVisibility(options?.quick_action_visibility),

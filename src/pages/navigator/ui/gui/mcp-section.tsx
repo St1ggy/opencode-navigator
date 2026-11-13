@@ -3,6 +3,7 @@ import { For, Show } from 'solid-js'
 import { matchingMcpPreset } from '../../../../entities/mcp/model'
 import { GuiIconAction } from '../../../../shared/ui/gui'
 
+import { GuiCodeModeSection } from './code-mode-activity'
 import { useNavigatorGui } from './context'
 import { GuiMcpGroup } from './mcp-group'
 import { MonitoringSection } from './section'
@@ -49,7 +50,7 @@ export function McpSection() {
           }
         />
       </Show>
-      <Show when={bulk().status === 'running' || bulk().status === 'error'}>
+      <Show when={bulk().status === 'error'}>
         <p role="status">
           {bulk().completed}/{bulk().total} servers updated
         </p>
@@ -79,6 +80,17 @@ export function McpSection() {
         >
           {view().visibility.expanded() ? 'Show less' : `Show ${view().visibility.hiddenCount()} more`}
         </Button>
+      </Show>
+      <Show
+        when={
+          services.runtime.codeMode &&
+          catalogs().preferences.sections().code_mode &&
+          catalogs().preferences.codeModePlacement() === 'mcp'
+        }
+      >
+        <div style={{ 'margin-top': '12px' }}>
+          <GuiCodeModeSection />
+        </div>
       </Show>
     </MonitoringSection>
   )

@@ -5,6 +5,7 @@ import { GuiUpdateAction } from '../../../src/features/sidebar-settings/ui/gui/u
 import { TodoRow } from '../../../src/pages/navigator/ui/gui/todo-row'
 import { GuiProgress } from '../../../src/shared/ui/gui/progress'
 
+import { CodeModeFixture } from './code-mode-fixture'
 import { McpFixture } from './mcp-fixture'
 import { QuotaScalesFixture } from './quota-scales-fixture'
 
@@ -50,6 +51,18 @@ export default Plugin.define({
 
     const Dialog = context.ui.Dialog
     const Button = context.ui.Button
+
+    context.add(Command, {
+      id: 'code-mode',
+      title: 'Synthetic Code Mode',
+      run() {
+        context.dialogs.open((handle) => (
+          <Dialog title="Synthetic Code Mode" footer={<Button onClick={handle.close}>Close</Button>}>
+            <CodeModeFixture context={context} />
+          </Dialog>
+        ))
+      },
+    })
 
     context.add(Command, {
       id: 'quota-scales',

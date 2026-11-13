@@ -8,6 +8,7 @@ import { createPreferencesStore } from '../src/preferences-store'
 import type { SectionVisibility, SidebarSection } from '../src/state'
 
 const defaults: SectionVisibility = {
+  code_mode: true,
   limits: true,
   todo: true,
   subagents: true,
@@ -154,7 +155,7 @@ test('stores and clears user layout presets', async () => {
   const layout = {
     sections: { ...defaults, skills: false },
     expanded: { ...defaults, todo: false },
-    order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'limits'] as SidebarSection[],
+    order: ['mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'limits', 'code_mode'] as SidebarSection[],
   }
 
   try {
@@ -199,7 +200,7 @@ test('preserves concurrent preset saves from independent store instances', async
   const layout = {
     sections: defaults,
     expanded: defaults,
-    order: ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'] as SidebarSection[],
+    order: ['todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp', 'code_mode'] as SidebarSection[],
   }
 
   try {
@@ -643,7 +644,7 @@ test('stores and resets every preference group independently per worktree', asyn
       behavior: { focusKey: 'alt+w' },
       layout: {
         sections: { mcp: false },
-        order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+        order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'code_mode'],
       },
       mcp: { tracker: 'enabled', wiki: 'disabled' },
     })

@@ -1,4 +1,13 @@
-export const SIDEBAR_SECTIONS = ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'] as const
+export const SIDEBAR_SECTIONS = [
+  'limits',
+  'todo',
+  'subagents',
+  'skills',
+  'quick_actions',
+  'lsp',
+  'mcp',
+  'code_mode',
+] as const
 
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number]
 export type SectionVisibility = Record<SidebarSection, boolean>
@@ -40,6 +49,7 @@ export type PluginSettings = {
   lspIconStyle: 'nerd' | 'text'
   rowDensity: SidebarRowDensity
   toolbarOverflow: 'menu' | 'wrap'
+  codeModePlacement: 'mcp' | 'section'
   sectionItemLimits: SectionItemLimits
   quickActionOrder: QuickActionId[]
   quickActionVisibility: QuickActionVisibility
@@ -70,6 +80,7 @@ export const DEFAULT_SECTION_EXPANSION: SectionVisibility = {
   quick_actions: false,
   lsp: false,
   mcp: false,
+  code_mode: true,
 }
 
 export const SECTION_DEFINITIONS: readonly { name: SidebarSection; label: string }[] = [
@@ -80,6 +91,7 @@ export const SECTION_DEFINITIONS: readonly { name: SidebarSection; label: string
   { name: 'quick_actions', label: 'Quick actions' },
   { name: 'lsp', label: 'LSP' },
   { name: 'mcp', label: 'MCP' },
+  { name: 'code_mode', label: 'Code Mode' },
 ]
 
 export function parseQuickActionOrder(value: unknown): QuickActionId[] | undefined {
@@ -177,6 +189,7 @@ export function parseSectionVisibility(value: unknown): SectionVisibility {
       quick_actions: true,
       lsp: true,
       mcp: true,
+      code_mode: true,
     },
     value,
   )

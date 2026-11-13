@@ -9,7 +9,13 @@ export function SidebarBookmark(props: {
 
   return (
     <span
-      style={{ width: '24px', 'flex-shrink': '0', visibility: props.visible || props.selected ? 'visible' : 'hidden' }}
+      style={{
+        width: '24px',
+        'flex-shrink': '0',
+        'align-self': 'flex-start',
+        'padding-top': '4px',
+        visibility: props.visible || props.selected ? 'visible' : 'hidden',
+      }}
     >
       <button
         type="button"

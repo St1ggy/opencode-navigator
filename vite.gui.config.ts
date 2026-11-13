@@ -13,5 +13,7 @@ export default defineConfig({
     __NAVIGATOR_VERSION__: JSON.stringify(metadata.version),
     __NAVIGATOR_CHANGELOG__: JSON.stringify(changelog),
   },
-  build: { minify: false },
+  // Only the DOM/CommonJS delivery uses Vite's production minifier. The separate
+  // OpenTUI build remains unminified and retains its independent raw-byte budget.
+  build: { minify: 'oxc' },
 })

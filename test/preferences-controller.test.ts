@@ -13,9 +13,9 @@ import { showFirstRunWizard } from '../src/tui'
 import type { SectionVisibility, SidebarSection } from '../src/state'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
-function pluginDefaults(sections: Omit<SectionVisibility, 'limits'> & Partial<Pick<SectionVisibility, 'limits'>>) {
+function pluginDefaults(sections: Partial<SectionVisibility>) {
   return {
-    sections: { limits: true, ...sections },
+    sections: { ...pluginConfig(undefined).sections, ...sections },
     toggleKey: 'ctrl+shift+b',
     focusKey: 'ctrl+shift+f',
     searchKey: 'ctrl+shift+k',
@@ -28,6 +28,7 @@ function pluginDefaults(sections: Omit<SectionVisibility, 'limits'> & Partial<Pi
     lspIconStyle: 'nerd' as const,
     rowDensity: 'compact' as const,
     toolbarOverflow: 'menu' as const,
+    codeModePlacement: 'mcp' as const,
     sectionItemLimits: {},
     quickActionOrder: [...QUICK_ACTION_IDS],
     quickActionVisibility: {},
@@ -268,6 +269,7 @@ test('persists section visibility and skipped skill confirmations', async () => 
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    code_mode: true,
     limits: true,
     todo: true,
     subagents: true,
@@ -335,7 +337,7 @@ test('persists section visibility and skipped skill confirmations', async () => 
 })
 
 test('visibility toggles preserve the effective section order in global and worktree scopes', async () => {
-  const order: SidebarSection[] = ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp']
+  const order: SidebarSection[] = ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'code_mode']
   const api = { ui: { toast() {} } } as unknown as TuiPluginApi
   const store: PreferencesStore = {
     async load() {
@@ -439,6 +441,7 @@ test('merges interactions made before storage hydration with saved preferences',
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    code_mode: true,
     limits: true,
     todo: true,
     subagents: true,
@@ -493,6 +496,7 @@ test('saves a default layout before storage hydration', async () => {
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    code_mode: true,
     limits: true,
     todo: true,
     subagents: true,
@@ -577,6 +581,7 @@ test('persists behavior settings and restores configured defaults', async () => 
     },
   } as unknown as TuiPluginApi
   const sections: SectionVisibility = {
+    code_mode: true,
     limits: true,
     todo: true,
     subagents: true,
@@ -950,6 +955,7 @@ test('opens the setup wizard only once after preference hydration', async () => 
     },
   } as unknown as TuiPluginApi
   const defaults: SectionVisibility = {
+    code_mode: true,
     limits: true,
     todo: true,
     subagents: true,

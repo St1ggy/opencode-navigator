@@ -13,7 +13,7 @@ export type PortableSettings = {
   version: 1
   layout?: SectionLayoutDefault
   mcp?: DesiredMcpStates
-  behavior?: { toolbarOverflow?: 'menu' | 'wrap' }
+  behavior?: { toolbarOverflow?: 'menu' | 'wrap'; codeModePlacement?: 'mcp' | 'section' }
 }
 
 function object(value: unknown, path: string) {
@@ -120,7 +120,14 @@ export function parsePortableSettings(source: string) {
   if (input.behavior !== undefined) {
     const raw = object(input.behavior, '/behavior')
 
-    unknownKeys(raw, ['toolbarOverflow'], '/behavior', unsupported)
+    unknownKeys(raw, ['toolbarOverflow', 'codeModePlacement'], '/behavior', unsupported)
+
+    if (raw.codeModePlacement !== undefined) {
+      if (raw.codeModePlacement !== 'mcp' && raw.codeModePlacement !== 'section')
+        throw new Error('/behavior/codeModePlacement must be mcp or section')
+
+      behavior.codeModePlacement = raw.codeModePlacement
+    }
 
     if (raw.toolbarOverflow !== undefined) {
       if (raw.toolbarOverflow !== 'menu' && raw.toolbarOverflow !== 'wrap')
@@ -130,7 +137,7 @@ export function parsePortableSettings(source: string) {
     }
   }
 
-  if (!hasLayout && !hasMcp && !behavior.toolbarOverflow)
+  if (!hasLayout && !hasMcp && !behavior.toolbarOverflow && !behavior.codeModePlacement)
     throw new Error('Settings JSON contains no supported settings')
 
   const settings = {
@@ -138,7 +145,7 @@ export function parsePortableSettings(source: string) {
     version: 1,
     ...(hasLayout && { layout: parseLayout(input.layout, unsupported) }),
     ...(hasMcp && { mcp: parseMcp(input.mcp) }),
-    ...(behavior.toolbarOverflow && { behavior }),
+    ...((behavior.toolbarOverflow || behavior.codeModePlacement) && { behavior }),
   } satisfies PortableSettings
 
   unsupported.sort()

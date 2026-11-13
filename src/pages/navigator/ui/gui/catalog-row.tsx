@@ -36,6 +36,7 @@ export function CatalogRow(props: {
 
   return (
     <li
+      data-navigator-catalog-row
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocusIn={() => setFocused(true)}
@@ -43,7 +44,7 @@ export function CatalogRow(props: {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false)
       }}
       onKeyDown={navigate}
-      style={{ display: 'flex', gap: '4px', 'align-items': 'center', 'min-width': '0', padding: '3px 0' }}
+      style={{ display: 'flex', gap: '4px', 'align-items': 'flex-start', 'min-width': '0', padding: '3px 0' }}
     >
       <SidebarBookmark
         title={props.title}

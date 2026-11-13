@@ -11,6 +11,7 @@ scenes+=(settings-about settings-about-update settings-about-error settings-abou
 
 scenes+=(toolbar-content toolbar-content-wrap toolbar-appearance)
 scenes+=(native-todo-disabled native-todo-file-picker native-todo-enable-preview native-todo-config-error native-todo-enabled-empty setup-monitoring setup-search-skills setup-actions-lsp setup-mcp setup-customization setup-short setup-v2-monitoring setup-v2-actions)
+scenes+=(code-mode-activity code-mode-payloads)
 
 file_for_scene() {
   case "$1" in
@@ -110,6 +111,8 @@ file_for_scene() {
     setup-short) printf '%s\n' 94-setup-short.png ;;
     setup-v2-monitoring) printf '%s\n' 95-setup-v2-monitoring.png ;;
     setup-v2-actions) printf '%s\n' 96-setup-v2-actions.png ;;
+    code-mode-activity) printf '%s\n' 97-code-mode-activity.png ;;
+    code-mode-payloads) printf '%s\n' 98-code-mode-payloads.png ;;
     *) return 1 ;;
   esac
 }

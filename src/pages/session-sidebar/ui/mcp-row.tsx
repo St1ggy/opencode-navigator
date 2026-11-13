@@ -3,6 +3,7 @@ import { PLUGIN_ID } from '../../../shared/config'
 import { IconControl, ListRow, useDialogs, useIcons } from '../../../shared/ui'
 import { mcpColor, mcpToggle } from '../model/mcp-status'
 
+import { McpRoutingControl } from './mcp-routing-control'
 import { RequestErrorRow } from './request-body'
 import { createSidebarBookmark } from './sidebar-bookmark'
 import { useSidebarItem } from './sidebar-item'
@@ -29,7 +30,8 @@ export function McpRow(props: {
   const icons = useIcons()
   const dialogs = useDialogs(api)
   const theme = () => api.theme.current
-  const busy = () => props.state.status === 'loading' || props.state.status === 'refreshing'
+  const busy = () =>
+    props.state.status === 'loading' || props.state.status === 'refreshing' || props.item.status === 'pending'
   const error = () => props.state.error
   const disabled = () => props.disabled || busy()
   const id = () => `${PLUGIN_ID}.mcp.${props.item.name}`
@@ -54,7 +56,7 @@ export function McpRow(props: {
     interaction,
     {
       id: `${id()}.info`,
-      position: () => ({ ...props.position, column: 2 }),
+      position: () => ({ ...props.position, column: 3 }),
       activate: () => {
         if (!props.item.error) return
 
@@ -104,19 +106,28 @@ export function McpRow(props: {
       }
       trailing={
         <box flexDirection="row" flexShrink={0} gap={1}>
-          {props.item.error ? (
-            <IconControl
-              ref={(node) => info.ref(node)}
-              id={`${id()}.info`}
-              icon={icons.icon('info')}
-              backgroundColor={nestedBackground(info.backgroundColor())}
-              foregroundColor={info.foregroundColor()}
-              onMouseOver={info.onMouseOver}
-              onMouseOut={info.onMouseOut}
-              onMouseUp={(event) => info.activate(event)}
-            />
-          ) : null}
-          <text fg={row.focused() ? row.foregroundColor() : mcpColor(api, props.item.status)}>
+          <McpRoutingControl
+            api={api}
+            interaction={interaction}
+            id={`${id()}.routing`}
+            position={{ ...props.position, column: 2 }}
+            server={props.item.name}
+          />
+          <box width={3} flexShrink={0}>
+            {props.item.error ? (
+              <IconControl
+                ref={(node) => info.ref(node)}
+                id={`${id()}.info`}
+                icon={icons.icon('info')}
+                backgroundColor={nestedBackground(info.backgroundColor())}
+                foregroundColor={info.foregroundColor()}
+                onMouseOver={info.onMouseOver}
+                onMouseOut={info.onMouseOut}
+                onMouseUp={(event) => info.activate(event)}
+              />
+            ) : null}
+          </box>
+          <text fg={row.focused() ? row.foregroundColor() : mcpColor(api, busy() ? 'pending' : props.item.status)}>
             <b>{icons.icon(mcpToggle(props.item.status, busy()))}</b>
           </text>
         </box>

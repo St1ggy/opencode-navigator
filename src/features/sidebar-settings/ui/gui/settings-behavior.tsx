@@ -19,6 +19,22 @@ export function GuiSettingsBehavior(props: GuiSettingsServices) {
   return (
     <>
       <Section title="Behavior">
+        <Row
+          title="Code Mode activity"
+          description="Show execute activity inside MCP or in its own sidebar section. Connection switches stay independent."
+        >
+          <Select
+            label="Code Mode activity placement"
+            value={props.preferences.selectedCodeModePlacement()}
+            options={[
+              { value: 'mcp', label: 'Inside MCP' },
+              { value: 'section', label: 'Separate section' },
+            ]}
+            onChange={(value) => {
+              if (value !== props.preferences.selectedCodeModePlacement()) props.preferences.toggleCodeModePlacement()
+            }}
+          />
+        </Row>
         <Row title="Remember MCP states" description="Remember desired connections for this preference scope.">
           <Switch
             label="Remember MCP states"

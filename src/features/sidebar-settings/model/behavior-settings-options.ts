@@ -79,5 +79,10 @@ export function behaviorSettingsOptions(
       value: 'toolbar_manager',
       description: 'Add, reorder, or configure action and Skill buttons',
     },
+    {
+      title: `${icons.icon('mcp')} Code Mode activity`,
+      value: 'code_mode_placement',
+      description: preferences.selectedCodeModePlacement() === 'mcp' ? 'Inside MCP' : 'Separate section',
+    },
   ]
 }

@@ -8,6 +8,13 @@ export function SearchResultRow(props: { model: SearchDialogController; id: stri
   const initial = props.model.byID().get(props.id)!
   const item = () => props.model.byID().get(props.id) ?? initial
   const selected = () => props.model.active()?.id === props.id
+  const connection = () => {
+    const result = item()
+
+    return result.group === 'MCP'
+      ? props.model.icons.icon(result.pending ? 'pending' : result.connected ? 'connected' : 'disconnected')
+      : ''
+  }
   const actionIcon = () => {
     const result = item()
 
@@ -33,23 +40,30 @@ export function SearchResultRow(props: { model: SearchDialogController; id: stri
       }}
     >
       <box overflow="hidden">
-        <text
-          fg={
-            item().disabled
-              ? props.model.theme().textMuted
-              : selected()
-                ? props.model.theme().accent
-                : props.model.resultColors().title
-          }
-          attributes={TextAttributes.BOLD}
-          wrapMode="none"
-          truncate
-          height={1}
-        >
-          {selected() ? `${props.model.icons.icon('selected')} ` : '  '}
-          {actionIcon()}
-          {item().title}
-        </text>
+        <box flexDirection="row" height={1}>
+          <text
+            flexGrow={1}
+            minWidth={0}
+            fg={
+              item().disabled
+                ? props.model.theme().textMuted
+                : selected()
+                  ? props.model.theme().accent
+                  : props.model.resultColors().title
+            }
+            attributes={TextAttributes.BOLD}
+            wrapMode="none"
+            truncate
+            height={1}
+          >
+            {selected() ? `${props.model.icons.icon('selected')} ` : '  '}
+            {actionIcon()}
+            {item().title}
+          </text>
+          <text flexShrink={0} fg={props.model.theme().textMuted}>
+            {connection()}
+          </text>
+        </box>
         <box paddingLeft={item().group === 'Actions' && props.model.icons.style() === 'text' ? 6 : 4} height={1}>
           <text
             fg={props.model.resultColors().description}
@@ -58,7 +72,10 @@ export function SearchResultRow(props: { model: SearchDialogController; id: stri
             truncate
             height={1}
           >
-            {(item().disabled ?? item().description).replaceAll(/\s+/g, ' ')}
+            {(item().group === 'MCP' ? item().description : (item().disabled ?? item().description)).replaceAll(
+              /\s+/g,
+              ' ',
+            )}
           </text>
         </box>
       </box>

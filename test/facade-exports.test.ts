@@ -39,6 +39,7 @@ test('the built bundle preserves its public exports', async () => {
   const module = await import('../dist/tui.js')
 
   expect(Object.keys(module).sort()).toEqual([
+    'BookmarkControl',
     'DEFAULT_SECTION_EXPANSION',
     'DialogAction',
     'DialogHeader',
@@ -49,6 +50,7 @@ test('the built bundle preserves its public exports', async () => {
     'IconControl',
     'IconPicker',
     'KeyboardHelpDialog',
+    'ListRow',
     'LspBadge',
     'McpSection',
     'PresetMenu',
@@ -80,6 +82,7 @@ test('the built bundle preserves its public exports', async () => {
     'hostCapabilityUnavailable',
     'isEffectivelyVisible',
     'lspIcon',
+    'lspIconName',
     'matchesFilter',
     'openFirstRunWizard',
     'openKeyboardHelp',

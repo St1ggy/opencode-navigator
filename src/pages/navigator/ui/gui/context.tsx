@@ -23,6 +23,8 @@ export type NavigatorGuiServices = {
   onArchive(): void
   onSkill(skill: SkillInfo): void
   onMcpInformation(item: McpItem): void
+  onCodeModeRun?(id: string): void
+  onCodeModeRouting?(server: string): void
   onMcpPresets?(): void
 }
 

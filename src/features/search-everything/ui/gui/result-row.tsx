@@ -1,5 +1,7 @@
 import { Show } from 'solid-js'
 
+import { GuiPendingSwitch } from '../../../../shared/ui/gui'
+
 import type { SearchResult } from '../../model'
 import type { Ui } from '@opencode/plugin/gui'
 
@@ -16,7 +18,6 @@ export function GuiSearchResultRow(props: {
 }) {
   const Button = props.ui.Button
   const Loader = props.ui.Loader
-  const Switch = props.ui.Switch
 
   return (
     <li
@@ -62,19 +63,30 @@ export function GuiSearchResultRow(props: {
           </button>
         }
       >
-        <div style={{ flex: '1', 'min-width': '0', 'overflow-wrap': 'anywhere' }} aria-busy={props.busy}>
-          <Switch
+        <div
+          style={{
+            flex: '1',
+            'min-width': '0',
+            display: 'flex',
+            gap: '8px',
+            'align-items': 'center',
+            'justify-content': 'space-between',
+            'overflow-wrap': 'anywhere',
+          }}
+          aria-busy={props.busy}
+        >
+          <span style={{ 'min-width': '0' }}>
+            <strong style={{ display: 'block' }}>{props.result.title}</strong>
+            <span style={{ opacity: 0.65, 'font-size': '12px' }}>{props.result.description}</span>
+          </span>
+          <GuiPendingSwitch
+            ui={props.ui}
+            busy={props.busy}
             label={props.result.title}
-            description={props.result.disabled || props.result.description}
             checked={props.result.group === 'MCP' && props.result.connected === true}
             disabled={Boolean(props.result.disabled || props.busy)}
             onChange={props.run}
           />
-          <Show when={props.busy}>
-            <span role="status">
-              <Loader size="small" /> Updating connection…
-            </span>
-          </Show>
         </div>
       </Show>
       <Show when={props.result.information}>

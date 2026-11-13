@@ -86,6 +86,7 @@ case "$scene" in
   limits-ready | limits-credits | limits-confirmation | limits-count-only | limits-unavailable | limits-text | limits-link) ;;
   sidebar-shortcuts | sidebar-shortcuts-text | sidebar-shortcuts-narrow) ;;
   todo-native) ;;
+  code-mode-activity | code-mode-payloads) ;;
   native-todo-disabled | native-todo-file-picker | native-todo-enable-preview | native-todo-config-error | native-todo-enabled-empty) ;;
   host-usage-budgets | host-usage-go | host-usage-auth | host-usage-failure) ;;
   toolbar-content | toolbar-content-wrap | toolbar-appearance) ;;

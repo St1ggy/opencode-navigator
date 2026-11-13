@@ -154,6 +154,11 @@ export function createSettingsSelection(input: {
           break
         }
 
+        case 'code_mode_placement': {
+          input.preferences.toggleCodeModePlacement()
+          break
+        }
+
         case 'save_preset': {
           input.promptPreset()
           break

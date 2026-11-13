@@ -6,6 +6,7 @@ import { createMonitoringViewState } from './view-state'
 
 import type { SubagentEvent, SubagentSource } from '../../../entities/subagent/model'
 import type { TodoSource } from '../../../entities/todo/model'
+import type { CodeModeController } from '../../../features/code-mode/model'
 import type { TodoSetupController } from '../../../features/native-todo-setup/model'
 import type { Lifecycle } from '../../../shared/lib/lifecycle'
 import type { SessionTarget } from '../../../shared/lib/location/identity'
@@ -19,6 +20,7 @@ export type MonitoringPorts = {
   subagents: SubagentSource
   todoHasValue(): boolean
   todoSetup?: TodoSetupController
+  codeMode?: CodeModeController
   limits?: LimitsMonitoring
   catalogs?: CatalogRuntime
   subscribeSubagents(listener: (event: SubagentEvent) => void): () => void
@@ -71,6 +73,7 @@ export function createMonitoringRuntime(ports: MonitoringPorts) {
     view: createMonitoringViewState(),
     todo,
     todoSetup: ports.todoSetup,
+    codeMode: ports.codeMode,
     limits: ports.limits,
     catalogs: ports.catalogs,
     search: ports.catalogs && createNavigatorSearch(ports.catalogs, subagents, target.sessionID),
