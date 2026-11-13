@@ -10,7 +10,7 @@
 
 ## Corrected Limits layout and missing data follow-up
 
-- [~] Publish 0.27.7 through the authorized source PR, Prepare Release/screenshot PR and mandatory CI gates; verify registry/provenance/payload, then re-detect and update only the existing local Navigator GUI/TUI sources.
+- [x] Publish 0.27.7 at c73e689 through the single Release flow's source CI, reproducible screenshots and final CI; npm Publish 43417452676 passed. Independently verify all 46 published files, registry signatures and exact tag/commit/Publish-run provenance, then advance the re-detected GUI/TUI/server pins from 0.27.6 to 0.27.7. Preserve unrelated configuration, themes and the TUI symlink, record the previous version without consuming upgrade notes, and verify all published hashes in the host-managed cache. The orchestration's post-publication verifier required a retry and remains a separate automation follow-up.
 
 - [x] Apply the explicitly approved icon-only Limits layout in Desktop/TUI: provider before updated-at separator, quota icon/value, jointly rounded paired scales, clock icon/period value, separate swap-reset row, then native Credits. Preserve accessible window identity in Desktop, TUI model/variant actions, missing dates, native units and no-poll toggles. Complete check, both real TUI-host smokes and normal/quota packaged Desktop modes pass; no local captures or installed-client changes.
 - [x] Reproduce missing Credits from the actual read-only Codex RPC: the ordinary account snapshot supplies credits, but the adapter dropped them. Map that documented snapshot into balances, preserving exact string precision, explicit zero/unlimited, account checks and absent data; verify TUI/Desktop credit output independently of Banked Resets.

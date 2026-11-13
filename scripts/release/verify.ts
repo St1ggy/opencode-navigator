@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { api, environment, waitFor } from './github'
 import { assertRun } from './guards'
 import { assertProvenance } from './provenance'
+import { registryManifest } from './registry'
 
 import type { ProvenanceStatement } from './provenance'
 
@@ -19,12 +20,6 @@ type PublishRun = {
   event: string
   path: string
   head_branch: string
-}
-
-type Manifest = {
-  name: string
-  version: string
-  dist: { integrity: string; tarball: string; attestations: { url: string } }
 }
 
 const repository = environment('GITHUB_REPOSITORY')
@@ -44,19 +39,7 @@ const run = await waitFor('npm Publish', () => {
 })
 
 assertRun(run, sha, 'publish.yml', 'release')
-const manifest = await waitFor(
-  'registry availability (do not republish)',
-  () => {
-    const result = execFileSync(npm, ['view', `${name}@${version}`, '--json'], { encoding: 'utf8' })
-    const candidate = JSON.parse(result) as Manifest
-
-    assert.equal(candidate.name, name)
-    assert.equal(candidate.version, version)
-
-    return candidate
-  },
-  20,
-)
+const manifest = await waitFor('registry availability (do not republish)', () => registryManifest(name, version), 20)
 
 async function fetchRegistry(url: string) {
   assert.equal(new URL(url).origin, 'https://registry.npmjs.org', 'Unexpected registry URL')

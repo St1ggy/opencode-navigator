@@ -35,7 +35,11 @@ export function output(name: string, value: string) {
   appendFileSync(environment('GITHUB_OUTPUT'), `${name}=${value}\n`)
 }
 
-export async function waitFor<T>(description: string, read: () => T | undefined, minutes = 30): Promise<T> {
+export async function waitFor<T>(
+  description: string,
+  read: () => T | undefined | Promise<T | undefined>,
+  minutes = 30,
+): Promise<T> {
   const deadline = Date.now() + minutes * 60_000
 
   do {
@@ -43,7 +47,7 @@ export async function waitFor<T>(description: string, read: () => T | undefined,
     let value: T | undefined
 
     try {
-      value = read()
+      value = await read()
     } catch (error) {
       console.warn(`Retrying ${description}: ${String(error)}`)
     }
