@@ -1,4 +1,4 @@
 # All changes require the repository owner's review.
-# The separate review ruleset allows only @St1ggy to bypass review when merging a PR.
+# The separate review ruleset permits @St1ggy and the dedicated release App to bypass review.
 # That bypass never waives required CI checks.
 * @St1ggy
