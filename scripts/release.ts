@@ -6,7 +6,7 @@ import { api, command, environment, mainSha, output } from './release/github'
 import { assertPolicies, requiredContexts } from './release/guards'
 import { mergeScreenshots } from './release/screenshots'
 
-import type { Ruleset } from './release/guards'
+import type { PolicyAudit, Ruleset } from './release/guards'
 
 const metadata = JSON.parse(readFileSync('package.json', 'utf8')) as {
   name: string
@@ -37,6 +37,7 @@ switch (process.argv[2]) {
       api<Ruleset>(`repos/${repository}/rulesets/27109858`),
       contexts,
       appId,
+      process.env.RELEASE_POLICY_AUDIT ? (JSON.parse(process.env.RELEASE_POLICY_AUDIT) as PolicyAudit) : undefined,
     )
     output('sha', sha)
     output('version', metadata.version)
