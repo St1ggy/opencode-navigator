@@ -27,7 +27,7 @@ const otherLimit = {
   secondary: null,
 }
 
-function adapter(accountId = 'account-1', details: unknown = null) {
+function adapter(accountId = 'account-1', details: unknown = null, credits?: unknown) {
   const calls: string[] = []
   const client = {
     async request(method: string, params: Record<string, unknown>) {
@@ -41,7 +41,7 @@ function adapter(accountId = 'account-1', details: unknown = null) {
         accountId,
         ordinaryUsageAllowed: false,
         rateLimits: otherLimit,
-        rateLimitsByLimitId: { codex: currentLimit, other: otherLimit },
+        rateLimitsByLimitId: { codex: { ...currentLimit, credits }, other: otherLimit },
         rateLimitResetCredits: { availableCount: 3, credits: details },
       }
     },
@@ -74,6 +74,42 @@ test('Codex quota adapter keeps verified account windows and count-only reset cr
   expect(snapshot.bankedResets?.availableCount).toBe(3)
   expect(snapshot.bankedResets?.credits).toBeUndefined()
 })
+
+test.each([
+  [
+    { hasCredits: true, unlimited: false, balance: '12345.678900' },
+    { amount: '12345.678900', unit: 'credits' },
+  ],
+  [
+    { hasCredits: false, unlimited: false, balance: '0' },
+    { amount: '0', unit: 'credits' },
+  ],
+  [
+    { hasCredits: true, unlimited: true, balance: null },
+    { unlimited: true, unit: 'credits' },
+  ],
+] as const)(
+  'Codex retains native ordinary-account Credits independently of banked resets (%j)',
+  async (credits, expected) => {
+    const { client } = adapter('account-1', null, credits)
+    const snapshot = await client.read(selected, new AbortController().signal)
+
+    expect(snapshot.balances).toEqual([{ id: 'codex.credits', label: 'Credits', scope: 'account', ...expected }])
+    expect(snapshot.bankedResets?.availableCount).toBe(3)
+    expect(
+      (await adapter('other-account', null, credits).client.read(selected, new AbortController().signal)).balances,
+    ).toBeUndefined()
+  },
+)
+
+test.each([undefined, null, { hasCredits: true, unlimited: false, balance: null }])(
+  'Codex does not fabricate a missing credit balance (%j)',
+  async (credits) => {
+    const snapshot = await adapter('account-1', null, credits).client.read(selected, new AbortController().signal)
+
+    expect(snapshot.balances ?? []).toHaveLength(0)
+  },
+)
 
 test('repeated Codex quota refreshes only read account limits without generation or credit consumption', async () => {
   const { client, calls } = adapter()

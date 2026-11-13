@@ -37,7 +37,8 @@ export async function quotaInteractions(page, panel, command, preferencesPath) {
   if (controls.some((label) => /synthetic-model|Select model|reasoning|effort/iu.test(label)))
     throw new Error('Desktop Limits duplicated the native chat model or effort selector')
 
-  await limits.getByText(/^Updated /u).waitFor()
+  await limits.getByText(/ · Updated /u).waitFor()
+  await limits.getByText('Credits: 1234.567800', { exact: true }).waitFor()
   const text = (await limits.textContent()) ?? ''
 
   if (/Codex account quota|shared across models|model-specific allowance/iu.test(text))

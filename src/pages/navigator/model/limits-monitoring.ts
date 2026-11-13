@@ -11,6 +11,7 @@ export type LimitsMonitoring = {
   accountSource?: ProviderAccountSource
   selected(): SelectedModel | undefined
   label(): string
+  providerName?(): string | undefined
   chooseModel(): void
   chooseVariant(): void
 }

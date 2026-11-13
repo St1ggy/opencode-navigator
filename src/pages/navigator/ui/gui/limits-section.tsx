@@ -1,7 +1,7 @@
 import { For, Show } from 'solid-js'
 
 import { createQuotaClock } from '../../../../features/provider-limits/gui'
-import { canLinkCodexAccount, quotaStatusMessage } from '../../../../features/provider-limits/model'
+import { canLinkCodexAccount, quotaBalanceValue, quotaStatusMessage } from '../../../../features/provider-limits/model'
 import { GuiIconAction } from '../../../../shared/ui/gui'
 
 import { useNavigatorGui } from './context'
@@ -22,6 +22,7 @@ export function LimitsSection() {
           state: state() ?? { status: 'idle' },
           hasAdapter: Boolean(limits()?.controller.current().adapter),
           showUpdatedAt: true,
+          providerName: limits()?.providerName?.(),
         })
       : 'Select a model in chat to view its provider limits.'
   const canLink = () => {
@@ -84,7 +85,7 @@ export function LimitsSection() {
             <For each={value().balances}>
               {(balance) => (
                 <p>
-                  {balance.label}: {balance.unlimited ? 'Unlimited' : `${balance.amount} ${balance.unit ?? ''}`}
+                  {balance.label}: {quotaBalanceValue(balance)}
                 </p>
               )}
             </For>

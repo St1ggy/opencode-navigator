@@ -80,6 +80,11 @@ export function ProviderLimitsSection(props: {
       >
         {(selected) => (
           <box width="100%" minWidth={0} flexShrink={1} overflow="hidden">
+            <LimitsStatus
+              api={props.api}
+              controller={props.controller}
+              providerName={props.modelSelection?.names(selected()).provider ?? selected().providerID}
+            />
             <LimitsModelRow {...props} model={selected()} selection={props.modelSelection} />
             <CodexAccountControls {...props} model={selected()} />
             <Show when={snapshot() && ['ready', 'stale'].includes(snapshot()!.availability) ? snapshot() : undefined}>
@@ -103,7 +108,6 @@ export function ProviderLimitsSection(props: {
                 />
               )}
             </Show>
-            <LimitsStatus api={props.api} controller={props.controller} />
           </box>
         )}
       </Show>

@@ -5,6 +5,7 @@ export type CodexLimit = {
   limitId: string | null
   limitName: string | null
   normalModelSlug?: string | null
+  credits?: { hasCredits: boolean; unlimited: boolean; balance: string | null } | null
   primary: CodexWindow | null
   secondary: CodexWindow | null
 }

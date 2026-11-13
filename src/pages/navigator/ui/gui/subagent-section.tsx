@@ -22,7 +22,7 @@ export function SubagentSection() {
     buildSubagentView(props.runtime.subagents.list(id()), props.runtime.subagents.recent(id())),
   )
   const counts = createMemo(() => countSubagentView(all(), query()))
-  const selectedMode = () => (mode() === 'errors' && counts().errors === 0 ? 'recent' : mode())
+  const selectedMode = () => (counts()[mode()] > 0 ? mode() : counts().active > 0 ? 'active' : 'recent')
   const rows = createMemo(() => filterSubagentView(all(), selectedMode(), query()))
   const state = () => props.runtime.subagents.state(id())
   const now = createSubagentClock(() =>

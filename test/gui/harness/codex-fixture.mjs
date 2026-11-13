@@ -41,6 +41,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
           normalModelSlug: null,
           primary: { usedPercent: state.keys.length > 0 ? 0 : 100, windowDurationMins: 300, resetsAt: state.resetsAt },
           secondary: null,
+          credits: { hasCredits: true, unlimited: false, balance: '1234.567800' },
         },
         rateLimitsByLimitId: null,
         rateLimitResetCredits: existsSync('/tmp/navigator-synthetic-credit-details')

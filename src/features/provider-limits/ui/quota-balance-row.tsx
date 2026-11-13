@@ -1,3 +1,5 @@
+import { quotaBalanceValue } from '../model/balance-value'
+
 import type { QuotaBalance } from '../../../entities/provider-limit'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
@@ -5,11 +7,7 @@ export function QuotaBalanceRow(props: { api: TuiPluginApi; balance: QuotaBalanc
   return (
     <text fg={props.api.theme.current.textMuted} wrapMode="none" truncate>
       {`${props.balance.label}: `}
-      <span style={{ fg: props.api.theme.current.text }}>
-        {props.balance.unlimited
-          ? 'No configured cap'
-          : `${props.balance.amount} ${props.balance.unit ?? '(provider unit not specified)'}`}
-      </span>
+      <span style={{ fg: props.api.theme.current.text }}>{quotaBalanceValue(props.balance)}</span>
     </text>
   )
 }

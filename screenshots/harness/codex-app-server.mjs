@@ -16,6 +16,7 @@ const limit = {
   limitId: 'codex',
   limitName: null,
   normalModelSlug: null,
+  credits: { hasCredits: true, unlimited: false, balance: '1234.567800' },
   primary: { usedPercent: 100, windowDurationMins: 300, resetsAt: now + 7200 },
   secondary: { usedPercent: 74, windowDurationMins: 10_080, resetsAt: now + 172_800 },
 }

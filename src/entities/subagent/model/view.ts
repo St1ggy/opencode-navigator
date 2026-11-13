@@ -44,7 +44,11 @@ export function buildSubagentView(active: readonly SubagentViewItem[], recent: r
   return [
     ...[...active].sort((a, b) => priority(a) - priority(b)).map((item) => ({ ...item, group: 'Active' as const })),
     ...[...recent]
-      .sort((a, b) => (b.run?.finishedAt ?? 0) - (a.run?.finishedAt ?? 0) || a.session.id.localeCompare(b.session.id))
+      .sort(
+        (a, b) =>
+          (b.run?.finishedAt ?? b.session.time.updated) - (a.run?.finishedAt ?? a.session.time.updated) ||
+          a.session.id.localeCompare(b.session.id),
+      )
       .map((item) => ({ ...item, group: 'Recent' as const })),
   ]
 }

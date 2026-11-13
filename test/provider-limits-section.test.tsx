@@ -368,10 +368,11 @@ test('Limits defaults first and expanded, requires deliberate binding, and shows
     expect(h.captureCharFrame()).toContain('Link the matching Codex account')
     expect(h.reads()).toBe(0)
     await h.link()
-    expect(h.captureCharFrame()).toContain('[OpenAI] Synthetic Codex')
+    expect(h.captureCharFrame()).toContain('Synthetic Codex')
+    expect(h.captureCharFrame()).not.toContain('[OpenAI]')
     expect(h.captureCharFrame()).toContain('0%')
     expect(h.captureCharFrame()).toContain('Resets ')
-    expect(h.captureCharFrame()).not.toContain('Updated ')
+    expect(h.captureCharFrame()).toContain('OpenAI · Updated ')
     expect(h.captureCharFrame()).toContain('Banked Resets')
     expect(h.captureCharFrame()).not.toContain('synthetic-account')
     expect(h.captureCharFrame()).not.toContain('Provider sources')
@@ -849,6 +850,7 @@ test('Limits renders the real nullable Codex account bucket with explicit scope 
         limitId: 'codex',
         limitName: null,
         normalModelSlug: null,
+        credits: { hasCredits: true, unlimited: false, balance: '1234.567800' },
         primary: { usedPercent: 35, windowDurationMins: 300, resetsAt: 1_800_000_000 },
         secondary: null,
       }
@@ -869,6 +871,7 @@ test('Limits renders the real nullable Codex account bucket with explicit scope 
     await h.link()
     expect(h.captureCharFrame()).not.toContain('Account · 5h')
     expect(h.captureCharFrame()).toContain('65%')
+    expect(h.captureCharFrame()).toContain('Credits: 1234.567800')
     expect(h.captureCharFrame()).toContain('Banked Resets')
     expect(h.captureCharFrame()).not.toContain('No documented quota bucket')
     await h.click('Banked Resets')
@@ -896,19 +899,20 @@ test('compact Limits puts actions in the header and keeps remaining value, scale
 
     expect(lines[header]).toContain('Banked Resets')
     expect(lines[header]).toContain('3 Banked Resets')
-    expect(lines[header + 2]).toContain('[OpenAI] Synthetic Codex')
-    expect(lines[header + 2]).toContain('·')
-    expect(lines[header + 2]).toContain('high')
+    expect(lines[header + 2]).toContain('OpenAI · Updated ')
+    expect(lines[header + 3]).toContain('Synthetic Codex')
+    expect(lines[header + 3]).toContain('·')
+    expect(lines[header + 3]).toContain('high')
     expect(lines[remaining]).not.toContain('Quota remaining')
-    expect(lines[remaining + 3]).toContain('Reset in')
+    expect(lines[remaining + 4]).toContain('Reset in')
     expect(color(remaining, lines[remaining].indexOf('0%')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
     expect(
       color(remaining + 1, lines[remaining + 1].indexOf('---')).equals(subtleLineColor('#111111', '#555555')),
     ).toBe(true)
     expect(lines[remaining + 1]).not.toMatch(/[│|]/)
-    expect(color(remaining + 3, lines[remaining + 3].indexOf('Reset')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
+    expect(color(remaining + 4, lines[remaining + 4].indexOf('Reset')).equals(RGBA.fromHex('#ffffff'))).toBe(true)
     expect(h.captureCharFrame()).not.toContain('Unlink Codex')
-    expect(h.captureCharFrame()).not.toContain('Updated ')
+    expect(h.captureCharFrame()).toContain('OpenAI · Updated ')
     const refresh = h.renderer.root.findDescendantById('opencode-navigator.limits.refresh') as BoxRenderable
 
     expect(refresh.width).toBe(3)
@@ -1048,7 +1052,7 @@ test('Limits fills its sidebar content area without painting into the surroundin
     const right = root.screenX + root.width - 2
 
     expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
-    expect(lines[row + 3]).toContain('Reset in')
+    expect(lines[row + 4]).toContain('Reset in')
     expect(lines[row]).not.toContain('Account')
     expect(lines[row + 1].slice(right).trim()).toBe('')
     expect(Bun.stringWidth(lines[row + 1].trimEnd())).toBe(right)

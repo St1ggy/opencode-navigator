@@ -70,6 +70,26 @@ function historyHarness(child: Session = session('child', 'parent', 0)) {
   }
 }
 
+test('existing idle children remain discoverable when monitoring starts after their run', async () => {
+  const h = historyHarness()
+
+  h.setSnapshot({ child: { type: 'idle' } })
+
+  try {
+    await h.controller.refresh('parent')
+    expect(h.controller.list('parent')).toEqual([])
+    const recent = h.controller.recent('parent')
+
+    expect(recent).toHaveLength(1)
+    expect(recent[0].session.id).toBe('child')
+    expect(recent[0].status.type).toBe('idle')
+    expect(recent[0].run).toBeUndefined()
+    expect(h.controller.recent('other')).toEqual([])
+  } finally {
+    h.dispose()
+  }
+})
+
 test('subagent history survives route changes and idle overrides stale host state', async () => {
   const h = historyHarness()
 

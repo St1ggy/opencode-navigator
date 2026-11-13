@@ -1,8 +1,16 @@
 # Roadmap
 
+## Corrected Limits layout and missing data follow-up
+
+- [~] Publish 0.27.7 through the authorized source PR, Prepare Release/screenshot PR and mandatory CI gates; verify registry/provenance/payload, then re-detect and update only the existing local Navigator GUI/TUI sources.
+
+- [x] Apply the explicitly approved icon-only Limits layout in Desktop/TUI: provider before updated-at separator, quota icon/value, jointly rounded paired scales, clock icon/period value, separate swap-reset row, then native Credits. Preserve accessible window identity in Desktop, TUI model/variant actions, missing dates, native units and no-poll toggles. Complete check, both real TUI-host smokes and normal/quota packaged Desktop modes pass; no local captures or installed-client changes.
+- [x] Reproduce missing Credits from the actual read-only Codex RPC: the ordinary account snapshot supplies credits, but the adapter dropped them. Map that documented snapshot into balances, preserving exact string precision, explicit zero/unlimited, account checks and absent data; verify TUI/Desktop credit output independently of Banked Resets.
+- [x] Reproduce and fix a shared Subagents omission: existing idle children were absent from both Active and Recent if their execution preceded monitoring. Keep them in Recent without fabricated run timing/outcomes and select Recent when Desktop Active is empty. A failing-before/passing-after controller test and both packaged Desktop modes verify a real synthetic idle child without model execution. The current user's parent returned zero children from the public read-only API, so the exact live-session report remains unconfirmed rather than attributed solely to this defect.
+
 ## Compact Limits reference follow-up
 
-- [~] Release the verified compact Limits/reset-time delivery as 0.27.6 through source PR, mandatory CI and Prepare Release/screenshot PR gates; verify publication and update only the discovered Navigator GUI/TUI sources under the user's 2026-11-13 authorization.
+- [x] Release the verified compact Limits/reset-time delivery as 0.27.6 through source PR #49, Prepare Release 43308958606, merged screenshot PR #50 and final main CI 43317196553. Publish 43317719079 passed; verify all 46 published files, registry signature and provenance attestation. Advance only the re-detected local Navigator GUI/TUI/server pins from 0.27.5 to 0.27.6, preserving unrelated bytes, themes and the TUI symlink; verify all published hashes in the host-managed cache.
 
 - [x] Apply the selected paired-scale reference in Desktop and TUI: quota icon/window name and value above adjacent quota/blue-period scales, one reset-time row and period percentage below, then real provider credit balances. Preserve native units, unknown/invalid date guidance, pace thresholds, Banked Resets and existing controls. Complete check passes with 650 primary tests, one existing opt-in skip and 115 GUI tests; both real TUI hosts and normal/quota packaged Desktop modes pass. No local captures or installation updates.
 - [x] Remove duplicated reset text and make the single swap-icon reset row toggle relative/absolute time with mouse-up and Enter in TUI and the native Desktop button's click/Enter/Space behavior. Preserve state and row identity through snapshot refreshes, explicit missing/invalid dates, and no extra provider reads. TUI tests and the packaged Desktop quota fixture verify read counts remain unchanged when toggling.

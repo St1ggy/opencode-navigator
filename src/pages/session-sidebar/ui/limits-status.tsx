@@ -8,6 +8,7 @@ import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 export function LimitsStatus(props: {
   api: TuiPluginApi
   controller: ReturnType<typeof createProviderLimitsController>
+  providerName?: string
 }) {
   const message = () => {
     const { model, adapter } = props.controller.current()
@@ -17,6 +18,8 @@ export function LimitsStatus(props: {
       snapshot: props.controller.snapshot(),
       state: props.controller.state(),
       hasAdapter: Boolean(adapter),
+      showUpdatedAt: true,
+      providerName: props.providerName,
     })
   }
 

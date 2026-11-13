@@ -92,7 +92,7 @@ export function SubagentRow(props: {
             )}
           </Show>
           <Show when={idle() && !props.item.run?.errorMessage}>
-            <text fg={theme().textMuted}>Finished</text>
+            <text fg={theme().textMuted}>{props.item.run ? 'Finished' : 'Idle · run history not observed'}</text>
           </Show>
         </>
       }

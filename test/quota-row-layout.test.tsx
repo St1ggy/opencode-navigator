@@ -77,7 +77,8 @@ test.each(['nerd', 'text'] as const)(
         expect(at(row + 1).equals(RGBA.fromHex(color))).toBe(true)
         expect(at(row + 2).equals(RGBA.fromHex(quotaColors.blue))).toBe(true)
         expect(lines[row + 3]).toContain('81%')
-        expect(lines[row + 3]).toContain('Reset in 2h 15m')
+        expect(lines[row + 4]).toContain('Reset in 2h 15m')
+        expect(lines[row + 2].trimEnd()).toMatch(style === 'nerd' ? /^╰[━─]+╯$/u : /^[=-]+$/u)
       }
       setNow(reset * 1000)
       await h.flush()
@@ -179,7 +180,9 @@ test.each(['nerd', 'text'] as const)(
       expect(lines[row].slice(left, right)).toContain('71%')
       expect(Bun.stringWidth(lines[row].trimEnd())).toBe(right)
       expect(lines[row].slice(right - 3, right)).toBe('71%')
-      expect(lines[row + 1].slice(left, right)).toMatch(style === 'nerd' ? /^[━─]+$/ : /^[=-]+$/)
+      expect(lines[row + 1].slice(left, right)).toMatch(style === 'nerd' ? /^╭[━─]+╮$/ : /^[=-]+$/)
+      expect(lines[row + 2].slice(left, right)).toContain('Scale unknown')
+      expect(lines[row].slice(left, right)).not.toContain('Secondary')
       expect(h.captureCharFrame()).not.toMatch(/[│|]/)
       expect(lines[row + 1]).not.toMatch(/[[\]█░#]/)
       expect(lines[row + 1].slice(right).trim()).toBe('')
@@ -301,14 +304,14 @@ test.each(['nerd', 'text'] as const)(
       const first = lines.findIndex((line) => line.includes('71%'))
       const second = lines.findIndex((line) => line.includes('26%'))
 
-      expect(second).toBe(first + 5)
-      expect(lines[first + 4].trim()).toBe('')
+      expect(second).toBe(first + 6)
+      expect(lines[first + 5].trim()).toBe('')
       expect(h.captureCharFrame()).not.toMatch(/[│|]/)
       const sidebar = h.renderer.root.findDescendantById('sidebar') as BoxRenderable
       const left = sidebar.screenX + 3
 
-      expect(lines[first + 1][left]).toBe(style === 'nerd' ? '━' : '=')
-      expect(lines[second + 1][left]).toBe(style === 'nerd' ? '━' : '=')
+      expect(lines[first + 1][left]).toBe(style === 'nerd' ? '╭' : '=')
+      expect(lines[second + 1][left]).toBe(style === 'nerd' ? '╭' : '=')
     } finally {
       h.renderer.destroy()
     }
