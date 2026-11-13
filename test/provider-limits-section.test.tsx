@@ -871,7 +871,7 @@ test('Limits renders the real nullable Codex account bucket with explicit scope 
     await h.link()
     expect(h.captureCharFrame()).not.toContain('Account · 5h')
     expect(h.captureCharFrame()).toContain('65%')
-    expect(h.captureCharFrame()).toContain('Credits: 1234.567800')
+    expect(h.captureCharFrame()).toContain('Credits: 1234.57')
     expect(h.captureCharFrame()).toContain('Banked Resets')
     expect(h.captureCharFrame()).not.toContain('No documented quota bucket')
     await h.click('Banked Resets')
