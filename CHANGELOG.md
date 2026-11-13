@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.27.7] - 2026-11-13
+
+- Refine Limits in Desktop and TUI: show the provider before the update time, use icon-only quota and period rows, give the two scales one outer rounded contour, and keep reset-time switching on its own row.
+- Show Codex's native account credit balance without mixing it with Banked Resets. Preserve the provider's precision, explicit zero and unlimited state; missing balances remain unknown.
+- Keep existing idle child sessions visible in Recent when their execution happened before monitoring started. Do not invent run timing or outcomes; Desktop opens Recent when Active is empty and recent children exist.
+
 ## [0.27.6] - 2026-11-13
 
 - Make Limits more compact in Desktop and TUI: place window icons and quota values above adjacent quota and blue period scales, with provider credit balances below the quota windows.

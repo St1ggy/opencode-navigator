@@ -8,6 +8,12 @@ Replace only the SVG when a supported public swap icon becomes available; do not
 replace the native button or reach into host DOM. Relative/absolute presentation
 is local per quota-window identity and never invokes the quota adapter.
 
+Quota gauge and clock glyphs are also absent from that public icon catalog;
+small presentation-only SVGs cover those two symbols until the host exports them.
+The provider display name comes from the selected server's public reactive
+`data.location.provider.list(location)` cache, with the selected provider ID as
+the loading fallback, and does not issue a quota request.
+
 Navigator supports only OpenCode **1.19.5** and **2.2.6**, the current stable
 release in each major line. Published SDK declarations and real-host checks
 define the boundary; internal host components are not plugin APIs.

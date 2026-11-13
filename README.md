@@ -650,7 +650,7 @@ and undocumented endpoint integrations are not Navigator data sources.
 | Source | Native measurement | Banked reset credits |
 | --- | --- | --- |
 | OpenCode Console / Go | Public host usage API: applicable workspace budgets in USD and Go allowance percentages with reset times | Read-only |
-| Codex app-server | Rate-limit windows and account ID | Available count, optional details and expiry, confirmed manual consumption |
+| Codex app-server | Rate-limit windows, native credit balance and account ID | Available count, optional details and expiry, confirmed manual consumption |
 | MiniMax and NanoGPT | Explicit model-associated subscription windows; separate pay-as-you-go balances | Read-only |
 | GitHub Copilot | Official SDK token-scoped premium allowance, checked against the selected model's billing metadata | Read-only |
 | OpenRouter, DeepSeek, Moonshot, SiliconFlow, Novita, Poe, AIHubMix | Current-account balance or key spending budget, preserving provider-native currency/points and permission requirements | Read-only |
@@ -698,8 +698,11 @@ least the remaining share of the period. It turns yellow below that pace, orange
 at a 15-percentage-point deficit, and red at 30 points. This comparison is a pace
 indicator, not a forecast. It requires a provider-supplied reset time and window
 duration; missing duration is shown as unknown rather than inferred from a label.
-The two scales sit together, with the quota value above and one reset-time row
-below. Activate the swap-icon row to alternate between the relative countdown
+The provider name precedes the update time, separated by a dot. Each window has
+only a quota icon and value above the scales, and a clock icon and period value
+below. The two scales share one outer rounding contour instead of separate
+capsules; terminal Text mode keeps plain ASCII lines. Reset information appears
+on its own following row. Activate that swap-icon row to alternate between the relative countdown
 and absolute reset date/time; use Enter on the focused TUI row or Enter/Space on
 the Desktop button. Changing the display does not refresh the provider. The
 reset countdown updates locally without extra quota requests. An elapsed
@@ -1076,6 +1079,10 @@ children already running when Navigator opens. Missing or invalid native timing
 and OpenCode 1 retain observed durations. An already-running child whose exact
 start is unknown has a clock icon (`~` in Text fallback). Recent keeps the last 10 observed
 finished runs per parent session in memory across navigation, until OpenCode exits.
+It also lists existing idle child sessions discovered after their execution, without
+inventing a run duration, outcome or error history. Those entries say
+`Idle · run history not observed`. Desktop selects Recent when Active is empty
+and recent children are available.
 An idle transition is labelled Finished, not a guarantee of successful task
 completion; errors and cancellations retain their own labels. A worker timeout
 displays status unavailability and does not mark its last confirmed active run as
