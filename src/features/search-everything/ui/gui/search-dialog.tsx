@@ -7,6 +7,8 @@ import { GuiSearchResultRow } from './result-row'
 import type { SearchResult, SearchViewState } from '../../model'
 import type { Ui } from '@opencode/plugin/gui'
 
+const pending = (result: SearchResult) => result.group === 'MCP' && result.pending === true
+
 export function GuiSearchDialog(props: {
   ui: Ui
   model: SearchViewState
@@ -112,7 +114,7 @@ export function GuiSearchDialog(props: {
                   ui={props.ui}
                   result={result()}
                   selected={props.model.selected() === id}
-                  busy={busy() === id}
+                  busy={busy() === id || pending(result())}
                   favorite={props.favorite(result())}
                   focus={() => props.model.select(id)}
                   run={() => void run(result())}

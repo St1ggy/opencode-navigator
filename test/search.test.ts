@@ -61,6 +61,35 @@ test('search candidates expose reasons for disabled actions without hiding resul
   )
 })
 
+test('MCP search exposes per-server pending independently from global mutation guards', () => {
+  const candidates = buildSearchCandidates({
+    skills: [],
+    subagents: [],
+    actionOrder: [],
+    recentSkills: [],
+    favoriteSkills: new Set(),
+    favoriteMcp: new Set(),
+    hasSession: true,
+    mcp: [
+      { name: 'changing', status: 'connected' },
+      { name: 'native-pending', status: 'pending' },
+      { name: 'idle', status: 'connected' },
+    ],
+    mcpBusy: true,
+    mcpPending: (name) => name === 'changing',
+  }).filter((item) => item.group === 'MCP')
+
+  expect(candidates.map((item) => [item.server, item.pending])).toEqual([
+    ['changing', true],
+    ['idle', false],
+    ['native-pending', true],
+  ])
+  expect(candidates.every((item) => item.disabled)).toBe(true)
+  expect(candidates.find((item) => item.server === 'native-pending')?.description).not.toMatch(
+    /progress|pending|Connect/u,
+  )
+})
+
 test('fuzzy search remains bounded on large source lists', () => {
   const start = performance.now()
   const candidates = buildSearchCandidates({

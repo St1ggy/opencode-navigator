@@ -5,6 +5,9 @@ export { registerNavigatorAboutServices, getNavigatorAboutServices } from './fea
 export { createNativeTodoController } from './app/opencode-v2'
 export { TodoSection } from './pages/session-sidebar'
 export {
+  BookmarkControl,
+  ListRow,
+  lspIconName,
   DialogSurface,
   DialogAction,
   DialogHeader,

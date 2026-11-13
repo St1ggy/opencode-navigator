@@ -549,6 +549,15 @@ export function createPreferencesModel(
     lspIconStyle: () => resolved().behavior.lspIconStyle,
     rowDensity: () => resolved().behavior.rowDensity,
     toolbarOverflow: () => resolved().behavior.toolbarOverflow,
+    codeModePlacement: () => resolved().behavior.codeModePlacement,
+    selectedCodeModePlacement: () => selectedResolved().behavior.codeModePlacement,
+    toggleCodeModePlacement() {
+      void load()
+      update({
+        target: selectedTarget(),
+        behavior: { codeModePlacement: selectedResolved().behavior.codeModePlacement === 'mcp' ? 'section' : 'mcp' },
+      })
+    },
     selectedToolbarOverflow: () => selectedResolved().behavior.toolbarOverflow,
     toggleToolbarOverflow() {
       void load()
@@ -621,6 +630,7 @@ export function createPreferencesModel(
     exportPortableSettings() {
       return serializePortableSettings(selectedLayoutResolved().layout, selectedResolved().desiredMcpStates, {
         toolbarOverflow: selectedResolved().behavior.toolbarOverflow,
+        codeModePlacement: selectedResolved().behavior.codeModePlacement,
       })
     },
     previewPortableSettings(source: string) {

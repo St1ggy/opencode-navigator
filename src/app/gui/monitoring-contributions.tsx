@@ -4,6 +4,7 @@ import { Show } from 'solid-js'
 import { MonitoringContent, MonitoringPanel, NavigatorMiniWindow } from '../../pages/navigator/gui'
 
 import { createGuiAbout } from './about'
+import { createCodeModeDialogs } from './code-mode-dialogs'
 import { createGuiLimitsDialogs } from './limits-dialogs'
 import { createGuiMcpDialogs } from './mcp-dialogs'
 import { createMonitoringPresentation } from './monitoring-presentation'
@@ -23,6 +24,7 @@ import type { Context, PanelTab } from '@opencode/plugin/gui'
 
 export function registerMonitoring(context: Context, preferences: PreferencesController) {
   const registry = createMonitoringRegistry(context, preferences)
+  const codeMode = createCodeModeDialogs(context, registry)
   const dialogs = createTodoDialogs(context, registry.active)
   const skills = createGuiSkillDialogs(context, registry.active, preferences)
   const search = createGuiSearchDialog(context, registry, preferences, skills)
@@ -52,6 +54,8 @@ export function registerMonitoring(context: Context, preferences: PreferencesCon
     onArchive: dialogs.archive,
     onSkill: skills.open,
     onMcpInformation: mcp.information,
+    onCodeModeRun: codeMode.run,
+    onCodeModeRouting: codeMode.routing,
     onMcpPresets: mcp.presets,
     notifications,
     toolbar,

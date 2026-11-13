@@ -13,7 +13,7 @@ export function mcpGroupToggleAction(items: readonly TuiSidebarMcpItem[]) {
 }
 
 export function mcpGroupStatus(items: readonly TuiSidebarMcpItem[], busy = false) {
-  if (busy) return 'pending'
+  if (busy || items.some((item) => item.status === 'pending')) return 'pending'
 
   if (items.length > 0 && items.every((item) => item.status === 'connected')) return 'connected'
 

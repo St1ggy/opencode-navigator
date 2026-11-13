@@ -1,10 +1,13 @@
-import { createMemo, createSignal } from 'solid-js'
+import { Show, createMemo, createSignal } from 'solid-js'
 
+import { useCodeModeTui } from '../../../features/code-mode'
 import { openMcpPresets } from '../../../features/sidebar-settings'
 import { PLUGIN_ID } from '../../../shared/config'
 import { useIcons } from '../../../shared/ui'
 import { createMcpSectionModel } from '../model/mcp-section-model'
 
+import { CodeModeAction } from './code-mode-action'
+import { CodeModeActivity } from './code-mode-activity'
 import { McpSectionContent } from './mcp-section-content'
 import { SectionWithHeaderAction } from './section'
 
@@ -21,6 +24,7 @@ export function McpSection(props: {
   navigationSection?: number
 }) {
   const icons = useIcons()
+  const codeMode = useCodeModeTui()
   const [query, setQuery] = createSignal('')
   const model = createMcpSectionModel(props, query)
   const navigationSection = () => props.navigationSection ?? 6
@@ -57,6 +61,26 @@ export function McpSection(props: {
         onQuery={setQuery}
         model={model}
       />
+      <Show
+        when={codeMode && props.preferences.sections().code_mode && props.preferences.codeModePlacement() === 'mcp'}
+      >
+        <box marginTop={1}>
+          <CodeModeAction
+            {...props}
+            id="navigator.code-mode.inline"
+            position={{ section: navigationSection(), row: model.list().length * 3 + 9, column: 0 }}
+            label={`${icons.icon(props.preferences.expanded().code_mode ? 'expanded' : 'collapsed')} Code Mode activity`}
+            activate={() => props.preferences.toggleSectionExpanded('code_mode')}
+          />
+          <Show when={props.preferences.expanded().code_mode}>
+            <CodeModeActivity
+              {...props}
+              navigationSection={navigationSection()}
+              rowOffset={model.list().length * 3 + 10}
+            />
+          </Show>
+        </box>
+      </Show>
     </SectionWithHeaderAction>
   )
 }

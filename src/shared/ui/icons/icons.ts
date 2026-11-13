@@ -1,7 +1,7 @@
 import { QUICK_ACTION_IDS, type QuickActionId } from '../../config'
 
 export type IconStyle = 'nerd' | 'text'
-export type SectionIconName = 'limits' | 'todo' | 'subagents' | 'skills' | 'quick_actions' | 'lsp' | 'mcp'
+export type SectionIconName = 'limits' | 'todo' | 'subagents' | 'skills' | 'quick_actions' | 'lsp' | 'mcp' | 'code_mode'
 
 // Nerd Font glyphs, paired with font-independent ASCII fallbacks.
 const ICONS = {
@@ -14,6 +14,7 @@ const ICONS = {
   actions: ['\u{EB9E}', '[Q]'],
   lsp: ['\u{EAC4}', '{}'],
   mcp: ['\u{EB2D}', '[M]'],
+  code_mode: ['\u{F121}', '[C]'],
   sections: ['\u{EBEB}', '[]'],
   scope: ['\u{EB01}', '@'],
   presets: ['\u{EBD2}', '#'],

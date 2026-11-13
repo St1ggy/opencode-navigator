@@ -31,7 +31,7 @@ export type SearchResult = SearchEntry &
   (
     | { group: 'Skills'; skill: SkillInfo }
     | { group: 'Subagents'; sessionID: string }
-    | { group: 'MCP'; server: string; connected?: boolean }
+    | { group: 'MCP'; server: string; connected?: boolean; pending?: boolean }
     | { group: 'Actions'; command: QuickActionId }
   )
 
@@ -48,6 +48,7 @@ export function buildSearchCandidates(input: {
   mcpGroups?: Readonly<Record<string, string>>
   hasSession: boolean
   mcpBusy: boolean
+  mcpPending?: (name: string) => boolean
   actionDisabledReason?: (action: (typeof QUICK_ACTIONS)[number]) => string | undefined
   actionLabel?: (action: (typeof QUICK_ACTIONS)[number]) => string
   mcpErrorMode?: 'inline' | 'details'
@@ -88,8 +89,8 @@ export function buildSearchCandidates(input: {
       title: item.name,
       description: [
         input.mcpGroups?.[item.name],
-        mcpToggleAction(item.status) === 'disconnect' ? 'Disconnect' : 'Connect',
-        item.status,
+        item.status !== 'pending' && (mcpToggleAction(item.status) === 'disconnect' ? 'Disconnect' : 'Connect'),
+        item.status === 'pending' ? undefined : item.status,
         input.mcpErrorMode === 'details' ? undefined : item.error,
       ]
         .filter(Boolean)
@@ -98,6 +99,7 @@ export function buildSearchCandidates(input: {
       disabled: input.mcpBusy || !mcpToggleAction(item.status) ? 'MCP operation in progress' : undefined,
       server: item.name,
       connected: item.status === 'connected',
+      pending: item.status === 'pending' || input.mcpPending?.(item.name) === true,
       ...(input.mcpErrorMode === 'details' &&
         item.error && {
           information: { title: `MCP · ${item.name}`, body: `Status: ${item.status}\n\n${item.error}` },

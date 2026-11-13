@@ -23,6 +23,7 @@ const sections = Schema.Struct({
   quick_actions: optional(boolean),
   lsp: optional(boolean),
   mcp: optional(boolean),
+  code_mode: optional(boolean),
 })
 const layout = Schema.Struct({ sections, expanded: sections, order: optional(Schema.mutable(Schema.Array(section))) })
 const icons = {
@@ -64,6 +65,7 @@ const behavior = Schema.Struct({
   lspIconStyle: optional(Schema.Literals(['nerd', 'text'])),
   rowDensity: optional(Schema.Literals(['compact', 'comfortable'])),
   toolbarOverflow: optional(Schema.Literals(['menu', 'wrap'])),
+  codeModePlacement: optional(Schema.Literals(['mcp', 'section'])),
   sectionItemLimits: optional(Schema.Record(string, count)),
   quickActionOrder: optional(Schema.mutable(Schema.Array(action))),
   quickActionVisibility: optional(Schema.Record(string, boolean)),

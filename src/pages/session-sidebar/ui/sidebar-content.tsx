@@ -4,6 +4,7 @@ import { PLUGIN_ID } from '../../../shared/config'
 import { supportsSidebarSection } from '../../../shared/lib/host-capabilities'
 import { ToolbarProvider } from '../model/toolbar-context'
 
+import { CodeModeSection } from './code-mode-section'
 import { LspSection } from './lsp-section'
 import { McpSection } from './mcp-section'
 import { QuickActionsSection } from './quick-actions-section'
@@ -39,7 +40,12 @@ export function SidebarContent(props: {
   const visibleSections = createMemo(() =>
     props.preferences
       .sectionOrder()
-      .filter((section) => sections()[section] && supportsSidebarSection(props.api, section)),
+      .filter(
+        (section) =>
+          sections()[section] &&
+          supportsSidebarSection(props.api, section) &&
+          (section !== 'code_mode' || props.preferences.codeModePlacement() === 'section'),
+      ),
   )
 
   onCleanup(() => props.interaction.setContentRoot(undefined))
@@ -84,6 +90,9 @@ export function SidebarContent(props: {
                 </Match>
                 <Match when={section === 'mcp'}>
                   <McpSection {...props} navigationSection={index() + 1} controller={props.mcp} />
+                </Match>
+                <Match when={section === 'code_mode'}>
+                  <CodeModeSection {...props} navigationSection={index() + 1} />
                 </Match>
               </Switch>
             </SectionBoundary>

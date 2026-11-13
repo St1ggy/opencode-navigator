@@ -103,6 +103,7 @@ export function createSearchDialogController(props: SearchServices & { returnTar
       mcpGroups: props.preferences.mcpServerGroups?.() ?? {},
       hasSession: Boolean(context.sessionID),
       mcpBusy: props.mcp.mutating(mcpTarget) || props.mcp.bulkState(mcpTarget).status === 'running',
+      mcpPending: (name) => ['loading', 'refreshing'].includes(props.mcp.serverState(name, mcpTarget).status),
       actionDisabledReason: (action) => quickActionDisabledReason(props.api, action),
       actionLabel: (action) => quickActionLabel(props.api, action),
     })

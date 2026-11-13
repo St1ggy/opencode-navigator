@@ -15,7 +15,6 @@ import {
   FirstRunWizardPersistence,
   McpPersistence,
   PreferencesPersistence,
-  SidebarContent,
   SidebarFocusBinding,
   SidebarTitle,
   SidebarToggleBinding,
@@ -30,6 +29,7 @@ import { LimitsPersistence } from './limits-persistence'
 import { bindNavigatorAbout } from './navigator-about'
 import { createNativeTodoController, createOpenCodeV2Api, createOpenCodeV2Sources } from './opencode-v2'
 
+import type * as CodeModeModule from '../code-mode'
 import type * as NativeTodoSetupModule from '../native-todo-setup'
 import type * as NavigatorUpdates from '../navigator-updates'
 import type { ProviderLimitsSection as LimitsComponent } from '../pages/session-sidebar'
@@ -81,6 +81,8 @@ async function setupNavigator(
   hostContext?: OpenCodeV2Plugin.Context,
 ) {
   const config = pluginConfig(undefined)
+  const codeModePath = import.meta.url.includes('/dist/tui.js') ? './code-mode.js' : '../code-mode'
+  const { CodeModeSidebar } = (await import(codeModePath)) as typeof CodeModeModule
   const configured = await loadConfiguredDefaults(api, options, readProject)
   const todo: TodoController = todoController ?? createTodoController(api)
   const nativeSources = hostContext && createOpenCodeV2Sources(hostContext, api)
@@ -182,7 +184,8 @@ async function setupNavigator(
       sidebar_content(_context, props) {
         return (
           <IconProvider style={preferences.lspIconStyle} multilineCorners={preferences.cornerFont}>
-            <SidebarContent
+            <CodeModeSidebar
+              hostContext={hostContext}
               api={api}
               onNewSession={startup.handleNewSession}
               mcp={mcp}

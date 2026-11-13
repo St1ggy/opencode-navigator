@@ -24,12 +24,14 @@ const builtIns = {
     lspIconStyle: 'nerd' as const,
     rowDensity: 'compact' as const,
     toolbarOverflow: 'menu' as const,
+    codeModePlacement: 'mcp' as const,
     sectionItemLimits: {},
     quickActionOrder: [...QUICK_ACTION_IDS],
     quickActionVisibility: {},
   },
   layout: {
     sections: {
+      code_mode: true,
       limits: true,
       todo: true,
       subagents: true,
@@ -39,6 +41,7 @@ const builtIns = {
       mcp: true,
     },
     expanded: {
+      code_mode: true,
       limits: true,
       todo: true,
       subagents: false,
@@ -47,7 +50,7 @@ const builtIns = {
       lsp: false,
       mcp: false,
     },
-    order: ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp'] as SidebarSection[],
+    order: ['limits', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'mcp', 'code_mode'] as SidebarSection[],
   },
   desiredMcpStates: {},
 }
@@ -117,7 +120,7 @@ describe('preferences schema', () => {
         layout: {
           sections: { todo: false },
           expanded: { skills: true },
-          order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+          order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'code_mode'],
         },
         mcp: { global: 'enabled' },
       },
@@ -127,7 +130,7 @@ describe('preferences schema', () => {
           layout: {
             sections: { mcp: false },
             expanded: {},
-            order: ['limits', 'skills', 'todo', 'subagents', 'quick_actions', 'lsp', 'mcp'],
+            order: ['limits', 'skills', 'todo', 'subagents', 'quick_actions', 'lsp', 'mcp', 'code_mode'],
           },
           mcp: { context7: 'enabled', wiki: 'disabled' },
         },
@@ -139,7 +142,7 @@ describe('preferences schema', () => {
           Focus: {
             sections: { skills: false },
             expanded: { todo: false },
-            order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+            order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'code_mode'],
           },
         },
         mcpPresets: { Work: { context7: 'enabled', wiki: 'disabled' } },
@@ -258,6 +261,7 @@ describe('preferences schema', () => {
         lspIconStyle: 'nerd',
         rowDensity: 'comfortable',
         toolbarOverflow: 'menu',
+        codeModePlacement: 'mcp',
         sectionItemLimits: {},
         quickActionOrder: [...QUICK_ACTION_IDS],
         quickActionVisibility: {},
@@ -265,7 +269,7 @@ describe('preferences schema', () => {
       layout: {
         sections: { ...builtIns.layout.sections, todo: false },
         expanded: builtIns.layout.expanded,
-        order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp'],
+        order: ['limits', 'mcp', 'todo', 'subagents', 'skills', 'quick_actions', 'lsp', 'code_mode'],
       },
       desiredMcpStates: { wiki: 'enabled', optionOnly: 'disabled', context7: 'enabled' },
     })

@@ -39,4 +39,10 @@ test('MCP group indicator reflects the full bucket rather than the next action',
   expect(mcpGroupStatus([connected, { name: 'broken', status: 'failed' }])).toBe('failed')
   expect(mcpGroupStatus([connected, { name: 'login', status: 'needs_auth' }])).toBe('needs_auth')
   expect(mcpGroupStatus([connected, disabled], true)).toBe('pending')
+  expect(
+    mcpGroupStatus([
+      { name: 'broken', status: 'failed' },
+      { name: 'waiting', status: 'pending' },
+    ]),
+  ).toBe('pending')
 })

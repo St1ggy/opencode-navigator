@@ -23,11 +23,15 @@ import { closeProcessPipes } from './cleanup.mjs'
 import { verifyFloatingDarkTheme, verifyFloatingPointer, verifyFloatingTheme } from './floating.mjs'
 import { verifyTodoSelect, verifyTrustSwitch } from './native-controls.mjs'
 // oxlint-disable-next-line import-x-js/extensions
+import { mcpInteractions } from './mcp.mjs'
+// oxlint-disable-next-line import-x-js/extensions
 import { presentationInteractions } from './presentation.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { verifyNavigatorHeader } from './header.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { verifyIdleSubagent } from './subagents.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { verifyCodeMode } from './code-mode.mjs'
 
 async function nativeLogs(root) {
   // All paths are inside this disposable, synthetic HOME, never the user's state.
@@ -63,6 +67,14 @@ async function prepareQuotaExecutable(root, enabled) {
   }
 
   return `${bin}:${process.env.PATH}`
+}
+
+function isolatedFixtureMode(quotaFixture) {
+  if (process.env.NAVIGATOR_GUI_CODE_MODE_ONLY === '1') return 'codeMode'
+
+  if (process.env.NAVIGATOR_GUI_MCP_ONLY === '1') return 'mcp'
+
+  return quotaFixture ? 'quota' : undefined
 }
 
 async function main() {
@@ -349,8 +361,15 @@ async function main() {
     // Remaining commands use the public Commands.run API through the synthetic fixture, not host internals.
     fixtureDispatch = true
 
-    if (quotaFixture) {
-      await quotaInteractions(page, panel, command, join(preferencesDirectory, 'preferences.json'))
+    const focusedMode = isolatedFixtureMode(quotaFixture)
+    const focusedFixtures = {
+      codeMode: () => verifyCodeMode(page, command),
+      mcp: () => mcpInteractions(page, command),
+      quota: () => quotaInteractions(page, panel, command, join(preferencesDirectory, 'preferences.json')),
+    }
+
+    if (focusedMode) {
+      await focusedFixtures[focusedMode]()
 
       return
     }
@@ -358,6 +377,7 @@ async function main() {
     await toolbarInteractions(page, panel, command)
     await settingsInteractions(page, panel, command)
     await presentationInteractions(page, command)
+    await verifyCodeMode(page, command)
     const mcpSection = panel.getByRole('region', { name: 'MCP', exact: true })
 
     await mcpSection.getByRole('button', { name: 'Preset', exact: true }).click()
@@ -376,7 +396,7 @@ async function main() {
     await page
       .getByRole('dialog')
       .last()
-      .getByText('Other settings and comments are preserved.', { exact: false })
+      .getByText('Other settings and comments are preserved', { exact: true })
       .waitFor()
     await captureGui(page.getByRole('dialog').last(), '12-desktop-todo-enablement')
     await page.keyboard.press('Escape')

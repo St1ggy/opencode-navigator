@@ -19,17 +19,10 @@ export function McpBulkControls(props: {
 }) {
   const icons = useIcons()
   const model = props.model
-  const progress = () => {
-    const state = model.bulk()
-
-    if (state.action === 'preset') return `Applying ${state.preset}`
-
-    return state.action === 'connect' ? 'Connecting' : 'Disconnecting'
-  }
 
   return (
     <>
-      <box flexDirection="row" gap={1} paddingBottom={model.bulkRunning() || model.bulk().status === 'error' ? 1 : 0}>
+      <box flexDirection="row" gap={1} paddingBottom={model.bulk().status === 'error' ? 1 : 0}>
         <McpBulkAction
           api={props.api}
           interaction={props.interaction}
@@ -49,11 +42,6 @@ export function McpBulkControls(props: {
           onActivate={() => void props.controller.disconnectAll(model.target())}
         />
       </box>
-      <Show when={model.bulkRunning()}>
-        <text fg={props.api.theme.current.textMuted}>
-          {progress()} {model.bulk().completed}/{model.bulk().total}…
-        </text>
-      </Show>
       <Show when={model.bulk().status === 'error'}>
         <McpBulkAction
           api={props.api}

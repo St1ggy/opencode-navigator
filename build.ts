@@ -260,6 +260,7 @@ const dialogs = await Bun.build({
     'src/trusted-skills.ts',
     'src/layout-preset-actions.ts',
     'src/provider-limits.ts',
+    'src/code-mode.tsx',
     'src/native-todo-setup.ts',
     'src/onboarding.ts',
     'src/navigator-updates.ts',
@@ -308,10 +309,10 @@ if (!dialogs.success) {
 for (const output of dialogs.outputs) {
   // The update adapter bundles regex-heavy JSONC/path dependencies. Preserve its
   // generated source rather than applying the UI-only whitespace scanner.
-  if (output.path.endsWith('/navigator-updates.js')) continue
+  if (output.path.endsWith('/navigator-updates.js') || output.path.endsWith('/code-mode.js') || output.kind === 'chunk')
+    continue
 
-  if (output.kind === 'entry-point' || output.kind === 'chunk')
-    await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
+  if (output.kind === 'entry-point') await Bun.write(output.path, stripGeneratedIndentation(await output.text()))
 }
 
 for (const entrypoint of ['src/server.ts', 'src/rpc.ts', 'src/project-profile.ts']) {
