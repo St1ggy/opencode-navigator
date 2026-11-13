@@ -1,6 +1,6 @@
 import { For, Show, createSignal } from 'solid-js'
 
-import { GuiMultilineField } from '../../../../shared/ui/gui'
+import { GuiCodePanel, GuiMultilineField, GuiNotice, GuiReviewBody } from '../../../../shared/ui/gui'
 
 import type { PreferencesController } from '../../../../entities/preferences/model'
 import type { Ui } from '@opencode/plugin/gui'
@@ -13,6 +13,8 @@ export function GuiPortableSettingsDialog(props: {
 }) {
   const Dialog = props.ui.Dialog
   const Button = props.ui.Button
+  const Section = props.ui.SettingsSection
+  const Row = props.ui.SettingsRow
   const [source, setSource] = createSignal('')
   const [preview, setPreview] = createSignal<ReturnType<PreferencesController['previewPortableSettings']>>()
   const [busy, setBusy] = createSignal(false)
@@ -72,32 +74,52 @@ export function GuiPortableSettingsDialog(props: {
         </>
       }
     >
-      <Show when={error() || !props.current()}>
-        <p role="alert">{error() || 'Server or session changed. Reopen the import.'}</p>
-      </Show>
-      <Show
-        when={preview()}
-        fallback={<GuiMultilineField label="Portable settings JSON" value={source()} onInput={setSource} />}
-      >
-        {(value) => (
-          <div
-            tabIndex={0}
-            aria-label="Portable settings changes"
-            style={{ 'max-height': '52vh', 'overflow-y': 'auto' }}
-          >
-            <p>Scope: {value().target}</p>
-            <p>
-              Layout: {value().layoutChanged ? 'changed' : 'unchanged'} · MCP:{' '}
-              {value().mcpChanged ? 'changed' : 'unchanged'} · Behavior:{' '}
-              {value().behaviorChanged ? 'changed' : 'unchanged'}
-            </p>
-            <For each={value().unsupported}>{(field) => <p>Skipped unsupported field: {field}</p>}</For>
-            <pre style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere' }}>
-              {JSON.stringify(value().settings, undefined, 2)}
-            </pre>
-          </div>
-        )}
-      </Show>
+      <GuiReviewBody>
+        <Show when={error() || !props.current()}>
+          <GuiNotice ui={props.ui} title="Import unavailable" error>
+            {error() || 'Server or session changed. Reopen the import.'}
+          </GuiNotice>
+        </Show>
+        <Show
+          when={preview()}
+          fallback={<GuiMultilineField label="Portable settings JSON" value={source()} onInput={setSource} />}
+        >
+          {(value) => (
+            <>
+              <Section title="Import summary">
+                <Row title="Scope" description={value().target} />
+                <Row title="Layout">
+                  <span>{value().layoutChanged ? 'Changed' : 'Unchanged'}</span>
+                </Row>
+                <Row title="MCP">
+                  <span>{value().mcpChanged ? 'Changed' : 'Unchanged'}</span>
+                </Row>
+                <Row title="Behavior">
+                  <span>{value().behaviorChanged ? 'Changed' : 'Unchanged'}</span>
+                </Row>
+              </Section>
+              <Show when={value().unsupported.length > 0}>
+                <Section title="Skipped fields">
+                  <For each={value().unsupported}>
+                    {(field) => (
+                      <Row
+                        title={<span style={{ 'overflow-wrap': 'anywhere' }}>{field}</span>}
+                        description="Not supported by this Navigator version."
+                      />
+                    )}
+                  </For>
+                </Section>
+              </Show>
+              <GuiCodePanel
+                ui={props.ui}
+                label="Portable settings changes"
+                content={JSON.stringify(value().settings, undefined, 2)}
+                language="json"
+              />
+            </>
+          )}
+        </Show>
+      </GuiReviewBody>
     </Dialog>
   )
 }

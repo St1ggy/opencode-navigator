@@ -1,5 +1,7 @@
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js'
 
+import { GuiCodePanel, GuiNotice, GuiReviewBody } from '../../../../shared/ui/gui'
+
 import type { TodoSetupController, TodoSetupPreview } from '../../model'
 import type { Ui } from '@opencode/plugin/gui'
 
@@ -15,6 +17,9 @@ export function TodoEnableConfirmation(props: {
   const [error, setError] = createSignal('')
   const Dialog = props.ui.Dialog
   const Button = props.ui.Button
+  const Section = props.ui.SettingsSection
+  const Row = props.ui.SettingsRow
+  const [details, setDetails] = createSignal(false)
   let disposed = false
 
   onCleanup(() => {
@@ -47,6 +52,7 @@ export function TodoEnableConfirmation(props: {
     <Dialog
       title="Enable native Todo"
       description="Change only experimental.todo in the selected server configuration."
+      size="large"
       footer={
         <>
           <Button onClick={props.close}>Back</Button>
@@ -61,19 +67,32 @@ export function TodoEnableConfirmation(props: {
         </>
       }
     >
-      <p style={{ 'overflow-wrap': 'anywhere' }}>{props.preview.path}</p>
-      <pre style={{ 'white-space': 'pre-wrap' }}>experimental.todo = true</pre>
-      <details>
-        <summary>Review exact file change</summary>
-        <h3>Before</h3>
-        <pre style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere' }}>{props.preview.original}</pre>
-        <h3>After</h3>
-        <pre style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere' }}>{props.preview.updated}</pre>
-      </details>
-      <p>Other settings and comments are preserved. Tasks are managed through chat and the built-in tool.</p>
-      <Show when={error()}>
-        <p role="alert">{error()}</p>
-      </Show>
+      <GuiReviewBody>
+        <Section title="Configuration change">
+          <Row title="Native Todo" description="experimental.todo">
+            <span>Enabled</span>
+          </Row>
+          <Row
+            title="Source file"
+            description={<span style={{ 'overflow-wrap': 'anywhere' }}>{props.preview.path}</span>}
+          />
+        </Section>
+        <Button size="small" variant="ghost" onClick={() => setDetails(!details())}>
+          {details() ? 'Hide exact file change' : 'Review exact file change'}
+        </Button>
+        <Show when={details()}>
+          <GuiCodePanel ui={props.ui} label="Before" content={props.preview.original} language="json" />
+          <GuiCodePanel ui={props.ui} label="After" content={props.preview.updated} language="json" />
+        </Show>
+        <GuiNotice ui={props.ui} title="Other settings and comments are preserved">
+          Tasks are managed through chat and the built-in tool.
+        </GuiNotice>
+        <Show when={error()}>
+          <GuiNotice ui={props.ui} title="Todo could not be enabled" error>
+            {error()}
+          </GuiNotice>
+        </Show>
+      </GuiReviewBody>
     </Dialog>
   )
 }

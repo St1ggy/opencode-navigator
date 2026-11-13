@@ -1,5 +1,8 @@
-import { For, Show, createSignal, onMount } from 'solid-js'
+import { Show, createSignal, onMount } from 'solid-js'
 
+import { GuiNotice, GuiReviewBody } from '../../../../shared/ui/gui'
+
+import { GuiLayoutPreviewRows } from './layout-preview-rows'
 import { GuiMcpPreviewRows } from './mcp-preview-rows'
 
 import type { createWorkspacePresetPreview } from '../../model'
@@ -41,6 +44,7 @@ export function GuiLayoutPresetPreview(props: {
     <Dialog
       title={`${props.model.linked ? 'Workspace profile' : 'Layout preview'}: ${props.name}`}
       description={`Scope: ${props.model.layout.scope()}. Applying does not replace the saved layout default.`}
+      size="large"
       footer={
         <>
           <Button onClick={props.close}>Cancel</Button>
@@ -55,31 +59,24 @@ export function GuiLayoutPresetPreview(props: {
         </>
       }
     >
-      <Show when={props.model.blocked() || !props.current() || error()}>
-        <p role="alert">{error() || props.model.blocked() || 'Server or session changed. Reopen the preview.'}</p>
-      </Show>
-      <ul style={{ 'max-height': '52vh', 'overflow-y': 'auto' }}>
-        <For each={props.model.layout.preview()?.rows}>
-          {(row) => (
-            <li style={{ padding: '6px 0' }}>
-              <strong>{row.section}</strong>
-              <p>
-                Visibility: {row.visibility[0] ? 'visible' : 'hidden'} → {row.visibility[1] ? 'visible' : 'hidden'} ·{' '}
-                {row.expansion[0] ? 'expanded' : 'collapsed'} → {row.expansion[1] ? 'expanded' : 'collapsed'} · position{' '}
-                {row.position[0]} → {row.position[1]}
-              </p>
-            </li>
+      <GuiReviewBody>
+        <Show when={props.model.blocked() || !props.current() || error()}>
+          <GuiNotice ui={props.ui} title="Preview unavailable" error>
+            {error() || props.model.blocked() || 'Server or session changed. Reopen the preview.'}
+          </GuiNotice>
+        </Show>
+        <GuiLayoutPreviewRows ui={props.ui} rows={props.model.layout.preview()?.rows ?? []} />
+        <Show when={props.model.mcp}>
+          {(model) => (
+            <>
+              <GuiNotice ui={props.ui} title="Linked MCP preset">
+                Scope: {model().scope}
+              </GuiNotice>
+              <GuiMcpPreviewRows ui={props.ui} model={model()} />
+            </>
           )}
-        </For>
-      </ul>
-      <Show when={props.model.mcp}>
-        {(model) => (
-          <>
-            <p>MCP scope: {model().scope}</p>
-            <GuiMcpPreviewRows model={model()} />
-          </>
-        )}
-      </Show>
+        </Show>
+      </GuiReviewBody>
     </Dialog>
   )
 }

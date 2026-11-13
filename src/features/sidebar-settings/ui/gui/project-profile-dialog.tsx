@@ -1,5 +1,7 @@
 import { Show, createSignal } from 'solid-js'
 
+import { GuiCodePanel, GuiNotice, GuiReviewBody } from '../../../../shared/ui/gui'
+
 import type { Ui } from '@opencode/plugin/gui'
 
 type Preview = { token: string; file: string; after: string }
@@ -15,6 +17,8 @@ export function GuiProjectProfileDialog(props: {
   const Button = props.ui.Button
   const TextInput = props.ui.TextInput
   const Switch = props.ui.Switch
+  const Section = props.ui.SettingsSection
+  const Row = props.ui.SettingsRow
   const [name, setName] = createSignal('')
   const [replace, setReplace] = createSignal(false)
   const [preview, setPreview] = createSignal<Preview>()
@@ -70,33 +74,52 @@ export function GuiProjectProfileDialog(props: {
         </>
       }
     >
-      <Show when={error() || !props.current()}>
-        <p role="alert">{error() || 'Scope, server or location changed. Reopen this profile.'}</p>
-      </Show>
-      <Show
-        when={preview()}
-        fallback={
-          <>
-            <TextInput label="Project profile name" value={name()} onInput={setName} />
-            <Switch
-              label="Replace an existing profile with this exact name"
-              checked={replace()}
-              onChange={setReplace}
-            />
-          </>
-        }
-      >
-        {(value) => (
-          <div
-            tabIndex={0}
-            aria-label="Project profile file changes"
-            style={{ 'max-height': '52vh', 'overflow-y': 'auto' }}
-          >
-            <p>{value().file}</p>
-            <pre style={{ 'white-space': 'pre-wrap', 'overflow-wrap': 'anywhere' }}>{value().after}</pre>
-          </div>
-        )}
-      </Show>
+      <GuiReviewBody>
+        <Show when={error() || !props.current()}>
+          <GuiNotice ui={props.ui} title="Profile unavailable" error>
+            {error() || 'Scope, server or location changed. Reopen this profile.'}
+          </GuiNotice>
+        </Show>
+        <Show
+          when={preview()}
+          fallback={
+            <Section title="Project profile">
+              <Row title="Profile name" description="A named layout and MCP configuration, applied manually.">
+                <TextInput label="Project profile name" value={name()} onInput={setName} />
+              </Row>
+              <Row title="Replace existing profile" description="Replace only a profile with this exact name.">
+                <Switch
+                  label="Replace an existing profile with this exact name"
+                  hideLabel
+                  checked={replace()}
+                  onChange={setReplace}
+                />
+              </Row>
+            </Section>
+          }
+        >
+          {(value) => (
+            <>
+              <Section title="File preview">
+                <Row
+                  title="Destination"
+                  description={<span style={{ 'overflow-wrap': 'anywhere' }}>{value().file}</span>}
+                />
+              </Section>
+              <GuiCodePanel
+                ui={props.ui}
+                label="Project profile file changes"
+                content={value().after}
+                language="json"
+              />
+              <GuiNotice ui={props.ui} title="Commit-safe configuration">
+                Private favorites, paths, trust, history and account bindings are excluded. Saving does not apply the
+                profile.
+              </GuiNotice>
+            </>
+          )}
+        </Show>
+      </GuiReviewBody>
     </Dialog>
   )
 }

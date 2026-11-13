@@ -38,9 +38,9 @@ export function useDialogState<T>(key: string, initial: T): Signal<T> {
   return state
 }
 
-export function useDialogScroll(key = 'scroll') {
+export function useDialogScroll(key = 'scroll', initialPosition = 0) {
   const renderer = useRenderer()
-  const [position, setPosition] = useDialogState(key, 0)
+  const [position, setPosition] = useDialogState(key, initialPosition)
   let body: ScrollBoxRenderable | undefined
   let isPending = true
 
