@@ -40,6 +40,9 @@ const normal = [
   '33-desktop-settings-mcp',
   '33-desktop-settings-presets',
   '33-desktop-settings-about',
+  '33-desktop-code-mode-activity',
+  '34-desktop-code-mode-payloads',
+  '35-desktop-code-mode-routing-preview',
 ]
 const quota = [
   '01-desktop-panel',

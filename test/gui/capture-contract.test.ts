@@ -1,5 +1,16 @@
 import { expect, test } from 'bun:test'
 
+test('reviewed capture inventory includes every Code Mode scene emitted by the harness', async () => {
+  const harness = await Bun.file('test/gui/harness/code-mode.mjs').text()
+  const manifest = await Bun.file('scripts/capture-gui-screenshots.mjs').text()
+  const scenes = [...harness.matchAll(/captureGui\((?:details|routing|dialog),\s*'([^']+)'\)/gu)].map(
+    (match) => match[1],
+  )
+
+  expect(scenes).toHaveLength(3)
+  for (const scene of scenes) expect(manifest).toContain(`'${scene}'`)
+})
+
 test('manual capture driver rejects local invocation before building or capturing', async () => {
   // Exercise only the refusal path; no Docker, renderer or screenshot is started.
   const child = Bun.spawn([process.execPath, 'scripts/capture-gui-screenshots.mjs'], {
