@@ -4,6 +4,8 @@ import { expect } from '@playwright/test'
 import { captureGui } from './capture.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { verifyCodeModeGeometry } from './code-mode-geometry.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { clickNativeSwitch } from './native-controls.mjs'
 
 export async function verifyCodeMode(page, command) {
   await command('Synthetic Code Mode')
@@ -60,18 +62,28 @@ export async function verifyCodeMode(page, command) {
   await expect(routing).toContainText('/synthetic/project/opencode.json')
   await captureGui(routing, '35-desktop-code-mode-routing-preview')
   await routing.getByRole('button', { name: 'Back', exact: true }).click()
+  await clickNativeSwitch(routing, 'Use Code Mode')
+  await expect(routing.getByRole('switch', { name: 'Use Code Mode', exact: true })).not.toBeChecked()
   await routing.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(dialog).toContainText('Saved routing changes: 0')
+  // Native exit layers retain modal accessibility state until unmounted.
+  // Reopen only after the previous layer has released its portalled controls.
+  await expect(page.locator('[data-dialog-layer]')).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Configure synthetic routing', exact: true }).click()
-  await page.getByLabel('New routing mode', { exact: true }).click()
-  await page.getByText('Direct', { exact: true }).last().click()
+  const mode = routing.getByRole('switch', { name: 'Use Code Mode', exact: true })
+
+  await expect(mode).toBeChecked()
+  await clickNativeSwitch(routing, 'Use Code Mode')
+  await expect(mode).not.toBeChecked()
   await routing.getByRole('button', { name: 'Preview change', exact: true }).click()
   await expect(routing).toContainText('"codemode": false')
   await routing.getByRole('button', { name: 'Apply routing change', exact: true }).click()
   await expect(dialog).toContainText('Saved routing changes: 1 · direct · Connection stays disabled')
+  await expect(page.locator('[data-dialog-layer]')).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Configure synthetic routing', exact: true }).click()
-  await page.getByLabel('New routing mode', { exact: true }).click()
-  await page.getByText('Code Mode', { exact: true }).last().click()
+  await expect(mode).not.toBeChecked()
+  await mode.press('Space')
+  await expect(mode).toBeChecked()
   await routing.getByRole('button', { name: 'Preview change', exact: true }).click()
   await expect(routing).toContainText('"codemode": true')
   await routing.getByRole('button', { name: 'Apply routing change', exact: true }).click()

@@ -16,7 +16,7 @@ export function GuiRoutingDialog(props: { ui: Ui; model: CodeModeController; ser
   const [error, setError] = createSignal('')
   const Dialog = props.ui.Dialog
   const Button = props.ui.Button
-  const Select = props.ui.Select
+  const Switch = props.ui.Switch
   const Section = props.ui.SettingsSection
   const Row = props.ui.SettingsRow
   const state = () => props.model.routing(props.server)
@@ -74,22 +74,19 @@ export function GuiRoutingDialog(props: { ui: Ui; model: CodeModeController; ser
         <Show when={!preview()}>
           <Section title="Tool access">
             <Row
-              title="Routing mode"
+              title={mode() === 'code' ? 'Code Mode' : 'Direct'}
               description={
                 mode() === 'code'
                   ? 'Tools are reached through execute under the server namespace.'
                   : 'Tools appear directly in the model tool list.'
               }
             >
-              <Select
-                label="New routing mode"
+              <Switch
+                label="Use Code Mode"
+                hideLabel
                 disabled={busy()}
-                value={mode()}
-                options={[
-                  { value: 'code', label: 'Code Mode' },
-                  { value: 'direct', label: 'Direct' },
-                ]}
-                onChange={(value) => setMode(value === 'direct' ? 'direct' : 'code')}
+                checked={mode() === 'code'}
+                onChange={(checked) => setMode(checked ? 'code' : 'direct')}
               />
             </Row>
             <Row
