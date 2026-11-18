@@ -56,19 +56,22 @@ export function GuiSectionSettingsRow(props: GuiSettingsServices & { section: Si
           />
         </span>
         <Show when={props.section !== 'limits' && props.section !== 'lsp'}>
-          <TextInput
-            label={`${label()} item limit (0 for all)`}
-            value={limit()}
-            onInput={setLimit}
-            invalid={!valid()}
-          />
-          <Button
-            size="small"
-            disabled={!valid()}
-            onClick={() => props.preferences.setSectionItemLimit(props.section, Number(limit()))}
-          >
-            Save item limit
-          </Button>
+          <div style={{ display: 'flex', gap: '8px', 'align-items': 'center', 'min-width': '0' }}>
+            <TextInput
+              label={`${label()} item limit (0 for all)`}
+              class="navigator-settings-number"
+              value={limit()}
+              onInput={setLimit}
+              invalid={!valid()}
+            />
+            <Button
+              size="small"
+              disabled={!valid()}
+              onClick={() => props.preferences.setSectionItemLimit(props.section, Number(limit()))}
+            >
+              Save item limit
+            </Button>
+          </div>
         </Show>
       </div>
     </Row>

@@ -14,6 +14,60 @@ async function captureCategory(page, category, width) {
   await captureGui(page, `33-desktop-settings-${category.toLowerCase().replaceAll(' ', '-')}`)
 }
 
+async function verifyNativeTabs(page, navigation, category, width) {
+  const current = navigation.getByRole('button', { name: category, exact: true })
+
+  await expect(current.locator('svg')).toHaveCount(1)
+  const scope = page.getByLabel('Navigator preference scope', { exact: true })
+
+  await (category === 'About' || category === 'Skills' ? expect(scope).toHaveCount(0) : expect(scope).toBeVisible())
+
+  if (category !== 'Behavior') return
+
+  const panel = page.getByRole('region', { name: 'Behavior settings', exact: true })
+  const input = panel.getByRole('textbox', { name: 'Limits refresh in minutes', exact: true })
+
+  await expect(input).toBeVisible()
+  const geometry = await panel.evaluate((region) => {
+    const field = region.querySelector('input[aria-label="Limits refresh in minutes"]')
+    const interval = field?.closest('[data-component="settings-row"]')
+    const controls = interval?.querySelector('[data-slot="settings-row-control"]')
+    const copy = interval?.querySelector('[data-slot="settings-row-copy"]')
+    const save = interval?.querySelector('button')
+    const toolbar = [...region.querySelectorAll('button')].find(
+      (button) => button.textContent.trim() === 'Configure toolbar',
+    )
+
+    return {
+      wrapper: controls?.getBoundingClientRect().toJSON(),
+      copy: copy?.getBoundingClientRect().toJSON(),
+      field: field?.getBoundingClientRect().toJSON(),
+      save: save?.getBoundingClientRect().toJSON(),
+      toolbar: toolbar?.getBoundingClientRect().toJSON(),
+    }
+  })
+
+  expect(geometry.field.width, `${width}px: numeric field should be compact`).toBeLessThanOrEqual(84)
+  expect(
+    Math.abs(geometry.field.y + geometry.field.height / 2 - geometry.save.y - geometry.save.height / 2),
+    `${width}px: input and save should stay together`,
+  ).toBeLessThanOrEqual(2)
+
+  if (geometry.wrapper.top >= geometry.copy.bottom) {
+    expect(
+      Math.abs(geometry.field.left - geometry.copy.left),
+      `${width}px: stacked group aligns with its label`,
+    ).toBeLessThanOrEqual(2)
+
+    return
+  }
+
+  expect(
+    Math.abs(geometry.toolbar.right - geometry.save.right),
+    `${width}px: actions share one right edge`,
+  ).toBeLessThanOrEqual(2)
+}
+
 export async function verifySettingsGeometry(page) {
   const original =
     page.viewportSize() ??
@@ -32,6 +86,7 @@ export async function verifySettingsGeometry(page) {
 
       for (const category of ['Layout', 'Behavior', 'Quick Actions', 'Skills', 'MCP', 'Presets', 'About']) {
         await navigation.getByRole('button', { name: category, exact: true }).click()
+        await verifyNativeTabs(page, navigation, category, width)
         const failures = await page.locator('.settings-tab-body').evaluateAll((bodies) => {
           const errors = []
 
