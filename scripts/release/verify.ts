@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { api, environment, waitFor } from './github'
 import { assertRun } from './guards'
 import { assertProvenance } from './provenance'
-import { registryManifest } from './registry'
+import { registryAsset, registryManifest } from './registry'
 
 import type { ProvenanceStatement } from './provenance'
 
@@ -39,23 +39,29 @@ const run = await waitFor('npm Publish', () => {
 })
 
 assertRun(run, sha, 'publish.yml', 'release')
-const manifest = await waitFor('registry availability (do not republish)', () => registryManifest(name, version), 20)
+// All propagation reads share one bounded budget after the successful Publish.
+const registryDeadline = Date.now() + 20 * 60_000
+const registryMinutes = () => Math.max(0, (registryDeadline - Date.now()) / 60_000)
+const manifest = await waitFor(
+  'registry availability (do not republish)',
+  () => registryManifest(name, version),
+  registryMinutes(),
+)
 
-async function fetchRegistry(url: string) {
-  assert.equal(new URL(url).origin, 'https://registry.npmjs.org', 'Unexpected registry URL')
-  const response = await fetch(url)
-
-  assert.ok(response.ok, `Registry returned ${response.status}`)
-
-  return response
-}
-
-const archiveResponse = await fetchRegistry(manifest.dist.tarball)
+const archiveResponse = await waitFor(
+  'published tarball availability (do not republish)',
+  () => registryAsset(manifest.dist.tarball),
+  registryMinutes(),
+)
 const archive = Buffer.from(await archiveResponse.arrayBuffer())
 const sha512 = createHash('sha512').update(archive).digest('hex')
 
 assert.equal(manifest.dist.integrity, `sha512-${Buffer.from(sha512, 'hex').toString('base64')}`)
-const attestationResponse = await fetchRegistry(manifest.dist.attestations.url)
+const attestationResponse = await waitFor(
+  'published provenance availability (do not republish)',
+  () => registryAsset(manifest.dist.attestations.url),
+  registryMinutes(),
+)
 const attestations = (await attestationResponse.json()) as {
   attestations: { predicateType: string; bundle: { dsseEnvelope: { payload: string } } }[]
 }
