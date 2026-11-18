@@ -320,12 +320,13 @@ contains independent TUI, server, RPC and GUI entries.
 - The session title has its own full-width header row in both placements.
   Familiar actions use native icon buttons with tooltips and accessible names;
   account linking, Banked Resets and other ambiguous operations retain text.
-- **Navigator settings** opens native Settings with Global/Worktree scope,
-  categories for Layout, Behavior, Quick Actions, Skills, MCP, Presets and About.
-  Groups, trust, portable/project profiles, release history and reviewed Bug
-  reports remain available. Category changes preserve unsaved drafts; Left/Right
-  navigates the category buttons. **Reload preferences** imports
-  changes from other local Navigator instances explicitly.
+- **Navigator settings** opens native Settings with icon tabs for Layout,
+  Behavior, Quick Actions, Skills, MCP, Presets and About. Choose Global or
+  Worktree in the header on tabs with scoped settings. Behavior groups controls
+  by task, and About shows update status beside the running version. Left/Right
+  navigates the category buttons without discarding unsaved drafts. Use
+  **Reload preferences** in the header to pick up changes from another local
+  Navigator instance.
 - MCP connections use native switches for individual servers and whole groups,
   including members hidden by filters. Pending operations disable duplicate changes;
   connection errors remain available through a separate information action.
