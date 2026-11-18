@@ -1,7 +1,12 @@
 import { createEffect, createRoot, createSignal, getOwner, onCleanup, untrack } from 'solid-js'
 
 import { createTodoSetupController } from '../../features/native-todo-setup/model'
-import { type MonitoringRuntime, createCatalogRuntime, createMonitoringRuntime } from '../../pages/navigator/model'
+import {
+  type MonitoringRuntime,
+  createCatalogRuntime,
+  createMonitoringRuntime,
+  createSidebarStartup,
+} from '../../pages/navigator/model'
 import { createLeasePool } from '../../shared/lib/lifecycle'
 
 import { createGuiCatalogSources } from './adapters/catalog-sources'
@@ -25,6 +30,7 @@ import type { Context } from '@opencode/plugin/gui'
 
 export function createMonitoringRegistry(context: Context, preferences: PreferencesController) {
   const access = createGuiSettingsAccess(context)
+  const startup = createSidebarStartup(preferences)
   const owner = getOwner()
   const scopes = new Map<string, GuiSessionScope>()
   const pool = createLeasePool((key) =>
@@ -69,6 +75,8 @@ export function createMonitoringRegistry(context: Context, preferences: Preferen
           }
         },
       })
+      const phase = startup.claim()
+
       const value = createMonitoringRuntime({
         codeMode: createGuiCodeMode(access, scope, lifecycle),
         lifecycle,
@@ -77,6 +85,7 @@ export function createMonitoringRegistry(context: Context, preferences: Preferen
         subagents,
         todoSetup,
         catalogs,
+        startup: phase,
         limits: createGuiLimits(context, access, scope, signal, preferences),
         todoHasValue: () =>
           access.current(scope) && access.cache(scope).data.session.message.list(scope.target.sessionID).length > 0,
@@ -96,7 +105,9 @@ export function createMonitoringRegistry(context: Context, preferences: Preferen
 
         enabled = next
       })
-      void value.refresh()
+      void value.refresh().finally(() => {
+        phase?.complete()
+      })
 
       return {
         value,

@@ -2,6 +2,7 @@ import { Show } from 'solid-js'
 
 import { useNavigatorGui } from './context'
 import { sectionIcons } from './section-icons'
+import { SectionStartup } from './section-startup'
 
 import type { SidebarSection } from '../../../../shared/config'
 import type { JSX } from 'solid-js'
@@ -75,7 +76,11 @@ export function MonitoringSection(props: {
         </h2>
         {props.actions}
       </div>
-      <Show when={expanded()}>{props.children}</Show>
+      <Show when={expanded()}>
+        <SectionStartup id={props.id} title={props.title}>
+          {props.children}
+        </SectionStartup>
+      </Show>
     </section>
   )
 }

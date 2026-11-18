@@ -12,6 +12,7 @@ import { createMonitoringRegistry } from './monitoring-registry'
 import { createGuiNotifications } from './notifications'
 import { createGuiPresetDialogs } from './preset-dialogs'
 import { createGuiSearchDialog } from './search-dialog'
+import { createGuiSectionLayouts } from './section-layouts'
 import { registerGuiSettings } from './settings'
 import { createGuiSettingsActions } from './settings-actions'
 import { createGuiSkillDialogs } from './skill-dialogs'
@@ -50,6 +51,7 @@ export function registerMonitoring(context: Context, preferences: PreferencesCon
   })
   const services = {
     ui: context.ui,
+    sectionLayouts: createGuiSectionLayouts(context),
     onEnableTodo: dialogs.enable,
     onArchive: dialogs.archive,
     onSkill: skills.open,

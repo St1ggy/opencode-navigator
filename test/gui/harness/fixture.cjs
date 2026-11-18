@@ -65,6 +65,7 @@ module.exports.default = Plugin.define({
               ['Search Everything in Navigator', 'opencode-navigator.todo-server.search'],
               ['Synthetic Todo states', 'navigator-desktop-fixture.todo-states'],
               ['Synthetic Code Mode', 'navigator-desktop-fixture.code-mode'],
+              ['Synthetic startup skeletons', 'navigator-desktop-fixture.startup-skeletons'],
               ['Synthetic update stages', 'navigator-desktop-fixture.update-stages'],
               ['Synthetic quota scales', 'navigator-desktop-fixture.quota-scales'],
               ['Synthetic MCP switches', 'navigator-desktop-fixture.mcp-switches'],
