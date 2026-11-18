@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.9] - 2026-11-18
+
+- Remove the extra outer scrollbar from Desktop Navigator Settings. Keep native settings scrolling and keyboard drag-order announcements without allowing the page to scroll into blank space.
+- Add startup skeletons for initially expanded Desktop sections, using measured control and text geometry. Keep existing rows mounted and hidden controls out of keyboard focus while data arrives. Remember numeric geometry within the window across plugin reloads; ordinary refreshes, later section expansion and Float/Dock do not restart skeletons.
+
 ## [0.27.8] - 2026-11-14
 
 - Add Code Mode activity inside MCP or in a separate sidebar section in Desktop and TUI. Browse active and recent execute runs, compact source references marked In code, and Code/Response/Error views with full public JSON and independent scrolling. Unknown references and unavailable nested calls remain explicit.
