@@ -38,8 +38,8 @@ export function GuiSettingsPresets(props: GuiSettingsServices) {
         title="Save current layout or MCP states"
         description="Named presets are private and shared across worktrees."
       >
-        <div style={{ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }}>
-          <TextInput label="New preset name" value={name()} onInput={setName} />
+        <div data-navigator-settings-controls>
+          <TextInput label="New preset name" class="navigator-settings-name" value={name()} onInput={setName} />
           <Button disabled={!name().trim()} onClick={() => void save(false)}>
             Save layout preset
           </Button>

@@ -1,12 +1,12 @@
 import { For, Show } from 'solid-js'
 
-import type { Ui } from '@opencode/plugin/gui'
+import type { IconName, Ui } from '@opencode/plugin/gui'
 
 export function GuiTabs<T extends string>(props: {
   ui: Pick<Ui, 'Button'>
   label: string
   selected: T
-  options: readonly { id: T; label: string; count?: number; disabled?: boolean }[]
+  options: readonly { id: T; label: string; icon?: IconName; count?: number; disabled?: boolean }[]
   onSelect(id: T): void
 }) {
   const Button = props.ui.Button
@@ -40,6 +40,7 @@ export function GuiTabs<T extends string>(props: {
           return (
             <Button
               size="small"
+              icon={option().icon}
               disabled={option().disabled}
               variant={props.selected === id ? 'neutral' : 'ghost-muted'}
               onClick={() => props.onSelect(id)}

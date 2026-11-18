@@ -1,43 +1,16 @@
-import { Show, createSignal } from 'solid-js'
+import { Show } from 'solid-js'
 
+import type { GuiSettingsAction } from './settings-action'
 import type { GuiSettingsServices } from './settings-contract'
 
-export function GuiSettingsScope(props: GuiSettingsServices & { layout: boolean }) {
-  const Section = props.ui.SettingsSection
-  const Row = props.ui.SettingsRow
-  const Select = props.ui.Select
-  const Button = props.ui.Button
-  const [busy, setBusy] = createSignal(false)
-  const [status, setStatus] = createSignal('')
-
-  async function run(action: () => Promise<unknown>, message: string) {
-    if (busy()) return
-
-    setBusy(true)
-    setStatus('')
-    try {
-      await action()
-      setStatus(message)
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Settings could not be saved. Try again.')
-    } finally {
-      setBusy(false)
-    }
-  }
+export function GuiSettingsHeaderActions(
+  props: Pick<GuiSettingsServices, 'ui' | 'preferences'> & { scoped: boolean; action: GuiSettingsAction },
+) {
+  const { IconButton, Select, Tooltip } = props.ui
 
   return (
-    <Section
-      title="Preference scope"
-      footer={
-        <Show when={status()}>
-          <p role="status">{status()}</p>
-        </Show>
-      }
-    >
-      <Row
-        title="Scope"
-        description="Global applies everywhere. Worktree overrides use the currently selected server and location."
-      >
+    <div style={{ display: 'flex', gap: '8px', 'align-items': 'center', 'flex-wrap': 'wrap' }}>
+      <Show when={props.scoped}>
         <Select
           label="Navigator preference scope"
           value={props.preferences.preferenceScope()}
@@ -47,31 +20,15 @@ export function GuiSettingsScope(props: GuiSettingsServices & { layout: boolean 
           ]}
           onChange={props.preferences.setPreferenceScope}
         />
-      </Row>
-      <Show when={props.layout}>
-        <Row
-          title="Layout default"
-          description="Changing section visibility or order does not implicitly replace the saved default."
-        >
-          <Button
-            busy={busy()}
-            onClick={() => void run(props.preferences.saveLayoutAsDefault, 'Layout default saved for this scope.')}
-          >
-            Save layout as default
-          </Button>
-        </Row>
       </Show>
-      <Row
-        title="Reload private preferences"
-        description="Flush local writes, then load changes from other Navigator instances. Temporary layout overrides are cleared."
-      >
-        <Button
-          busy={busy()}
-          onClick={() => void run(props.preferences.reloadFromFile, 'Private preferences reloaded.')}
-        >
-          Reload preferences
-        </Button>
-      </Row>
-    </Section>
+      <Tooltip value="Reload private preferences and clear temporary layout overrides">
+        <IconButton
+          icon="refresh"
+          label="Reload preferences"
+          busy={props.action.busy()}
+          onClick={() => void props.action.run(props.preferences.reloadFromFile, 'Private preferences reloaded.')}
+        />
+      </Tooltip>
+    </div>
   )
 }

@@ -53,7 +53,11 @@ export async function settingsInteractions(page, panel, command) {
   await page.keyboard.press('ArrowRight')
   await settings.getByRole('heading', { name: 'About Navigator', exact: true }).waitFor()
   await settings.getByRole('button', { name: 'Check for updates', exact: true }).click()
-  await settings.getByText('This GUI uses a local or unrecognized source.', { exact: false }).waitFor()
+  const versionRow = settings.locator('[data-component="settings-row"]').filter({
+    has: settings.locator('[data-navigator-update-control]'),
+  })
+
+  await versionRow.getByRole('status').filter({ hasText: 'This GUI uses a local or unrecognized source.' }).waitFor()
 
   if (
     (await settings.locator('[data-navigator-update-control] button').count()) !== 1 ||

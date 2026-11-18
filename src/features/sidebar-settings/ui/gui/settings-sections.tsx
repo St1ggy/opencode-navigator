@@ -6,14 +6,11 @@ import { GuiSectionSettingsRow } from './section-settings-row'
 import type { GuiSettingsServices } from './settings-contract'
 
 export function GuiSettingsSections(props: GuiSettingsServices) {
-  const Section = props.ui.SettingsSection
+  const SettingsSection = props.ui.SettingsSection
   const preferences = props.preferences
 
   return (
-    <Section
-      title="Sections"
-      footer="Visibility changes apply immediately. Save this layout as the scoped default to use it in future sessions."
-    >
+    <SettingsSection title="Sections" footer="Visibility changes apply immediately.">
       <GuiSortableList
         ui={props.ui}
         label="Section order"
@@ -25,6 +22,6 @@ export function GuiSettingsSections(props: GuiSettingsServices) {
       >
         {(section, handle) => <GuiSectionSettingsRow {...props} section={section()} handle={handle} />}
       </GuiSortableList>
-    </Section>
+    </SettingsSection>
   )
 }

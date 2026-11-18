@@ -21,7 +21,10 @@ export function GuiUpdateAction(props: { ui: Ui; about: GuiAboutServices }) {
   const progress = () => props.about.progress?.()
 
   return (
-    <div data-navigator-update-control style={{ 'min-width': '0', 'max-width': '240px' }}>
+    <div
+      data-navigator-update-control
+      style={{ 'min-width': '0', 'max-width': '100%', 'inline-size': '14rem', display: 'grid' }}
+    >
       <Show
         when={progress()}
         fallback={
@@ -29,6 +32,7 @@ export function GuiUpdateAction(props: { ui: Ui; about: GuiAboutServices }) {
             when={action().kind === 'restart'}
             fallback={
               <Button
+                icon={action().kind === 'update' ? 'download' : 'refresh'}
                 busy={action().kind === 'waiting'}
                 onClick={() => void (action().kind === 'update' ? props.about.update() : props.about.check())}
               >
