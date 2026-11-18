@@ -30,6 +30,7 @@ export function GuiSortableList<T>(props: {
     move: (from, to) => props.move(from, to),
   })
 
+  // Contain the hidden announcement so it cannot extend the host's outer scroll area.
   return (
     <div
       ref={(node) => {
@@ -38,6 +39,7 @@ export function GuiSortableList<T>(props: {
       role="list"
       aria-label={props.label}
       aria-describedby={help}
+      style={{ position: 'relative' }}
       onFocusIn={focus.enter}
       onFocusOut={focus.leave}
       onPointerMove={interaction.hover}
@@ -86,7 +88,15 @@ export function GuiSortableList<T>(props: {
         id={help}
         role="status"
         aria-live="polite"
-        style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', 'clip-path': 'inset(50%)' }}
+        style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+          'clip-path': 'inset(50%)',
+        }}
       >
         Drag a handle, or press Space, use arrow keys, then Space to drop. Escape cancels. {interaction.announcement()}
       </span>

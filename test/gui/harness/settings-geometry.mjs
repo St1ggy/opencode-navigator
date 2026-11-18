@@ -1,5 +1,9 @@
+import { expect } from '@playwright/test'
+
 // oxlint-disable-next-line import-x-js/extensions
 import { captureGui, capturesEnabled } from './capture.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { verifySettingsScroll } from './settings-scroll.mjs'
 
 async function captureCategory(page, category, width) {
   if (!capturesEnabled || width !== 1280) return
@@ -16,8 +20,14 @@ export async function verifySettingsGeometry(page) {
     (await page.evaluate(() => ({ width: globalThis.innerWidth, height: globalThis.innerHeight })))
 
   try {
-    for (const width of [1280, 1040, 800]) {
-      await page.setViewportSize({ width, height: 900 })
+    for (const [width, height] of [
+      [1280, 900],
+      [1040, 900],
+      [800, 900],
+      [1280, 600],
+      [800, 600],
+    ]) {
+      await page.setViewportSize({ width, height })
       const navigation = page.getByRole('navigation', { name: 'Navigator settings categories', exact: true })
 
       for (const category of ['Layout', 'Behavior', 'Quick Actions', 'Skills', 'MCP', 'Presets', 'About']) {
@@ -58,7 +68,9 @@ export async function verifySettingsGeometry(page) {
         if (failures.length > 0)
           throw new Error(`Navigator Settings geometry fails at ${width}px: ${JSON.stringify(failures)}`)
 
-        await captureCategory(page, category, width)
+        await verifySettingsScroll(page, width, category)
+
+        if (height === 900) await captureCategory(page, category, width)
       }
     }
   } finally {
@@ -91,7 +103,9 @@ export async function verifySectionDrag(page) {
 
   await source.focus()
   await page.keyboard.press('Space')
+  await expect(list.getByRole('status')).toContainText('Picked up.')
   await page.keyboard.press('ArrowUp')
+  await expect(list.getByRole('status')).toContainText(`Drop at position 1 of ${before.length}`)
   await page.keyboard.press('Space')
   await page.waitForFunction(
     (expected) => {
@@ -106,6 +120,7 @@ export async function verifySectionDrag(page) {
     { timeout: 5000 },
   )
 
+  await verifySettingsScroll(page, page.viewportSize()?.width ?? 1280, 'Layout after reorder')
   console.log('Section pointer and keyboard ordering preserve stable rows.')
 }
 
