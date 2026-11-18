@@ -32,6 +32,8 @@ import { verifyNavigatorHeader } from './header.mjs'
 import { verifyIdleSubagent } from './subagents.mjs'
 // oxlint-disable-next-line import-x-js/extensions
 import { verifyCodeMode } from './code-mode.mjs'
+// oxlint-disable-next-line import-x-js/extensions
+import { startupInteractions } from './startup.mjs'
 
 async function nativeLogs(root) {
   // All paths are inside this disposable, synthetic HOME, never the user's state.
@@ -377,6 +379,7 @@ async function main() {
     await toolbarInteractions(page, panel, command)
     await settingsInteractions(page, panel, command)
     await presentationInteractions(page, command)
+    await startupInteractions(page, command)
     await verifyCodeMode(page, command)
     const mcpSection = panel.getByRole('region', { name: 'MCP', exact: true })
 

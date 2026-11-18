@@ -12,6 +12,7 @@ import type { Lifecycle } from '../../../shared/lib/lifecycle'
 import type { SessionTarget } from '../../../shared/lib/location/identity'
 import type { CatalogRuntime } from './catalog-runtime'
 import type { LimitsMonitoring } from './limits-monitoring'
+import type { SidebarStartup } from './startup'
 
 export type MonitoringPorts = {
   lifecycle: Lifecycle
@@ -23,6 +24,7 @@ export type MonitoringPorts = {
   codeMode?: CodeModeController
   limits?: LimitsMonitoring
   catalogs?: CatalogRuntime
+  startup?: SidebarStartup
   subscribeSubagents(listener: (event: SubagentEvent) => void): () => void
   openSubagent(sessionID: string): void
 }
@@ -76,6 +78,7 @@ export function createMonitoringRuntime(ports: MonitoringPorts) {
     codeMode: ports.codeMode,
     limits: ports.limits,
     catalogs: ports.catalogs,
+    startup: ports.startup,
     search: ports.catalogs && createNavigatorSearch(ports.catalogs, subagents, target.sessionID),
     subagents,
     refresh: (force = false) =>

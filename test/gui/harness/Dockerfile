@@ -29,6 +29,8 @@ COPY test/gui/harness/cleanup.mjs ./cleanup.mjs
 COPY test/gui/harness/floating.mjs ./floating.mjs
 COPY test/gui/harness/native-controls.mjs ./native-controls.mjs
 COPY test/gui/harness/settings-geometry.mjs ./settings-geometry.mjs
+COPY test/gui/harness/settings-scroll.mjs ./settings-scroll.mjs
+COPY test/gui/harness/startup.mjs ./startup.mjs
 COPY test/gui/harness/presentation.mjs ./presentation.mjs
 COPY test/gui/harness/mcp.mjs ./mcp.mjs
 COPY test/gui/harness/mcp-geometry.mjs ./mcp-geometry.mjs

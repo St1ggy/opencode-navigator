@@ -5,6 +5,7 @@ import type { ToolbarPin } from '../../../../entities/preferences/model'
 import type { SkillInfo } from '../../../../entities/skill/model'
 import type { PinnedToolbarModel } from '../../../../features/pinned-toolbar/model'
 import type { Notifications } from '../../../../shared/lib/lifecycle'
+import type { LoadingLayoutCache } from '../../../../shared/ui/gui'
 import type { MonitoringRuntime } from '../../model'
 import type { Ui } from '@opencode/plugin/gui'
 
@@ -13,6 +14,7 @@ export type NavigatorGuiServices = {
   runtime: MonitoringRuntime
   notifications: Notifications
   toolbar: PinnedToolbarModel
+  sectionLayouts?: LoadingLayoutCache
   onPin(pin: ToolbarPin): void
   onConfigurePin(key: string): void
   onManageToolbar(): void

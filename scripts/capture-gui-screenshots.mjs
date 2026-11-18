@@ -43,6 +43,7 @@ const normal = [
   '33-desktop-code-mode-activity',
   '34-desktop-code-mode-payloads',
   '35-desktop-code-mode-routing-preview',
+  '36-desktop-startup-skeletons',
 ]
 const quota = [
   '01-desktop-panel',

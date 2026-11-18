@@ -360,6 +360,10 @@ contains independent TUI, server, RPC and GUI entries.
   The TUI temporarily replaces the running-version label with progress.
   Percentages require real byte totals; opaque native installers show an
   indeterminate indicator instead.
+- Initially expanded Desktop sections use startup skeletons matched to their
+  rendered controls and text. Only numeric geometry is remembered in window-local
+  memory across plugin reloads; a new window uses the current rendered structure.
+  Normal refreshes, later section expansion and Float/Dock do not restart skeletons.
 
 The candidate is tested as an npm-style tarball in the official checksum-verified
 Linux ARM64 Desktop package on Xvfb. Native macOS/Windows, browser Web and multiple

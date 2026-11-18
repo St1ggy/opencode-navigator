@@ -8,6 +8,7 @@ import { GuiProgress } from '../../../src/shared/ui/gui/progress'
 import { CodeModeFixture } from './code-mode-fixture'
 import { McpFixture } from './mcp-fixture'
 import { QuotaScalesFixture } from './quota-scales-fixture'
+import { StartupFixture } from './startup-fixture'
 
 // The isolated probe is explicitly CommonJS; Vite does not infer its .cjs suffix.
 // oxlint-disable-next-line import/extensions
@@ -51,6 +52,18 @@ export default Plugin.define({
 
     const Dialog = context.ui.Dialog
     const Button = context.ui.Button
+
+    context.add(Command, {
+      id: 'startup-skeletons',
+      title: 'Synthetic startup skeletons',
+      run() {
+        context.dialogs.open((handle) => (
+          <Dialog title="Synthetic startup skeletons" footer={<Button onClick={handle.close}>Close</Button>}>
+            <StartupFixture context={context} />
+          </Dialog>
+        ))
+      },
+    })
 
     context.add(Command, {
       id: 'code-mode',

@@ -1,5 +1,13 @@
 import { expect, test } from 'bun:test'
 
+test('startup skeleton capture is registered in the reviewed inventory', async () => {
+  const harness = await Bun.file('test/gui/harness/startup.mjs').text()
+  const manifest = await Bun.file('scripts/capture-gui-screenshots.mjs').text()
+
+  expect(harness).toContain("captureGui(dialog, '36-desktop-startup-skeletons')")
+  expect(manifest).toContain("'36-desktop-startup-skeletons'")
+})
+
 test('reviewed capture inventory includes every Code Mode scene emitted by the harness', async () => {
   const harness = await Bun.file('test/gui/harness/code-mode.mjs').text()
   const manifest = await Bun.file('scripts/capture-gui-screenshots.mjs').text()
