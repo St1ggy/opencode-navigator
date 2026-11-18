@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0] - 2026-11-18
+
+- Give Desktop Settings native icon tabs and group Behavior into Limits, Toolbar, MCP, OpenCode preferences, and Desktop presentation. Show Global or Worktree scope in the header on tabs where it matters.
+- Align settings actions and compact numeric fields. At narrow widths, move the controls below their labels without clipping them. Keep unsaved drafts when switching tabs.
+- Show the update status beside the running Navigator version in About, with help and release notes in separate groups.
+
 ## [0.27.9] - 2026-11-18
 
 - Remove the extra outer scrollbar from Desktop Navigator Settings. Keep native settings scrolling and keyboard drag-order announcements without allowing the page to scroll into blank space.

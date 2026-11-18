@@ -1,5 +1,6 @@
 import { createSignal } from 'solid-js'
 
+import { GuiSettingsRowIcon } from './settings-row-icon'
 import { GuiUpdateAction } from './update-action'
 
 import type { GuiAboutServices } from './about-contract'
@@ -21,18 +22,33 @@ export function GuiSettingsAbout(props: { ui: Ui; about: GuiAboutServices; showG
 
   return (
     <>
-      <Section title="About Navigator" footer={<p role="status">{props.about.status()}</p>}>
+      <Section title="About Navigator">
         <Row
-          title={`Navigator ${props.about.version}`}
-          description={`OpenCode Desktop ${props.about.hostVersion}. Experimental Desktop GUI.`}
+          title={
+            <GuiSettingsRowIcon ui={props.ui} icon="cube">
+              Navigator {props.about.version}
+            </GuiSettingsRowIcon>
+          }
+          description={
+            <span style={{ display: 'grid', gap: '4px' }}>
+              <span>OpenCode Desktop {props.about.hostVersion}. Experimental Desktop GUI.</span>
+              <span role="status">{props.about.status()}</span>
+            </span>
+          }
         >
           <GuiUpdateAction ui={props.ui} about={props.about} />
         </Row>
+      </Section>
+      <Section title="Help and support">
         <Row title="Navigator guide" description="Reopen the seven-slide capability and section-configuration guide.">
-          <Button onClick={props.showGuide}>Open Navigator guide</Button>
+          <Button icon="graduation-cap" onClick={props.showGuide}>
+            Open Navigator guide
+          </Button>
         </Row>
         <Row title="Report a bug" description="Review an editable Bug report; use authenticated gh or your browser.">
-          <Button onClick={props.about.report}>Report a bug</Button>
+          <Button icon="warning" onClick={props.about.report}>
+            Report a bug
+          </Button>
         </Row>
       </Section>
       <Section title="Changelog" footer={<Markdown text={changes()} />}>
