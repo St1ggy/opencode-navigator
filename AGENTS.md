@@ -267,7 +267,7 @@
 
 ## Package identity and releases
 
-- On 2026-11-18, the user authorized splitting the verified Navigator Settings-scroll correction and Desktop startup skeletons into thematic commits, pushing and publishing the next patch release through the existing source/screenshot/final-CI gates. Include bounded read-only registry propagation handling so the prior post-publication 404 does not require a manual retry; do not relax signature/provenance checks or republish an existing version. This release authorization does not update installed Navigator/OpenCode sources, themes or unrelated configuration.
+- On 2026-11-18, the user authorized splitting the verified Navigator Settings-scroll correction and Desktop startup skeletons into thematic commits, pushing and publishing the next patch release through the existing source/screenshot/final-CI gates. Include bounded read-only registry propagation handling so the prior post-publication 404 does not require a manual retry; do not relax signature/provenance checks or republish an existing version. The user explicitly wants to test the Settings updater themselves: leave local Navigator/OpenCode sources, installed snapshots, version-history/upgrade-note state, themes and unrelated configuration untouched during and after publication.
 
 - After verified 0.27.8 publication on 2026-11-14, the user authorized updating the discovered local Navigator GUI/TUI sources to that published release. Re-detect all active Navigator sources, use a new versioned snapshot with owned runtime dependencies, retain old snapshots/backups and symlinks, and preserve host versions, themes, unrelated configuration and upgrade-note state. This does not authorize upgrading OpenCode hosts.
 
