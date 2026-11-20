@@ -171,15 +171,17 @@ export async function retryBackgroundRefresh<Value>(
     signal?: AbortSignal
     delays?: readonly number[]
     wait?: (delay: number, signal?: AbortSignal) => Promise<void>
+    retryOn?: (error: unknown) => boolean
   } = {},
 ) {
   const delays = options.delays ?? [250, 1000]
 
   for (let attempt = 0; ; attempt++) {
+    options.signal?.throwIfAborted()
     try {
       return await refresh()
     } catch (error) {
-      if (!isRetryableError(error) || attempt >= delays.length) throw error
+      if (!(options.retryOn ?? isRetryableError)(error) || attempt >= delays.length) throw error
 
       await (options.wait ?? wait)(delays[attempt], options.signal)
     }
