@@ -144,3 +144,47 @@ test('same-target refreshes ignore superseded transport failures but still repor
     root.dispose()
   }
 })
+
+test('initial GUI configuration waits for the selected server to register its profile RPC', async () => {
+  const notifications: string[] = []
+  const locations: string[] = []
+  const request = async (_input: unknown, options: { location: { directory: string } }) => {
+    locations.push(options.location.directory)
+
+    if (locations.length === 1) throw { type: 'rpc.unavailable', message: 'RPC is unavailable' }
+
+    return JSON.stringify({ defaults: {}, warnings: [] })
+  }
+  const root = createRoot((dispose) => {
+    const context = {
+      options: {},
+      signal: new AbortController().signal,
+      sessions: {
+        current: () => ({
+          id: 'synthetic-session',
+          location: { directory: '/synthetic' },
+          server: {
+            id: 'sidecar',
+            connected: true,
+            compatible: true,
+            data: { on: () => () => {} },
+            client: { rpc: () => ({ defaults: request }) },
+          },
+        }),
+      },
+      toast: { show: ({ title }: { title: string }) => notifications.push(title) },
+    } as unknown as Context
+
+    createGuiConfiguredDefaults(context, { setConfiguredDefaults() {} } as unknown as PreferencesController)
+
+    return { dispose }
+  })
+
+  try {
+    await Bun.sleep(275)
+    expect(locations).toEqual(['/synthetic', '/synthetic'])
+    expect(notifications).toEqual([])
+  } finally {
+    root.dispose()
+  }
+})

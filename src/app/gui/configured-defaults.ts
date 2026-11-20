@@ -6,6 +6,7 @@ import {
   parseConfiguredDefaults,
 } from '../../entities/preferences/model'
 import { NavigatorProfilesRpc } from '../../features/sidebar-settings/rpc'
+import { retryBackgroundRefresh } from '../../shared/lib/request-state'
 
 import { guiPreferenceSession } from './adapters/settings-session'
 
@@ -14,6 +15,10 @@ import type { Context } from '@opencode/plugin/gui'
 
 const noConfigurationTarget = async () => {
   throw new Error('The selected configuration server is unavailable. Retry after reconnecting.')
+}
+
+function profileRpcStarting(error: unknown) {
+  return typeof error === 'object' && error !== null && 'type' in error && error.type === 'rpc.unavailable'
 }
 
 export function createGuiConfiguredDefaults(context: Context, preferences: PreferencesController) {
@@ -54,9 +59,10 @@ export function createGuiConfiguredDefaults(context: Context, preferences: Prefe
       abort = new AbortController()
       const revision = ++generation
       const signal = AbortSignal.any([context.signal, abort.signal, AbortSignal.timeout(15_000)])
-      const result = await client
-        .rpc(NavigatorProfilesRpc)
-        .defaults(session ? { sessionID: session.id } : {}, { location, signal })
+      const result = await retryBackgroundRefresh(
+        () => client.rpc(NavigatorProfilesRpc).defaults(session ? { sessionID: session.id } : {}, { location, signal }),
+        { signal, delays: [250, 1000, 2000], retryOn: (error) => current() && profileRpcStarting(error) },
+      )
 
       signal.throwIfAborted()
 
