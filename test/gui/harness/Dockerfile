@@ -2,7 +2,8 @@ FROM mcr.microsoft.com/playwright:v1.65.0-noble
 
 ARG MODE=release
 ARG DESKTOP_ARCH=arm64
-ARG DESKTOP_VERSION=2.2.6
+ARG DESKTOP_VERSION
+ENV NAVIGATOR_DESKTOP_VERSION=${DESKTOP_VERSION}
 
 WORKDIR /opt/navigator-smoke
 RUN test "$MODE" = release && \

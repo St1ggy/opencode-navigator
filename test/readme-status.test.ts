@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 
-import metadata from '../package.json'
+import { hostVersions } from '../scripts/host-versions.mjs'
 
 test('README uses real status sources, compatibility metadata and no npm-version badge', async () => {
   const readme = await readFile('README.md', 'utf8')
@@ -13,8 +13,8 @@ test('README uses real status sources, compatibility metadata and no npm-version
   expect(header).toContain('[Unit coverage reports](')
   expect(header).not.toContain('codecov')
   expect(header).not.toContain('shields.io/npm/v/')
-  expect(header).toContain(`OpenCode%201.x-${metadata.devDependencies['@opencode-ai/plugin']}-`)
-  expect(header).toContain(`OpenCode%202.x-${metadata.devDependencies['@opencode/plugin']}-`)
+  expect(header).toContain(`OpenCode%201.x-min%20${hostVersions('v1').minimum}-`)
+  expect(header).toContain(`OpenCode%202.x-min%20${hostVersions('v2').minimum}-`)
   expect(header).toContain('npm/dm/opencode-navigator')
   const footer = readme.slice(readme.lastIndexOf('\n## '))
 

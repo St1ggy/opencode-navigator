@@ -44,24 +44,26 @@ jobs:
           retention-days: 14
 
   opencode-smoke-v1:
-    name: OpenCode 1.x (${{ matrix.version }})
+    # Stable ruleset context. This job now requires both host endpoints.
+    name: OpenCode 1.x (1.19.5)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ['1.19.5']
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26.12.1
+          package-manager-cache: false
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
       - run: sudo apt-get update && sudo apt-get install -y expect
-      - run: bun install -g opencode-ai@${{ matrix.version }}
       - run: |
-          export OPENCODE_SMOKE_BIN="$(command -v opencode)"
-          "$OPENCODE_SMOKE_BIN" --version
-          bun run test:e2e:v1
+          bun run build
+          NAVIGATOR_HOST_ENDPOINT=minimum bash scripts/smoke-opencode.sh
+          if [[ "$(node scripts/host-versions.mjs v1 minimum)" != "$(node scripts/host-versions.mjs v1 latest)" ]]; then
+            NAVIGATOR_HOST_ENDPOINT=latest bash scripts/smoke-opencode.sh
+          fi
 
   headless-contracts:
     name: Headless boundaries and lifecycle contracts
@@ -75,12 +77,9 @@ jobs:
       - run: bun test --preload @opentui/solid/preload test/headless-boundaries.test.ts test/host-port-contracts.test.ts test/lease-pool.test.ts test/monitoring-runtime.test.ts
 
   opencode-smoke-v2:
-    name: OpenCode 2.x (${{ matrix.version }})
+    # Stable ruleset context. This job now requires both host endpoints.
+    name: OpenCode 2.x (2.2.6)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ['2.2.6']
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -92,11 +91,12 @@ jobs:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
       - run: sudo apt-get update && sudo apt-get install -y expect
-      - run: npm install -g @opencode/cli@${{ matrix.version }}
       - run: |
-          export OPENCODE_V2_SMOKE_BIN="$(command -v opencode2)"
-          "$OPENCODE_V2_SMOKE_BIN" --version
-          bun run test:e2e:v2
+          bun run build
+          NAVIGATOR_HOST_ENDPOINT=minimum bash scripts/smoke-opencode-v2.sh
+          if [[ "$(node scripts/host-versions.mjs v2 minimum)" != "$(node scripts/host-versions.mjs v2 latest)" ]]; then
+            NAVIGATOR_HOST_ENDPOINT=latest bash scripts/smoke-opencode-v2.sh
+          fi
 
   corner-font:
     runs-on: ubuntu-latest
@@ -108,7 +108,7 @@ jobs:
   desktop-smoke:
     name: Packaged Desktop (${{ matrix.mode }})
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 25
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -126,4 +126,9 @@ jobs:
       - name: Verify packed plugin in isolated Desktop
         env:
           NAVIGATOR_GUI_QUOTA_FIXTURE: ${{ matrix.mode == 'quota' && '1' || '0' }}
-        run: bun run test:e2e:gui
+        run: |
+          bun run build
+          NAVIGATOR_HOST_ENDPOINT=minimum node scripts/smoke-opencode-gui.mjs
+          if [[ "$(node scripts/host-versions.mjs v2 minimum)" != "$(node scripts/host-versions.mjs v2 latest)" ]]; then
+            NAVIGATOR_HOST_ENDPOINT=latest node scripts/smoke-opencode-gui.mjs
+          fi

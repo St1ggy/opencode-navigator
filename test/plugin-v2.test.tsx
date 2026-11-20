@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { onCleanup } from 'solid-js'
 
 import packageJSON from '../package.json' with { type: 'json' }
+import { hostVersion } from '../scripts/host-versions.mjs'
 
 import type { Plugin } from '@opencode/plugin/tui'
 import type { JSX } from '@opentui/solid'
@@ -138,7 +139,7 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
     context = {
       options: {},
       location: { directory: '/workspace' },
-      app: { version: packageJSON.devDependencies['@opencode/plugin'], channel: 'stable' },
+      app: { version: hostVersion('v2'), channel: 'stable' },
       renderer: Object.assign(renderer, {
         on(name: string, listener: (...args: any[]) => void) {
           rendererSubscriptions.push(name)

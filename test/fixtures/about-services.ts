@@ -1,6 +1,7 @@
 import { createSignal } from 'solid-js'
 
 import metadata from '../../package.json'
+import { hostVersion } from '../../scripts/host-versions.mjs'
 import { registerNavigatorAboutServices } from '../../src/features/sidebar-settings'
 
 import type { NavigatorUpdateCheck } from '../../src/entities/navigator-release'
@@ -19,7 +20,7 @@ export function aboutServicesFixture(api: TuiPluginApi, update: (dialogs: Dialog
   ]
   const service: NavigatorAboutServices = {
     navigatorVersion: metadata.version,
-    openCodeVersion: metadata.devDependencies['@opencode/plugin'],
+    openCodeVersion: hostVersion('v2'),
     checkState: state,
     checking: () => state().status === 'checking',
     updating: () => false,

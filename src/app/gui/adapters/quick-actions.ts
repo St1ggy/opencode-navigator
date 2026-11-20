@@ -29,7 +29,7 @@ export function createGuiQuickActions(
 
     if (id === 'permission.mode') return
 
-    if (!commands[id]) return 'No equivalent published Desktop command in OpenCode 2.2.6'
+    if (!commands[id]) return 'No equivalent published OpenCode Desktop command'
 
     if (quickActionRequiresSession(id) && !context.sessions.current()) return 'Requires an open session'
 

@@ -6,10 +6,14 @@ import { tmpdir } from 'node:os'
 import { join, resolve as resolvePath } from 'node:path'
 import { build } from 'vite'
 
+// oxlint-disable-next-line import-x-js/extensions -- Node executes this script directly.
+import { hostVersion } from './host-versions.mjs'
+
 const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
 const root = resolvePath(import.meta.dirname, '..')
 const artifacts = await mkdtemp(join(process.env.TMPDIR ?? tmpdir(), 'navigator-gui-smoke-'))
-const image = `navigator-desktop-smoke:${metadata.devDependencies['@opencode/plugin']}-${process.arch}`
+const desktopVersion = hostVersion('v2', process.env.NAVIGATOR_HOST_ENDPOINT)
+const image = `navigator-desktop-smoke:${desktopVersion}-${process.arch}`
 const container = `navigator-gui-smoke-${randomUUID()}`
 const captureDirectory = process.env.NAVIGATOR_GUI_CAPTURE_DIR
 
@@ -72,7 +76,7 @@ try {
       '--build-arg',
       `DESKTOP_ARCH=${process.arch === 'arm64' ? 'arm64' : 'amd64'}`,
       '--build-arg',
-      `DESKTOP_VERSION=${metadata.devDependencies['@opencode/plugin']}`,
+      `DESKTOP_VERSION=${desktopVersion}`,
       '-f',
       'test/gui/harness/Dockerfile',
       '-t',

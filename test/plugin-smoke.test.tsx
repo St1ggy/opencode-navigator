@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import packageJSON from '../package.json' with { type: 'json' }
+import { hostVersion } from '../scripts/host-versions.mjs'
 import { sectionIcon } from '../src/icons/ui'
 
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
@@ -139,7 +140,7 @@ test('the packaged plugin mounts every slot and aborts in-flight work on disposa
         },
       },
       theme: { current: theme },
-      app: { version: packageJSON.devDependencies['@opencode-ai/plugin'] },
+      app: { version: hostVersion('v1') },
       ui: {
         toast: () => {},
         dialog: { replace: () => {}, setSize: () => {}, clear: () => {} },

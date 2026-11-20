@@ -39,29 +39,29 @@ export NAVIGATOR_SMOKE_ABOUT_SCRIPT="$root/scripts/smoke-about.tcl"
 export NAVIGATOR_SMOKE_TOOLBAR_SCRIPT="$root/scripts/smoke-toolbar-content.tcl"
 export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
+host_version="$(node "$root/scripts/host-versions.mjs" v1 "${NAVIGATOR_HOST_ENDPOINT:-latest}")"
 opencode_bin="${OPENCODE_SMOKE_BIN:-$(command -v opencode || true)}"
-if [[ -z "$opencode_bin" || ! -x "$opencode_bin" ]]; then
-  printf 'Missing OpenCode executable. Set OPENCODE_SMOKE_BIN to an OpenCode 1.x binary.\n' >&2
-  exit 1
-fi
-
-opencode_version="$($opencode_bin --version 2>/dev/null || true)"
-if [[ "$opencode_version" == 1.* ]]; then
+opencode_version="$("$opencode_bin" --version 2>/dev/null || true)"
+if [[ "$opencode_version" == "$host_version" ]]; then
   ln -s "$opencode_bin" "$temporary/bin/opencode"
 else
+  if [[ -n "${OPENCODE_SMOKE_BIN:-}" ]]; then
+    printf 'Expected OpenCode %s, got %s from the explicit smoke executable.\n' "$host_version" "$opencode_version" >&2
+    exit 1
+  fi
+
   if ! command -v npm >/dev/null 2>&1; then
     printf 'OpenCode 1.x is required for this compatibility smoke. Set OPENCODE_SMOKE_BIN explicitly.\n' >&2
     exit 1
   fi
 
-  host_version="$(node -p 'require(process.argv[1]).devDependencies["@opencode-ai/plugin"]' "$root/package.json")"
   npm install --prefix "$temporary/opencode-v1" --no-package-lock --no-save --silent "opencode-ai@$host_version"
   ln -s "$temporary/opencode-v1/node_modules/.bin/opencode" "$temporary/bin/opencode"
 fi
 
 export PATH="$temporary/bin:$PATH"
-if [[ "$(opencode --version 2>/dev/null || true)" != 1.* ]]; then
-  printf 'OpenCode 1.x compatibility smoke could not resolve a 1.x executable.\n' >&2
+if [[ "$(opencode --version 2>/dev/null || true)" != "$host_version" ]]; then
+  printf 'OpenCode 1.x compatibility smoke could not resolve OpenCode %s.\n' "$host_version" >&2
   exit 1
 fi
 

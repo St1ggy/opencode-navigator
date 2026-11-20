@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 
 import metadata from '../package.json'
+import { hostVersion } from '../scripts/host-versions.mjs'
 import { bugReportBrowserTarget } from '../src/features/sidebar-settings/model/bug-report-browser'
 import { createBugReportController } from '../src/features/sidebar-settings/model/bug-report-controller'
 import { createGitHubBugReportTransport } from '../src/features/sidebar-settings/model/github-bug-report'
@@ -10,7 +11,7 @@ import { bugReportTransportFixture } from './fixtures/bug-report-transport'
 
 const environment = {
   navigatorVersion: metadata.version,
-  openCodeVersion: metadata.devDependencies['@opencode/plugin'],
+  openCodeVersion: hostVersion('v2'),
   platform: 'synthetic',
   runtime: 'synthetic',
 }

@@ -44,13 +44,13 @@ export NAVIGATOR_SMOKE_TODO_SCRIPT="$root/scripts/smoke-native-todo.tcl"
 export NAVIGATOR_SMOKE_FRAME_SCRIPT="$root/scripts/pty-frame.mjs"
 export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
-host_version="$(node -p 'require(process.argv[1]).devDependencies["@opencode/plugin"]' "$root/package.json")"
+host_version="$(node "$root/scripts/host-versions.mjs" v2 "${NAVIGATOR_HOST_ENDPOINT:-latest}")"
 opencode_bin="${OPENCODE_V2_SMOKE_BIN:-$(command -v opencode2 || command -v opencode || true)}"
 if [[ -z "${OPENCODE_V2_SMOKE_BIN:-}" && -x /opt/homebrew/opt/opencode-v2/bin/opencode ]]; then
   # The interactive wrapper may load a user-specific server config; the smoke uses only its isolated fixture.
   opencode_bin=/opt/homebrew/opt/opencode-v2/bin/opencode
 fi
-opencode_version="$($opencode_bin --version 2>/dev/null | sed -nE 's/^(opencode )?v?([0-9]+\.[0-9]+\.[0-9]+)$/\2/p' || true)"
+opencode_version="$("$opencode_bin" --version 2>/dev/null | sed -nE 's/^(opencode )?v?([0-9]+\.[0-9]+\.[0-9]+)$/\2/p' || true)"
 if [[ "$opencode_version" != "$host_version" ]]; then
   if [[ -n "${OPENCODE_V2_SMOKE_BIN:-}" ]]; then
     printf 'Expected OpenCode %s, got %s from the explicit smoke executable.\n' "$host_version" "$opencode_version" >&2
@@ -66,7 +66,7 @@ if [[ "$opencode_version" != "$host_version" ]]; then
   opencode_bin="$temporary/opencode-v2/node_modules/.bin/opencode2"
 fi
 
-resolved_version="$($opencode_bin --version 2>/dev/null | sed -nE 's/^(opencode )?v?([0-9]+\.[0-9]+\.[0-9]+)$/\2/p' || true)"
+resolved_version="$("$opencode_bin" --version 2>/dev/null | sed -nE 's/^(opencode )?v?([0-9]+\.[0-9]+\.[0-9]+)$/\2/p' || true)"
 if [[ "$resolved_version" != "$host_version" ]]; then
   printf 'OpenCode compatibility smoke could not resolve the supported %s executable.\n' "$host_version" >&2
   exit 1
@@ -142,29 +142,10 @@ export OPENCODE_V2_SMOKE_TABS="$temporary/state/opencode/latest/tui/tabs.json"
 export TERM=xterm-256color
 export COLORTERM=truecolor
 
-session_json="$($opencode_bin api --standalone session.create --data "{\"title\":\"OpenCode Navigator 2.x smoke\",\"location\":{\"directory\":\"$temporary/workspace\"}}")"
-session_id="$(SESSION_JSON="$session_json" bun --eval '
-  const value = JSON.parse(process.env.SESSION_JSON)
-  const id = value.id ?? value.data?.id
-  if (!id) throw new Error("OpenCode 2 did not create a smoke session")
-  process.stdout.write(id)
-')"
+# Use the synthetic location and one disposable service for the RPC probes.
+cd "$temporary/workspace"
+session_id="$(node "$root/scripts/smoke-v2-session.mjs" "$opencode_bin")"
 export OPENCODE_V2_SMOKE_SESSION_ID="$session_id"
-
-todo_json="$("$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.todo --param method=list --data "{\"input\":{\"sessionID\":\"$session_id\"},\"location\":{\"directory\":\"$temporary/workspace\"}}")"
-TODO_JSON="$todo_json" bun --eval '
-  const value = JSON.parse(process.env.TODO_JSON)
-  const todo = value.output ?? value.data?.output
-  if (!todo || !Array.isArray(todo.todos) || todo.guidance !== false)
-    throw new Error("Navigator legacy Todo archive did not initialize")
-'
-
-quota_json="$("$opencode_bin" api --standalone rpc.call --param rpcID=opencode-navigator.quotas --param method=capabilities --data "{\"input\":{},\"location\":{\"directory\":\"$temporary/workspace\"}}")"
-QUOTA_JSON="$quota_json" bun --eval '
-  const value = JSON.parse(process.env.QUOTA_JSON)
-  if (!Array.isArray(value.output ?? value.data?.output))
-    throw new Error("The provider quota server did not initialize independently of Todo")
-'
 
 expect <<'EXPECT'
   log_user 0

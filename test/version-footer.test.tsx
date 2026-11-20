@@ -4,6 +4,7 @@ import { expect, test } from 'bun:test'
 import { createSignal } from 'solid-js'
 
 import packageJSON from '../package.json' with { type: 'json' }
+import { hostVersion as resolvedHostVersion } from '../scripts/host-versions.mjs'
 import { VersionFooter, VersionSummary, createVersionStatus, isNewerVersion } from '../src/features/version-footer'
 import { IconProvider, uiIcon } from '../src/shared/ui'
 
@@ -23,7 +24,7 @@ test('update progress replaces the running version in a narrow footer and restor
     total: 100,
   })
   const api = {
-    app: { version: packageJSON.devDependencies['@opencode-ai/plugin'] },
+    app: { version: resolvedHostVersion('v1') },
     theme: { current: theme },
   } as unknown as TuiPluginApi
   const view = await testRender(
@@ -76,7 +77,7 @@ test('version comparison handles stable and prerelease versions', () => {
 })
 
 test('version status tracks OpenCode events and the Navigator registry release', async () => {
-  const hostVersion = packageJSON.devDependencies['@opencode-ai/plugin']
+  const hostVersion = resolvedHostVersion('v1')
   const hostUpdate = nextPatch(hostVersion)
   const navigatorVersion = packageJSON.version
   const navigatorUpdate = nextPatch(navigatorVersion)
@@ -107,7 +108,7 @@ test('version status tracks OpenCode events and the Navigator registry release',
 
 test('footer keeps each label, version, and update icon independently clickable', async () => {
   const updates: string[] = []
-  const hostVersion = packageJSON.devDependencies['@opencode-ai/plugin']
+  const hostVersion = resolvedHostVersion('v1')
   const navigatorVersion = packageJSON.version
   const openCodeTarget = nextPatch(hostVersion)
   const navigatorTarget = nextPatch(navigatorVersion)
@@ -174,7 +175,7 @@ test('footer keeps each label, version, and update icon independently clickable'
 })
 
 test('available versions render the prominent Nerd Font update indicator', async () => {
-  const hostVersion = packageJSON.devDependencies['@opencode-ai/plugin']
+  const hostVersion = resolvedHostVersion('v1')
   const navigatorVersion = packageJSON.version
   const api = { app: { version: hostVersion }, theme: { current: theme } } as unknown as TuiPluginApi
   const view = await testRender(

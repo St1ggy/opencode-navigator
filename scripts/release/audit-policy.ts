@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 
 import { api, command } from './github'
 import { assertPolicies, requiredContexts } from './guards'
@@ -12,11 +11,7 @@ const repository = 'St1ggy/opencode-navigator'
 const ci = api<Ruleset>(`repos/${repository}/rulesets/27108667`)
 const review = api<Ruleset>(`repos/${repository}/rulesets/27109858`)
 const appId = Number(command('gh', ['variable', 'get', 'RELEASE_APP_ID', '--repo', repository]))
-const metadata = JSON.parse(readFileSync('package.json', 'utf8')) as { devDependencies: Record<string, string> }
-const contexts = requiredContexts({
-  v1: metadata.devDependencies['@opencode-ai/plugin'],
-  v2: metadata.devDependencies['@opencode/plugin'],
-})
+const contexts = requiredContexts()
 
 assertPolicies(ci, review, contexts, appId)
 assert.ok(

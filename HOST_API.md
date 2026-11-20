@@ -8,7 +8,7 @@
 
 - Effective configuration documents use the native MCP shape, but a discovered source file may retain the supported legacy `mcp.<server>` form. Routing previews locate that exact source definition (including partial overriding definitions) without migrating it, copying credentials or modifying connection flags. Ambiguous mixed forms and duplicate keys are refused. Desktop routing and other configuration/preset/import previews use native settings sections/rows and code blocks; only layout and semantic metadata are Navigator-owned.
 
-- OpenCode 2.2.6 TUI and Desktop use the selected server's public message cache and tool events for `execute` runs. IDs, statuses, input, output/error and timestamps are projected independently of source-reference inspection, without treating an execute run as an MCP call. Reverted messages are excluded. Unknown timing stays unknown; clock ticks do not request snapshots.
+- OpenCode 2.x TUI and Desktop use the selected server's public message cache and tool events for `execute` runs. IDs, statuses, input, output/error and timestamps are projected independently of source-reference inspection, without treating an execute run as an MCP call. Reverted messages are excluded. Unknown timing stays unknown; clock ticks do not request snapshots.
 - Configured MCP routing comes from ordered public configuration documents, not connection state. Actual per-agent tool availability and a stable nested-call/payload contract are not exposed by the audited client; both remain explicitly unavailable. Generic metadata is not interpreted as undocumented telemetry.
 - The audited `experimental.config.update` only updates the shell. `experimental.mcp.add` takes an entire server definition without a source selector; it is not equivalent to changing one routing field. Navigator uses the selected server's existing config/file APIs to preview and confirm a precise JSONC `codemode` edit in the highest-precedence defining file. It does not copy server definitions, change permissions, or reconnect/cancel running work. Replace this focused file adapter when a public source-aware routing mutation becomes equivalent.
 - Preview/apply rechecks server/session/location identity, configuration precedence and exact file contents. Non-file definitions, unavailable sources, malformed/duplicate JSONC and request/authentication failures are errors, not permission to select a different write path. A server-discovered file may be shared with other projects; no unsupported Global/Project scope is inferred from its basename.
@@ -28,17 +28,19 @@ The provider display name comes from the selected server's public reactive
 `data.location.provider.list(location)` cache, with the selected provider ID as
 the loading fallback, and does not issue a quota request.
 
-Navigator supports only OpenCode **1.19.5** and **2.2.6**, the current stable
-release in each major line. Published SDK declarations and real-host checks
-define the boundary; internal host components are not plugin APIs.
+Navigator supports stable OpenCode **1.x from 1.19.5** and **2.x from 2.2.6**.
+The host engine, SDK peers and development SDK requirements use compatible
+ranges. The lockfile resolves **1.19.6** and **2.3.2** for reproducible checks.
+The required CI checks cover both endpoints in each line. Published SDK
+declarations and real-host checks define the boundary; internal host components
+are not plugin APIs.
 
 ## Approved Desktop Integration Contract
 
 Desktop support uses the independent `./gui-experimental` entry available from
 Navigator 0.27.0, not the TUI entrypoint. Earlier packages do not include this GUI.
-The approved target is OpenCode Desktop 2.2.6, with TUI 1.19.5 and 2.2.6 kept
-behind explicit adapters. The published 2.2.6 plugin package preserves every TUI
-declaration from 2.2.5; its changed declarations are GUI-specific.
+The Desktop floor remains 2.2.6, with 2.3.2 as the latest verified endpoint.
+The two TUI host lines remain behind explicit adapters.
 
 | Capability | Published Desktop contract | Navigator integration constraint |
 | --- | --- | --- |
@@ -57,7 +59,7 @@ The renderer and headless models must remain independent of Electron so a later
 Web adapter does not require a second implementation of product rules.
 
 Verification uses an npm-style tarball in the official checksum-verified Linux
-ARM64 Desktop 2.2.6 package under Xvfb. Native macOS/Windows and multiple live
+ARM64 Desktop packages at both endpoints under Xvfb. Native macOS/Windows and multiple live
 Desktop windows are not claimed as real-host coverage; remote identity, independent
 window leases and concurrent shared-store writes are synthetic contracts. The
 unminified TUI remains limited to 360,000 bytes; the single-file GUI has its own
@@ -176,7 +178,7 @@ submission requires a separate confirmation and an authoritative persisted
 attempt; uncertain retries retain its idempotency key. No credit is spent during
 review, refresh or account linking.
 
-| Capability | OpenCode 1.19.5 | OpenCode 2.2.6 |
+| Capability | OpenCode 1.x (from 1.19.5) | OpenCode 2.x (from 2.2.6) |
 | --- | --- | --- |
 | Todo | Supported host Todo source/events | Public message cache, completed `todowrite` and revert boundary |
 | Skills | Host discovery and prompt insertion | Native Skill cache and `experimental.session.skill` with exact ID |

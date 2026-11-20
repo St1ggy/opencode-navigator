@@ -11,13 +11,9 @@ import type { PolicyAudit, Ruleset } from './release/guards'
 const metadata = JSON.parse(readFileSync('package.json', 'utf8')) as {
   name: string
   version: string
-  devDependencies: Record<string, string>
 }
 const repository = environment('GITHUB_REPOSITORY')
-const contexts = requiredContexts({
-  v1: metadata.devDependencies['@opencode-ai/plugin'],
-  v2: metadata.devDependencies['@opencode/plugin'],
-})
+const contexts = requiredContexts()
 const sha = environment('RELEASE_SHA')
 
 assert.equal(repository, 'St1ggy/opencode-navigator')

@@ -63,7 +63,7 @@
     "access": "public"
   },
   "engines": {
-    "opencode": "1.19.5 || 2.2.6"
+    "opencode": "^1.19.5 || ^2.2.6"
   },
   "scripts": {
     "build": "bun run build.ts",
@@ -96,11 +96,11 @@
     "check": "bun run test && bun run test:gui && bun run typecheck && bun run lint && bun run bundle:size && bun run format:check"
   },
   "peerDependencies": {
-    "@opencode-ai/plugin": "1.19.5",
-    "@opencode/plugin": "2.2.6",
-    "@opentui/core": ">=0.4.5",
-    "@opentui/solid": ">=0.4.5",
-    "solid-js": ">=1.9.12"
+    "@opencode-ai/plugin": "^1.19.5",
+    "@opencode/plugin": "^2.2.6",
+    "@opentui/core": ">=0.4.5 <1",
+    "@opentui/solid": ">=0.4.5 <1",
+    "solid-js": "^1.9.10"
   },
   "peerDependenciesMeta": {
     "@opencode-ai/plugin": {
@@ -120,14 +120,14 @@
     }
   },
   "devDependencies": {
-    "@opencode-ai/plugin": "1.19.5",
-    "@opencode-ai/sdk": "1.19.5",
-    "@opencode/client": "2.2.6",
-    "@opencode/plugin": "2.2.6",
-    "@opencode/theme": "2.2.6",
-    "@opentui/core": "0.8.3",
-    "@opentui/keymap": "0.8.3",
-    "@opentui/solid": "0.8.3",
+    "@opencode-ai/plugin": "^1.19.5",
+    "@opencode-ai/sdk": "^1.19.5",
+    "@opencode/client": "^2.2.6",
+    "@opencode/plugin": "^2.2.6",
+    "@opencode/theme": "^2.2.6",
+    "@opentui/core": "0.8.4",
+    "@opentui/keymap": "0.8.4",
+    "@opentui/solid": "0.8.4",
     "@playwright/test": "1.65.0",
     "@st1ggy/linter-config": "10.0.0",
     "@types/bun": "1.4.4",

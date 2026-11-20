@@ -2,6 +2,7 @@
 import { expect, test } from 'bun:test'
 
 import metadata from '../package.json'
+import { hostVersion } from '../scripts/host-versions.mjs'
 import { openSettings } from '../src/features/sidebar-settings'
 import { createVersionUpdateActions } from '../src/features/version-footer'
 
@@ -20,7 +21,7 @@ test('About shares update state, preserves nested release navigation, and never 
     openSettings(h.api, h.preferences, 'about:check')
     await h.wait('Updates have not been checked yet')
     expect(h.captureCharFrame()).toContain(`Navigator ${metadata.version}`)
-    expect(h.captureCharFrame()).toContain(metadata.devDependencies['@opencode/plugin'])
+    expect(h.captureCharFrame()).toContain(hostVersion('v2'))
     await h.click('Check for updates')
     await h.wait('Navigator is up to date')
     expect(info.checks()).toBe(1)

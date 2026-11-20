@@ -6,10 +6,22 @@ import metadata from '../package.json' with { type: 'json' }
 test('the built package declares its exact target snapshot runtime and ships the installer helper', async () => {
   const manifest = JSON.parse(await readFile(new URL('../dist/runtime-dependencies.json', import.meta.url), 'utf8'))
   const names = ['@opencode/plugin', '@opentui/core', '@opentui/keymap', '@opentui/solid', 'solid-js'] as const
+  const resolved = await Promise.all(
+    names.map(async (name) => {
+      const { version } = JSON.parse(
+        await readFile(new URL(`../node_modules/${name}/package.json`, import.meta.url), 'utf8'),
+      )
+
+      expect(version).toMatch(/^\d+\.\d+\.\d+$/u)
+      expect(Bun.semver.satisfies(version, metadata.devDependencies[name])).toBe(true)
+
+      return [name, version]
+    }),
+  )
 
   expect(manifest).toEqual({
     version: 1,
-    dependencies: Object.fromEntries(names.map((name) => [name, metadata.devDependencies[name]])),
+    dependencies: Object.fromEntries(resolved),
   })
   expect(metadata.files).toContain('dist')
   expect(metadata.files).toContain('scripts/snapshot-runtime.mjs')

@@ -45,11 +45,12 @@ export type ScreenshotPull = {
   base: { sha: string; ref: string; repo: { full_name: string } }
 }
 
-export function requiredContexts(versions: { v1: string; v2: string }) {
+export function requiredContexts() {
   return [
     'check',
-    `OpenCode 1.x (${versions.v1})`,
-    `OpenCode 2.x (${versions.v2})`,
+    // Keep the existing ruleset names; each job now tests both endpoints.
+    'OpenCode 1.x (1.19.5)',
+    'OpenCode 2.x (2.2.6)',
     'Headless boundaries and lifecycle contracts',
     'corner-font',
     'Packaged Desktop (normal)',

@@ -1,7 +1,7 @@
 import { createSignal } from 'solid-js'
 import { createStore, reconcile } from 'solid-js/store'
 
-import metadata from '../../package.json'
+import { hostVersion } from '../../scripts/host-versions.mjs'
 import { createOpenCodeV2Api } from '../../src/app/opencode-v2'
 
 import type { Plugin } from '@opencode/plugin/tui'
@@ -47,7 +47,7 @@ export function nativeHostFixture(options: { childTime?: { busy?: number; idle?:
   const context = {
     options: {},
     location: { directory: '/synthetic' },
-    app: { version: metadata.devDependencies['@opencode/plugin'], channel: 'stable' },
+    app: { version: hostVersion('v2'), channel: 'stable' },
     renderer: { keyInput: { on() {}, off() {} }, currentFocusedRenderable: null },
     data: {
       on: (name: string, handler: (event: any) => void) => {
