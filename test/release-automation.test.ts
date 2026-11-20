@@ -35,10 +35,7 @@ function run(scenario: string) {
     base: 'a'.repeat(40),
     head: 'b'.repeat(40),
     merge: 'c'.repeat(40),
-    contexts: requiredContexts({
-      v1: metadata.devDependencies['@opencode-ai/plugin'],
-      v2: metadata.devDependencies['@opencode/plugin'],
-    }),
+    contexts: requiredContexts(),
   }
 
   writeFileSync(join(directory, 'state.json'), JSON.stringify(state))

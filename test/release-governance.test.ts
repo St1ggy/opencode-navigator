@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 
-import metadata from '../package.json'
 import {
   assertChecks,
   assertPolicies,
@@ -14,10 +13,7 @@ import { assertProvenance } from '../scripts/release/provenance'
 
 import type { Ruleset, ScreenshotPull, VisibleRuleset } from '../scripts/release/guards'
 
-const contexts = requiredContexts({
-  v1: metadata.devDependencies['@opencode-ai/plugin'],
-  v2: metadata.devDependencies['@opencode/plugin'],
-})
+const contexts = requiredContexts()
 const success = contexts.map((name) => ({ name, app: { id: 15_368 }, status: 'completed', conclusion: 'success' }))
 
 function policies() {

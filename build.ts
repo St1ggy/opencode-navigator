@@ -343,9 +343,17 @@ for (const entrypoint of ['src/server.ts', 'src/rpc.ts', 'src/project-profile.ts
   }
 }
 
-const metadata = (await Bun.file('package.json').json()) as { devDependencies: Record<string, string> }
 const runtimePackages = ['@opencode/plugin', '@opentui/core', '@opentui/keymap', '@opentui/solid', 'solid-js']
-const runtimeDependencies = Object.fromEntries(runtimePackages.map((name) => [name, metadata.devDependencies[name]]))
+// Only isolated legacy snapshots use this manifest; normal plugin loading uses the host runtime.
+const runtimeDependencies = Object.fromEntries(
+  await Promise.all(
+    runtimePackages.map(async (name) => {
+      const { version } = (await Bun.file(`node_modules/${name}/package.json`).json()) as { version: string }
+
+      return [name, version] as const
+    }),
+  ),
+)
 
 await Bun.write(
   'dist/runtime-dependencies.json',

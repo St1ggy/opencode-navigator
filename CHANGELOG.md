@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.0] - 2026-11-20
+
+- Replace exact OpenCode and plugin SDK version requirements with compatible ranges. The minimum OpenCode versions remain 1.19.5 and 2.2.6, and Navigator now also supports OpenCode 1.19.6 and 2.3.2.
+
 ## [1.0.0] - 2026-11-18
 
 - Give Desktop Settings native icon tabs and group Behavior into Limits, Toolbar, MCP, OpenCode preferences, and Desktop presentation. Show Global or Worktree scope in the header on tabs where it matters.

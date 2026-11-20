@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import { createMemo, createRoot } from 'solid-js'
 
 import metadata from '../package.json'
+import { hostVersion } from '../scripts/host-versions.mjs'
 import { changesSince, parseChangelog } from '../src/entities/navigator-release'
 import { getNavigatorAboutServices, registerNavigatorAboutServices } from '../src/features/sidebar-settings'
 
@@ -27,7 +28,7 @@ test('About registry is reactive, per host, and a stale cleanup cannot remove a 
     const current = createMemo(() => getNavigatorAboutServices(api))
     const services: NavigatorAboutServices = {
       navigatorVersion: metadata.version,
-      openCodeVersion: metadata.devDependencies['@opencode/plugin'],
+      openCodeVersion: hostVersion('v2'),
       checkState: () => ({ status: 'current' }),
       checking: () => false,
       updating: () => false,

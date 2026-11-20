@@ -3,7 +3,7 @@ import { createDefaultOpenTuiKeymap } from '@opentui/keymap/opentui'
 import { testRender, useRenderer } from '@opentui/solid'
 import { type JSX, Show, createSignal } from 'solid-js'
 
-import metadata from '../../package.json'
+import { hostVersion } from '../../scripts/host-versions.mjs'
 import {
   applyPreferencesUpdate,
   createPreferencesController,
@@ -51,7 +51,7 @@ export async function toolbarHarness(
     api = {
       renderer,
       keymap,
-      app: { version: metadata.devDependencies['@opencode-ai/plugin'] },
+      app: { version: hostVersion('v1') },
       route: {
         get current() {
           return route()

@@ -1,4 +1,5 @@
 import { chromium } from '@playwright/test'
+import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { chmod, copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -82,6 +83,9 @@ function isolatedFixtureMode(quotaFixture) {
 async function main() {
   const root = '/tmp/navigator-desktop-fixture'
   const config = join(root, 'config/opencode')
+  const desktopVersion = process.env.NAVIGATOR_DESKTOP_VERSION
+
+  assert.match(desktopVersion ?? '', /^2\.\d+\.\d+$/u, 'Missing exact packaged Desktop fixture version')
 
   await mkdir(config, { recursive: true })
   await mkdir(join(root, 'Default Project'), { recursive: true })
@@ -93,11 +97,10 @@ async function main() {
       root,
       '--ignore-scripts',
       '--omit=optional',
-      '--legacy-peer-deps',
       '--no-audit',
       '--no-fund',
       '/input/navigator.tgz',
-      '@opencode/plugin@2.2.6',
+      `@opencode/plugin@${desktopVersion}`,
     ],
     { stdio: 'inherit', timeout: 180_000 },
   )
