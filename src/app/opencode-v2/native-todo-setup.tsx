@@ -25,6 +25,8 @@ export function createOpenCodeV2TodoSetup(
     state: model.state,
     refresh: model.refresh,
     configure(sessionID) {
+      if (model.state(sessionID).enableUnavailable) return
+
       const current = { target: target(sessionID), route: JSON.stringify(api.route.current) }
 
       createDialogStack(api, preferences.lspIconStyle, () => model.current(current), preferences.cornerFont).open(
@@ -53,7 +55,9 @@ export function createOpenCodeV2TodoSetup(
         enabled: () => {
           const id = sessionID()
 
-          return Boolean(id && model.state(id).enabled !== true)
+          const state = id ? model.state(id) : undefined
+
+          return Boolean(state && state.enabled !== true && !state.enableUnavailable)
         },
         run: () => {
           const id = sessionID()

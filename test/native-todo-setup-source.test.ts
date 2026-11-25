@@ -2,10 +2,39 @@ import { expect, test } from 'bun:test'
 
 import { createOpenCodeV2TodoSetup } from '../src/app/opencode-v2/native-todo-setup'
 import { createTodoSetupSource } from '../src/app/opencode-v2/todo-setup-source'
+import { createTodoSetupController } from '../src/features/native-todo-setup'
 
 import type { PreferencesController } from '../src/entities/preferences'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 import type { Plugin } from '@opencode/plugin/tui'
+
+test('a V2 host with read-only Todo configuration distinguishes disabled Todo from unavailable enablement', async () => {
+  const target = { key: 'remote', sessionID: 'session', routing: { directory: '/remote/project' } }
+  const context = {
+    client: {
+      config: { get: async () => [{ type: 'document', path: '/remote/config.json', info: {} }] },
+      file: { read: async () => new TextEncoder().encode('{}') },
+      experimental: {},
+    },
+    data: { on: () => () => {} },
+  } as unknown as Plugin.Context
+  const model = createTodoSetupController({
+    source: createTodoSetupSource(context),
+    target: () => target,
+    route: () => 'remote',
+    signal: new AbortController().signal,
+  })
+
+  await model.refresh(target.sessionID)
+  expect(model.state(target.sessionID)).toMatchObject({
+    status: 'ready',
+    enabled: false,
+    enableUnavailable: 'This OpenCode server does not expose Todo configuration editing.',
+  })
+  await Promise.resolve(
+    expect(model.prepare(target.sessionID, '/remote/config.json')).rejects.toThrow('configuration editing'),
+  )
+})
 
 test('native Todo config operations use the connected server and explicit directory, never local client files', async () => {
   const calls: unknown[] = []

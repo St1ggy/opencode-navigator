@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.65.0-noble
+FROM mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
 
 ARG MODE=release
 ARG DESKTOP_ARCH=arm64
@@ -11,10 +11,12 @@ RUN test "$MODE" = release && \
     curl --fail --location --retry 3 -o SHA256SUMS "https://github.com/anomalyco/opencode/releases/download/v${DESKTOP_VERSION}/SHA256SUMS" && \
     checksum="$(awk -v name="opencode-desktop-linux-${DESKTOP_ARCH}.deb" '$2 == name { print $1 }' SHA256SUMS)" && \
     test -n "$checksum" && printf '%s  desktop.deb\n' "$checksum" | sha256sum --check && \
-    apt-get update && apt-get install --yes --no-install-recommends ./desktop.deb && \
-    npm install --ignore-scripts --no-audit --no-fund @playwright/test@1.65.0
+    apt-get update && apt-get install --yes --no-install-recommends ./desktop.deb \
+      at-spi2-core dbus-x11 python3-pyatspi xdotool && \
+    npm install --ignore-scripts --no-audit --no-fund @playwright/test@1.65.1
 
 COPY test/gui/harness/run.mjs ./run.mjs
+COPY test/gui/harness/accessibility.py ./accessibility.py
 COPY test/gui/harness/toolbar.mjs ./toolbar.mjs
 COPY test/gui/harness/fixture.cjs ./fixture.cjs
 COPY test/gui/harness/server-fixture.mjs ./server-fixture.mjs
@@ -39,4 +41,4 @@ COPY test/gui/harness/header.mjs ./header.mjs
 COPY test/gui/harness/subagents.mjs ./subagents.mjs
 COPY test/gui/harness/code-mode.mjs ./code-mode.mjs
 COPY test/gui/harness/code-mode-geometry.mjs ./code-mode-geometry.mjs
-CMD ["xvfb-run", "--auto-servernum", "node", "/opt/navigator-smoke/run.mjs"]
+CMD ["dbus-run-session", "--", "xvfb-run", "--auto-servernum", "node", "/opt/navigator-smoke/run.mjs"]

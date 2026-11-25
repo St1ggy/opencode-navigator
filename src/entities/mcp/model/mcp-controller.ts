@@ -19,6 +19,10 @@ export type McpPreferencesAccess = {
 
 type McpAction = 'connect' | 'disconnect'
 
+function unsupportedChange(action: McpAction) {
+  return new Error(`This OpenCode server does not expose MCP ${action}.`)
+}
+
 function serverKey(current: McpTarget, name: string) {
   return JSON.stringify([current.key, name])
 }
@@ -69,6 +73,7 @@ export function createMcpModel(
     source: McpSource
     cache: 'source' | 'model'
     change: McpMutation
+    supportsChange?(current: McpTarget, action: McpAction): boolean
     signal?: AbortSignal
     notifications: Notifications
   },
@@ -90,6 +95,10 @@ export function createMcpModel(
   const serverRequests = createRequestState(options.signal)
   let activation = 0
   let activeTarget: string | undefined
+  const canChange = (action: McpAction, current = target()) => options.supportsChange?.(current, action) !== false
+  const requireChange = (action: McpAction, current: McpTarget) => {
+    if (!canChange(action, current)) throw unsupportedChange(action)
+  }
 
   function changeMutationCount(current: McpTarget, offset: number) {
     setMutationCounts((values) => {
@@ -243,6 +252,7 @@ export function createMcpModel(
     operation = `${action} MCP server`,
     refreshAfter = true,
   ) {
+    requireChange(action, current)
     const key = serverKey(current, name)
     const pending = mutations.get(key)
 
@@ -295,6 +305,7 @@ export function createMcpModel(
 
     if (!action || mutations.has(serverKey(current, name))) return
 
+    requireChange(action, current)
     activation += 1
     resetSelectedPreset(current)
     save(current, name, action === 'disconnect')
@@ -319,6 +330,8 @@ export function createMcpModel(
 
         const desired = preferences.desiredMcpState(current.scope, item.name)
         const action = mcpToggleAction(item.status)
+
+        if (action && !canChange(action, current)) return
 
         if (desired === 'disabled' && action === 'disconnect') {
           await changeServer(current, item.name, 'disconnect', 'restore MCP preference', false)
@@ -388,9 +401,11 @@ export function createMcpModel(
 
     await Promise.all(
       changes.map(async ({ name, action }) => {
-        if (operation.action !== 'preset') save(current, name, action === 'disconnect')
-
         try {
+          requireChange(action, current)
+
+          if (operation.action !== 'preset') save(current, name, action === 'disconnect')
+
           await changeServer(current, name, action, bulkDescription(operation, action), false)
         } catch (error) {
           if (!isAbortError(error)) {
@@ -466,6 +481,7 @@ export function createMcpModel(
     },
     target,
     toggle,
+    canChange,
     persist,
     state(current = target()) {
       return requests.state(current.key)
@@ -493,6 +509,10 @@ export function createMcpModel(
       if (mutating(current)) return
 
       const { changes } = mcpPresetPreview(list(current), states)
+
+      const unsupported = changes.find(({ action }) => !canChange(action, current))
+
+      if (unsupported) return Promise.reject(unsupportedChange(unsupported.action))
 
       if (persist()) {
         if (preferences.setDesiredMcpStates) preferences.setDesiredMcpStates(current.scope, states)
@@ -524,7 +544,7 @@ export function createMcpModel(
       if (selectedPresets()[current.key] === name) resetSelectedPreset(current)
     },
     connectAll(current = target()) {
-      if (mutating(current)) return
+      if (mutating(current) || !canChange('connect', current)) return
 
       resetSelectedPreset(current)
 
@@ -537,7 +557,7 @@ export function createMcpModel(
       )
     },
     disconnectAll(current = target()) {
-      if (mutating(current)) return
+      if (mutating(current) || !canChange('disconnect', current)) return
 
       resetSelectedPreset(current)
 
@@ -556,7 +576,7 @@ export function createMcpModel(
       const items = list(current).filter((item) => selected.has(item.name))
       const action = mcpGroupToggleAction(items)
 
-      if (!action) return
+      if (!action || !canChange(action, current)) return
 
       resetSelectedPreset(current)
 

@@ -46,6 +46,7 @@ export function createMonitoringRegistry(context: Context, preferences: Preferen
         },
       }
       const subagents = createGuiSubagentSource(access, scope)
+      const todo = createGuiTodoSource(access, scope)
       const sources = createGuiCatalogSources(access, scope)
       const catalogs = createCatalogRuntime({
         actions: createGuiQuickActions(context, access, scope),
@@ -81,14 +82,16 @@ export function createMonitoringRegistry(context: Context, preferences: Preferen
         codeMode: createGuiCodeMode(access, scope, lifecycle),
         lifecycle,
         target: scope.target,
-        todo: createGuiTodoSource(access, scope),
+        todo,
         subagents,
         todoSetup,
         catalogs,
         startup: phase,
         limits: createGuiLimits(context, access, scope, signal, preferences),
         todoHasValue: () =>
-          access.current(scope) && access.cache(scope).data.session.message.list(scope.target.sessionID).length > 0,
+          access.current(scope) &&
+          !todo.unavailable?.() &&
+          access.cache(scope).data.session.message.list(scope.target.sessionID).length > 0,
         subscribeSubagents: (listener) => subscribeGuiSubagents({ access, scope, source: subagents, listener }),
         openSubagent: (id) => {
           if (access.current(scope)) context.tabs.open({ server: scope.target.serverID, id }, { focus: true })
@@ -101,7 +104,7 @@ export function createMonitoringRegistry(context: Context, preferences: Preferen
 
         const next = todoSetup.state(scope.target.sessionID).enabled === true
 
-        if (next && !enabled) void value.todo.refresh(scope.target.sessionID).catch(() => {})
+        if (next && !enabled && !todo.unavailable?.()) void value.todo.refresh(scope.target.sessionID).catch(() => {})
 
         enabled = next
       })

@@ -10,6 +10,17 @@ export function hostVersion(line, endpoint = 'latest') {
   return hostVersions(line)[endpoint]
 }
 
+// Exact overrides are test inputs, not part of the Navigator runtime or its package metadata.
+export function smokeHostVersion(line, endpoint = 'latest', version = process.env.NAVIGATOR_HOST_VERSION) {
+  const defaultVersion = hostVersion(line, endpoint)
+
+  if (!version) return defaultVersion
+
+  assert.match(version, new RegExp(String.raw`^${line.slice(1)}\.\d+\.\d+$`, 'u'))
+
+  return version
+}
+
 export function hostVersions(line) {
   assert.ok(Object.hasOwn(sdk, line), `Unknown OpenCode host line: ${line}`)
   const name = sdk[line]
@@ -27,5 +38,5 @@ export function hostVersions(line) {
 }
 
 if (import.meta.main) {
-  console.log(hostVersion(process.argv[2], process.argv[3]))
+  console.log(smokeHostVersion(process.argv[2], process.argv[3]))
 }

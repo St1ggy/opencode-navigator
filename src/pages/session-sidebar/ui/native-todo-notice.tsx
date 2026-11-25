@@ -20,12 +20,16 @@ export function NativeTodoNotice(props: {
   const failed = () => state()?.status === 'error'
   const disabled = () => state()?.enabled === false
   const message = () => {
+    if (state()?.configurationUnavailable) return state()?.configurationUnavailable
+
     if (failed()) return state()?.error
 
     if (state()?.status === 'loading' && state()?.enabled === undefined) return 'Checking native Todo configuration…'
 
     if (disabled())
-      return 'Native OpenCode Todo is disabled. Enable it to let the built-in todowrite tool manage tasks.'
+      return state()?.enableUnavailable
+        ? `Native OpenCode Todo is disabled. ${state()?.enableUnavailable}`
+        : 'Native OpenCode Todo is disabled. Enable it to let the built-in todowrite tool manage tasks.'
 
     return 'Native OpenCode Todo. Edit tasks through chat and todowrite.'
   }
@@ -35,7 +39,7 @@ export function NativeTodoNotice(props: {
       <text fg={failed() ? props.api.theme.current.warning : props.api.theme.current.textMuted} wrapMode="word">
         {icons.icon('info')} {message()}
       </text>
-      <Show when={props.setup && (disabled() || failed())}>
+      <Show when={props.setup && (failed() || (disabled() && !state()?.enableUnavailable))}>
         <SectionTab
           api={props.api}
           interaction={props.interaction}

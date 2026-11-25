@@ -89,8 +89,14 @@ test('selected-server source uses public snapshots/events and never polls on too
     path: '/synthetic/config.json',
     servers: { exact: { codemode: false } },
   })
+  expect(source.routingUnavailable?.()).toBeUndefined()
+  Object.defineProperty(client.experimental.file, 'write', { value: undefined, configurable: true })
+  expect(source.supported).toBe(true)
+  expect(source.routingUnavailable?.()).toContain('does not expose routing configuration editing')
+  expect((await source.entries(signal))[0].servers?.exact).toMatchObject({ codemode: false })
   connected = false
   expect(source.current()).toBe(false)
+  expect(source.routingUnavailable?.()).toBeUndefined()
   expect(
     await source
       .entries(signal)

@@ -1,4 +1,5 @@
 import { createTodoModel } from '../../entities/todo/model'
+import { sessionMessagesUnavailable } from '../native/session-message-capability'
 
 import { nativeTodos } from './native-todos'
 
@@ -20,6 +21,8 @@ export function createNativeTodoController(context: Plugin.Context, api: TuiPlug
   }
 
   function list(sessionID: string) {
+    if (sessionMessagesUnavailable(context.data)) return []
+
     return nativeTodos(
       context.data.session.message.list(sessionID),
       context.data.session.get(sessionID)?.revert?.messageID,
@@ -32,11 +35,16 @@ export function createNativeTodoController(context: Plugin.Context, api: TuiPlug
       lifecycle: api.lifecycle,
       target,
       cache: 'source',
-      hasValue: (sessionID) => context.data.session.message.list(sessionID).length > 0,
+      hasValue: (sessionID) =>
+        !sessionMessagesUnavailable(context.data) && context.data.session.message.list(sessionID).length > 0,
       source: {
         list,
         async refresh(sessionID, signal) {
           signal.throwIfAborted()
+          const reason = sessionMessagesUnavailable(context.data)
+
+          if (reason) throw new Error(reason)
+
           await Promise.all([context.data.session.sync(sessionID), context.data.session.message.sync(sessionID)])
           signal.throwIfAborted()
 

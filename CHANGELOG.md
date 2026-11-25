@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 2026-11-25
+
+- Keep OpenCode 1.x and 2.x TUI support and adapt optional features to the APIs on the running host and selected server.
+- Keep MCP status visible on read-only connections without offering unsupported connection changes or changing saved preferences.
+- Explain when a host cannot show native Todo or edit its configuration. Keep read-only Todo data and the legacy archive available where the host supports them.
+
 ## [1.1.0] - 2026-11-20
 
 - Replace exact OpenCode and plugin SDK version requirements with compatible ranges. The minimum OpenCode versions remain 1.19.5 and 2.2.6, and Navigator now also supports OpenCode 1.19.6 and 2.3.2.

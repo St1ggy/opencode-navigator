@@ -80,6 +80,47 @@ function isolatedFixtureMode(quotaFixture) {
   return quotaFixture ? 'quota' : undefined
 }
 
+async function assertNavigatorMain(root) {
+  const native = await nativeLogs(root)
+
+  assertNoHostUpdate(native)
+
+  if (!native.includes(`Navigator ${process.env.NAVIGATOR_VERSION} Desktop main ready`))
+    throw new Error('Packaged Desktop did not execute the Navigator main entry')
+}
+
+async function accessibilitySmoke(root) {
+  if (capturesEnabled) throw new Error('Use the reviewed CDP fixture for deterministic captures')
+
+  const result = spawnSync('/usr/bin/python3', ['/opt/navigator-smoke/accessibility.py'], {
+    timeout: 150_000,
+    stdio: 'inherit',
+  })
+
+  if (result.status !== 0) throw result.error ?? new Error('Packaged Desktop accessibility smoke failed')
+
+  await assertNavigatorMain(root)
+}
+
+async function connectToDesktop(deadline, failure, logs) {
+  while (Date.now() < deadline) {
+    const error = failure()
+
+    if (error) throw error
+
+    try {
+      const response = await fetch('http://127.0.0.1:9222/json/version')
+
+      if (response.ok) return await chromium.connectOverCDP('http://127.0.0.1:9222')
+    } catch {
+      // The isolated Electron debug endpoint is not ready yet.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+
+  throw new Error(`Packaged Desktop CDP did not start: ${logs()}`)
+}
+
 async function main() {
   const root = '/tmp/navigator-desktop-fixture'
   const config = join(root, 'config/opencode')
@@ -181,12 +222,13 @@ async function main() {
   )
   // Verified against the official 2.2.6 Debian package inventory.
   const executable = '/opt/OpenCode/ai.opencode'
+  const accessibility = process.env.NAVIGATOR_GUI_DRIVER === 'accessibility'
   const child = spawn(
     executable,
     [
       '--no-sandbox',
       '--disable-gpu',
-      '--remote-debugging-port=9222',
+      ...(accessibility ? ['--force-renderer-accessibility'] : ['--remote-debugging-port=9222']),
       // Desktop 2.2.6's packaged updater ignores the server's auto-update flag.
       // Its feed is on opencode.ai (electron-builder.config.ts). Isolate only this
       // test process from that live service; preserve real host UI and PNG checks.
@@ -200,6 +242,7 @@ async function main() {
         PATH: fixturePath,
         XDG_STATE_HOME: stateDirectory,
         OPENCODE_DESKTOP_TEST_ROOT: root,
+        ...(accessibility && { ACCESSIBILITY_ENABLED: '1', NO_AT_BRIDGE: '0' }),
         OPENCODE_DISABLE_MODELS_FETCH: 'true',
         OPENCODE_DISABLE_AUTOUPDATE: 'true',
         OPENCODE_DISABLE_EXTERNAL_SKILLS: 'true',
@@ -224,23 +267,13 @@ async function main() {
   let page
 
   try {
-    while (Date.now() < deadline) {
-      if (failure || child.exitCode !== null) throw failure ?? new Error(`Desktop exited ${child.exitCode}: ${logs}`)
+    if (accessibility) return await accessibilitySmoke(root)
 
-      try {
-        const response = await fetch('http://127.0.0.1:9222/json/version')
-
-        if (response.ok) {
-          browser = await chromium.connectOverCDP('http://127.0.0.1:9222')
-          break
-        }
-      } catch {
-        // The isolated Electron debug endpoint is not ready yet.
-      }
-      await new Promise((resolve) => setTimeout(resolve, 200))
-    }
-
-    if (!browser) throw new Error(`Packaged Desktop CDP did not start: ${logs}`)
+    browser = await connectToDesktop(
+      deadline,
+      () => failure ?? (child.exitCode === null ? undefined : new Error(`Desktop exited ${child.exitCode}: ${logs}`)),
+      () => logs,
+    )
 
     const context = browser.contexts()[0]
 
@@ -471,16 +504,11 @@ async function main() {
     await floating.waitFor({ state: 'detached' })
     await assertNoConfigurationError(page)
     console.log('Packaged Desktop panel, Todo preview/archive and floating keyboard interactions passed.')
-    const native = await nativeLogs(root)
-
-    assertNoHostUpdate(native)
+    await assertNavigatorMain(root)
 
     const pluginFailure = /\[plugin\] opencode-navigator\.todo-server (?:AbortError|Error|TypeError)[^\n]*/u.exec(logs)
 
     if (pluginFailure) throw new Error(`Navigator renderer contribution failed: ${pluginFailure[0]}`)
-
-    if (!native.includes(`Navigator ${process.env.NAVIGATOR_VERSION} Desktop main ready`))
-      throw new Error('Packaged Desktop did not execute the Navigator main entry')
 
     // The GUI command proves renderer setup ran in the packaged host, not a DOM substitute.
     console.log('Packaged OpenCode Desktop GUI smoke passed.')

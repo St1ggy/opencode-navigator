@@ -1,6 +1,12 @@
 import { createMemo } from 'solid-js'
 
-import { buildMcpGroupedView, matchingMcpPreset, mcpGroupStatus, mcpToggleAction } from '../../../entities/mcp'
+import {
+  buildMcpGroupedView,
+  matchingMcpPreset,
+  mcpGroupStatus,
+  mcpGroupToggleAction,
+  mcpToggleAction,
+} from '../../../entities/mcp'
 import { createListVisibility } from '../../../shared/lib/list-visibility'
 import { matchesFilter } from '../lib/matches-filter'
 
@@ -40,8 +46,14 @@ export function createMcpSectionModel(
   )
   const bulkRunning = createMemo(() => bulk().status === 'running')
   const mutationRunning = createMemo(() => props.controller.mutating?.(target()))
-  const connectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === 'connect').length)
-  const disconnectable = createMemo(() => list().filter((item) => mcpToggleAction(item.status) === 'disconnect').length)
+  const canChange = (action: ReturnType<typeof mcpToggleAction>) =>
+    !action || props.controller.canChange?.(action, target()) !== false
+  const connectable = createMemo(() =>
+    canChange('connect') ? list().filter((item) => mcpToggleAction(item.status) === 'connect').length : 0,
+  )
+  const disconnectable = createMemo(() =>
+    canChange('disconnect') ? list().filter((item) => mcpToggleAction(item.status) === 'disconnect').length : 0,
+  )
   const errors = createMemo(
     () =>
       list().filter(
@@ -58,6 +70,8 @@ export function createMcpSectionModel(
 
   return {
     target,
+    canChange,
+    canChangeGroup: (bucket: string) => canChange(mcpGroupToggleAction(groupItems(bucket))),
     favorites,
     groups,
     grouped,

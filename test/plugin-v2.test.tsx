@@ -148,6 +148,11 @@ test('the packaged plugin mounts through the OpenCode 2.x contract', async () =>
         },
       }),
       client: {
+        file: { read: async () => new TextEncoder().encode('{}') },
+        experimental: {
+          file: { write: async () => {} },
+          mcp: { connect: async () => {}, disconnect: async () => {} },
+        },
         config: {
           get: async () => [
             { type: 'document', path: '/workspace/opencode.jsonc', info: { experimental: { todo: false } } },

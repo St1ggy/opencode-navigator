@@ -18,6 +18,7 @@ export function createCatalogRuntime(ports: {
   skills: SkillSource
   mcp: McpSource
   changeMcp: McpMutation
+  supportsMcpChange?(action: Parameters<McpMutation>[2]): boolean
   actions: QuickActionSource
   session: SessionTarget
   onReconnect(listener: () => void): () => void
@@ -35,6 +36,7 @@ export function createCatalogRuntime(ports: {
       source: ports.mcp,
       cache: 'source',
       change: ports.changeMcp,
+      supportsChange: (_current, action) => ports.supportsMcpChange?.(action) ?? true,
       signal: ports.lifecycle.signal,
       notifications: ports.notifications,
     },

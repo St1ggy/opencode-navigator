@@ -21,7 +21,7 @@ export function createLimitsModelSelection(
   const legacy = (model: SelectedModel) => api.state.provider?.find((provider) => provider.id === model.providerID)
   const variants = (model: SelectedModel) =>
     context
-      ? (context.ui.model.variant?.list?.() ?? [])
+      ? (context.ui.model?.variant?.list?.() ?? [])
       : Object.keys(legacy(model)?.models[model.modelID]?.variants ?? {})
   const canOpen = (kind: 'model' | 'variant', model: SelectedModel) => {
     const command = api.keymap.getCommands().find((entry) => entry.name === commandName(kind))

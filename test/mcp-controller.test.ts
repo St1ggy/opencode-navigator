@@ -50,6 +50,30 @@ function preferences(initial: Record<string, DesiredMcpState> = {}) {
   }
 }
 
+test('read-only MCP keeps live rows and does not persist actions unsupported by the active host', async () => {
+  const saved = preferences({ wiki: 'enabled' })
+  const api = {
+    route: { current: { name: 'home' } },
+    state: {
+      path: { directory: '/repo', worktree: '/repo' },
+      mcp: () => [{ name: 'wiki', status: 'connected' }],
+    },
+    client: {
+      mcp: { status: async () => ({ data: { wiki: { status: 'connected' } } }) },
+    },
+    ui: { toast: () => {} },
+  } as unknown as TuiPluginApi
+  const controller = createMcpController(api, () => true, saved.access)
+
+  expect(controller.list()[0]?.status).toBe('connected')
+  await Promise.resolve(expect(controller.toggle('wiki')).rejects.toThrow('does not expose'))
+  await Promise.resolve(
+    expect(controller.applyPreset('Offline', { wiki: 'disabled' })).rejects.toThrow('does not expose'),
+  )
+  expect(saved.values()).toEqual({ wiki: 'enabled' })
+  expect(controller.mutating()).toBe(false)
+})
+
 test('reapplies enabled and disabled MCP preferences after a session change', async () => {
   let status = 'connected'
   let isPersist = true

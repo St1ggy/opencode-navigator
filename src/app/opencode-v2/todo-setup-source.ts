@@ -1,5 +1,7 @@
 import { posix, win32 } from 'node:path'
 
+import { configurationFileCapabilities } from '../native/configuration-file-capabilities'
+
 import type { TodoSetupSource } from '../../features/native-todo-setup'
 import type { Plugin } from '@opencode/plugin/tui'
 
@@ -17,6 +19,7 @@ function configFile(path: string) {
 
 export function createTodoSetupSource(context: Plugin.Context): TodoSetupSource {
   return {
+    capabilities: () => configurationFileCapabilities(context.client),
     async entries(target, signal) {
       const entries = await context.client.config.get({ location: location(target.routing.directory) }, { signal })
 

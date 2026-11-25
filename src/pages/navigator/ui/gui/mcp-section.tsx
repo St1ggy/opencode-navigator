@@ -31,6 +31,11 @@ export function McpSection() {
         </Show>
       }
     >
+      <Show
+        when={catalogs().mcp.canChange?.('connect') === false || catalogs().mcp.canChange?.('disconnect') === false}
+      >
+        <p role="status">Some MCP connection actions are not supported here.</p>
+      </Show>
       <SectionFilter
         label="Filter MCP"
         placeholder="Filter servers and groups"

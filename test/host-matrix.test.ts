@@ -6,14 +6,16 @@ test('required TUI and packaged Desktop checks execute both compatibility endpoi
     jobs: Record<string, { steps: { run?: string }[] }>
   }
 
-  for (const [job, command] of [
-    ['opencode-smoke-v1', 'bash scripts/smoke-opencode.sh'],
-    ['opencode-smoke-v2', 'bash scripts/smoke-opencode-v2.sh'],
-    ['desktop-smoke', 'node scripts/smoke-opencode-gui.mjs'],
+  for (const [job, command, line] of [
+    ['opencode-smoke-v1', 'bash scripts/smoke-opencode.sh', 'v1'],
+    ['opencode-smoke-v2', 'bash scripts/smoke-opencode-v2.sh', 'v2'],
+    ['desktop-smoke', 'node scripts/smoke-opencode-gui.mjs', 'v2'],
   ]) {
     const commands = workflow.jobs[job].steps.map((step) => step.run).join('\n')
 
     expect(commands).toContain(`NAVIGATOR_HOST_ENDPOINT=minimum ${command}`)
-    expect(commands).toContain(`NAVIGATOR_HOST_ENDPOINT=latest ${command}`)
+    expect(commands).toContain(`latest=$(node scripts/published-host.mjs ${line})`)
+    expect(commands).toContain('NAVIGATOR_HOST_ENDPOINT=latest NAVIGATOR_HOST_VERSION="$latest"')
+    expect(commands.split(command)).toHaveLength(3)
   }
 })

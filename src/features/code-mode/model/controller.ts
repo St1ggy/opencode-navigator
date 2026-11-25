@@ -19,7 +19,7 @@ export function createCodeModeController(source: CodeModeSource, target: CodeMod
   const runs = createMemo(() => {
     revision()
 
-    return valid() ? source.runs() : []
+    return valid() && source.supported ? source.runs() : []
   })
   const active = createMemo(() => runs().filter((run) => run.status === 'running' || run.status === 'streaming'))
   let clock: ReturnType<typeof setInterval> | undefined
@@ -37,6 +37,11 @@ export function createCodeModeController(source: CodeModeSource, target: CodeMod
 
   function assertCurrent() {
     if (!valid()) throw new Error('The selected server, session or location changed. Open a new preview.')
+  }
+  function assertRoutingAvailable() {
+    const reason = source.routingUnavailable?.()
+
+    if (reason) throw new Error(reason)
   }
 
   async function refresh() {
@@ -80,8 +85,12 @@ export function createCodeModeController(source: CodeModeSource, target: CodeMod
   void refresh()
 
   return {
-    supported: source.supported,
-    reason: source.reason,
+    get supported() {
+      return source.supported
+    },
+    get reason() {
+      return source.reason
+    },
     target,
     current: valid,
     now,
@@ -95,9 +104,15 @@ export function createCodeModeController(source: CodeModeSource, target: CodeMod
     busy,
     error,
     refresh,
-    routing: (server: string) => routingState(entries(), server),
+    routing(server: string) {
+      const state = routingState(entries(), server)
+      const reason = source.routingUnavailable?.()
+
+      return reason ? { ...state, source: undefined, reason } : state
+    },
     async preview(server: string, mode: 'code' | 'direct'): Promise<RoutingPreview> {
       assertCurrent()
+      assertRoutingAvailable()
       const connection = source.identity?.() ?? source
       const currentEntries = await source.entries(lifecycle.signal)
       const state = routingState(currentEntries, server)
@@ -116,6 +131,7 @@ export function createCodeModeController(source: CodeModeSource, target: CodeMod
     },
     async apply(preview: RoutingPreview) {
       assertCurrent()
+      assertRoutingAvailable()
 
       if (applying) throw new Error('A routing update is already in progress.')
 

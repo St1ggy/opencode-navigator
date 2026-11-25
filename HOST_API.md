@@ -39,8 +39,9 @@ are not plugin APIs.
 
 Desktop support uses the independent `./gui-experimental` entry available from
 Navigator 0.27.0, not the TUI entrypoint. Earlier packages do not include this GUI.
-The Desktop floor remains 2.2.6, with 2.3.2 as the latest verified endpoint.
-The two TUI host lines remain behind explicit adapters.
+The two TUI host lines remain behind explicit adapters. Base loader requirements
+are reported in the package metadata; optional behavior is checked at the API
+boundary rather than by version.
 
 | Capability | Published Desktop contract | Navigator integration constraint |
 | --- | --- | --- |
@@ -58,12 +59,15 @@ The GUI API is experimental. Browser Web is not a verified target in this cycle.
 The renderer and headless models must remain independent of Electron so a later
 Web adapter does not require a second implementation of product rules.
 
-Verification uses an npm-style tarball in the official checksum-verified Linux
-ARM64 Desktop packages at both endpoints under Xvfb. Native macOS/Windows and multiple live
+Verification uses the same npm-style tarball in official checksum-verified Linux
+ARM64 Desktop packages under Xvfb. The earlier fixture retains the complete CDP
+interaction, geometry, and capture checks. The stable package runs native
+keyboard and AT-SPI checks because stable builds can intentionally disable CDP.
+Neither driver modifies the host package. Native macOS/Windows and multiple live
 Desktop windows are not claimed as real-host coverage; remote identity, independent
 window leases and concurrent shared-store writes are synthetic contracts. The
 unminified TUI remains limited to 360,000 bytes; the single-file GUI has its own
-600,000-byte budget (about 554 kB at the stage-10 baseline).
+675,000-byte budget.
 
 Native Settings temporarily has no mounted session and may have no active tab.
 Navigator retains only a previously observed public session reference still
@@ -223,24 +227,32 @@ justify bypassing a native API.
 
 ## Verification And Runtime
 
+MCP catalog access, connection changes, Todo projection, effective Todo
+configuration and configuration editing are separate capabilities. Their adapters
+test the relevant public methods on the active target. A readable catalog stays
+available without connection mutations; an unavailable Todo cache does not look
+like an empty list. A server that exposes read-only Todo configuration keeps
+working but does not offer Enable Todo. Changes in route, connection, feature
+enablement or permissions are not inferred from the version string.
+
 Both current hosts have isolated real-host checks. Historical installer fixtures
 exercise migration only; they do not extend the supported host matrix.
 The published 2.2.6 TUI declarations are identical to 2.2.5. OpenTUI 0.8 retains
 the drawing-only paint-hook contract; renderer tests,
 nested dialogs and frame-level typing probes run against the updated runtime.
-Development uses Bun 1.4.4 and OpenTUI 0.8.3, leaving Solid/OpenTUI external so the
+Development uses Bun 1.4.5 and OpenTUI 0.9, leaving Solid/OpenTUI external so the
 host owns its runtime. The 1.x host ships older runtime modules; its actual smoke
 must pass rather than injecting the development modules into it.
 
 OpenTUI 0.8 supports Node >=26.4.0 or Bun >=1.3.14. The updater verifies a staged
 target with an available compatible runtime before switching a recognized local
 wrapper. A lazy root import succeeding under an older Node does not prove full
-renderer/FFI support. CI and package verification use Node 26.12.1.
+renderer/FFI support. CI and package verification use Node 26.13.1.
 
 ### Deliberate Compatibility Pins
 
 - `web-tree-sitter` stays at **0.25.10**, the exact peer required by OpenTUI
-  0.8.3. Upgrade it when the supported host runtime publishes a compatible peer
+  0.9. Upgrade it when the supported host runtime publishes a compatible peer
   contract; the independent 0.27 line is not a compatible substitution.
 - `typescript` is **6.0.3**, selected to match the complete published
   `@st1ggy/linter-config` **10.0.0** preset. SonarJS and typescript-eslint JS
@@ -256,6 +268,6 @@ renderer/FFI support. CI and package verification use Node 26.12.1.
   Bun patches apply only in this repository, not transitively in consumer projects
   or the separately generated snapshot runtime manifest. Those installations may
   still report the upstream peer warning; this is not an upstream fix.
-- Bun remains pinned at **1.4.4**, the current stable release. Direct dependencies
+- Bun remains pinned at **1.4.5**. Direct dependencies
   otherwise use their latest compatible stable releases; transitive updates stay
   within upstream ranges. Runtime peers remain host-owned and are not bundled.

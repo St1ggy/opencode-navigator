@@ -2,6 +2,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import { setHostCapabilities } from '../../shared/lib/host-capabilities'
+import { sessionMessagesUnavailable } from '../native/session-message-capability'
 
 import { createV2ClientAdapter } from './client-adapter'
 import { createV2EventAdapter } from './event-adapter'
@@ -123,6 +124,11 @@ export function createOpenCodeV2Api(context: Plugin.Context) {
     permissionMode: false,
     commandsReachableOnly: true,
     nativeTodo: true,
+    get unavailable() {
+      const todo = sessionMessagesUnavailable(context.data)
+
+      return todo ? { todo } : undefined
+    },
   })
   bindToolbarActionState(context, api)
 

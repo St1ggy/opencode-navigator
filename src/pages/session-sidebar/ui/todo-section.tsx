@@ -84,7 +84,7 @@ export function TodoSection(props: {
         unavailable() || managed()?.missing(props.sessionID) ? '—' : `${view().counts.completed}/${list().length}`
       }
       headerAction={
-        native()
+        native() && !unavailable()
           ? {
               id: `${PLUGIN_ID}.todo.refresh`,
               label: () => `${icons.icon('retry')} Refresh`,

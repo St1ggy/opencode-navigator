@@ -80,5 +80,7 @@ export function createGuiCatalogSources(
         refresh(target, signal, () => mcp.refresh(target, force, signal)),
     },
     changeMcp,
+    supportsMcpChange: (action: Parameters<McpMutation>[2]) =>
+      access.current(scope) && typeof access.cache(scope).client.experimental?.mcp?.[action] === 'function',
   }
 }
