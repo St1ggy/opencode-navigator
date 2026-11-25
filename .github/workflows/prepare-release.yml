@@ -36,11 +36,11 @@ jobs:
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.4
+          bun-version: 1.4.5
       - run: bun install --frozen-lockfile
       - uses: actions/setup-node@v6
         with:
-          node-version: 26.12.1
+          node-version: 26.13.1
           package-manager-cache: false
       - name: Capture synthetic Desktop GUI states on a virtual display
         run: bun run screenshots:gui
