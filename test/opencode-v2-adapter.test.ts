@@ -175,6 +175,8 @@ test('the OpenCode 2 adapter translates skills and MCP operations', async () => 
         get: (sessionID: string) =>
           sessionID === 'session-v2' ? { location: { directory: '/workspace' } } : undefined,
         status: () => 'idle',
+        sync: async () => {},
+        message: { list: () => [], sync: async () => {} },
       },
       listen: () => () => {},
     },

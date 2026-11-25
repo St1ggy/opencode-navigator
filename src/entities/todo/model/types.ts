@@ -7,6 +7,7 @@ export type TodoTarget = {
 }
 
 export type TodoSource = {
+  unavailable?(): string | undefined
   list(sessionID: string): readonly SidebarTodo[]
   refresh(sessionID: string, signal: AbortSignal): Promise<readonly SidebarTodo[]>
   subscribe?(listener: (sessionID: string, todos: readonly SidebarTodo[]) => void): () => void

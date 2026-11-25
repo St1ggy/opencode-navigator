@@ -1,5 +1,6 @@
 import { For, Show } from 'solid-js'
 
+import { mcpToggleAction } from '../../../entities/mcp'
 import { PLUGIN_ID } from '../../../shared/config'
 
 import { ListVisibilityControl } from './list-visibility'
@@ -41,6 +42,11 @@ export function McpSectionContent(props: {
       onRetry={() => void props.controller.retry(model.target())}
     >
       <box>
+        <Show when={!model.canChange('connect') || !model.canChange('disconnect')}>
+          <text fg={props.api.theme.current.textMuted} wrapMode="word">
+            Some MCP connection actions are not supported here.
+          </text>
+        </Show>
         <McpBulkControls
           api={props.api}
           interaction={props.interaction}
@@ -82,7 +88,7 @@ export function McpSectionContent(props: {
                       bucket={item.bucket}
                       count={model.groupNames(item.bucket).length}
                       status={model.groupStatus(item.bucket)}
-                      disabled={model.bulkRunning() || model.mutationRunning()}
+                      disabled={model.bulkRunning() || model.mutationRunning() || !model.canChangeGroup(item.bucket)}
                       marginTop={index() > 0 ? 1 : 0}
                       position={{ section: props.navigationSection, row: 9 + index() * 3, column: 0 }}
                       onToggle={() =>
@@ -94,7 +100,7 @@ export function McpSectionContent(props: {
                     item={item}
                     position={{ section: props.navigationSection, row: 10 + index() * 3, column: 0 }}
                     state={props.controller.serverState(item.name, model.target())}
-                    disabled={model.bulkRunning()}
+                    disabled={model.bulkRunning() || !model.canChange(mcpToggleAction(item.status))}
                     onToggle={() => void props.controller.toggle(item.name).catch(() => {})}
                     onRetry={() => void props.controller.retryServer(item.name, model.target())?.catch(() => {})}
                     favorite={model.favorites().has(item.name)}

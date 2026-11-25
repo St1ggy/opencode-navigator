@@ -110,7 +110,13 @@ async function setupNavigator(
     selectModel,
     modelSelection,
   } = limitsModule.createProviderQuotaIntegration(api, preferences, __NAVIGATOR_VERSION__, hostContext)
-  const mcp = createMcpController(api, preferences.persistMcp, preferences, nativeSources?.mcp)
+  const mcp = createMcpController(
+    api,
+    preferences.persistMcp,
+    preferences,
+    nativeSources?.mcp,
+    hostContext ? (action) => typeof hostContext.client.experimental?.mcp?.[action] === 'function' : undefined,
+  )
   const interaction = createSidebarInteraction(api, () =>
     openKeyboardHelp(api, preferences.lspIconStyle, preferences.cornerFont, sidebarShortcutActions(api)),
   )

@@ -1,6 +1,7 @@
 import { serverFileTarget } from '../../shared/lib/server-file'
 
 import { nativeExecuteRuns } from './code-mode-runs'
+import { sessionMessagesUnavailable } from './session-message-capability'
 
 import type { CodeModeSource, CodeModeTarget } from '../../features/code-mode/model'
 import type { OpenCodeClient } from '@opencode/client'
@@ -41,13 +42,28 @@ export function createNativeCodeModeSource(
 
     return result
   }
+  function unavailable() {
+    try {
+      return sessionMessagesUnavailable(access(false).data, 'Code Mode activity')
+    } catch {
+      // A stale or disconnected target is not proof of a missing capability.
+      return
+    }
+  }
 
   return {
     identity: () => request().client,
-    supported: true,
+    get supported() {
+      return !unavailable()
+    },
+    get reason() {
+      return unavailable()
+    },
     current: isCurrent,
     runs: () => {
       const data = request().data
+
+      if (sessionMessagesUnavailable(data, 'Code Mode activity')) return []
 
       return nativeExecuteRuns(
         data.session.message.list(target.sessionID),
@@ -66,8 +82,10 @@ export function createNativeCodeModeSource(
       if (!current.current()) throw new Error('Code Mode connection changed.')
     },
     async entries(signal) {
-      const entries = await read(signal, (client) =>
-        client.config.get({ location: { directory: target.directory } }, { signal }),
+      const entries = await read(signal, async (client) =>
+        typeof client.config?.get === 'function'
+          ? client.config.get({ location: { directory: target.directory } }, { signal })
+          : [],
       )
 
       return entries.flatMap((entry) =>
@@ -75,17 +93,24 @@ export function createNativeCodeModeSource(
       )
     },
     async read(path, signal) {
-      const bytes = await read(signal, (client) => client.file.read(serverFileTarget(path), { signal }))
+      const bytes = await read(signal, (client) => {
+        if (typeof client.file?.read !== 'function') throw new Error('This OpenCode server does not expose file reads.')
+
+        return client.file.read(serverFileTarget(path), { signal })
+      })
 
       return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
     },
     async write(path, text, signal) {
-      await read(signal, (client) =>
-        client.experimental.file.write(
+      await read(signal, (client) => {
+        if (typeof client.experimental?.file?.write !== 'function')
+          throw new Error('This OpenCode server does not expose routing configuration writes.')
+
+        return client.experimental.file.write(
           { ...serverFileTarget(path), payload: new TextEncoder().encode(text) },
           { signal },
-        ),
-      )
+        )
+      })
     },
     subscribe(listener) {
       const current = access(false)

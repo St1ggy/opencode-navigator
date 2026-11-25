@@ -3,7 +3,7 @@ import type { Plugin } from '@opencode/plugin/tui'
 
 export function selectedV2Model(context: Plugin.Context): SelectedModel | undefined {
   const route = context.ui.router.current()
-  const model = context.ui.model.current()
+  const model = context.ui.model?.current?.()
 
   if (route.type !== 'session' || !model) return
 

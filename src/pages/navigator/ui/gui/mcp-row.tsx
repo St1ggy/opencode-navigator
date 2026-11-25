@@ -16,6 +16,11 @@ export function GuiMcpRow(props: { item: McpItem }) {
   const error = () => props.item.error || state().error?.message
   const routing = () => services.runtime.codeMode?.routing(props.item.name)
   const busy = () => ['loading', 'refreshing'].includes(state().status) || props.item.status === 'pending'
+  const canChange = () => {
+    const action = mcpToggleAction(props.item.status)
+
+    return Boolean(action && catalogs().mcp.canChange?.(action) !== false)
+  }
 
   return (
     <CatalogRow
@@ -73,7 +78,7 @@ export function GuiMcpRow(props: { item: McpItem }) {
                 busy={busy()}
                 label={props.item.name}
                 checked={props.item.status === 'connected'}
-                disabled={!mcpToggleAction(props.item.status) || catalogs().mcp.mutating() || busy()}
+                disabled={!canChange() || catalogs().mcp.mutating() || busy()}
                 onChange={() =>
                   void catalogs()
                     .mcp.toggle(props.item.name)

@@ -18,7 +18,11 @@ export function GuiMcpGroup(props: { group: string }) {
         item.status === 'pending' || ['loading', 'refreshing'].includes(catalogs().mcp.serverState(item.name).status),
     )
   const Button = services.ui.Button
-  const disabled = () => busy() || catalogs().mcp.mutating() || !mcpGroupToggleAction(bucket())
+  const disabled = () => {
+    const action = mcpGroupToggleAction(bucket())
+
+    return busy() || catalogs().mcp.mutating() || !action || catalogs().mcp.canChange?.(action) === false
+  }
   const toggle = () =>
     void catalogs()
       .mcp.toggleGroup(

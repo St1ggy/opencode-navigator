@@ -17,7 +17,7 @@ export function createTodoDialogs(context: Context, runtime: () => MonitoringRun
       const scope = access.capture()
       const model = value?.todoSetup
 
-      if (!value || !scope || !model) return
+      if (!value || !scope || !model || model.state(scope.target.sessionID).enableUnavailable) return
 
       context.dialogs.open((dialog) => (
         <TodoSetupDialog

@@ -61,10 +61,14 @@ export function createMonitoringRuntime(ports: MonitoringPorts) {
   lifecycle.onDispose(subagents.activate(target.sessionID))
 
   async function refreshTodo(force: boolean) {
+    if (ports.todo.unavailable?.()) return
+
     if (ports.todoSetup) {
       await ports.todoSetup.refresh(target.sessionID)
 
-      if (ports.todoSetup.state(target.sessionID).enabled !== true) return
+      const setup = ports.todoSetup.state(target.sessionID)
+
+      if (setup.enabled !== true && !setup.configurationUnavailable) return
     }
 
     return todo.refresh(target.sessionID, force)
@@ -74,6 +78,7 @@ export function createMonitoringRuntime(ports: MonitoringPorts) {
     target,
     view: createMonitoringViewState(),
     todo,
+    todoUnavailable: () => ports.todo.unavailable?.(),
     todoSetup: ports.todoSetup,
     codeMode: ports.codeMode,
     limits: ports.limits,

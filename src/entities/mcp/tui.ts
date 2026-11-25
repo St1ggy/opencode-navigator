@@ -4,7 +4,7 @@ import { currentLocation } from '../../shared/lib/location'
 import { createMcpModel } from './model/mcp-controller'
 
 import type { McpPreferencesAccess } from './model/mcp-controller'
-import type { McpSource } from './model/source'
+import type { McpMutation, McpSource } from './model/source'
 import type { TuiPluginApi } from '@opencode-ai/plugin/tui'
 
 export function createMcpController(
@@ -12,6 +12,7 @@ export function createMcpController(
   persist: () => boolean,
   preferences: McpPreferencesAccess,
   source?: McpSource,
+  supportsChange?: (action: Parameters<McpMutation>[2]) => boolean,
 ) {
   return createMcpModel(
     {
@@ -26,6 +27,7 @@ export function createMcpController(
       signal: api.lifecycle?.signal,
       notifications: { show: (input) => api.ui.toast({ ...input, duration: 4000 }) },
       cache: source ? 'source' : 'model',
+      supportsChange: (_target, action) => supportsChange?.(action) ?? typeof api.client.mcp?.[action] === 'function',
       source: source ?? {
         list: () => api.state.mcp(),
         async refresh(target, _force, signal) {

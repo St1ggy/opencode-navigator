@@ -19,7 +19,7 @@ export function createCodeModeController(source: CodeModeSource, target: CodeMod
   const runs = createMemo(() => {
     revision()
 
-    return valid() ? source.runs() : []
+    return valid() && source.supported ? source.runs() : []
   })
   const active = createMemo(() => runs().filter((run) => run.status === 'running' || run.status === 'streaming'))
   let clock: ReturnType<typeof setInterval> | undefined
@@ -80,8 +80,12 @@ export function createCodeModeController(source: CodeModeSource, target: CodeMod
   void refresh()
 
   return {
-    supported: source.supported,
-    reason: source.reason,
+    get supported() {
+      return source.supported
+    },
+    get reason() {
+      return source.reason
+    },
     target,
     current: valid,
     now,

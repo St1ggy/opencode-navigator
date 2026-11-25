@@ -17,7 +17,22 @@ export function createTodoSetupController(input: {
   const revisions = new Map<string, number>()
   const writes = new Set<string>()
   let active: SetupTarget | undefined
-  const state = (sessionID: string) => states()[input.target(sessionID).key] ?? { status: 'idle' as const }
+  const state = (sessionID: string): NativeTodoSetupState => {
+    const target = input.target(sessionID)
+    const value = states()[target.key] ?? { status: 'idle' as const }
+    const capabilities = input.source.capabilities?.(target)
+
+    if (capabilities?.read === false)
+      return {
+        status: 'idle',
+        configurationUnavailable: 'This OpenCode server does not expose the effective Todo configuration.',
+        enableUnavailable: 'This OpenCode server does not expose Todo configuration editing.',
+      }
+
+    return capabilities?.enable === false
+      ? { ...value, enableUnavailable: 'This OpenCode server does not expose Todo configuration editing.' }
+      : value
+  }
   const set = (key: string, value: NativeTodoSetupState) => setStates((previous) => ({ ...previous, [key]: value }))
   const signal = () => AbortSignal.any([input.signal, AbortSignal.timeout(10_000)])
   const current = (preview: Pick<TodoSetupPreview, 'target' | 'route'>) =>
@@ -27,6 +42,11 @@ export function createTodoSetupController(input: {
   const requireCurrent = (preview: Pick<TodoSetupPreview, 'target' | 'route'>) => {
     if (!current(preview)) throw new Error('Session or workspace changed; reopen Todo setup.')
   }
+  const requireEditing = (sessionID: string) => {
+    const reason = state(sessionID).enableUnavailable
+
+    if (reason) throw new Error(reason)
+  }
 
   async function refresh(sessionID: string) {
     const target = input.target(sessionID)
@@ -34,7 +54,10 @@ export function createTodoSetupController(input: {
 
     active = target
     revisions.set(target.key, revision)
-    set(target.key, { ...state(sessionID), status: 'loading', error: undefined })
+
+    if (state(sessionID).configurationUnavailable) return
+
+    set(target.key, { ...states()[target.key], status: 'loading', error: undefined })
     try {
       const config = todoConfig(await input.source.entries(target, signal()))
 
@@ -45,7 +68,7 @@ export function createTodoSetupController(input: {
     } catch {
       if (!input.signal.aborted && revisions.get(target.key) === revision)
         set(target.key, {
-          ...state(sessionID),
+          ...states()[target.key],
           status: 'error',
           error: 'Could not read OpenCode Todo configuration. Retry.',
         })
@@ -58,6 +81,7 @@ export function createTodoSetupController(input: {
   input.signal.addEventListener('abort', unsubscribe, { once: true })
 
   async function prepare(sessionID: string, path: string): Promise<TodoSetupPreview> {
+    requireEditing(sessionID)
     const target = input.target(sessionID)
     const route = input.route()
     const config = todoConfig(await input.source.entries(target, signal()))
@@ -77,6 +101,7 @@ export function createTodoSetupController(input: {
 
   async function apply(preview: TodoSetupPreview) {
     requireCurrent(preview)
+    requireEditing(preview.target.sessionID)
 
     if (writes.has(preview.path)) throw new Error('This configuration is already being saved.')
 
@@ -91,6 +116,7 @@ export function createTodoSetupController(input: {
       const original = await input.source.read(preview.target, preview.path, signal())
 
       requireCurrent(preview)
+      requireEditing(preview.target.sessionID)
 
       if (original !== preview.original) throw new Error('The configuration file changed; reopen the preview.')
 

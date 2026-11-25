@@ -120,6 +120,19 @@ test('GUI Todo projects native completed tools and reverts from the selected rem
   expect(() => context.todo.list('foreign-session')).toThrow('session changed')
 })
 
+test('GUI Todo distinguishes a missing public message cache from an empty Todo list', async () => {
+  const context = fixture()
+
+  Object.defineProperty(context.session.server.data.session, 'message', { value: undefined, configurable: true })
+
+  expect(context.todo.unavailable?.()).toContain('session messages')
+  expect(context.todo.list('parent')).toEqual([])
+  await Promise.resolve(
+    expect(context.todo.refresh('parent', new AbortController().signal)).rejects.toThrow('session messages'),
+  )
+  expect(context.calls).toEqual([])
+})
+
 test('retired GUI monitoring sources are inert during normal route teardown, but requests still reject', async () => {
   const context = fixture()
 
