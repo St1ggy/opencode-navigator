@@ -40,6 +40,7 @@ export NAVIGATOR_SMOKE_TOOLBAR_SCRIPT="$root/scripts/smoke-toolbar-content.tcl"
 export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
 host_version="$(node "$root/scripts/host-versions.mjs" v1 "${NAVIGATOR_HOST_ENDPOINT:-latest}")"
+printf 'OpenCode V1 smoke host: %s\n' "$host_version"
 opencode_bin="${OPENCODE_SMOKE_BIN:-$(command -v opencode || true)}"
 opencode_version="$("$opencode_bin" --version 2>/dev/null || true)"
 if [[ "$opencode_version" == "$host_version" ]]; then

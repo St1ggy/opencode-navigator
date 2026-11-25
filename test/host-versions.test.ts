@@ -2,8 +2,20 @@ import { expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 
 import metadata from '../package.json'
-import { hostVersions } from '../scripts/host-versions.mjs'
+import { hostVersions, smokeHostVersion } from '../scripts/host-versions.mjs'
+import { publishedHost } from '../scripts/published-host.mjs'
 import { requiredContexts } from '../scripts/release/guards'
+
+test('the real-host check accepts a published release independently of the installed SDK', async () => {
+  const published = '2.99.17'
+  const integrity = `sha512-${'A'.repeat(86)}==`
+  const registry = async () => Response.json({ version: published, dist: { integrity } })
+
+  expect(await publishedHost('v2', registry)).toEqual({ version: published, integrity })
+  expect(smokeHostVersion('v2', 'latest', published)).toBe(published)
+  expect(() => smokeHostVersion('v1', 'latest', published)).toThrow()
+  expect(() => smokeHostVersion('v2', 'latest', `${published}-beta.1`)).toThrow()
+})
 
 test('package admits both stable host endpoints and rejects other major lines', () => {
   for (const [line, peer] of [

@@ -64,7 +64,14 @@ for (const quotaMode of ['0', '1']) {
     const child = spawn(process.execPath, ['run', 'test:e2e:gui'], {
       cwd: root,
       stdio: 'inherit',
-      env: { ...process.env, NAVIGATOR_GUI_CAPTURE_DIR: output, NAVIGATOR_GUI_QUOTA_FIXTURE: quotaMode },
+      env: {
+        ...process.env,
+        NAVIGATOR_HOST_ENDPOINT: 'minimum',
+        NAVIGATOR_HOST_VERSION: '',
+        NAVIGATOR_GUI_DRIVER: 'cdp',
+        NAVIGATOR_GUI_CAPTURE_DIR: output,
+        NAVIGATOR_GUI_QUOTA_FIXTURE: quotaMode,
+      },
     })
 
     child.once('error', fail)

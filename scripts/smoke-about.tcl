@@ -1,74 +1,35 @@
+source [file join [file dirname [info script]] smoke-wait-frame.tcl]
 send -- "\033\[44;5u"
-expect {
-  -re {Navigator settings} {}
-  timeout { puts stderr "Settings did not open for About"; exit 1 }
-  eof { puts stderr "Host exited before About"; exit 1 }
-}
+wait_smoke_frame {Navigator settings} {Settings did not open for About}
 after 200
 send -- "\t\t\t\t\t"
-expect {
-  -re {Changelog by version} {}
-  timeout { puts stderr "About tab did not render"; exit 1 }
-}
+wait_smoke_frame {Changelog by version} {About tab did not render}
 after 150
 send -- "\033\[B\r"
-expect {
-  -re {Navigator changelog} {}
-  timeout { puts stderr "Versioned changelog did not open"; exit 1 }
-}
-expect {
-  -re {navigate} {}
-  timeout { puts stderr "Version menu did not finish loading"; exit 1 }
-}
+wait_smoke_frame {Navigator changelog} {Versioned changelog did not open}
+wait_smoke_frame {navigate} {Version menu did not finish loading}
 after 150
 send -- "\r"
-expect {
-  -re {scroll} {}
-  timeout { puts stderr "Version details did not open"; exit 1 }
-}
+wait_smoke_frame {scroll} {Version details did not open}
 send -- "\033\[27u"
 after 200
 send -- "\033\[27u"
-expect {
-  -re {Navigator settings} {}
-  timeout { puts stderr "Changelog did not return to About"; exit 1 }
-}
+wait_smoke_frame {Navigator settings} {Changelog did not return to About}
 after 150
 send -- "\033\[B\r"
-expect {
-  -re {Issue title} {}
-  timeout { puts stderr "Bug report editor did not open"; exit 1 }
-}
-expect {
-  -re {Ready} {}
-  timeout { puts stderr "Synthetic gh readiness did not resolve"; exit 1 }
-}
+wait_smoke_frame {Issue title} {Bug report editor did not open}
+wait_smoke_frame {Ready} {Synthetic gh readiness did not resolve}
 send -- "Synthetic smoke report"
-expect {
-  -re {Synthetic smoke report} {}
-  timeout { puts stderr "Bug report title did not accept input"; exit 1 }
-}
+wait_smoke_frame {Synthetic smoke report} {Bug report title did not accept input}
 send -- "\r"
 after 100
 send -- "First body line\rSecond body line"
-expect {
-  -re {Second body line} {}
-  timeout { puts stderr "Multiline report did not accept a newline"; exit 1 }
-}
+wait_smoke_frame {Second body line} {Multiline report did not accept a newline}
 send -- "\t\r"
-expect {
-  -re {Type: Bug} {}
-  timeout { puts stderr "Bug report preview did not open"; exit 1 }
-}
+wait_smoke_frame {Type: Bug} {Bug report preview did not open}
 send -- "\033\[27u"
-expect {
-  -re {Issue title|Check GitHub CLI} {}
-  timeout { puts stderr "Bug report preview did not restore the editor"; exit 1 }
-}
+wait_smoke_frame {Issue title|Check GitHub CLI} {Bug report preview did not restore the editor}
 send -- "\033\[27u"
-expect {
-  -re {Navigator settings} {}
-  timeout { puts stderr "Bug report cancellation did not return to About"; exit 1 }
-}
+wait_smoke_frame {Navigator settings} {Bug report cancellation did not return to About}
 send -- "\033\[27u"
 after 200

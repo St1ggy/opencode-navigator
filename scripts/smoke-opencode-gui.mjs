@@ -7,21 +7,29 @@ import { join, resolve as resolvePath } from 'node:path'
 import { build } from 'vite'
 
 // oxlint-disable-next-line import-x-js/extensions -- Node executes this script directly.
-import { hostVersion } from './host-versions.mjs'
+import { smokeHostVersion } from './host-versions.mjs'
 
 const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
 const root = resolvePath(import.meta.dirname, '..')
 const artifacts = await mkdtemp(join(process.env.TMPDIR ?? tmpdir(), 'navigator-gui-smoke-'))
-const desktopVersion = hostVersion('v2', process.env.NAVIGATOR_HOST_ENDPOINT)
-const image = `navigator-desktop-smoke:${desktopVersion}-${process.arch}`
-const container = `navigator-gui-smoke-${randomUUID()}`
+const endpoint = process.env.NAVIGATOR_HOST_ENDPOINT ?? 'latest'
+const desktopVersion = smokeHostVersion('v2', endpoint)
+const driver = process.env.NAVIGATOR_GUI_DRIVER ?? (endpoint === 'minimum' ? 'cdp' : 'accessibility')
+
+if (!['cdp', 'accessibility'].includes(driver)) throw new Error('Unknown Desktop smoke driver')
+
 const captureDirectory = process.env.NAVIGATOR_GUI_CAPTURE_DIR
 
 if (captureDirectory) {
+  if (driver !== 'cdp') throw new Error('Desktop captures require the reviewed CDP fixture')
+
   if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('GUI captures are restricted to the manual CI workflow')
 
   await mkdir(captureDirectory, { recursive: true })
 }
+
+const image = `navigator-desktop-smoke:${desktopVersion}-${process.arch}`
+const container = `navigator-gui-smoke-${randomUUID()}`
 
 // Bundle production presentation components into the isolated test plugin,
 // sharing the host runtime exactly as the real GUI entry does.
@@ -62,8 +70,13 @@ async function run(command, args, timeout = 300_000, capture = false) {
 const pack = JSON.parse(
   await run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', artifacts], 120_000, true),
 )[0]
+const packedFiles = new Set(pack.files.map((file) => file.path))
 
-console.log(`Isolated Desktop smoke artifacts: ${artifacts}`)
+for (const name of ['dist/tui.js', 'dist/gui-experimental.cjs', 'dist/server.js', 'dist/rpc.js']) {
+  if (!packedFiles.has(name)) throw new Error(`The packed Navigator fixture is missing ${name}; build before packing.`)
+}
+
+console.log(`Packaged OpenCode Desktop ${desktopVersion} (${driver}); isolated smoke artifacts: ${artifacts}`)
 let completed = false
 
 try {
@@ -112,6 +125,8 @@ try {
       `type=bind,src=${fixtureBundle},dst=/opt/navigator-smoke/fixture.cjs,readonly`,
       '-e',
       `NAVIGATOR_VERSION=${metadata.version}`,
+      '-e',
+      `NAVIGATOR_GUI_DRIVER=${driver}`,
       '-e',
       `NAVIGATOR_GUI_NATIVE_DIALOG_PROBE=${process.env.NAVIGATOR_GUI_NATIVE_DIALOG_PROBE ?? ''}`,
       '-e',

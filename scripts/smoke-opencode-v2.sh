@@ -45,6 +45,7 @@ export NAVIGATOR_SMOKE_FRAME_SCRIPT="$root/scripts/pty-frame.mjs"
 export NAVIGATOR_SMOKE_GH_ATTEMPTS="$temporary/gh-attempts"
 
 host_version="$(node "$root/scripts/host-versions.mjs" v2 "${NAVIGATOR_HOST_ENDPOINT:-latest}")"
+printf 'OpenCode V2 smoke host: %s\n' "$host_version"
 opencode_bin="${OPENCODE_V2_SMOKE_BIN:-$(command -v opencode2 || command -v opencode || true)}"
 if [[ -z "${OPENCODE_V2_SMOKE_BIN:-}" && -x /opt/homebrew/opt/opencode-v2/bin/opencode ]]; then
   # The interactive wrapper may load a user-specific server config; the smoke uses only its isolated fixture.

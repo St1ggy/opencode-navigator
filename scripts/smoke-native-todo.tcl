@@ -1,3 +1,4 @@
+source [file join [file dirname [info script]] smoke-wait-frame.tcl]
 set config_file [open $env(OPENCODE_V2_SMOKE_SERVER_CONFIG) r]
 set original_config [read $config_file]
 close $config_file
@@ -39,7 +40,7 @@ proc open_native_todo_setup {} {
   send -- "\033\[112;5u"
   # Warm host palettes can reuse the previous title's cells, so ANSI deltas do
   # not necessarily contain the complete title again. Verify the target below.
-  wait_native_todo_frame "Commands"
+  wait_smoke_frame {Commands|Search commands} {Todo setup command palette did not open}
   send -- "Enable native Todo"
   settle_native_todo_ui
   send -- "\r"

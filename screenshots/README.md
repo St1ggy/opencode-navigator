@@ -78,7 +78,7 @@ variable-width wrapping and the appearance editor. The
 About/report fixtures use synthetic services and never invoke authenticated
 processes, open a real browser, install an update or create GitHub issues.
 
-The current harness targets OpenCode 1.19.5 with Bun 1.4.4 and Node 26.12.1.
+The Ghostty fixture uses OpenCode 1.19.5 with Bun 1.4.5 and Node 26.13.1 for reproducibility.
 Four native-usage scenes exercise Console shared/per-model budgets, Go allowance,
 sign-in guidance, and request failure with Retry. They use the real public 2.2 usage
 adapter and Limits components with synthetic client DTOs in the Ghostty harness;

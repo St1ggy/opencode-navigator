@@ -26,11 +26,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 26.12.1
+          node-version: 26.13.1
           package-manager-cache: false
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.4
+          bun-version: 1.4.5
       - run: bun install --frozen-lockfile
       - run: bun run check
       - name: Measure TUI and GUI unit coverage
@@ -51,18 +51,19 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 26.12.1
+          node-version: 26.13.1
           package-manager-cache: false
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.4
+          bun-version: 1.4.5
       - run: bun install --frozen-lockfile
       - run: sudo apt-get update && sudo apt-get install -y expect
       - run: |
           bun run build
+          latest=$(node scripts/published-host.mjs v1)
           NAVIGATOR_HOST_ENDPOINT=minimum bash scripts/smoke-opencode.sh
-          if [[ "$(node scripts/host-versions.mjs v1 minimum)" != "$(node scripts/host-versions.mjs v1 latest)" ]]; then
-            NAVIGATOR_HOST_ENDPOINT=latest bash scripts/smoke-opencode.sh
+          if [[ "$(node scripts/host-versions.mjs v1 minimum)" != "$latest" ]]; then
+            NAVIGATOR_HOST_ENDPOINT=latest NAVIGATOR_HOST_VERSION="$latest" bash scripts/smoke-opencode.sh
           fi
 
   headless-contracts:
@@ -72,7 +73,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.4
+          bun-version: 1.4.5
       - run: bun install --frozen-lockfile
       - run: bun test --preload @opentui/solid/preload test/headless-boundaries.test.ts test/host-port-contracts.test.ts test/lease-pool.test.ts test/monitoring-runtime.test.ts
 
@@ -84,18 +85,19 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 26.12.1
+          node-version: 26.13.1
           package-manager-cache: false
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.4
+          bun-version: 1.4.5
       - run: bun install --frozen-lockfile
       - run: sudo apt-get update && sudo apt-get install -y expect
       - run: |
           bun run build
+          latest=$(node scripts/published-host.mjs v2)
           NAVIGATOR_HOST_ENDPOINT=minimum bash scripts/smoke-opencode-v2.sh
-          if [[ "$(node scripts/host-versions.mjs v2 minimum)" != "$(node scripts/host-versions.mjs v2 latest)" ]]; then
-            NAVIGATOR_HOST_ENDPOINT=latest bash scripts/smoke-opencode-v2.sh
+          if [[ "$(node scripts/host-versions.mjs v2 minimum)" != "$latest" ]]; then
+            NAVIGATOR_HOST_ENDPOINT=latest NAVIGATOR_HOST_VERSION="$latest" bash scripts/smoke-opencode-v2.sh
           fi
 
   corner-font:
@@ -117,18 +119,19 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 26.12.1
+          node-version: 26.13.1
           package-manager-cache: false
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.4
+          bun-version: 1.4.5
       - run: bun install --frozen-lockfile
       - name: Verify packed plugin in isolated Desktop
         env:
           NAVIGATOR_GUI_QUOTA_FIXTURE: ${{ matrix.mode == 'quota' && '1' || '0' }}
         run: |
           bun run build
+          latest=$(node scripts/published-host.mjs v2)
           NAVIGATOR_HOST_ENDPOINT=minimum node scripts/smoke-opencode-gui.mjs
-          if [[ "$(node scripts/host-versions.mjs v2 minimum)" != "$(node scripts/host-versions.mjs v2 latest)" ]]; then
-            NAVIGATOR_HOST_ENDPOINT=latest node scripts/smoke-opencode-gui.mjs
+          if [[ "$(node scripts/host-versions.mjs v2 minimum)" != "$latest" ]]; then
+            NAVIGATOR_HOST_ENDPOINT=latest NAVIGATOR_HOST_VERSION="$latest" NAVIGATOR_GUI_DRIVER=accessibility node scripts/smoke-opencode-gui.mjs
           fi
