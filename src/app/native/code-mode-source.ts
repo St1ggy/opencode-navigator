@@ -1,6 +1,7 @@
 import { serverFileTarget } from '../../shared/lib/server-file'
 
 import { nativeExecuteRuns } from './code-mode-runs'
+import { configurationFileCapabilities } from './configuration-file-capabilities'
 import { sessionMessagesUnavailable } from './session-message-capability'
 
 import type { CodeModeSource, CodeModeTarget } from '../../features/code-mode/model'
@@ -58,6 +59,16 @@ export function createNativeCodeModeSource(
     },
     get reason() {
       return unavailable()
+    },
+    routingUnavailable() {
+      try {
+        return configurationFileCapabilities(access(false).client).edit
+          ? undefined
+          : 'This OpenCode server does not expose routing configuration editing.'
+      } catch {
+        // The connection guard reports stale or offline targets separately.
+        return
+      }
     },
     current: isCurrent,
     runs: () => {

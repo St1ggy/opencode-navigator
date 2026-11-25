@@ -43,6 +43,7 @@ export type CodeModeSource = {
   identity?(): object
   supported: boolean
   reason?: string
+  routingUnavailable?(): string | undefined
   runs(): ExecuteRun[]
   refresh(signal: AbortSignal): Promise<void>
   entries(signal: AbortSignal): Promise<RoutingEntry[]>

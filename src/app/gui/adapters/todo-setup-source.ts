@@ -1,7 +1,7 @@
 import { createEffect, onCleanup } from 'solid-js'
 
 import { serverFileTarget } from '../../../shared/lib/server-file'
-import { todoConfigurationCapabilities } from '../../native/todo-configuration-capabilities'
+import { configurationFileCapabilities } from '../../native/configuration-file-capabilities'
 
 import type { TodoSetupSource } from '../../../features/native-todo-setup/model'
 import type { GuiSessionScope, createSelectedSessionAccess } from './selected-session'
@@ -25,7 +25,7 @@ export function createGuiTodoSetupSource(
   }
 
   return {
-    capabilities: () => (access.current(scope) ? todoConfigurationCapabilities(access.cache(scope).client) : undefined),
+    capabilities: () => (access.current(scope) ? configurationFileCapabilities(access.cache(scope).client) : undefined),
     async entries(target, signal) {
       const current = request(target)
       const entries = await current.client.config.get({ location: current.location }, { signal })

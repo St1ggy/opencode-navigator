@@ -29,7 +29,7 @@ export function createTodoSetupController(input: {
         enableUnavailable: 'This OpenCode server does not expose Todo configuration editing.',
       }
 
-    return capabilities?.enable === false
+    return capabilities?.edit === false
       ? { ...value, enableUnavailable: 'This OpenCode server does not expose Todo configuration editing.' }
       : value
   }

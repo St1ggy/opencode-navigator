@@ -1,7 +1,7 @@
 export type SetupTarget = { key: string; sessionID: string; routing: { directory: string; workspace?: string } }
 export type ConfigDocument = { path?: string; experimental?: { todo?: boolean } }
 export type TodoSetupSource = {
-  capabilities?(target: SetupTarget): { read: boolean; enable: boolean } | undefined
+  capabilities?(target: SetupTarget): { read: boolean; edit: boolean } | undefined
   entries(target: SetupTarget, signal: AbortSignal): Promise<ConfigDocument[]>
   read(target: SetupTarget, path: string, signal: AbortSignal): Promise<string>
   write(target: SetupTarget, path: string, text: string, signal: AbortSignal): Promise<void>

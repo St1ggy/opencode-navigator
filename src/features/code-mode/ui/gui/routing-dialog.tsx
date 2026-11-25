@@ -84,7 +84,7 @@ export function GuiRoutingDialog(props: { ui: Ui; model: CodeModeController; ser
               <Switch
                 label="Use Code Mode"
                 hideLabel
-                disabled={busy()}
+                disabled={busy() || !state().source}
                 checked={mode() === 'code'}
                 onChange={(checked) => setMode(checked ? 'code' : 'direct')}
               />

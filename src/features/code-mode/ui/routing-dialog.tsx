@@ -84,11 +84,18 @@ export function CodeModeRoutingDialog(props: { api: TuiPluginApi; model: CodeMod
       lift
       adaptive
       description={`Configured: ${state().mode === 'code' ? 'Code Mode' : state().mode === 'direct' ? 'Direct' : 'Unknown'}${state().explicit ? '' : ' (default/unknown)'}\nTool availability is not exposed.\n${state().reason ?? ''}\n${error()}`}
-      options={[
-        { title: 'Code Mode', value: 'code', description: 'Preview codemode: true' },
-        { title: 'Direct', value: 'direct', description: 'Preview codemode: false' },
-      ]}
-      onSelect={(option) => void prepare(option.value === 'code' ? 'code' : 'direct')}
+      options={
+        state().source
+          ? [
+              { title: 'Code Mode', value: 'code', description: 'Preview codemode: true' },
+              { title: 'Direct', value: 'direct', description: 'Preview codemode: false' },
+            ]
+          : [{ title: 'Back', value: 'back', description: 'Return without changing routing' }]
+      }
+      onSelect={(option) => {
+        if (option.value === 'back') dialogs.back()
+        else void prepare(option.value === 'code' ? 'code' : 'direct')
+      }}
     />
   )
 }

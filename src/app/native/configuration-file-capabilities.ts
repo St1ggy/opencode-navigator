@@ -1,4 +1,4 @@
-export function todoConfigurationCapabilities(client?: {
+export function configurationFileCapabilities(client?: {
   config?: { get?: unknown }
   file?: { read?: unknown }
   experimental?: { file?: { write?: unknown } }
@@ -7,6 +7,6 @@ export function todoConfigurationCapabilities(client?: {
 
   return {
     read,
-    enable: read && typeof client?.file?.read === 'function' && typeof client?.experimental?.file?.write === 'function',
+    edit: read && typeof client?.file?.read === 'function' && typeof client?.experimental?.file?.write === 'function',
   }
 }
