@@ -4,6 +4,8 @@ FROM --platform=linux/arm64 ubuntu:26.04@sha256:e03767b4dc7cb87fc57b1f119d40d9a9
 
 ARG CA_CERTIFICATES_VERSION=20260816ubuntu0.26.04.2
 ARG GHOSTTY_VERSION=1.3.0~us1-0ubuntu1.1
+ARG GHOSTTY_SNAPSHOT=20261120T000000Z
+ARG GHOSTTY_SHA256=5f0f2e1041bd609358fba5ddb15cebfcbbde299a41d1d68276701281ef8115b6
 ARG OPENCODE_VERSION=1.19.5
 ARG OPENCODE_SHA256=ba14f4ce5c8fe567a00bac1c50aafe7eda6e1de7aa37964994c66148a28d529a
 ARG NODE_VERSION=26.13.1
@@ -14,13 +16,16 @@ ARG NERD_FONT_SHA256=ef552a3e638f25125c6ad4c51176a6adcdce295ab1d2ffacf0db060caf8
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update --error-on=any \
+    && apt-get install -y --no-install-recommends ca-certificates="$CA_CERTIFICATES_VERSION" curl \
+    && curl --fail --show-error --silent --location --retry 3 --connect-timeout 20 --max-time 180 \
+      --output /tmp/ghostty.deb \
+      "https://snapshot.ubuntu.com/ubuntu/${GHOSTTY_SNAPSHOT}/pool/universe/g/ghostty/ghostty_${GHOSTTY_VERSION}_arm64.deb" \
+    && printf '%s  %s\n' "$GHOSTTY_SHA256" /tmp/ghostty.deb | sha256sum -c - \
     && apt-get install -y --no-install-recommends \
-      ca-certificates="$CA_CERTIFICATES_VERSION" \
-      curl \
       dbus-x11 \
       fontconfig \
       fonts-noto-color-emoji \
-      ghostty="$GHOSTTY_VERSION" \
+      /tmp/ghostty.deb \
       imagemagick \
       libgl1-mesa-dri \
       mesa-utils \
@@ -32,6 +37,8 @@ RUN apt-get update --error-on=any \
       xdotool \
       xvfb \
       xz-utils \
+    && test "$(dpkg-query -W -f='${Version}' ghostty)" = "$GHOSTTY_VERSION" \
+    && rm /tmp/ghostty.deb \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
