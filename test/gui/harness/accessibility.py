@@ -8,7 +8,7 @@ import pyatspi
 
 
 def named_nodes(root, depth=0):
-    if root is None or depth > 30:
+    if root is None or depth > 48:
         return
     try:
         if root.name:
@@ -83,6 +83,8 @@ def main():
         click_node(subagents)
     wait("Filter Subagents")
     wait("Synthetic child session", role=pyatspi.ROLE_PUSH_BUTTON, showing=False)
+    wait("Recent 1", showing=False)
+    wait("Active 0", showing=False)
 
     if os.environ.get("NAVIGATOR_GUI_QUOTA_FIXTURE") == "1":
         click("Synthetic fixture commands")
@@ -90,7 +92,9 @@ def main():
         click("Link Codex account")
         wait("synthetic-account")
         click("Link account")
-        wait("Credits: 1234.57")
+        wait("Credits", showing=False)
+        wait("1234.57", showing=False)
+        wait("Quota remaining", prefix=True, showing=False)
         wait("Banked Resets (1)")
 
     print("Packaged OpenCode Desktop accessibility smoke passed.", flush=True)
